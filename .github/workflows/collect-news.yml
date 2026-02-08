@@ -1,0 +1,42 @@
+name: Collect AI News Daily
+
+on:
+  schedule:
+    # 매일 오전 6시 (UTC 21:00 = KST 06:00)
+    - cron: '0 21 * * *'
+  workflow_dispatch: # 수동 실행 허용
+
+jobs:
+  collect-news:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          cd scripts
+          pip install -r requirements.txt
+
+      - name: Run news collection script
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          FIREBASE_CREDENTIALS: ${{ secrets.FIREBASE_CREDENTIALS }}
+        run: |
+          cd scripts
+          python collect_news.py
+
+      - name: Notify completion
+        if: always()
+        run: |
+          if [ $? -eq 0 ]; then
+            echo "✅ News collection completed successfully"
+          else
+            echo "❌ News collection failed"
+          fi

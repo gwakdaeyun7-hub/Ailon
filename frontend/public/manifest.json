@@ -1,0 +1,24 @@
+{
+  "name": "AI Learning Companion",
+  "short_name": "AI Learn",
+  "description": "매일 AI 뉴스와 학문 원리를 학습하고 창의적인 아이디어를 생성하세요",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
