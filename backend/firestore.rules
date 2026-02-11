@@ -18,7 +18,19 @@ service cloud.firestore {
       allow write: if false; // 서버에서만 쓰기 (GitHub Actions)
     }
 
-    // Principles collection - 모두 읽기 가능
+    // Daily principles (에이전트 생성) - 모두 읽기 가능
+    match /daily_principles/{date} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Daily ideas (에이전트 생성) - 모두 읽기 가능
+    match /daily_ideas/{date} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Principles collection (레거시) - 모두 읽기 가능
     match /principles/{principleId} {
       allow read: if true; // 누구나 읽기 가능
       allow write: if false; // 서버에서만 쓰기

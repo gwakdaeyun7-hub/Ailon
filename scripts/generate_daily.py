@@ -1,0 +1,180 @@
+"""
+일일 전체 파이프라인 - 3개 에이전트 팀 순차 실행
+1. 뉴스 에이전트 팀 → daily_news 컬렉션
+2. 학문 원리 에이전트 팀 → daily_principles 컬렉션
+3. 융합 아이디어 에이전트 팀 → daily_ideas 컬렉션
+
+매일 GitHub Actions에서 실행됩니다.
+"""
+
+import sys
+import os
+from datetime import datetime, timedelta
+from firebase_admin import firestore
+
+# scripts 디렉토리를 path에 추가
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from agents.config import (
+    initialize_firebase,
+    get_firestore_client,
+    get_today_discipline_key,
+    get_discipline_info,
+)
+from agents.news_team import run_news_team
+from agents.knowledge_team import run_knowledge_team
+from agents.idea_team import run_idea_team
+
+
+def save_news_to_firestore(result: dict):
+    """뉴스 결과를 Firestore에 저장"""
+    db = get_firestore_client()
+    today = datetime.now().strftime("%Y-%m-%d")
+
+    doc_ref = db.collection("daily_news").document(today)
+    doc_data = {
+        "date": today,
+        "articles": result["final_articles"],
+        "count": len(result["final_articles"]),
+        "daily_overview": result.get("daily_overview", ""),
+        "highlight": result.get("highlight", {}),
+        "themes": result.get("themes", []),
+        "agent_metadata": {
+            "collected_count": len(result.get("raw_articles", [])),
+            "analyzed_count": len(result.get("analyzed_articles", [])),
+            "curated_count": len(result.get("curated_articles", [])),
+            "final_count": len(result["final_articles"]),
+            "run_timestamp": datetime.now().isoformat(),
+        },
+        "updated_at": firestore.SERVER_TIMESTAMP,
+    }
+    doc_ref.set(doc_data)
+    print(f"  💾 뉴스 {len(result['final_articles'])}개 저장 완료")
+
+
+def save_principles_to_firestore(result: dict):
+    """학문 원리 결과를 Firestore에 저장"""
+    db = get_firestore_client()
+    today = datetime.now().strftime("%Y-%m-%d")
+
+    doc_ref = db.collection("daily_principles").document(today)
+    doc_data = {
+        "date": today,
+        "discipline_key": result.get("discipline_key", ""),
+        "discipline_info": result.get("discipline_info", {}),
+        "principles": result.get("final_principles", []),
+        "today_principle": result.get("today_principle", {}),
+        "count": len(result.get("final_principles", [])),
+        "updated_at": firestore.SERVER_TIMESTAMP,
+    }
+    doc_ref.set(doc_data)
+    print(f"  💾 학문 원리 {len(result.get('final_principles', []))}개 저장 완료")
+
+
+def save_ideas_to_firestore(result: dict, news_result: dict, knowledge_result: dict):
+    """융합 아이디어 결과를 Firestore에 저장"""
+    db = get_firestore_client()
+    today = datetime.now().strftime("%Y-%m-%d")
+
+    doc_ref = db.collection("daily_ideas").document(today)
+    doc_data = {
+        "date": today,
+        "ideas": result.get("final_ideas", []),
+        "count": len(result.get("final_ideas", [])),
+        "source_news_count": len(news_result.get("final_articles", [])),
+        "source_discipline": knowledge_result.get("discipline_key", ""),
+        "source_principle": knowledge_result.get("today_principle", {}).get("title", ""),
+        "agent_metadata": {
+            "problems_found": len(result.get("problems", [])),
+            "ideas_generated": len(result.get("raw_ideas", [])),
+            "ideas_evaluated": len(result.get("evaluated_ideas", [])),
+            "ideas_final": len(result.get("final_ideas", [])),
+            "run_timestamp": datetime.now().isoformat(),
+        },
+        "updated_at": firestore.SERVER_TIMESTAMP,
+    }
+    doc_ref.set(doc_data)
+    print(f"  💾 융합 아이디어 {len(result.get('final_ideas', []))}개 저장 완료")
+
+
+def cleanup_old_data(keep_days: int = 30):
+    """30일보다 오래된 데이터를 Firestore에서 삭제"""
+    db = get_firestore_client()
+    cutoff_date = (datetime.now() - timedelta(days=keep_days)).strftime("%Y-%m-%d")
+
+    collections = ["daily_news", "daily_principles", "daily_ideas"]
+    total_deleted = 0
+
+    for col_name in collections:
+        col_ref = db.collection(col_name)
+        # date 필드가 cutoff_date보다 이전인 문서 조회
+        old_docs = col_ref.where("date", "<", cutoff_date).stream()
+
+        deleted = 0
+        for doc in old_docs:
+            doc.reference.delete()
+            deleted += 1
+
+        if deleted > 0:
+            print(f"  🗑 {col_name}: {deleted}개 문서 삭제 (기준: {cutoff_date} 이전)")
+        total_deleted += deleted
+
+    if total_deleted == 0:
+        print(f"  ✓ 정리할 데이터 없음 (최근 {keep_days}일 이내만 존재)")
+    else:
+        print(f"  ✓ 총 {total_deleted}개 문서 정리 완료")
+
+
+def main():
+    """전체 일일 파이프라인 실행"""
+    print("=" * 60)
+    print("🚀 AI Learning Companion - Daily Agent Pipeline")
+    print(f"📅 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print("=" * 60)
+
+    # Firebase 초기화
+    initialize_firebase()
+
+    # ─── Step 1: 뉴스 에이전트 팀 ───
+    print("\n" + "─" * 40)
+    print("📰 Step 1/3: 뉴스 에이전트 팀")
+    print("─" * 40)
+    news_result = run_news_team()
+    save_news_to_firestore(news_result)
+
+    # ─── Step 2: 학문 원리 에이전트 팀 ───
+    print("\n" + "─" * 40)
+    print("📚 Step 2/3: 학문 원리 에이전트 팀")
+    print("─" * 40)
+    discipline_key = get_today_discipline_key()
+    knowledge_result = run_knowledge_team(discipline_key)
+    save_principles_to_firestore(knowledge_result)
+
+    # ─── Step 3: 융합 아이디어 에이전트 팀 ───
+    print("\n" + "─" * 40)
+    print("💡 Step 3/3: 융합 아이디어 에이전트 팀")
+    print("─" * 40)
+    idea_result = run_idea_team(
+        news_articles=news_result.get("final_articles", []),
+        today_principle=knowledge_result.get("today_principle", {}),
+        discipline_info=knowledge_result.get("discipline_info", {}),
+    )
+    save_ideas_to_firestore(idea_result, news_result, knowledge_result)
+
+    # ─── Step 4: 30일 초과 데이터 정리 ───
+    print("\n" + "─" * 40)
+    print("🧹 Step 4: 오래된 데이터 정리")
+    print("─" * 40)
+    cleanup_old_data(keep_days=30)
+
+    # ─── 완료 리포트 ───
+    print("\n" + "=" * 60)
+    print("✅ Daily Agent Pipeline 완료!")
+    print(f"   📰 뉴스: {len(news_result.get('raw_articles', []))}개 수집 → {len(news_result.get('final_articles', []))}개 큐레이션")
+    print(f"   📚 원리: {knowledge_result.get('discipline_info', {}).get('name', '?')} → {len(knowledge_result.get('final_principles', []))}개 생성")
+    print(f"   💡 아이디어: {len(idea_result.get('problems', []))}개 문제 → {len(idea_result.get('final_ideas', []))}개 융합 아이디어")
+    print("=" * 60)
+
+
+if __name__ == "__main__":
+    main()

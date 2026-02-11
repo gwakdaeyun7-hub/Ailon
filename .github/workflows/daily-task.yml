@@ -1,4 +1,4 @@
-name: Collect AI News Daily
+name: Daily Scheduled Task
 
 on:
   schedule:
@@ -7,8 +7,9 @@ on:
   workflow_dispatch: # 수동 실행 허용
 
 jobs:
-  collect-news:
+  run-agent-pipeline:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Checkout repository
@@ -24,19 +25,19 @@ jobs:
           cd scripts
           pip install -r requirements.txt
 
-      - name: Run news collection script
+      - name: Run daily agent pipeline
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           FIREBASE_CREDENTIALS: ${{ secrets.FIREBASE_CREDENTIALS }}
         run: |
           cd scripts
-          python collect_news.py
+          python generate_daily.py
 
       - name: Notify completion
         if: always()
         run: |
           if [ $? -eq 0 ]; then
-            echo "✅ News collection completed successfully"
+            echo "✅ Daily agent pipeline completed successfully"
           else
-            echo "❌ News collection failed"
+            echo "❌ Daily agent pipeline failed"
           fi

@@ -1,5 +1,5 @@
 /**
- * 뉴스 데이터 관리 Hook
+ * 뉴스 데이터 관리 Hook - 에이전트 팀 결과 지원
  */
 
 'use client';
@@ -11,6 +11,9 @@ import type { DailyNews, Article } from '@/lib/types';
 
 export function useNews() {
   const [news, setNews] = useState<Article[]>([]);
+  const [dailyOverview, setDailyOverview] = useState<string>('');
+  const [highlight, setHighlight] = useState<Article | null>(null);
+  const [themes, setThemes] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,9 +30,10 @@ export function useNews() {
         const newsRef = doc(db, 'daily_news', today);
         const newsDoc = await getDoc(newsRef);
 
+        let data: DailyNews | null = null;
+
         if (newsDoc.exists()) {
-          const data = newsDoc.data() as DailyNews;
-          setNews(data.articles || []);
+          data = newsDoc.data() as DailyNews;
         } else {
           // 오늘 뉴스가 없으면 어제 뉴스 가져오기
           const yesterday = new Date(Date.now() - 86400000)
@@ -39,11 +43,17 @@ export function useNews() {
           const yesterdayDoc = await getDoc(yesterdayRef);
 
           if (yesterdayDoc.exists()) {
-            const data = yesterdayDoc.data() as DailyNews;
-            setNews(data.articles || []);
-          } else {
-            setNews([]);
+            data = yesterdayDoc.data() as DailyNews;
           }
+        }
+
+        if (data) {
+          setNews(data.articles || []);
+          setDailyOverview(data.daily_overview || '');
+          setHighlight(data.highlight || null);
+          setThemes(data.themes || []);
+        } else {
+          setNews([]);
         }
       } catch (err) {
         console.error('Error fetching news:', err);
@@ -56,5 +66,5 @@ export function useNews() {
     fetchNews();
   }, []);
 
-  return { news, loading, error };
+  return { news, dailyOverview, highlight, themes, loading, error };
 }
