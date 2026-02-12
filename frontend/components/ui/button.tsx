@@ -1,13 +1,6 @@
 /**
- * Button Component (shadcn/ui style)
- *
- * UX Improvements:
- * - Smoother transition timing (200ms with ease-out)
- * - Better focus-visible ring using brand color
- * - Increased touch targets (minimum h-10 for mobile accessibility)
- * - Added ring-offset for background contrast on focus
- * - Rounded-lg default for softer, more modern feel
- * - Text sizing uses system-friendly sizes
+ * Button Component - minimal flat design
+ * Black primary, clean outline, subtle ghost
  */
 
 import * as React from 'react';
@@ -24,21 +17,21 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     return (
       <button
         className={cn(
-          'inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50',
+          'inline-flex items-center justify-center rounded-lg font-medium transition-opacity duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-40',
           {
-            'bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 hover:shadow-md active:shadow-sm':
+            'bg-foreground text-background hover:opacity-80':
               variant === 'default',
-            'border border-input bg-background hover:bg-accent/50 hover:text-accent-foreground hover:border-primary/20':
+            'border border-border bg-background text-foreground hover:bg-muted':
               variant === 'outline',
-            'hover:bg-accent/50 hover:text-accent-foreground':
+            'text-foreground hover:bg-muted':
               variant === 'ghost',
-            'bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90':
+            'bg-destructive text-destructive-foreground hover:opacity-80':
               variant === 'destructive',
           },
           {
             'h-10 px-4 py-2 text-sm': size === 'default',
-            'h-9 rounded-lg px-3 text-caption': size === 'sm',
-            'h-12 rounded-lg px-8 text-base': size === 'lg',
+            'h-9 px-3 text-caption': size === 'sm',
+            'h-12 px-8 text-sm': size === 'lg',
             'h-10 w-10': size === 'icon',
           },
           className

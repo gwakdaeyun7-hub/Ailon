@@ -1,12 +1,6 @@
 /**
- * 홈페이지 - 메인 대시보드
- *
- * UX Improvements:
- * - Time-of-day contextual greeting for daily ritual feeling
- * - Formatted date display (Korean locale)
- * - Increased section spacing with visual dividers
- * - Subtle entry animations for content sections
- * - Reduced hero section visual weight to let content shine
+ * Homepage - clean, minimal layout inspired by Newneek (뉴닉)
+ * Content-first approach with generous whitespace
  */
 
 import { NewsSection } from '@/components/NewsSection';
@@ -38,42 +32,26 @@ export default function HomePage() {
   const formattedDate = getFormattedDate();
 
   return (
-    <div className="container mx-auto px-4 md:px-6 py-8 md:py-12">
+    <div className="container mx-auto max-w-3xl px-6 py-12 md:py-20">
       {/* Hero Section */}
-      <section className="text-center space-y-4 py-6 md:py-10 mb-4">
-        {/* Date badge */}
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/5 border border-primary/10">
-          <span className="text-caption text-primary font-medium">
-            {formattedDate}
-          </span>
-        </div>
-
-        <h1 className="text-hero-sm md:text-hero gradient-text text-shadow-sm">
+      <section className="mb-16 md:mb-24">
+        <p className="text-caption text-muted-foreground mb-4">
+          {formattedDate}
+        </p>
+        <h1 className="text-hero-sm md:text-hero text-foreground mb-4">
           {greeting}
         </h1>
-        <p className="text-body-kr text-muted-foreground max-w-xl mx-auto leading-korean-tight">
+        <p className="text-body-kr text-muted-foreground max-w-lg leading-korean-tight">
           최신 AI 뉴스와 학문의 기본 원리를 학습하고,
-          <br className="hidden sm:block" />
           이를 융합한 창의적인 아이디어를 발견하세요.
         </p>
       </section>
 
-      {/* Content Sections with increased spacing and visual separation */}
-      <div className="space-y-16 md:space-y-22">
-        {/* 뉴스 섹션 */}
-        <div className="animate-fade-in-up">
-          <NewsSection />
-        </div>
-
-        {/* 학문 원리 섹션 */}
-        <div className="section-divider animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-          <PrincipleSection />
-        </div>
-
-        {/* 아이디어 생성 섹션 */}
-        <div className="section-divider animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-          <IdeaSection />
-        </div>
+      {/* Content Sections */}
+      <div className="space-y-20 md:space-y-28">
+        <NewsSection />
+        <PrincipleSection />
+        <IdeaSection />
       </div>
     </div>
   );

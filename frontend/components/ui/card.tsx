@@ -1,12 +1,6 @@
 /**
- * Card Component (shadcn/ui style)
- *
- * UX Improvements:
- * - Softer default shadow using brand-aware shadow tokens
- * - Increased border-radius (rounded-xl) for modern feel
- * - Better card padding responsive to screen size
- * - Improved CardTitle with tighter tracking for Korean
- * - CardDescription uses Korean-optimized line height
+ * Card Component - minimal design
+ * Very subtle border, no shadow, clean padding
  */
 
 import * as React from 'react';
@@ -19,7 +13,7 @@ const Card = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      'rounded-xl border bg-card text-card-foreground shadow-card transition-shadow duration-200',
+      'rounded-lg border border-border bg-card text-card-foreground',
       className
     )}
     {...props}
@@ -45,7 +39,7 @@ const CardTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <h3
     ref={ref}
-    className={cn('text-xl font-semibold leading-snug tracking-tight', className)}
+    className={cn('text-lg font-semibold leading-snug tracking-tight', className)}
     {...props}
   />
 ));

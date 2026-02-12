@@ -1,84 +1,64 @@
 /**
- * 헤더 컴포넌트 - 네비게이션 및 인증
- *
- * UX Improvements:
- * - Korean-friendly brand name "Ailon" with gradient styling
- * - Larger touch targets for mobile (min 44px)
- * - Improved visual hierarchy between brand and auth section
- * - Better loading skeleton proportions
- * - Dark mode toggle placeholder ready
+ * Header - minimal navigation inspired by Newneek
+ * Clean text logo, simple auth, white background
  */
 
 'use client';
 
 import { useAuth } from '@/lib/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { LogIn, LogOut, User, Sparkles } from 'lucide-react';
+import { LogIn, LogOut, User } from 'lucide-react';
 
 export function Header() {
   const { user, loading, signInWithGoogle, signOut } = useAuth();
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
-        {/* Logo & Brand */}
-        <div className="flex items-center gap-2.5">
-          <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary/10">
-            <Sparkles className="h-5 w-5 text-primary" />
-          </div>
-          <div className="flex flex-col">
-            <h1 className="text-lg font-bold leading-tight gradient-text">
-              Ailon
-            </h1>
-            <span className="hidden sm:block text-[10px] text-muted-foreground leading-none -mt-0.5">
-              AI Learning Companion
-            </span>
-          </div>
-        </div>
+    <header className="sticky top-0 z-50 w-full bg-background border-b border-border">
+      <div className="container mx-auto max-w-3xl flex h-14 items-center justify-between px-6">
+        {/* Logo */}
+        <h1 className="text-lg font-extrabold tracking-tight text-foreground">
+          Ailon
+        </h1>
 
-        {/* Navigation & Auth */}
+        {/* Auth */}
         <div className="flex items-center gap-3">
           {loading ? (
-            <div className="flex items-center gap-3">
-              <div className="hidden sm:block h-4 w-20 animate-pulse rounded bg-muted skeleton-shimmer" />
-              <div className="h-9 w-24 animate-pulse rounded-lg bg-muted skeleton-shimmer" />
-            </div>
+            <div className="h-8 w-20 animate-pulse rounded bg-muted" />
           ) : user ? (
             <div className="flex items-center gap-3">
-              <div className="hidden sm:flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-secondary/60">
+              <div className="hidden sm:flex items-center gap-2">
                 {user.photoURL ? (
                   <img
                     src={user.photoURL}
                     alt={user.displayName || '사용자'}
-                    className="h-7 w-7 rounded-full ring-2 ring-primary/20"
+                    className="h-6 w-6 rounded-full"
                   />
                 ) : (
-                  <div className="flex items-center justify-center h-7 w-7 rounded-full bg-primary/10">
-                    <User className="h-4 w-4 text-primary" />
-                  </div>
+                  <User className="h-4 w-4 text-muted-foreground" />
                 )}
-                <span className="text-sm font-medium text-foreground max-w-[120px] truncate">
+                <span className="text-sm text-foreground max-w-[120px] truncate">
                   {user.displayName || user.email}
                 </span>
               </div>
               <Button
                 onClick={signOut}
-                variant="outline"
+                variant="ghost"
                 size="sm"
-                className="h-9 text-caption"
+                className="text-caption text-muted-foreground hover:text-foreground"
               >
                 <LogOut className="h-4 w-4 mr-1.5" />
-                <span className="hidden xs:inline">로그아웃</span>
+                <span className="hidden sm:inline">로그아웃</span>
               </Button>
             </div>
           ) : (
             <Button
               onClick={signInWithGoogle}
+              variant="outline"
               size="sm"
-              className="h-9 px-4 shadow-sm"
+              className="text-sm"
             >
               <LogIn className="h-4 w-4 mr-1.5" />
-              Google 로그인
+              로그인
             </Button>
           )}
         </div>
