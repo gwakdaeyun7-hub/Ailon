@@ -1,6 +1,16 @@
 /**
  * AI-학문 융합 아이디어 섹션
  * 에이전트 팀이 매일 생성한 아이디어 표시 + 온디맨드 추가 생성
+ *
+ * UX Improvements:
+ * - Section-specific amber/warm accent for creative energy feeling
+ * - Visual score bars instead of just numbers for quick scanning
+ * - Smoother accordion with animated expand/collapse
+ * - Better CTA design with gradient button for primary action
+ * - Improved error states with empathetic, actionable messaging
+ * - Source connection displayed more elegantly
+ * - Tags with warm accent color for consistency
+ * - Better narrative presentation with reading-friendly typography
  */
 
 'use client';
@@ -14,20 +24,56 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import {
   Sparkles, Loader2, AlertCircle, Target, Lightbulb,
-  TrendingUp, ChevronDown, ChevronUp,
+  ChevronDown, ChevronUp, Zap, LogIn,
 } from 'lucide-react';
 
-function ScoreBadge({ label, score }: { label: string; score?: number }) {
+function ScoreBar({ label, score }: { label: string; score?: number }) {
   if (!score) return null;
-  const color =
-    score >= 8 ? 'text-green-600 bg-green-50 dark:bg-green-950 dark:text-green-300' :
-    score >= 5 ? 'text-yellow-600 bg-yellow-50 dark:bg-yellow-950 dark:text-yellow-300' :
-    'text-red-600 bg-red-50 dark:bg-red-950 dark:text-red-300';
+
+  const percentage = (score / 10) * 100;
+  const colorClass =
+    score >= 8
+      ? 'bg-emerald-500 dark:bg-emerald-400'
+      : score >= 5
+      ? 'bg-amber-500 dark:bg-amber-400'
+      : 'bg-red-500 dark:bg-red-400';
+
+  const textColor =
+    score >= 8
+      ? 'text-emerald-700 dark:text-emerald-300'
+      : score >= 5
+      ? 'text-amber-700 dark:text-amber-300'
+      : 'text-red-700 dark:text-red-300';
 
   return (
-    <span className={`px-2 py-1 rounded text-xs font-medium ${color}`}>
-      {label} {score}/10
-    </span>
+    <div className="flex-1 min-w-[100px]">
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-xs text-muted-foreground">{label}</span>
+        <span className={`text-xs font-semibold ${textColor}`}>{score}/10</span>
+      </div>
+      <div className="score-bar">
+        <div
+          className={`score-bar-fill ${colorClass}`}
+          style={{ width: `${percentage}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function SectionHeader() {
+  return (
+    <div className="flex items-center gap-3">
+      <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/40">
+        <Lightbulb className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+      </div>
+      <div>
+        <h2 className="text-section">AI-학문 융합 아이디어</h2>
+        <p className="text-caption text-muted-foreground mt-0.5">
+          뉴스와 학문 원리가 만나 새로운 아이디어가 탄생합니다
+        </p>
+      </div>
+    </div>
   );
 }
 
@@ -95,80 +141,103 @@ export function IdeaSection() {
   };
 
   return (
-    <section className="space-y-6">
-      <div className="flex items-center gap-2">
-        <Sparkles className="h-6 w-6 text-primary" />
-        <h2 className="text-2xl font-bold">AI-학문 융합 아이디어</h2>
-      </div>
+    <section className="space-y-8">
+      <SectionHeader />
 
       {/* 에이전트 팀이 생성한 아이디어 */}
       {ideasLoading ? (
-        <Card className="animate-pulse">
-          <CardHeader>
-            <div className="h-6 bg-muted rounded w-2/3" />
-            <div className="h-4 bg-muted rounded w-1/2" />
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="h-4 bg-muted rounded" />
-              <div className="h-4 bg-muted rounded" />
-              <div className="h-4 bg-muted rounded w-4/5" />
-            </div>
-          </CardContent>
-        </Card>
-      ) : ideas.length > 0 ? (
         <div className="space-y-4">
+          {[...Array(2)].map((_, i) => (
+            <Card key={i}>
+              <CardHeader>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="h-5 w-5 bg-muted rounded skeleton-shimmer" />
+                  <div className="h-6 bg-muted rounded skeleton-shimmer w-2/3" />
+                </div>
+                <div className="flex gap-3 mt-3">
+                  <div className="flex-1 space-y-1.5">
+                    <div className="h-3 bg-muted rounded skeleton-shimmer w-1/2" />
+                    <div className="h-1.5 bg-muted rounded-full skeleton-shimmer" />
+                  </div>
+                  <div className="flex-1 space-y-1.5">
+                    <div className="h-3 bg-muted rounded skeleton-shimmer w-1/2" />
+                    <div className="h-1.5 bg-muted rounded-full skeleton-shimmer" />
+                  </div>
+                  <div className="flex-1 space-y-1.5">
+                    <div className="h-3 bg-muted rounded skeleton-shimmer w-1/2" />
+                    <div className="h-1.5 bg-muted rounded-full skeleton-shimmer" />
+                  </div>
+                </div>
+              </CardHeader>
+            </Card>
+          ))}
+        </div>
+      ) : ideas.length > 0 ? (
+        <div className="space-y-5">
           {/* 소스 정보 */}
           {(sourceDiscipline || sourcePrinciple) && (
-            <p className="text-sm text-muted-foreground">
-              오늘의 융합: <span className="font-medium text-primary">{sourcePrinciple}</span>
-              {sourceDiscipline && (
-                <> ({sourceDiscipline})</>
-              )}
-              {' '}+ AI 최신 뉴스
-            </p>
+            <div className="flex items-center gap-2 text-body-kr text-muted-foreground">
+              <Zap className="h-4 w-4 text-amber-500 flex-shrink-0" />
+              <span>
+                오늘의 융합: <span className="font-medium text-foreground">{sourcePrinciple}</span>
+                {sourceDiscipline && (
+                  <span className="text-muted-foreground"> ({sourceDiscipline})</span>
+                )}
+                {' '}+ AI 최신 뉴스
+              </span>
+            </div>
           )}
 
           {ideas.map((idea, index) => (
             <Card
               key={index}
-              className={`border-2 transition-all cursor-pointer ${
+              className={`transition-all duration-300 cursor-pointer group ${
                 expandedIdea === index
-                  ? 'border-primary/40 shadow-lg'
-                  : 'border-border hover:border-primary/20'
+                  ? 'shadow-card-active border-amber-200/60 dark:border-amber-800/30'
+                  : 'card-interactive'
               }`}
               onClick={() => setExpandedIdea(expandedIdea === index ? null : index)}
             >
-              <CardHeader>
-                <div className="flex items-start justify-between">
+              <CardHeader className="pb-4">
+                <div className="flex items-start justify-between gap-3">
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Lightbulb className="h-5 w-5 text-yellow-500" />
-                      <CardTitle className="text-lg">{idea.concept_name}</CardTitle>
+                    <div className="flex items-center gap-2.5 mb-3">
+                      <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-950/30">
+                        <Lightbulb className="h-4 w-4 text-amber-500" />
+                      </div>
+                      <CardTitle className="text-card-title group-hover:text-primary transition-colors">
+                        {idea.concept_name}
+                      </CardTitle>
                     </div>
-                    {/* 점수 배지 */}
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      <ScoreBadge label="실현성" score={idea.feasibility_score} />
-                      <ScoreBadge label="혁신성" score={idea.novelty_score} />
-                      <ScoreBadge label="영향력" score={idea.impact_score} />
+                    {/* Score bars */}
+                    <div className="flex gap-4 flex-wrap">
+                      <ScoreBar label="실현성" score={idea.feasibility_score} />
+                      <ScoreBar label="혁신성" score={idea.novelty_score} />
+                      <ScoreBar label="영향력" score={idea.impact_score} />
                     </div>
                   </div>
-                  <div className="flex-shrink-0 ml-2">
-                    {expandedIdea === index ? (
-                      <ChevronUp className="h-5 w-5 text-muted-foreground" />
-                    ) : (
-                      <ChevronDown className="h-5 w-5 text-muted-foreground" />
-                    )}
+                  <div className="flex-shrink-0 mt-1">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                      expandedIdea === index
+                        ? 'bg-amber-100 dark:bg-amber-900/50'
+                        : 'bg-muted'
+                    }`}>
+                      {expandedIdea === index ? (
+                        <ChevronUp className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </div>
                   </div>
                 </div>
               </CardHeader>
 
               {expandedIdea === index && (
-                <CardContent className="space-y-4 pt-0">
+                <CardContent className="space-y-5 pt-0 animate-fade-in">
                   {/* 스토리텔링 내러티브 */}
                   {idea.narrative && (
-                    <div className="p-4 bg-primary/5 rounded-lg">
-                      <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                    <div className="p-5 bg-gradient-to-br from-amber-50/60 to-orange-50/30 dark:from-amber-950/20 dark:to-orange-950/10 rounded-xl border border-amber-200/30 dark:border-amber-800/20">
+                      <p className="text-body-kr leading-korean whitespace-pre-wrap text-foreground/85">
                         {idea.narrative}
                       </p>
                     </div>
@@ -176,34 +245,44 @@ export function IdeaSection() {
 
                   {/* 일반 설명 (내러티브가 없을 때) */}
                   {!idea.narrative && idea.description && (
-                    <p className="text-sm text-muted-foreground leading-relaxed">
+                    <p className="text-body-kr text-muted-foreground leading-korean">
                       {idea.description}
                     </p>
                   )}
 
                   {/* 핵심 혁신 */}
                   {idea.key_innovation && (
-                    <div className="flex items-start gap-2">
-                      <Target className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                      <p className="text-sm font-medium">{idea.key_innovation}</p>
+                    <div className="flex items-start gap-3 p-4 bg-primary/5 rounded-lg border border-primary/10">
+                      <div className="flex-shrink-0 w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center mt-0.5">
+                        <Target className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-caption font-semibold text-primary mb-1">핵심 혁신</p>
+                        <p className="text-body-kr font-medium text-foreground">{idea.key_innovation}</p>
+                      </div>
                     </div>
                   )}
 
                   {/* 구현 방향 */}
                   {idea.implementation_sketch && (
-                    <div>
-                      <h5 className="text-sm font-semibold mb-1">구현 방향</h5>
-                      <p className="text-xs text-muted-foreground">{idea.implementation_sketch}</p>
+                    <div className="border-l-2 border-amber-200 dark:border-amber-800/50 pl-4">
+                      <h5 className="text-sm font-semibold text-foreground mb-1.5">구현 방향</h5>
+                      <p className="text-body-kr text-muted-foreground leading-korean-tight">
+                        {idea.implementation_sketch}
+                      </p>
                     </div>
                   )}
 
                   {/* 도전 과제 */}
                   {idea.challenges && idea.challenges.length > 0 && (
-                    <div>
-                      <h5 className="text-sm font-semibold mb-1">도전 과제</h5>
-                      <ul className="list-disc list-inside space-y-0.5">
+                    <div className="border-l-2 border-red-200 dark:border-red-800/50 pl-4">
+                      <h5 className="text-sm font-semibold text-foreground mb-2">도전 과제</h5>
+                      <ul className="space-y-1.5">
                         {idea.challenges.map((c, i) => (
-                          <li key={i} className="text-xs text-muted-foreground">{c}</li>
+                          <li key={i} className="flex items-start gap-2">
+                            <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-red-400 dark:bg-red-500 mt-2" />
+                            <span className="text-body-kr text-muted-foreground">{c}</span>
+                          </li>
                         ))}
                       </ul>
                     </div>
@@ -211,11 +290,11 @@ export function IdeaSection() {
 
                   {/* 태그 */}
                   {idea.tags && idea.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 pt-2">
+                    <div className="flex flex-wrap gap-2 pt-1">
                       {idea.tags.map((tag, i) => (
                         <span
                           key={i}
-                          className="px-2 py-0.5 bg-secondary text-secondary-foreground rounded text-xs"
+                          className="px-2.5 py-1 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 rounded-full text-xs font-medium border border-amber-200/50 dark:border-amber-800/30"
                         >
                           #{tag}
                         </span>
@@ -225,14 +304,24 @@ export function IdeaSection() {
 
                   {/* 소스 연결 */}
                   {idea.news_source?.title && (
-                    <div className="pt-2 border-t text-xs text-muted-foreground">
-                      <span className="font-medium">뉴스:</span> {idea.news_source.title}
-                      {idea.principle_source?.title && (
-                        <>
-                          {' | '}
-                          <span className="font-medium">원리:</span> {idea.principle_source.title}
-                        </>
-                      )}
+                    <div className="pt-3 border-t border-border/50">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-caption text-muted-foreground">
+                        {idea.news_source.title && (
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-medium text-foreground/70">뉴스</span>
+                            <span className="text-muted-foreground/60">&middot;</span>
+                            <span>{idea.news_source.title}</span>
+                          </div>
+                        )}
+                        {idea.principle_source?.title && (
+                          <div className="flex items-center gap-1.5">
+                            <span className="hidden sm:inline text-muted-foreground/40">|</span>
+                            <span className="font-medium text-foreground/70">원리</span>
+                            <span className="text-muted-foreground/60">&middot;</span>
+                            <span>{idea.principle_source.title}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </CardContent>
@@ -243,37 +332,54 @@ export function IdeaSection() {
       ) : null}
 
       {/* 온디맨드 아이디어 생성 */}
-      <Card className="border-2 border-primary/30">
+      <Card className="relative overflow-hidden border-2 border-dashed border-amber-300/50 dark:border-amber-700/30 bg-gradient-to-br from-amber-50/30 to-orange-50/20 dark:from-amber-950/10 dark:to-orange-950/5">
         <CardHeader>
-          <CardTitle>추가 아이디어 생성하기</CardTitle>
-          <CardDescription>
+          <div className="flex items-center gap-2.5 mb-1">
+            <Sparkles className="h-5 w-5 text-amber-500" />
+            <CardTitle className="text-lg">추가 아이디어 생성하기</CardTitle>
+          </div>
+          <CardDescription className="text-body-kr leading-korean-tight">
             오늘의 AI 뉴스와 학문 원리를 결합하여 새로운 융합 아이디어를 생성합니다.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {!user && (
-            <div className="flex items-center gap-2 p-4 bg-muted rounded-lg">
-              <AlertCircle className="h-5 w-5 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">
-                아이디어 생성 기능을 사용하려면 로그인이 필요합니다.
-              </p>
+            <div className="flex items-start gap-3 p-4 bg-secondary/50 rounded-xl border border-border/50">
+              <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
+                <LogIn className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-foreground mb-0.5">
+                  로그인이 필요해요
+                </p>
+                <p className="text-caption text-muted-foreground">
+                  아이디어 생성 기능을 사용하려면 먼저 로그인해 주세요.
+                </p>
+              </div>
             </div>
           )}
 
           {error && (
-            <div className="flex items-center gap-2 p-4 bg-destructive/10 border border-destructive rounded-lg">
-              <AlertCircle className="h-5 w-5 text-destructive" />
-              <p className="text-sm text-destructive">{error}</p>
+            <div className="flex items-start gap-3 p-4 bg-destructive/5 border border-destructive/20 rounded-xl">
+              <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-destructive/10 flex items-center justify-center">
+                <AlertCircle className="h-4 w-4 text-destructive" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-destructive mb-0.5">
+                  아이디어 생성에 문제가 있었어요
+                </p>
+                <p className="text-caption text-muted-foreground">{error}</p>
+              </div>
             </div>
           )}
 
           {generatedIdea && (
-            <div className="p-6 bg-primary/5 border-2 border-primary/30 rounded-lg">
+            <div className="p-5 bg-gradient-to-br from-amber-50/80 to-orange-50/40 dark:from-amber-950/20 dark:to-orange-950/10 border border-amber-200/50 dark:border-amber-800/30 rounded-xl animate-fade-in">
               <h4 className="font-semibold mb-3 flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-primary" />
-                생성된 아이디어
+                <Sparkles className="h-4 w-4 text-amber-500" />
+                <span className="text-amber-700 dark:text-amber-300">생성된 아이디어</span>
               </h4>
-              <p className="text-sm leading-relaxed whitespace-pre-wrap">
+              <p className="text-body-kr leading-korean whitespace-pre-wrap text-foreground/85">
                 {generatedIdea}
               </p>
             </div>
@@ -282,7 +388,7 @@ export function IdeaSection() {
           <Button
             onClick={generateIdea}
             disabled={generating || !user || !news || news.length === 0 || !todayPrinciple}
-            className="w-full"
+            className="w-full h-12 text-base font-semibold bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0 shadow-md hover:shadow-lg transition-all duration-300 disabled:from-muted disabled:to-muted disabled:text-muted-foreground disabled:shadow-none"
             size="lg"
           >
             {generating ? (

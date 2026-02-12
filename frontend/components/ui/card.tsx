@@ -1,5 +1,12 @@
 /**
  * Card Component (shadcn/ui style)
+ *
+ * UX Improvements:
+ * - Softer default shadow using brand-aware shadow tokens
+ * - Increased border-radius (rounded-xl) for modern feel
+ * - Better card padding responsive to screen size
+ * - Improved CardTitle with tighter tracking for Korean
+ * - CardDescription uses Korean-optimized line height
  */
 
 import * as React from 'react';
@@ -12,7 +19,7 @@ const Card = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      'rounded-lg border bg-card text-card-foreground shadow-sm',
+      'rounded-xl border bg-card text-card-foreground shadow-card transition-shadow duration-200',
       className
     )}
     {...props}
@@ -26,7 +33,7 @@ const CardHeader = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn('flex flex-col space-y-1.5 p-6', className)}
+    className={cn('flex flex-col space-y-1.5 p-5 md:p-6', className)}
     {...props}
   />
 ));
@@ -38,7 +45,7 @@ const CardTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <h3
     ref={ref}
-    className={cn('text-2xl font-semibold leading-none tracking-tight', className)}
+    className={cn('text-xl font-semibold leading-snug tracking-tight', className)}
     {...props}
   />
 ));
@@ -50,7 +57,7 @@ const CardDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <p
     ref={ref}
-    className={cn('text-sm text-muted-foreground', className)}
+    className={cn('text-sm text-muted-foreground leading-relaxed', className)}
     {...props}
   />
 ));
@@ -60,7 +67,7 @@ const CardContent = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn('p-6 pt-0', className)} {...props} />
+  <div ref={ref} className={cn('p-5 md:p-6 pt-0', className)} {...props} />
 ));
 CardContent.displayName = 'CardContent';
 
@@ -70,7 +77,7 @@ const CardFooter = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn('flex items-center p-6 pt-0', className)}
+    className={cn('flex items-center p-5 md:p-6 pt-0', className)}
     {...props}
   />
 ));

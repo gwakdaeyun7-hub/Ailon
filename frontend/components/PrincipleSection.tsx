@@ -1,5 +1,14 @@
 /**
  * 학문 원리 섹션 컴포넌트 - 10개 학문 분야, AI 관련성 표시
+ *
+ * UX Improvements:
+ * - Section-specific purple/violet accent for visual differentiation from news (blue)
+ * - Cleaner badge design with consistent sizing and spacing
+ * - Content sub-sections with subtle left border for scanability
+ * - AI Relevance section visually elevated as a key insight
+ * - Better visual hierarchy between main principle and supplementary ones
+ * - Improved Korean text readability with optimized line heights
+ * - Application ideas use numbered list for sequential reading
  */
 
 'use client';
@@ -22,7 +31,6 @@ const categoryIcons: Record<string, React.ReactNode> = {
   economics: <BookOpen className="h-5 w-5" />,
   psychology_cognitive_science: <Users className="h-5 w-5" />,
   philosophy_ethics: <Scale className="h-5 w-5" />,
-  // 기존 카테고리 호환
   philosophy: <Lightbulb className="h-5 w-5" />,
   psychology: <Users className="h-5 w-5" />,
 };
@@ -38,45 +46,74 @@ const categoryNames: Record<string, string> = {
   economics: '경제학',
   psychology_cognitive_science: '심리학/인지과학',
   philosophy_ethics: '철학/윤리학',
-  // 기존 카테고리 호환
   philosophy: '철학',
   psychology: '심리학',
 };
 
 const superCategoryColors: Record<string, string> = {
-  '기초과학': 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300',
-  '생명과학': 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300',
-  '공학': 'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300',
-  '사회과학': 'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300',
-  '인문학': 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300',
+  '기초과학': 'bg-sky-50 text-sky-700 border-sky-200/60 dark:bg-sky-950/30 dark:text-sky-300 dark:border-sky-800/30',
+  '생명과학': 'bg-emerald-50 text-emerald-700 border-emerald-200/60 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800/30',
+  '공학': 'bg-orange-50 text-orange-700 border-orange-200/60 dark:bg-orange-950/30 dark:text-orange-300 dark:border-orange-800/30',
+  '사회과학': 'bg-violet-50 text-violet-700 border-violet-200/60 dark:bg-violet-950/30 dark:text-violet-300 dark:border-violet-800/30',
+  '인문학': 'bg-rose-50 text-rose-700 border-rose-200/60 dark:bg-rose-950/30 dark:text-rose-300 dark:border-rose-800/30',
 };
 
 const difficultyLabels: Record<string, { text: string; color: string }> = {
-  beginner: { text: '입문', color: 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300' },
-  intermediate: { text: '중급', color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-950 dark:text-yellow-300' },
-  advanced: { text: '심화', color: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300' },
+  beginner: {
+    text: '입문',
+    color: 'bg-emerald-50 text-emerald-700 border-emerald-200/60 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800/30',
+  },
+  intermediate: {
+    text: '중급',
+    color: 'bg-amber-50 text-amber-700 border-amber-200/60 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-800/30',
+  },
+  advanced: {
+    text: '심화',
+    color: 'bg-red-50 text-red-700 border-red-200/60 dark:bg-red-950/30 dark:text-red-300 dark:border-red-800/30',
+  },
 };
+
+function SectionHeader() {
+  return (
+    <div className="flex items-center gap-3">
+      <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-violet-50 dark:bg-violet-950/40">
+        <BookOpen className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+      </div>
+      <div>
+        <h2 className="text-section">오늘의 학문 원리</h2>
+        <p className="text-caption text-muted-foreground mt-0.5">
+          매일 새로운 학문의 핵심 원리를 탐구합니다
+        </p>
+      </div>
+    </div>
+  );
+}
 
 export function PrincipleSection() {
   const { principles, loading, error, disciplineInfo, getTodayPrinciple } = usePrinciples();
 
   if (loading) {
     return (
-      <section className="space-y-4">
-        <div className="flex items-center gap-2">
-          <BookOpen className="h-6 w-6 text-primary" />
-          <h2 className="text-2xl font-bold">오늘의 학문 원리</h2>
-        </div>
-        <Card className="animate-pulse">
+      <section className="space-y-6">
+        <SectionHeader />
+        <Card>
           <CardHeader>
-            <div className="h-8 bg-muted rounded w-1/2" />
-            <div className="h-4 bg-muted rounded w-1/3" />
+            <div className="flex gap-2 mb-3">
+              <div className="h-6 w-16 bg-muted rounded-full skeleton-shimmer" />
+              <div className="h-6 w-20 bg-muted rounded-full skeleton-shimmer" />
+              <div className="h-6 w-12 bg-muted rounded-full skeleton-shimmer" />
+            </div>
+            <div className="h-7 bg-muted rounded skeleton-shimmer w-2/3" />
+            <div className="h-5 bg-muted rounded skeleton-shimmer w-1/2 mt-2" />
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              <div className="h-4 bg-muted rounded" />
-              <div className="h-4 bg-muted rounded" />
-              <div className="h-4 bg-muted rounded w-5/6" />
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <div className="h-4 bg-muted rounded skeleton-shimmer" />
+                <div className="h-4 bg-muted rounded skeleton-shimmer" />
+                <div className="h-4 bg-muted rounded w-5/6 skeleton-shimmer" />
+              </div>
+              <div className="h-24 bg-muted rounded-lg skeleton-shimmer" />
             </div>
           </CardContent>
         </Card>
@@ -86,14 +123,18 @@ export function PrincipleSection() {
 
   if (error) {
     return (
-      <section className="space-y-4">
-        <div className="flex items-center gap-2">
-          <BookOpen className="h-6 w-6 text-primary" />
-          <h2 className="text-2xl font-bold">오늘의 학문 원리</h2>
-        </div>
-        <Card className="border-destructive">
+      <section className="space-y-6">
+        <SectionHeader />
+        <Card className="border-destructive/30 bg-destructive/5">
           <CardContent className="pt-6">
-            <p className="text-destructive">{error}</p>
+            <div className="flex flex-col items-center text-center py-4 gap-3">
+              <p className="text-sm font-medium text-foreground">
+                학문 원리를 불러오는 데 문제가 있었어요
+              </p>
+              <p className="text-caption text-muted-foreground">
+                잠시 후 다시 시도해 주세요.
+              </p>
+            </div>
           </CardContent>
         </Card>
       </section>
@@ -104,14 +145,21 @@ export function PrincipleSection() {
 
   if (!todayPrinciple) {
     return (
-      <section className="space-y-4">
-        <div className="flex items-center gap-2">
-          <BookOpen className="h-6 w-6 text-primary" />
-          <h2 className="text-2xl font-bold">오늘의 학문 원리</h2>
-        </div>
-        <Card>
+      <section className="space-y-6">
+        <SectionHeader />
+        <Card className="border-dashed border-2">
           <CardContent className="pt-6">
-            <p className="text-muted-foreground">학문 원리 데이터를 불러올 수 없습니다.</p>
+            <div className="flex flex-col items-center text-center py-6 gap-3">
+              <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+                <BookOpen className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <p className="text-sm font-medium text-foreground">
+                아직 오늘의 학문 원리가 준비되지 않았어요
+              </p>
+              <p className="text-caption text-muted-foreground">
+                잠시 후 다시 확인해 주세요.
+              </p>
+            </div>
           </CardContent>
         </Card>
       </section>
@@ -122,88 +170,102 @@ export function PrincipleSection() {
   const difficulty = todayPrinciple.difficulty;
 
   return (
-    <section className="space-y-6">
-      <div className="flex items-center gap-2">
-        <BookOpen className="h-6 w-6 text-primary" />
-        <h2 className="text-2xl font-bold">오늘의 학문 원리</h2>
-      </div>
+    <section className="space-y-8">
+      <SectionHeader />
 
-      <Card className="border-primary/50 shadow-lg">
-        <CardHeader>
-          <div className="flex items-center gap-2 mb-2 flex-wrap">
-            {/* 상위 카테고리 배지 */}
+      <Card className="relative overflow-hidden shadow-card-active border-violet-200/40 dark:border-violet-800/30">
+        {/* Accent bar */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-violet-500 to-purple-500" />
+
+        <CardHeader className="pt-7 pb-4">
+          {/* Badge row */}
+          <div className="flex items-center gap-2 mb-3 flex-wrap">
             {superCategory && (
-              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${superCategoryColors[superCategory] || 'bg-gray-100 text-gray-700'}`}>
+              <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${superCategoryColors[superCategory] || 'bg-gray-50 text-gray-700 border-gray-200'}`}>
                 {superCategory}
               </span>
             )}
-            {/* 학문 분야 */}
-            <div className="flex items-center gap-1">
-              {categoryIcons[todayPrinciple.category]}
-              <span className="text-sm font-medium text-primary">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-violet-50 dark:bg-violet-950/30 border border-violet-200/60 dark:border-violet-800/30">
+              <span className="text-violet-600 dark:text-violet-400">
+                {categoryIcons[todayPrinciple.category]}
+              </span>
+              <span className="text-xs font-medium text-violet-700 dark:text-violet-300">
                 {categoryNames[todayPrinciple.category] || todayPrinciple.category}
               </span>
             </div>
-            {/* 난이도 배지 */}
             {difficulty && difficultyLabels[difficulty] && (
-              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${difficultyLabels[difficulty].color}`}>
+              <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${difficultyLabels[difficulty].color}`}>
                 {difficultyLabels[difficulty].text}
               </span>
             )}
           </div>
-          <CardTitle className="text-2xl">{todayPrinciple.title}</CardTitle>
-          <CardDescription className="text-base">
+
+          <CardTitle className="text-xl md:text-2xl leading-snug">
+            {todayPrinciple.title}
+          </CardTitle>
+          <CardDescription className="text-body-kr mt-2 leading-korean-tight">
             {todayPrinciple.description}
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <h4 className="font-semibold mb-2">상세 설명</h4>
-            <p className="text-sm text-muted-foreground leading-relaxed">
+
+        <CardContent className="space-y-6">
+          {/* 상세 설명 */}
+          <div className="border-l-2 border-violet-200 dark:border-violet-800/50 pl-4">
+            <h4 className="text-sm font-semibold text-foreground mb-2">상세 설명</h4>
+            <p className="text-body-kr text-muted-foreground leading-korean">
               {todayPrinciple.explanation}
             </p>
           </div>
 
-          <div>
-            <h4 className="font-semibold mb-2">실생활 예시</h4>
-            <p className="text-sm text-muted-foreground leading-relaxed">
+          {/* 실생활 예시 */}
+          <div className="border-l-2 border-emerald-200 dark:border-emerald-800/50 pl-4">
+            <h4 className="text-sm font-semibold text-foreground mb-2">실생활 예시</h4>
+            <p className="text-body-kr text-muted-foreground leading-korean">
               {todayPrinciple.realWorldExample}
             </p>
           </div>
 
-          {/* AI 관련성 (에이전트 생성 필드) */}
+          {/* AI 관련성 -- elevated design as key insight */}
           {todayPrinciple.aiRelevance && (
-            <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
-              <h4 className="font-semibold mb-2 flex items-center gap-2">
-                <Cpu className="h-4 w-4 text-primary" />
-                AI와의 연결
+            <div className="p-5 bg-gradient-to-br from-violet-50/80 to-indigo-50/50 dark:from-violet-950/30 dark:to-indigo-950/20 border border-violet-200/50 dark:border-violet-800/30 rounded-xl">
+              <h4 className="text-sm font-semibold mb-2.5 flex items-center gap-2">
+                <div className="flex items-center justify-center w-6 h-6 rounded-md bg-violet-100 dark:bg-violet-900/50">
+                  <Cpu className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />
+                </div>
+                <span className="text-violet-700 dark:text-violet-300">AI와의 연결</span>
               </h4>
-              <p className="text-sm text-muted-foreground leading-relaxed">
+              <p className="text-body-kr text-foreground/80 leading-korean">
                 {todayPrinciple.aiRelevance}
               </p>
             </div>
           )}
 
+          {/* 응용 아이디어 */}
           <div>
-            <h4 className="font-semibold mb-2">응용 아이디어</h4>
-            <ul className="list-disc list-inside space-y-1">
+            <h4 className="text-sm font-semibold text-foreground mb-3">응용 아이디어</h4>
+            <ul className="space-y-2">
               {todayPrinciple.applicationIdeas.map((idea, index) => (
-                <li key={index} className="text-sm text-muted-foreground">
-                  {idea}
+                <li key={index} className="flex items-start gap-3">
+                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-violet-50 dark:bg-violet-950/30 text-violet-600 dark:text-violet-400 text-xs font-semibold flex items-center justify-center mt-0.5">
+                    {index + 1}
+                  </span>
+                  <span className="text-body-kr text-muted-foreground leading-korean-tight">
+                    {idea}
+                  </span>
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* 타 학문 연결 (에이전트 생성 필드) */}
+          {/* 학문 간 연결 태그 */}
           {todayPrinciple.crossDisciplineLinks && todayPrinciple.crossDisciplineLinks.length > 0 && (
-            <div>
-              <h4 className="font-semibold mb-2">학문 간 연결</h4>
+            <div className="pt-2 border-t border-border/50">
+              <h4 className="text-sm font-semibold text-foreground mb-3">학문 간 연결</h4>
               <div className="flex flex-wrap gap-2">
                 {todayPrinciple.crossDisciplineLinks.map((link, index) => (
                   <span
                     key={index}
-                    className="px-3 py-1 bg-secondary text-secondary-foreground rounded-full text-xs"
+                    className="px-3 py-1.5 bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-300 rounded-full text-xs font-medium border border-violet-200/50 dark:border-violet-800/30"
                   >
                     {link}
                   </span>
@@ -214,29 +276,35 @@ export function PrincipleSection() {
         </CardContent>
       </Card>
 
-      {/* 오늘의 다른 원리들 (에이전트가 여러 개 생성한 경우) */}
+      {/* 오늘의 다른 원리들 */}
       {principles.length > 1 && (
-        <div className="space-y-3">
-          <h3 className="text-lg font-semibold text-muted-foreground">
+        <div className="space-y-4">
+          <h3 className="text-base font-semibold text-muted-foreground">
             {categoryNames[todayPrinciple.category] || todayPrinciple.category} 분야의 다른 원리
           </h3>
           <div className="grid gap-4 md:grid-cols-2">
             {principles
               .filter((p) => p.title !== todayPrinciple.title)
               .map((principle, index) => (
-                <Card key={index} className="hover:shadow-md transition-shadow">
+                <Card key={index} className="card-interactive group">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-base">{principle.title}</CardTitle>
-                    <CardDescription className="text-sm">{principle.description}</CardDescription>
+                    <CardTitle className="text-card-title group-hover:text-primary transition-colors">
+                      {principle.title}
+                    </CardTitle>
+                    <CardDescription className="text-body-kr leading-korean-tight">
+                      {principle.description}
+                    </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-xs text-muted-foreground line-clamp-3">
+                    <p className="text-caption text-muted-foreground line-clamp-3 leading-korean-tight">
                       {principle.explanation}
                     </p>
                     {principle.aiRelevance && (
-                      <p className="text-xs text-primary mt-2 line-clamp-2">
-                        AI 연결: {principle.aiRelevance}
-                      </p>
+                      <div className="mt-3 p-2.5 bg-violet-50/50 dark:bg-violet-950/20 rounded-lg">
+                        <p className="text-caption text-violet-600 dark:text-violet-400 line-clamp-2 leading-relaxed">
+                          AI 연결: {principle.aiRelevance}
+                        </p>
+                      </div>
                     )}
                   </CardContent>
                 </Card>
