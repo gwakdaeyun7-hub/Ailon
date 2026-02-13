@@ -459,73 +459,63 @@ def fetch_all_sources() -> list[dict]:
 
 def tool_community_voice() -> list[dict]:
     """
-    [PainPoint Tool A] Reddit API로 AI 커뮤니티 고충/불만 게시글 수집
+    [PainPoint Tool A] Reddit RSS로 AI 커뮤니티 고충/불만 게시글 수집 (API 키 불필요)
     - r/LocalLLaMA, r/ChatGPT, r/OpenAI, r/singularity, r/MachineLearning
-    - "help", "issue", "sucks", "why can't", "expensive" 등 부정적 키워드
-    - 업보트/댓글 많은 고관여 게시글
+    - "help", "issue", "sucks", "problem", "broken" 등 부정적 키워드
+    - feedparser RSS 피드 파싱
     """
-    print("  [PainPoint Tool A: Community Voice] Reddit AI 커뮤니티 수집 중...")
+    print("  [PainPoint Tool A: Community Voice] Reddit RSS 피드 수집 중...")
     articles = []
 
-    client_id = os.getenv("REDDIT_CLIENT_ID")
-    client_secret = os.getenv("REDDIT_CLIENT_SECRET")
+    REDDIT_RSS_FEEDS = [
+        "https://www.reddit.com/r/LocalLLaMA/hot.rss?limit=50",
+        "https://www.reddit.com/r/ChatGPT/hot.rss?limit=50",
+        "https://www.reddit.com/r/OpenAI/hot.rss?limit=50",
+        "https://www.reddit.com/r/MachineLearning/hot.rss?limit=50",
+        "https://www.reddit.com/r/singularity/hot.rss?limit=50",
+    ]
+    pain_keywords = [
+        "help", "issue", "sucks", "problem", "broken",
+        "limitation", "can't", "not working", "useless", "hate",
+        "frustrated", "disappointed", "fails", "expensive", "why doesn't",
+    ]
 
-    if not client_id or not client_secret:
-        print("    [WARNING] REDDIT_CLIENT_ID/SECRET not found, skipping Reddit")
-        return []
+    seen_titles = set()
+    for feed_url in REDDIT_RSS_FEEDS:
+        try:
+            subreddit = feed_url.split("/r/")[1].split("/")[0]
+            feed = feedparser.parse(feed_url)
 
-    try:
-        import praw
-        reddit = praw.Reddit(
-            client_id=client_id,
-            client_secret=client_secret,
-            user_agent="ailon-collector/1.0 (by ailon-app)",
-        )
+            for entry in feed.entries:
+                title = entry.get("title", "")
+                if not title or title in seen_titles:
+                    continue
+                if not any(kw in title.lower() for kw in pain_keywords):
+                    continue
 
-        subreddits = ["LocalLLaMA", "ChatGPT", "OpenAI", "singularity", "MachineLearning"]
-        pain_keywords = [
-            "help", "issue", "sucks", "why can't", "expensive", "problem",
-            "broken", "fails", "disappointed", "frustrated", "limitation",
-            "why doesn't", "can't figure", "not working", "useless", "hate when",
-        ]
+                link = entry.get("link", "")
+                description = entry.get("summary", "")[:500]
+                published = entry.get("published", datetime.now().isoformat())
 
-        seen_ids = set()
-        for sub_name in subreddits:
-            try:
-                subreddit = reddit.subreddit(sub_name)
-                for post in subreddit.hot(limit=50):
-                    if post.id in seen_ids:
-                        continue
-                    title_lower = post.title.lower()
-                    if not any(kw in title_lower for kw in pain_keywords):
-                        continue
-                    if post.score < 10 and post.num_comments < 5:
-                        continue
+                articles.append({
+                    "title": title,
+                    "description": description,
+                    "link": link,
+                    "published": published,
+                    "source": f"Reddit r/{subreddit}",
+                    "source_type": "reddit",
+                    "tool": "community_voice",
+                    "social_score": 10,
+                    "subreddit": subreddit,
+                    "pain_type": "community",
+                    "importance_score": calculate_importance_score("default", social_score=10),
+                })
+                seen_titles.add(title)
 
-                    articles.append({
-                        "title": post.title,
-                        "description": (post.selftext or "")[:500],
-                        "link": f"https://reddit.com{post.permalink}",
-                        "published": datetime.fromtimestamp(post.created_utc).isoformat(),
-                        "source": f"Reddit r/{sub_name}",
-                        "source_type": "reddit",
-                        "tool": "community_voice",
-                        "social_score": post.score,
-                        "num_comments": post.num_comments,
-                        "subreddit": sub_name,
-                        "pain_type": "community",
-                        "importance_score": calculate_importance_score("default", social_score=post.score),
-                    })
-                    seen_ids.add(post.id)
-            except Exception as e:
-                print(f"    [WARNING] Reddit r/{sub_name} failed: {e}")
+        except Exception as e:
+            print(f"    [WARNING] Reddit RSS {feed_url} failed: {e}")
 
-        print(f"    Reddit: {len(articles)}개 고충 게시글 수집")
-    except ImportError:
-        print("    [WARNING] praw not installed, skipping Reddit")
-    except Exception as e:
-        print(f"    [WARNING] Reddit collection failed: {e}")
-
+    print(f"    Reddit RSS: {len(articles)}개 고충 게시글 수집")
     return articles
 
 
