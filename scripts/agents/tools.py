@@ -454,6 +454,291 @@ def fetch_all_sources() -> list[dict]:
 
 
 # ═══════════════════════════════════════════════════════════════
+# PainPoint Tool A: Community Voice — Reddit
+# ═══════════════════════════════════════════════════════════════
+
+def tool_community_voice() -> list[dict]:
+    """
+    [PainPoint Tool A] Reddit API로 AI 커뮤니티 고충/불만 게시글 수집
+    - r/LocalLLaMA, r/ChatGPT, r/OpenAI, r/singularity, r/MachineLearning
+    - "help", "issue", "sucks", "why can't", "expensive" 등 부정적 키워드
+    - 업보트/댓글 많은 고관여 게시글
+    """
+    print("  [PainPoint Tool A: Community Voice] Reddit AI 커뮤니티 수집 중...")
+    articles = []
+
+    client_id = os.getenv("REDDIT_CLIENT_ID")
+    client_secret = os.getenv("REDDIT_CLIENT_SECRET")
+
+    if not client_id or not client_secret:
+        print("    [WARNING] REDDIT_CLIENT_ID/SECRET not found, skipping Reddit")
+        return []
+
+    try:
+        import praw
+        reddit = praw.Reddit(
+            client_id=client_id,
+            client_secret=client_secret,
+            user_agent="ailon-collector/1.0 (by ailon-app)",
+        )
+
+        subreddits = ["LocalLLaMA", "ChatGPT", "OpenAI", "singularity", "MachineLearning"]
+        pain_keywords = [
+            "help", "issue", "sucks", "why can't", "expensive", "problem",
+            "broken", "fails", "disappointed", "frustrated", "limitation",
+            "why doesn't", "can't figure", "not working", "useless", "hate when",
+        ]
+
+        seen_ids = set()
+        for sub_name in subreddits:
+            try:
+                subreddit = reddit.subreddit(sub_name)
+                for post in subreddit.hot(limit=50):
+                    if post.id in seen_ids:
+                        continue
+                    title_lower = post.title.lower()
+                    if not any(kw in title_lower for kw in pain_keywords):
+                        continue
+                    if post.score < 10 and post.num_comments < 5:
+                        continue
+
+                    articles.append({
+                        "title": post.title,
+                        "description": (post.selftext or "")[:500],
+                        "link": f"https://reddit.com{post.permalink}",
+                        "published": datetime.fromtimestamp(post.created_utc).isoformat(),
+                        "source": f"Reddit r/{sub_name}",
+                        "source_type": "reddit",
+                        "tool": "community_voice",
+                        "social_score": post.score,
+                        "num_comments": post.num_comments,
+                        "subreddit": sub_name,
+                        "pain_type": "community",
+                        "importance_score": calculate_importance_score("default", social_score=post.score),
+                    })
+                    seen_ids.add(post.id)
+            except Exception as e:
+                print(f"    [WARNING] Reddit r/{sub_name} failed: {e}")
+
+        print(f"    Reddit: {len(articles)}개 고충 게시글 수집")
+    except ImportError:
+        print("    [WARNING] praw not installed, skipping Reddit")
+    except Exception as e:
+        print(f"    [WARNING] Reddit collection failed: {e}")
+
+    return articles
+
+
+# ═══════════════════════════════════════════════════════════════
+# PainPoint Tool B: Dev Roadblock — StackExchange + GitHub Issues
+# ═══════════════════════════════════════════════════════════════
+
+def tool_dev_roadblock() -> list[dict]:
+    """
+    [PainPoint Tool B] 개발자 기술 장벽 수집
+    - StackOverflow: 조회수 높은데 채택 답변 없는 AI/ML 질문
+    - GitHub Issues: LangChain, PyTorch, HuggingFace 미해결 핵심 이슈
+    """
+    print("  [PainPoint Tool B: Dev Roadblock] StackExchange + GitHub Issues 수집 중...")
+    articles = []
+
+    # B-1: StackExchange API
+    try:
+        tags = ["langchain", "pytorch", "huggingface-transformers", "large-language-model", "openai-api"]
+        for tag in tags[:3]:
+            try:
+                response = requests.get(
+                    "https://api.stackexchange.com/2.3/questions",
+                    params={
+                        "site": "stackoverflow",
+                        "tagged": tag,
+                        "sort": "votes",
+                        "order": "desc",
+                        "pagesize": 10,
+                        "min": 3,
+                        "filter": "default",
+                    },
+                    timeout=10,
+                )
+                if response.status_code == 200:
+                    for q in response.json().get("items", []):
+                        if q.get("is_answered") and q.get("accepted_answer_id"):
+                            continue
+                        if q.get("view_count", 0) < 500:
+                            continue
+                        articles.append({
+                            "title": q["title"],
+                            "description": f"[StackOverflow:{tag}] 조회수 {q.get('view_count',0):,}, 답변 {q.get('answer_count',0)}개 (미해결)",
+                            "link": q["link"],
+                            "published": datetime.fromtimestamp(q["creation_date"]).isoformat(),
+                            "source": "StackOverflow",
+                            "source_type": "stackoverflow",
+                            "tool": "dev_roadblock",
+                            "social_score": q.get("score", 0) * 10,
+                            "view_count": q.get("view_count", 0),
+                            "answer_count": q.get("answer_count", 0),
+                            "tag": tag,
+                            "pain_type": "developer",
+                            "importance_score": calculate_importance_score("default", social_score=q.get("score", 0) * 10),
+                        })
+            except Exception as e:
+                print(f"    [WARNING] StackOverflow '{tag}' failed: {e}")
+    except Exception as e:
+        print(f"    [WARNING] StackExchange fetch failed: {e}")
+
+    # B-2: GitHub Issues
+    token = os.getenv("GITHUB_TOKEN")
+    headers = {"Accept": "application/vnd.github.v3+json"}
+    if token:
+        headers["Authorization"] = f"token {token}"
+
+    repos = ["langchain-ai/langchain", "huggingface/transformers", "pytorch/pytorch"]
+    for repo in repos:
+        for label in ["bug", "enhancement"]:
+            try:
+                resp = requests.get(
+                    f"https://api.github.com/repos/{repo}/issues",
+                    headers=headers,
+                    params={"state": "open", "labels": label, "sort": "comments", "direction": "desc", "per_page": 5},
+                    timeout=10,
+                )
+                if resp.status_code == 200:
+                    for issue in resp.json():
+                        if issue.get("pull_request"):
+                            continue
+                        if issue.get("comments", 0) < 3:
+                            continue
+                        articles.append({
+                            "title": f"[GitHub Issue] {issue['title']}",
+                            "description": f"{repo} [{label}]: {(issue.get('body') or '')[:300]}",
+                            "link": issue["html_url"],
+                            "published": issue["created_at"],
+                            "source": f"GitHub Issues ({repo})",
+                            "source_type": "github_issues",
+                            "tool": "dev_roadblock",
+                            "social_score": issue.get("comments", 0) * 5,
+                            "num_comments": issue.get("comments", 0),
+                            "label": label,
+                            "repo": repo,
+                            "pain_type": "developer",
+                            "importance_score": calculate_importance_score("github", social_score=issue.get("comments", 0) * 5),
+                        })
+            except Exception as e:
+                print(f"    [WARNING] GitHub Issues {repo}/{label} failed: {e}")
+
+    print(f"    Dev Roadblock: {len(articles)}개 개발자 이슈 수집")
+    return articles
+
+
+# ═══════════════════════════════════════════════════════════════
+# PainPoint Tool C: User Reaction — YouTube Comment API
+# ═══════════════════════════════════════════════════════════════
+
+def tool_user_reaction() -> list[dict]:
+    """
+    [PainPoint Tool C] YouTube Data API로 AI 유튜버 영상 댓글 수집
+    - AI tech YouTubers의 최신 리뷰 영상
+    - 좋아요 많은 상위 50개 댓글 중 부정적 반응 탐지
+    """
+    print("  [PainPoint Tool C: User Reaction] YouTube 댓글 수집 중...")
+
+    api_key = os.getenv("YOUTUBE_API_KEY")
+    if not api_key:
+        print("    [WARNING] YOUTUBE_API_KEY not found, skipping YouTube")
+        return []
+
+    articles = []
+
+    try:
+        # AI 유튜브 채널 검색 쿼리
+        search_queries = ["AI tools review 2026", "LLM comparison review", "AI agent tutorial"]
+        negative_keywords = [
+            "doesn't work", "not working", "broken", "useless", "disappointing",
+            "hate", "problem", "issue", "can't", "impossible", "expensive",
+            "too slow", "hallucinate", "wrong", "fail", "sucks", "terrible",
+        ]
+
+        base_url = "https://www.googleapis.com/youtube/v3"
+        seen_video_ids = set()
+
+        for query in search_queries[:2]:
+            try:
+                search_resp = requests.get(
+                    f"{base_url}/search",
+                    params={"key": api_key, "q": query, "part": "snippet", "order": "date", "maxResults": 3, "type": "video", "publishedAfter": (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%dT00:00:00Z")},
+                    timeout=10,
+                )
+                if search_resp.status_code != 200:
+                    continue
+
+                for video in search_resp.json().get("items", []):
+                    video_id = video["id"]["videoId"]
+                    if video_id in seen_video_ids:
+                        continue
+                    seen_video_ids.add(video_id)
+                    video_title = video["snippet"]["title"]
+
+                    comments_resp = requests.get(
+                        f"{base_url}/commentThreads",
+                        params={"key": api_key, "videoId": video_id, "part": "snippet", "order": "relevance", "maxResults": 50},
+                        timeout=10,
+                    )
+                    if comments_resp.status_code != 200:
+                        continue
+
+                    pain_comments = []
+                    for comment in comments_resp.json().get("items", []):
+                        snippet = comment["snippet"]["topLevelComment"]["snippet"]
+                        text = snippet["textDisplay"]
+                        likes = snippet.get("likeCount", 0)
+                        if likes < 2:
+                            continue
+                        if any(kw in text.lower() for kw in negative_keywords):
+                            pain_comments.append({"text": text[:300], "likes": likes})
+
+                    if pain_comments:
+                        pain_comments.sort(key=lambda x: x["likes"], reverse=True)
+                        top = pain_comments[:5]
+                        articles.append({
+                            "title": f"[YouTube 반응] {video_title}",
+                            "description": " | ".join([c["text"] for c in top])[:500],
+                            "link": f"https://youtube.com/watch?v={video_id}",
+                            "published": video["snippet"]["publishedAt"],
+                            "source": "YouTube Comments",
+                            "source_type": "youtube",
+                            "tool": "user_reaction",
+                            "social_score": sum(c["likes"] for c in top),
+                            "pain_comments": top,
+                            "pain_type": "user",
+                            "importance_score": calculate_importance_score("default", social_score=sum(c["likes"] for c in top)),
+                        })
+            except Exception as e:
+                print(f"    [WARNING] YouTube query '{query}' failed: {e}")
+
+        print(f"    YouTube: {len(articles)}개 영상 반응 수집")
+    except Exception as e:
+        print(f"    [WARNING] YouTube collection failed: {e}")
+
+    return articles
+
+
+def fetch_pain_points() -> list[dict]:
+    """PainPointHunter: 3개 Tool로 사용자/개발자 고충 수집"""
+    print("\n  ╔═══ PainPointHunter: 3개 Tool 실행 ═══╗")
+    community = tool_community_voice()
+    dev = tool_dev_roadblock()
+    reaction = tool_user_reaction()
+    print("  ╚════════════════════════════════════════╝")
+    all_pain = community + dev + reaction
+    print(f"\n  ═══ PainPoint 수집 결과 ═══")
+    print(f"  Community Voice (Reddit): {len(community)}개")
+    print(f"  Dev Roadblock (SO+GH):   {len(dev)}개")
+    print(f"  User Reaction (YouTube): {len(reaction)}개")
+    print(f"  합계: {len(all_pain)}개")
+    return all_pain
+
+
+# ═══════════════════════════════════════════════════════════════
 # 유틸리티
 # ═══════════════════════════════════════════════════════════════
 

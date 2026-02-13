@@ -1,10 +1,10 @@
 """
 융합 아이디어 에이전트 팀 - LangGraph 기반 AI+학문 융합 아이디어 생성
-ProblemIdentifierAgent → IdeaGeneratorAgent → FeasibilityCheckerAgent
-→ TechnicalRoadmapAgent → MarketAnalysisAgent → SynthesizerAgent
+PainPointHunterNode → ProblemIdentifierAgent → IdeaGeneratorAgent → FeasibilityCheckerAgent
+→ TechnicalRoadmapAgent → MarketAnalysisAgent → SynthesizerAgent → ProblemSolverAgent
 오늘의 뉴스와 학문 원리를 결합하여 창의적이고 실용적인 아이디어를 생성합니다.
 
-v2: TechnicalRoadmapAgent, MarketAnalysisAgent 추가
+v3: PainPointHunterNode, ProblemSolverAgent 추가 / FeasibilityChecker 3축 평가 개편
 """
 
 import json
@@ -13,6 +13,7 @@ from langchain_core.messages import HumanMessage
 from langgraph.graph import StateGraph, START, END
 
 from agents.config import get_llm
+from agents.tools import fetch_pain_points
 
 
 # ─── JSON 파싱 유틸리티 ───
@@ -34,6 +35,7 @@ class IdeaState(TypedDict):
     news_articles: list[dict]
     today_principle: dict
     discipline_info: dict
+    pain_points: list[dict]
     problems: list[dict]
     raw_ideas: list[dict]
     evaluated_ideas: list[dict]
@@ -42,14 +44,28 @@ class IdeaState(TypedDict):
     final_ideas: list[dict]
 
 
+# ─── Agent 0: PainPointHunterNode ───
+def pain_point_hunter_node(state: IdeaState) -> dict:
+    """3개 Tool로 사용자/개발자 고충을 수집하여 state에 저장"""
+    print("\n\U0001f50d [PainPointHunter] 3개 Tool로 사용자/개발자 고충 수집 중...")
+
+    pain_points = state.get("pain_points") or []
+    if not pain_points:
+        pain_points = fetch_pain_points()
+
+    print(f"  \u2713 PainPoint {len(pain_points)}개 수집 완료")
+    return {"pain_points": pain_points}
+
+
 # ─── Agent 1: ProblemIdentifierAgent ───
 def problem_identifier_node(state: IdeaState) -> dict:
-    """뉴스 + 원리를 바탕으로 미해결 문제 및 개선 기회를 식별 (LLM 1회)"""
-    print("\n🔎 [ProblemIdentifierAgent] 미해결 문제 및 개선 기회 식별 중...")
+    """뉴스 + 원리 + PainPoints를 바탕으로 미해결 문제 및 개선 기회를 식별 (LLM 1회)"""
+    print("\n\U0001f50e [ProblemIdentifierAgent] 미해결 문제 및 개선 기회 식별 중...")
 
     news = state["news_articles"]
     principle = state["today_principle"]
     discipline = state["discipline_info"]
+    pain_points = state.get("pain_points", [])
 
     llm = get_llm(temperature=0.8, max_tokens=3072)
 
@@ -58,10 +74,19 @@ def problem_identifier_node(state: IdeaState) -> dict:
     for a in news[:5]:
         news_text += f"- {a['title']}: {a.get('summary', a.get('description', ''))[:150]}\n"
 
+    # PainPoint 요약 (상위 5개)
+    pain_text = ""
+    top_pains = sorted(pain_points, key=lambda x: x.get("social_score", 0), reverse=True)[:5]
+    for p in top_pains:
+        pain_text += f"- [{p.get('pain_type', 'unknown')}] {p['title']}: {p.get('description', '')[:120]} (source: {p.get('source', '')}, score: {p.get('social_score', 0)})\n"
+
     prompt = f"""당신은 AI 연구의 미해결 문제와 혁신 기회를 찾는 전문가입니다.
 
 오늘의 AI 뉴스:
 {news_text}
+
+커뮤니티/개발자/사용자 고충 (PainPoints):
+{pain_text if pain_text else "(수집된 PainPoint 없음)"}
 
 오늘의 학문 원리:
 - 분야: {discipline.get('name', '')} ({discipline.get('superCategory', '')})
@@ -69,8 +94,9 @@ def problem_identifier_node(state: IdeaState) -> dict:
 - 설명: {principle.get('explanation', '')}
 - AI 관련성: {principle.get('aiRelevance', discipline.get('ai_connection', ''))}
 
-위 정보를 바탕으로 다음을 식별해주세요:
-1. 현재 AI가 아직 해결하지 못하고 있는 구체적인 문제 2-3개
+위 정보(뉴스 + 커뮤니티/개발자/사용자 고충 + 학문 원리)를 종합적으로 분석하여 다음을 식별해주세요:
+1. 현재 AI가 아직 해결하지 못하고 있는 구체적인 문제 3개
+   - PainPoints에서 드러나는 실제 사용자/개발자 불만과 뉴스 트렌드를 결합하세요
 2. {discipline.get('name', '')}의 원리를 AI에 접목하면 해결하거나 크게 개선할 수 있는 기회
 
 각 문제에 대해:
@@ -78,23 +104,25 @@ def problem_identifier_node(state: IdeaState) -> dict:
 - description: 왜 이것이 중요한 문제인지 2-3문장
 - current_limitation: 현재 AI의 한계가 무엇인지
 - discipline_opportunity: {discipline.get('name', '')} 원리가 어떻게 도움될 수 있는지
+- pain_evidence: 이 문제를 뒷받침하는 커뮤니티/사용자 반응 근거 1문장
 
 반드시 JSON 배열로만 응답하세요:
-[{{"problem": "...", "description": "...", "current_limitation": "...", "discipline_opportunity": "..."}}]"""
+[{{"problem": "...", "description": "...", "current_limitation": "...", "discipline_opportunity": "...", "pain_evidence": "..."}}]"""
 
     response = llm.invoke([HumanMessage(content=prompt)])
 
     try:
         problems = parse_llm_json(response.content)
-        print(f"  ✓ {len(problems)}개 문제/기회 식별 완료")
+        print(f"  \u2713 {len(problems)}개 문제/기회 식별 완료")
 
     except (json.JSONDecodeError, KeyError) as e:
-        print(f"  ⚠ 문제 식별 파싱 실패: {e}")
+        print(f"  \u26a0 문제 식별 파싱 실패: {e}")
         problems = [{
             "problem": f"AI + {discipline.get('name', '')} 융합 과제",
             "description": "AI와 해당 학문의 융합을 통한 혁신 기회",
             "current_limitation": "현재 접근 방식의 한계",
             "discipline_opportunity": "학문 원리를 통한 해결 가능성",
+            "pain_evidence": "커뮤니티에서 보고된 일반적인 문제",
         }]
 
     return {"problems": problems}
@@ -103,7 +131,7 @@ def problem_identifier_node(state: IdeaState) -> dict:
 # ─── Agent 2: IdeaGeneratorAgent ───
 def idea_generator_node(state: IdeaState) -> dict:
     """식별된 문제에 대한 구체적인 융합 아이디어 생성 (LLM 1-2회)"""
-    print("\n💡 [IdeaGeneratorAgent] 융합 아이디어 생성 중...")
+    print("\n\U0001f4a1 [IdeaGeneratorAgent] 융합 아이디어 생성 중...")
 
     problems = state["problems"]
     principle = state["today_principle"]
@@ -142,19 +170,19 @@ def idea_generator_node(state: IdeaState) -> dict:
 
     try:
         ideas = parse_llm_json(response.content)
-        print(f"  ✓ {len(ideas)}개 융합 아이디어 생성 완료")
+        print(f"  \u2713 {len(ideas)}개 융합 아이디어 생성 완료")
 
     except (json.JSONDecodeError, KeyError) as e:
-        print(f"  ⚠ 아이디어 생성 파싱 실패: {e}")
+        print(f"  \u26a0 아이디어 생성 파싱 실패: {e}")
         ideas = []
 
     return {"raw_ideas": ideas}
 
 
-# ─── Agent 3: FeasibilityCheckerAgent ───
+# ─── Agent 3: FeasibilityCheckerAgent (3축 평가 개편) ───
 def feasibility_checker_node(state: IdeaState) -> dict:
-    """아이디어의 실현가능성, 혁신성, 영향력 평가 (LLM 1회)"""
-    print("\n📊 [FeasibilityCheckerAgent] 실현가능성 평가 중...")
+    """아이디어의 시장규모, 실용성, 실현가능성 3축 평가 (LLM 1회)"""
+    print("\n\U0001f4ca [FeasibilityCheckerAgent] 3축 실현가능성 평가 중...")
 
     ideas = state["raw_ideas"]
     if not ideas:
@@ -169,10 +197,24 @@ def feasibility_checker_node(state: IdeaState) -> dict:
 다음 AI 융합 아이디어들을 엄격하게 평가해주세요:
 {ideas_text}
 
-각 아이디어에 대해 다음 기준으로 1~10점을 매기세요:
-- feasibility_score: 기술적 실현가능성 (현재 기술로 가능한가?)
-- novelty_score: 혁신성 (기존에 없는 새로운 접근인가?)
-- impact_score: 영향력 (실제로 구현되면 얼마나 가치 있는가?)
+각 아이디어에 대해 다음 3가지 기준으로 1~10점을 매기세요:
+
+1. market_size_score (시장 규모, 1-10): 이 문제를 해결하면 얼마나 큰 시장인가?
+   - 1-3: 니치 시장 (소수만 필요)
+   - 4-6: 중간 규모 시장
+   - 7-10: 대규모 시장 (수백만 명 이상이 필요)
+
+2. practicality_score (실용성, 1-10): 실제로 사람들이 쓸 것인가?
+   - 1-3: 학술적으로만 흥미로움
+   - 4-6: 일부 사용자가 채택할 가능성
+   - 7-10: 많은 사람이 즉시 사용하고 싶어할 것
+
+3. feasibility_score (실현가능성, 1-10): 현재 기술로 구현 가능한가?
+   - 1-3: 핵심 기술이 아직 존재하지 않음
+   - 4-6: 기술은 있지만 상당한 R&D 필요
+   - 7-10: 기존 기술/도구로 빠르게 구현 가능
+
+또한 각 아이디어에 대해:
 - challenges: 주요 도전 과제 2-3개 (한국어, 배열)
 - improvements: 아이디어를 더 좋게 만들 수 있는 제안 1-2개 (한국어, 배열)
 
@@ -183,23 +225,23 @@ def feasibility_checker_node(state: IdeaState) -> dict:
     try:
         evaluated = parse_llm_json(response.content)
 
-        # 종합 점수 계산 및 정렬
+        # 종합 점수 계산 및 정렬 (3축 합산)
         for idea in evaluated:
-            f = idea.get("feasibility_score", 5)
-            n = idea.get("novelty_score", 5)
-            i = idea.get("impact_score", 5)
-            idea["total_score"] = f + n + i
+            ms = idea.get("market_size_score", 5)
+            pr = idea.get("practicality_score", 5)
+            fe = idea.get("feasibility_score", 5)
+            idea["total_score"] = ms + pr + fe
 
         evaluated.sort(key=lambda x: x.get("total_score", 0), reverse=True)
-        print(f"  ✓ {len(evaluated)}개 아이디어 평가 완료")
+        print(f"  \u2713 {len(evaluated)}개 아이디어 3축 평가 완료")
 
     except (json.JSONDecodeError, KeyError) as e:
-        print(f"  ⚠ 평가 파싱 실패, 원본 사용: {e}")
+        print(f"  \u26a0 평가 파싱 실패, 원본 사용: {e}")
         evaluated = ideas
         for idea in evaluated:
+            idea["market_size_score"] = 5
+            idea["practicality_score"] = 5
             idea["feasibility_score"] = 5
-            idea["novelty_score"] = 5
-            idea["impact_score"] = 5
             idea["total_score"] = 15
 
     return {"evaluated_ideas": evaluated}
@@ -208,7 +250,7 @@ def feasibility_checker_node(state: IdeaState) -> dict:
 # ─── Agent 4: TechnicalRoadmapAgent ───
 def technical_roadmap_node(state: IdeaState) -> dict:
     """평가된 아이디어에 대한 기술 로드맵 생성 (LLM 1회)"""
-    print("\n🗺️ [TechnicalRoadmapAgent] 기술 로드맵 생성 중...")
+    print("\n\U0001f5fa\ufe0f [TechnicalRoadmapAgent] 기술 로드맵 생성 중...")
 
     ideas = state["evaluated_ideas"]
     if not ideas:
@@ -327,10 +369,10 @@ required_tech 필드에 명시된 기술을 우선 반영하세요."""
                     "techStack": ["Python", "FastAPI", "PyTorch", "React", "Docker"],
                 }
 
-        print(f"  ✓ {len(roadmap_ideas)}개 아이디어 기술 로드맵 생성 완료")
+        print(f"  \u2713 {len(roadmap_ideas)}개 아이디어 기술 로드맵 생성 완료")
 
     except (json.JSONDecodeError, KeyError) as e:
-        print(f"  ⚠ 로드맵 파싱 실패, 기본 로드맵 추가: {e}")
+        print(f"  \u26a0 로드맵 파싱 실패, 기본 로드맵 추가: {e}")
         roadmap_ideas = top_ideas
         for idea in roadmap_ideas:
             idea["technical_roadmap"] = {
@@ -367,7 +409,7 @@ required_tech 필드에 명시된 기술을 우선 반영하세요."""
 # ─── Agent 5: MarketAnalysisAgent ───
 def market_analysis_node(state: IdeaState) -> dict:
     """아이디어의 시장 타당성 분석 (LLM 1회)"""
-    print("\n📈 [MarketAnalysisAgent] 시장 타당성 분석 중...")
+    print("\n\U0001f4c8 [MarketAnalysisAgent] 시장 타당성 분석 중...")
 
     ideas = state["roadmap_ideas"]
     if not ideas:
@@ -437,10 +479,10 @@ def market_analysis_node(state: IdeaState) -> dict:
                     "feasibilityScore": 50,
                 }
 
-        print(f"  ✓ {len(market_ideas)}개 아이디어 시장 분석 완료")
+        print(f"  \u2713 {len(market_ideas)}개 아이디어 시장 분석 완료")
 
     except (json.JSONDecodeError, KeyError) as e:
-        print(f"  ⚠ 시장 분석 파싱 실패, 기본값 추가: {e}")
+        print(f"  \u26a0 시장 분석 파싱 실패, 기본값 추가: {e}")
         market_ideas = ideas
         for idea in market_ideas:
             idea["market_feasibility"] = {
@@ -457,7 +499,7 @@ def market_analysis_node(state: IdeaState) -> dict:
 # ─── Agent 6: SynthesizerAgent ───
 def synthesizer_node(state: IdeaState) -> dict:
     """최종 아이디어를 선별하고 스토리텔링 형식으로 정리 (LLM 1회)"""
-    print("\n✨ [SynthesizerAgent] 최종 아이디어 정리 및 스토리텔링 중...")
+    print("\n\u2728 [SynthesizerAgent] 최종 아이디어 정리 및 스토리텔링 중...")
 
     ideas = state["market_ideas"]
     news = state["news_articles"]
@@ -533,13 +575,86 @@ AI를 공부하는 사람이 "이거 해보고 싶다!"라고 느낄 수 있게 
                         idea["market_feasibility"] = orig.get("market_feasibility", {})
                         break
 
-        print(f"  ✓ {len(final_ideas)}개 최종 아이디어 정리 완료")
+        print(f"  \u2713 {len(final_ideas)}개 최종 아이디어 정리 완료")
 
     except (json.JSONDecodeError, KeyError) as e:
-        print(f"  ⚠ 최종 정리 파싱 실패, 원본 사용: {e}")
+        print(f"  \u26a0 최종 정리 파싱 실패, 원본 사용: {e}")
         final_ideas = top_ideas
 
     return {"final_ideas": final_ideas}
+
+
+# ─── Agent 7: ProblemSolverAgent (문제해결사) ───
+def problem_solver_node(state: IdeaState) -> dict:
+    """최종 아이디어에 대한 구체적인 '첫 걸음 가이드' 제공 (LLM 1회)"""
+    print("\n\U0001f6e0\ufe0f [ProblemSolverAgent] 첫 걸음 가이드 생성 중...")
+
+    final_ideas = state["final_ideas"]
+    if not final_ideas:
+        return {"final_ideas": []}
+
+    # 상위 1-2개 아이디어에 대해 실행 가이드 생성
+    target_ideas = final_ideas[:2]
+
+    llm = get_llm(temperature=0.7, max_tokens=4096)
+
+    ideas_text = json.dumps(target_ideas, ensure_ascii=False, indent=2)
+
+    prompt = f"""당신은 아이디어를 실제 행동으로 옮기는 것을 돕는 실행 전문 코치입니다.
+
+다음 AI 융합 아이디어들에 대해 각각 구체적인 "첫 걸음 가이드"를 작성해주세요.
+아이디어를 처음 접한 개발자/연구자가 "지금 당장" 시작할 수 있도록 실용적으로 안내하세요.
+
+{ideas_text}
+
+각 아이디어에 대해 다음 4가지를 추가하세요:
+
+1. first_step: "지금 당장 시작하려면" 3단계 (객체 배열)
+   - today: 오늘 할 수 있는 것 (1-2문장, 한국어)
+   - this_week: 이번 주 안에 할 수 있는 것 (1-2문장, 한국어)
+   - this_month: 이번 달 안에 달성할 수 있는 것 (1-2문장, 한국어)
+
+2. minimum_viable_experiment: 가장 작은 실험으로 아이디어를 검증하는 방법 (1-2문장, 한국어)
+   - 최소한의 시간/자원으로 "이게 될까?"를 확인할 수 있는 방법
+
+3. key_resources: 필요한 핵심 리소스/도구 3-5개 (문자열 배열, 한국어)
+   - 무료 도구를 우선 추천하세요
+   - 구체적인 도구명/서비스명을 포함하세요
+
+4. success_metric: 성공 여부를 판단할 수 있는 핵심 지표 1개 (1문장, 한국어)
+   - 측정 가능하고 명확한 기준을 제시하세요
+
+반드시 JSON 배열로만 응답하세요. 원래 필드를 모두 유지하고 위 4개 필드를 추가하세요."""
+
+    response = llm.invoke([HumanMessage(content=prompt)])
+
+    try:
+        solved_ideas = parse_llm_json(response.content)
+
+        # 원본 final_ideas에 문제해결 필드 병합
+        solved_map = {}
+        for idea in solved_ideas:
+            name = idea.get("concept_name", "")
+            solved_map[name] = {
+                "first_step": idea.get("first_step", {}),
+                "minimum_viable_experiment": idea.get("minimum_viable_experiment", ""),
+                "key_resources": idea.get("key_resources", []),
+                "success_metric": idea.get("success_metric", ""),
+            }
+
+        updated_ideas = []
+        for idea in final_ideas:
+            name = idea.get("concept_name", "")
+            if name in solved_map:
+                idea.update(solved_map[name])
+            updated_ideas.append(idea)
+
+        print(f"  \u2713 {len(solved_ideas)}개 아이디어 첫 걸음 가이드 생성 완료")
+        return {"final_ideas": updated_ideas}
+
+    except (json.JSONDecodeError, KeyError) as e:
+        print(f"  \u26a0 ProblemSolver 파싱 실패, 원본 유지: {e}")
+        return {"final_ideas": final_ideas}
 
 
 # ─── 융합 아이디어 에이전트 팀 그래프 빌드 ───
@@ -547,35 +662,48 @@ def build_idea_team_graph():
     """융합 아이디어 생성 에이전트 팀 그래프"""
     graph = StateGraph(IdeaState)
 
+    graph.add_node("pain_point_hunter", pain_point_hunter_node)
     graph.add_node("problem_identifier", problem_identifier_node)
     graph.add_node("idea_generator", idea_generator_node)
     graph.add_node("feasibility_checker", feasibility_checker_node)
     graph.add_node("technical_roadmap", technical_roadmap_node)
     graph.add_node("market_analysis", market_analysis_node)
     graph.add_node("synthesizer", synthesizer_node)
+    graph.add_node("problem_solver", problem_solver_node)
 
-    graph.add_edge(START, "problem_identifier")
+    graph.add_edge(START, "pain_point_hunter")
+    graph.add_edge("pain_point_hunter", "problem_identifier")
     graph.add_edge("problem_identifier", "idea_generator")
     graph.add_edge("idea_generator", "feasibility_checker")
     graph.add_edge("feasibility_checker", "technical_roadmap")
     graph.add_edge("technical_roadmap", "market_analysis")
     graph.add_edge("market_analysis", "synthesizer")
-    graph.add_edge("synthesizer", END)
+    graph.add_edge("synthesizer", "problem_solver")
+    graph.add_edge("problem_solver", END)
 
     return graph.compile()
 
 
-def run_idea_team(news_articles: list[dict], today_principle: dict, discipline_info: dict) -> dict:
+def run_idea_team(
+    news_articles: list[dict],
+    today_principle: dict,
+    discipline_info: dict,
+    pain_points: list[dict] = None,
+) -> dict:
     """융합 아이디어 에이전트 팀 실행"""
     print("=" * 60)
-    print("🚀 융합 아이디어 에이전트 팀 시작")
+    print("\U0001f680 융합 아이디어 에이전트 팀 시작")
     print("=" * 60)
+
+    if pain_points is None:
+        pain_points = fetch_pain_points()
 
     graph = build_idea_team_graph()
     initial_state = {
         "news_articles": news_articles,
         "today_principle": today_principle,
         "discipline_info": discipline_info,
+        "pain_points": pain_points,
         "problems": [],
         "raw_ideas": [],
         "evaluated_ideas": [],
@@ -586,5 +714,5 @@ def run_idea_team(news_articles: list[dict], today_principle: dict, discipline_i
 
     result = graph.invoke(initial_state)
 
-    print(f"\n✅ 융합 아이디어 에이전트 팀 완료: {len(result['final_ideas'])}개 아이디어 생성")
+    print(f"\n\u2705 융합 아이디어 에이전트 팀 완료: {len(result['final_ideas'])}개 아이디어 생성")
     return result

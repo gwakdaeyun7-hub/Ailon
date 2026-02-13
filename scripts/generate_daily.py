@@ -63,19 +63,16 @@ def save_news_to_firestore(result: dict):
 
 
 def save_principles_to_firestore(result: dict):
-    """학문 원리 결과를 Firestore에 저장
+    """학문 원리 결과를 Firestore에 저장 (3개 분야 × 1원리)
 
-    Each principle includes enriched fields from the knowledge_team pipeline:
-        title, description, explanation, realWorldExample, applicationIdeas,
-        aiRelevance, crossDisciplineLinks, difficulty, category, superCategory,
-        learn_more_links (list of {type, title, url})
+    Supports both single-discipline (legacy) and multi-discipline (new) results.
     """
     db = get_firestore_client()
     today = datetime.now().strftime("%Y-%m-%d")
 
-    # Ensure every principle carries learn_more_links (default to empty list)
-    principles = result.get("final_principles", [])
-    for principle in principles:
+    # New multi-discipline format
+    all_principles = result.get("all_principles", result.get("final_principles", []))
+    for principle in all_principles:
         if "learn_more_links" not in principle:
             principle["learn_more_links"] = []
 
@@ -83,18 +80,29 @@ def save_principles_to_firestore(result: dict):
     if today_principle and "learn_more_links" not in today_principle:
         today_principle["learn_more_links"] = []
 
+    # Build per-discipline summary for storage
+    disciplines_results = result.get("disciplines_results", [])
+    disciplines_summary = []
+    for dr in disciplines_results:
+        disciplines_summary.append({
+            "discipline_key": dr.get("discipline_key", ""),
+            "discipline_info": dr.get("discipline_info", {}),
+            "principle": dr.get("today_principle", dr.get("final_principles", [{}])[0] if dr.get("final_principles") else {}),
+        })
+
     doc_ref = db.collection("daily_principles").document(today)
     doc_data = {
         "date": today,
-        "discipline_key": result.get("discipline_key", ""),
-        "discipline_info": result.get("discipline_info", {}),
-        "principles": principles,
+        "discipline_key": result.get("discipline_key", disciplines_summary[0]["discipline_key"] if disciplines_summary else ""),
+        "discipline_info": result.get("discipline_info", disciplines_summary[0]["discipline_info"] if disciplines_summary else {}),
+        "principles": all_principles,
+        "disciplines": disciplines_summary,
         "today_principle": today_principle,
-        "count": len(principles),
+        "count": len(all_principles),
         "updated_at": firestore.SERVER_TIMESTAMP,
     }
     doc_ref.set(doc_data)
-    print(f"  💾 학문 원리 {len(principles)}개 저장 완료")
+    print(f"  💾 학문 원리 {len(all_principles)}개 저장 완료 (3개 분야)")
 
 
 def save_ideas_to_firestore(result: dict, news_result: dict, knowledge_result: dict):
@@ -252,15 +260,14 @@ def main():
     news_result = run_news_team()
     save_news_to_firestore(news_result)
 
-    # ─── Step 2: 학문 원리 에이전트 팀 ───
+    # ─── Step 2: 학문 원리 에이전트 팀 (3개 분야) ───
     print("\n" + "─" * 40)
-    print("📚 Step 2/3: 학문 원리 에이전트 팀")
+    print("📚 Step 2/3: 학문 원리 에이전트 팀 (3개 분야)")
     print("─" * 40)
-    discipline_key = get_today_discipline_key()
-    knowledge_result = run_knowledge_team(discipline_key)
+    knowledge_result = run_knowledge_team()
     save_principles_to_firestore(knowledge_result)
 
-    # ─── Step 3: 융합 아이디어 에이전트 팀 ───
+    # ─── Step 3: 융합 아이디어 에이전트 팀 (PainPointHunter 포함) ───
     print("\n" + "─" * 40)
     print("💡 Step 3/3: 융합 아이디어 에이전트 팀")
     print("─" * 40)
@@ -282,7 +289,8 @@ def main():
     print("\n" + "=" * 60)
     print("✅ Daily Agent Pipeline 완료!")
     print(f"   📰 뉴스: {len(news_result.get('raw_articles', []))}개 수집 → {len(news_result.get('final_articles', []))}개 큐레이션")
-    print(f"   📚 원리: {knowledge_result.get('discipline_info', {}).get('name', '?')} → {len(knowledge_result.get('final_principles', []))}개 생성")
+    all_principles = knowledge_result.get("all_principles", knowledge_result.get("final_principles", []))
+    print(f"   📚 원리: 3개 분야 → {len(all_principles)}개 생성")
     print(f"   💡 아이디어: {len(idea_result.get('problems', []))}개 문제 → {len(idea_result.get('final_ideas', []))}개 융합 아이디어")
     print("=" * 60)
 
