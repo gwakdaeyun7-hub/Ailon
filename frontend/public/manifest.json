@@ -1,13 +1,41 @@
 {
-  "name": "AI Learning Companion",
-  "short_name": "AI Learn",
-  "description": "매일 AI 뉴스와 학문 원리를 학습하고 창의적인 아이디어를 생성하세요",
+  "name": "Ailon - AI 학습 동반자",
+  "short_name": "Ailon",
+  "description": "매일 AI 뉴스, 학문 원리, 융합 아이디어를 큐레이션하는 AI 학습 동반자",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#3b82f6",
+  "theme_color": "#000000",
   "orientation": "portrait-primary",
+  "categories": ["education", "news", "productivity"],
+  "lang": "ko",
+  "dir": "ltr",
   "icons": [
+    {
+      "src": "/icon-72.png",
+      "sizes": "72x72",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-96.png",
+      "sizes": "96x96",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-128.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-144.png",
+      "sizes": "144x144",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-152.png",
+      "sizes": "152x152",
+      "type": "image/png"
+    },
     {
       "src": "/icon-192.png",
       "sizes": "192x192",
@@ -15,10 +43,35 @@
       "purpose": "any maskable"
     },
     {
+      "src": "/icon-384.png",
+      "sizes": "384x384",
+      "type": "image/png"
+    },
+    {
       "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "오늘의 뉴스",
+      "short_name": "뉴스",
+      "url": "/?section=news",
+      "icons": [{ "src": "/icon-96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "학문 스낵",
+      "short_name": "스낵",
+      "url": "/?section=snaps",
+      "icons": [{ "src": "/icon-96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "북마크",
+      "short_name": "북마크",
+      "url": "/bookmarks",
+      "icons": [{ "src": "/icon-96.png", "sizes": "96x96" }]
     }
   ]
 }

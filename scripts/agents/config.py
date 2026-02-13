@@ -1,5 +1,6 @@
 """
 공통 설정 모듈 - LLM, Firebase 초기화 및 공유 상수
+Phase 1: NEWS_CATEGORIES 추가
 """
 
 import os
@@ -11,6 +12,55 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from dotenv import load_dotenv
 
 load_dotenv()
+
+# ─── 뉴스 카테고리 정의 (Phase 1) ───
+NEWS_CATEGORIES = {
+    "models_architecture": "모델&아키텍처",
+    "agentic_reality": "에이전틱리얼리티",
+    "opensource_code": "오픈소스&코드",
+    "physical_ai": "Physical AI",
+    "policy_safety": "정책&안전",
+}
+
+# 카테고리별 키워드 (분류 보조용)
+CATEGORY_KEYWORDS = {
+    "models_architecture": [
+        "llm", "slm", "gpt", "claude", "gemini", "llama", "mistral",
+        "attention", "transformer", "architecture", "benchmark",
+        "parameter", "training", "fine-tuning", "inference",
+        "model", "foundation model", "multimodal", "vision language",
+        "scaling", "moe", "mixture of experts", "quantization",
+    ],
+    "agentic_reality": [
+        "agent", "agentic", "multi-agent", "autonomous", "workflow",
+        "tool use", "function calling", "rag", "retrieval",
+        "langchain", "langgraph", "crewai", "autogen",
+        "reasoning", "planning", "chain of thought", "cot",
+        "mcp", "model context protocol", "a2a",
+    ],
+    "opensource_code": [
+        "open source", "github", "repository", "library",
+        "framework", "cli", "api", "sdk", "package",
+        "hugging face", "ollama", "vllm", "mlx",
+        "release", "launch", "update", "version",
+        "developer", "code", "programming",
+    ],
+    "physical_ai": [
+        "robot", "robotics", "embodied", "physical",
+        "edge ai", "embedded", "iot", "sensor",
+        "autonomous driving", "self-driving", "drone",
+        "manufacturing", "industrial", "hardware",
+        "neuromorphic", "chip", "accelerator", "tpu", "npu",
+    ],
+    "policy_safety": [
+        "regulation", "policy", "law", "legislation",
+        "ethics", "ethical", "bias", "fairness",
+        "safety", "alignment", "guardrail",
+        "privacy", "security", "copyright",
+        "governance", "compliance", "eu ai act",
+        "deepfake", "misinformation", "responsible ai",
+    ],
+}
 
 # 학문 분야 정의
 DISCIPLINES = {
@@ -87,7 +137,7 @@ def get_llm(temperature: float = 0.7, max_tokens: int = 2048):
     """LangChain Gemini LLM 인스턴스 생성"""
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
-        print("❌ GEMINI_API_KEY not found")
+        print("[ERROR] GEMINI_API_KEY not found")
         sys.exit(1)
 
     return ChatGoogleGenerativeAI(
@@ -102,7 +152,7 @@ def initialize_firebase():
     """Firebase 초기화"""
     try:
         firebase_admin.get_app()
-        print("✓ Firebase already initialized")
+        print("[OK] Firebase already initialized")
     except ValueError:
         cred_json = os.getenv("FIREBASE_CREDENTIALS")
         if cred_json:
@@ -115,11 +165,11 @@ def initialize_firebase():
             if os.path.exists(cred_path):
                 cred = credentials.Certificate(cred_path)
             else:
-                print("❌ Firebase credentials not found")
+                print("[ERROR] Firebase credentials not found")
                 sys.exit(1)
 
         firebase_admin.initialize_app(cred)
-        print("✓ Firebase initialized")
+        print("[OK] Firebase initialized")
 
 
 def get_firestore_client():

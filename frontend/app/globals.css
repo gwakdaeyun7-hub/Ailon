@@ -148,4 +148,29 @@
   .leading-korean-tight {
     line-height: 1.65;
   }
+
+  /* Fade-in animation */
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Feasibility score bar (0-100 scale) */
+  .feasibility-bar {
+    @apply h-2 rounded-full bg-border;
+  }
+
+  .feasibility-bar-fill {
+    @apply h-full rounded-full bg-foreground/70 transition-all duration-700 ease-out;
+  }
 }

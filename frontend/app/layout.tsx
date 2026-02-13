@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Header } from '@/components/Header';
+import { BottomNav } from '@/components/BottomNav';
+import { InstallPrompt } from '@/components/InstallPrompt';
 
 export const metadata: Metadata = {
   title: 'Ailon - 매일 성장하는 AI 학습 동반자',
@@ -30,7 +32,7 @@ export default function RootLayout({
         <main className="flex-1">
           {children}
         </main>
-        <footer className="border-t border-border">
+        <footer className="border-t border-border mb-16 md:mb-0">
           <div className="container mx-auto max-w-3xl px-6 py-10">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
               <div className="flex items-center gap-2">
@@ -45,6 +47,8 @@ export default function RootLayout({
             </div>
           </div>
         </footer>
+        <BottomNav />
+        <InstallPrompt />
       </body>
     </html>
   );

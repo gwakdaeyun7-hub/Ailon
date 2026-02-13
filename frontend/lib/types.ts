@@ -2,6 +2,48 @@
  * TypeScript 타입 정의
  */
 
+// ---------------------------------------------------------------------------
+// News Category
+// ---------------------------------------------------------------------------
+
+export type NewsCategory =
+  | 'models_architecture'
+  | 'agentic_reality'
+  | 'opensource_code'
+  | 'physical_ai'
+  | 'policy_safety';
+
+export const NEWS_CATEGORY_LABELS: Record<NewsCategory, string> = {
+  models_architecture: '모델&아키텍처',
+  agentic_reality: '에이전틱리얼리티',
+  opensource_code: '오픈소스&코드',
+  physical_ai: 'Physical AI',
+  policy_safety: '정책&안전',
+};
+
+export const NEWS_CATEGORY_ICONS: Record<NewsCategory, string> = {
+  models_architecture: 'Brain',
+  agentic_reality: 'Bot',
+  opensource_code: 'Code',
+  physical_ai: 'Cpu',
+  policy_safety: 'Shield',
+};
+
+// ---------------------------------------------------------------------------
+// How-To Guide (embedded in Article)
+// ---------------------------------------------------------------------------
+
+export interface HowToGuide {
+  title: string;
+  steps: string[];
+  codeSnippet?: string;
+  promptExample?: string;
+}
+
+// ---------------------------------------------------------------------------
+// Article & Daily News
+// ---------------------------------------------------------------------------
+
 export interface Article {
   title: string;
   description: string;
@@ -10,6 +52,10 @@ export interface Article {
   source: string;
   summary: string;
   theme?: string;
+  category?: NewsCategory;
+  type?: 'short' | 'long';
+  howToGuide?: HowToGuide;
+  importance_score?: number;
 }
 
 export interface DailyNews {
@@ -28,6 +74,10 @@ export interface DailyNews {
   };
   updated_at: any;
 }
+
+// ---------------------------------------------------------------------------
+// Principle & Daily Principles
+// ---------------------------------------------------------------------------
 
 export interface Principle {
   id?: string;
@@ -69,6 +119,40 @@ export interface DailyPrinciples {
   count: number;
   updated_at: any;
 }
+
+// ---------------------------------------------------------------------------
+// Academic Snap & Daily Academic Snaps
+// ---------------------------------------------------------------------------
+
+export interface LearnMoreLink {
+  type: 'wikipedia' | 'youtube' | 'article';
+  title: string;
+  url: string;
+}
+
+export interface AcademicSnap {
+  id?: string;
+  discipline: string;
+  superCategory: string;
+  title: string;
+  preview: string;
+  content: string;
+  aiImportance: string;
+  dailyAnalogy: string;
+  learnMoreLinks: LearnMoreLink[];
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+}
+
+export interface DailyAcademicSnaps {
+  date: string;
+  snaps: AcademicSnap[];
+  count: number;
+  updated_at: any;
+}
+
+// ---------------------------------------------------------------------------
+// Fusion Idea & Daily Ideas
+// ---------------------------------------------------------------------------
 
 export interface FusionIdea {
   concept_name: string;
@@ -114,6 +198,58 @@ export interface DailyIdeas {
   updated_at: any;
 }
 
+// ---------------------------------------------------------------------------
+// Synergy Idea & Daily Synergy Ideas
+// ---------------------------------------------------------------------------
+
+export interface RoadmapPhase {
+  phase: number;
+  title: string;
+  duration: string;
+  tasks: string[];
+  techStack: string[];
+}
+
+export interface TechnicalRoadmap {
+  phases: RoadmapPhase[];
+  totalDuration: string;
+  techStack: string[];
+}
+
+export interface MarketFeasibility {
+  tam: string;
+  competitors: string[];
+  differentiation: string;
+  revenueModel: string;
+  feasibilityScore: number;
+}
+
+export interface SynergyIdea extends FusionIdea {
+  technical_roadmap?: TechnicalRoadmap;
+  market_feasibility?: MarketFeasibility;
+}
+
+export interface DailySynergyIdeas {
+  date: string;
+  ideas: SynergyIdea[];
+  count: number;
+  source_news_count: number;
+  source_discipline: string;
+  source_principle: string;
+  agent_metadata?: {
+    problems_found: number;
+    ideas_generated: number;
+    ideas_evaluated: number;
+    ideas_final: number;
+    run_timestamp: string;
+  };
+  updated_at: any;
+}
+
+// ---------------------------------------------------------------------------
+// User-Generated Idea
+// ---------------------------------------------------------------------------
+
 export interface GeneratedIdea {
   id?: string;
   userId: string;
@@ -125,6 +261,10 @@ export interface GeneratedIdea {
   createdAt: any;
 }
 
+// ---------------------------------------------------------------------------
+// User Profile, Preferences, Feedback, Learning History, Bookmark
+// ---------------------------------------------------------------------------
+
 export interface UserProfile {
   uid: string;
   email: string | null;
@@ -134,6 +274,22 @@ export interface UserProfile {
   lastLoginAt: any;
 }
 
+export interface UserPreferences {
+  newsCategories: NewsCategory[];
+  disciplines: string[];
+  notificationsEnabled: boolean;
+  onboardingCompleted: boolean;
+}
+
+export interface UserFeedback {
+  id?: string;
+  userId: string;
+  itemType: 'news' | 'snap' | 'idea';
+  itemId: string;
+  reaction: 'like' | 'dislike';
+  createdAt: any;
+}
+
 export interface LearningHistory {
   principleId: string;
   learnedAt: any;
@@ -141,7 +297,7 @@ export interface LearningHistory {
 }
 
 export interface Bookmark {
-  type: 'news' | 'principle' | 'idea';
+  type: 'news' | 'principle' | 'snap' | 'idea';
   itemId: string;
   createdAt: any;
 }

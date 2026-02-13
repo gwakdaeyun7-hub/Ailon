@@ -2,7 +2,7 @@
 일일 전체 파이프라인 - 3개 에이전트 팀 순차 실행
 1. 뉴스 에이전트 팀 → daily_news 컬렉션
 2. 학문 원리 에이전트 팀 → daily_principles 컬렉션
-3. 융합 아이디어 에이전트 팀 → daily_ideas 컬렉션
+3. 융합 아이디어 에이전트 팀 → daily_ideas + synergy_ideas 컬렉션
 
 매일 GitHub Actions에서 실행됩니다.
 """
@@ -27,7 +27,16 @@ from agents.idea_team import run_idea_team
 
 
 def save_news_to_firestore(result: dict):
-    """뉴스 결과를 Firestore에 저장"""
+    """뉴스 결과를 Firestore에 저장
+
+    Saved fields per article:
+        title, description, link, published, source, source_type,
+        summary, category, category_name, type, howToGuide,
+        importance_score, social_score, theme
+    Top-level fields:
+        date, articles, count, daily_overview, highlight,
+        themes, categories, agent_metadata, updated_at
+    """
     db = get_firestore_client()
     today = datetime.now().strftime("%Y-%m-%d")
 
@@ -39,6 +48,7 @@ def save_news_to_firestore(result: dict):
         "daily_overview": result.get("daily_overview", ""),
         "highlight": result.get("highlight", {}),
         "themes": result.get("themes", []),
+        "categories": result.get("categories", {}),
         "agent_metadata": {
             "collected_count": len(result.get("raw_articles", [])),
             "analyzed_count": len(result.get("analyzed_articles", [])),
@@ -53,34 +63,79 @@ def save_news_to_firestore(result: dict):
 
 
 def save_principles_to_firestore(result: dict):
-    """학문 원리 결과를 Firestore에 저장"""
+    """학문 원리 결과를 Firestore에 저장
+
+    Each principle includes enriched fields from the knowledge_team pipeline:
+        title, description, explanation, realWorldExample, applicationIdeas,
+        aiRelevance, crossDisciplineLinks, difficulty, category, superCategory,
+        learn_more_links (list of {type, title, url})
+    """
     db = get_firestore_client()
     today = datetime.now().strftime("%Y-%m-%d")
+
+    # Ensure every principle carries learn_more_links (default to empty list)
+    principles = result.get("final_principles", [])
+    for principle in principles:
+        if "learn_more_links" not in principle:
+            principle["learn_more_links"] = []
+
+    today_principle = result.get("today_principle", {})
+    if today_principle and "learn_more_links" not in today_principle:
+        today_principle["learn_more_links"] = []
 
     doc_ref = db.collection("daily_principles").document(today)
     doc_data = {
         "date": today,
         "discipline_key": result.get("discipline_key", ""),
         "discipline_info": result.get("discipline_info", {}),
-        "principles": result.get("final_principles", []),
-        "today_principle": result.get("today_principle", {}),
-        "count": len(result.get("final_principles", [])),
+        "principles": principles,
+        "today_principle": today_principle,
+        "count": len(principles),
         "updated_at": firestore.SERVER_TIMESTAMP,
     }
     doc_ref.set(doc_data)
-    print(f"  💾 학문 원리 {len(result.get('final_principles', []))}개 저장 완료")
+    print(f"  💾 학문 원리 {len(principles)}개 저장 완료")
 
 
 def save_ideas_to_firestore(result: dict, news_result: dict, knowledge_result: dict):
-    """융합 아이디어 결과를 Firestore에 저장"""
+    """융합 아이디어 결과를 Firestore daily_ideas 컬렉션에 저장
+
+    Each idea includes extended fields from the upgraded pipeline:
+        concept_name, problem_addressed, description, narrative,
+        key_innovation, target_users, implementation_sketch, required_tech,
+        feasibility_score, novelty_score, impact_score, total_score,
+        challenges, improvements, tags, news_source, principle_source,
+        technical_roadmap ({phases, totalDuration, techStack}),
+        market_feasibility ({tam, competitors, differentiation,
+                             revenueModel, feasibilityScore})
+    """
     db = get_firestore_client()
     today = datetime.now().strftime("%Y-%m-%d")
+
+    ideas = result.get("final_ideas", [])
+
+    # Ensure every idea carries technical_roadmap and market_feasibility
+    for idea in ideas:
+        if "technical_roadmap" not in idea:
+            idea["technical_roadmap"] = {
+                "phases": [],
+                "totalDuration": "",
+                "techStack": idea.get("required_tech", []),
+            }
+        if "market_feasibility" not in idea:
+            idea["market_feasibility"] = {
+                "tam": "",
+                "competitors": [],
+                "differentiation": idea.get("key_innovation", ""),
+                "revenueModel": "",
+                "feasibilityScore": idea.get("feasibility_score", 0),
+            }
 
     doc_ref = db.collection("daily_ideas").document(today)
     doc_data = {
         "date": today,
-        "ideas": result.get("final_ideas", []),
-        "count": len(result.get("final_ideas", [])),
+        "ideas": ideas,
+        "count": len(ideas),
         "source_news_count": len(news_result.get("final_articles", [])),
         "source_discipline": knowledge_result.get("discipline_key", ""),
         "source_principle": knowledge_result.get("today_principle", {}).get("title", ""),
@@ -88,13 +143,68 @@ def save_ideas_to_firestore(result: dict, news_result: dict, knowledge_result: d
             "problems_found": len(result.get("problems", [])),
             "ideas_generated": len(result.get("raw_ideas", [])),
             "ideas_evaluated": len(result.get("evaluated_ideas", [])),
-            "ideas_final": len(result.get("final_ideas", [])),
+            "ideas_final": len(ideas),
             "run_timestamp": datetime.now().isoformat(),
         },
         "updated_at": firestore.SERVER_TIMESTAMP,
     }
     doc_ref.set(doc_data)
-    print(f"  💾 융합 아이디어 {len(result.get('final_ideas', []))}개 저장 완료")
+    print(f"  💾 융합 아이디어 {len(ideas)}개 저장 완료 (daily_ideas)")
+
+
+def save_synergy_ideas_to_firestore(result: dict, news_result: dict, knowledge_result: dict):
+    """융합 아이디어를 synergy_ideas 컬렉션에 저장
+
+    synergy_ideas는 daily_ideas와 동일한 데이터이지만
+    technical_roadmap, market_feasibility를 포함하는 확장 컬렉션으로,
+    프론트엔드의 useSynergyIdeas hook이 이 컬렉션을 읽습니다.
+
+    DailySynergyIdeas 타입과 매칭됩니다:
+        date, ideas (SynergyIdea[]), count,
+        source_news_count, source_discipline, source_principle,
+        agent_metadata, updated_at
+    """
+    db = get_firestore_client()
+    today = datetime.now().strftime("%Y-%m-%d")
+
+    ideas = result.get("final_ideas", [])
+
+    # Ensure every idea carries technical_roadmap and market_feasibility
+    for idea in ideas:
+        if "technical_roadmap" not in idea:
+            idea["technical_roadmap"] = {
+                "phases": [],
+                "totalDuration": "",
+                "techStack": idea.get("required_tech", []),
+            }
+        if "market_feasibility" not in idea:
+            idea["market_feasibility"] = {
+                "tam": "",
+                "competitors": [],
+                "differentiation": idea.get("key_innovation", ""),
+                "revenueModel": "",
+                "feasibilityScore": idea.get("feasibility_score", 0),
+            }
+
+    doc_ref = db.collection("synergy_ideas").document(today)
+    doc_data = {
+        "date": today,
+        "ideas": ideas,
+        "count": len(ideas),
+        "source_news_count": len(news_result.get("final_articles", [])),
+        "source_discipline": knowledge_result.get("discipline_key", ""),
+        "source_principle": knowledge_result.get("today_principle", {}).get("title", ""),
+        "agent_metadata": {
+            "problems_found": len(result.get("problems", [])),
+            "ideas_generated": len(result.get("raw_ideas", [])),
+            "ideas_evaluated": len(result.get("evaluated_ideas", [])),
+            "ideas_final": len(ideas),
+            "run_timestamp": datetime.now().isoformat(),
+        },
+        "updated_at": firestore.SERVER_TIMESTAMP,
+    }
+    doc_ref.set(doc_data)
+    print(f"  💾 시너지 아이디어 {len(ideas)}개 저장 완료 (synergy_ideas)")
 
 
 def cleanup_old_data(keep_days: int = 30):
@@ -102,7 +212,7 @@ def cleanup_old_data(keep_days: int = 30):
     db = get_firestore_client()
     cutoff_date = (datetime.now() - timedelta(days=keep_days)).strftime("%Y-%m-%d")
 
-    collections = ["daily_news", "daily_principles", "daily_ideas"]
+    collections = ["daily_news", "daily_principles", "daily_ideas", "synergy_ideas"]
     total_deleted = 0
 
     for col_name in collections:
@@ -160,6 +270,7 @@ def main():
         discipline_info=knowledge_result.get("discipline_info", {}),
     )
     save_ideas_to_firestore(idea_result, news_result, knowledge_result)
+    save_synergy_ideas_to_firestore(idea_result, news_result, knowledge_result)
 
     # ─── Step 4: 30일 초과 데이터 정리 ───
     print("\n" + "─" * 40)

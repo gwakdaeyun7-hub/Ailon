@@ -1,7 +1,22 @@
 {
   "permissions": {
     "allow": [
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(git -C \"C:\\\\Users\\\\82105\\\\OneDrive\\\\바탕 화면\\\\머릿속\\\\Think AI\\\\Ailon\\\\ailon\" log --oneline --all)",
+      "WebSearch",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git rm PRD_AI_Learning_App.md IMPLEMENTATION_SUMMARY.md SETUP_GUIDE.md QUICK_START.md DEVELOPMENT_GUIDE.md DEPLOYMENT_CHECKLIST.md)",
+      "Bash(git mv:*)",
+      "Bash(git stash:*)",
+      "Bash(git pull:*)",
+      "WebFetch(domain:newneek.co)",
+      "WebFetch(domain:github.com)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm install:*)",
+      "Bash(npm show:*)"
     ]
   }
 }
