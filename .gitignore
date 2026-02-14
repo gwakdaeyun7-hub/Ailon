@@ -68,3 +68,8 @@ nativewind-env.d.ts
 
 # Local Claude Code settings
 .claude/settings.local.json
+
+# Documentation (confidential business plans)
+README.md
+PRD_AILON_COMPLETE.md
+GEMINI_MODELS_REFERENCE.md
