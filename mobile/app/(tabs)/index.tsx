@@ -27,14 +27,14 @@ import { NEWS_CATEGORY_LABELS, NEWS_CATEGORY_COLORS } from '@/lib/types';
 // 표시할 카테고리 탭 (신규 3개 우선, 레거시 5개 하위호환)
 const DISPLAY_CATEGORIES: Array<{ key: NewsCategory | 'all'; label: string }> = [
   { key: 'all', label: '전체' },
-  { key: 'core_tech', label: 'Core Tech' },
-  { key: 'dev_tools', label: 'Dev & Tools' },
-  { key: 'trend_insight', label: 'Trend & Insight' },
-  { key: 'models_architecture', label: '모델&아키텍처' },
+  { key: 'core_tech', label: '🔬 모델·논문' },
+  { key: 'dev_tools', label: '🛠 개발·도구' },
+  { key: 'trend_insight', label: '📈 트렌드' },
+  { key: 'models_architecture', label: '모델·아키텍처' },
   { key: 'agentic_reality', label: '에이전틱' },
   { key: 'opensource_code', label: '오픈소스' },
   { key: 'physical_ai', label: 'Physical AI' },
-  { key: 'policy_safety', label: '정책&안전' },
+  { key: 'policy_safety', label: '정책·안전' },
 ];
 
 const cardShadow = {
@@ -104,10 +104,17 @@ function ArticleDetailModal({ article, visible, onClose }: { article: Article | 
             </View>
           )}
 
-          {/* Title */}
-          <Text className="text-text text-xl font-bold mb-3" style={{ lineHeight: 28 }}>
-            {article.title}
+          {/* 한국어 요약 (제목) */}
+          <Text className="text-text text-xl font-bold mb-2" style={{ lineHeight: 30 }}>
+            {article.summary ?? article.title}
           </Text>
+
+          {/* 영어 원문 제목 */}
+          {article.summary && (
+            <Text className="text-text-dim text-sm mb-3" style={{ lineHeight: 20 }}>
+              {article.title}
+            </Text>
+          )}
 
           {/* Source & Date */}
           <Text className="text-text-muted text-sm mb-5">
@@ -216,15 +223,22 @@ function NewsCard({ article, onPress }: { article: Article; onPress: () => void 
           <Text className="text-text-dim text-xs">{article.source}</Text>
         </View>
 
-        {/* Title */}
-        <Text className="text-text font-bold text-base mb-2" style={{ lineHeight: 22 }} numberOfLines={2}>
-          {article.title}
+        {/* 한국어 요약 (제목처럼 크게) */}
+        <Text className="text-text font-bold text-base mb-1.5" style={{ lineHeight: 23 }} numberOfLines={3}>
+          {article.summary ?? article.title}
         </Text>
+
+        {/* 영어 원문 제목 (작게) */}
+        {article.summary && (
+          <Text className="text-text-dim text-xs mb-2" numberOfLines={1} style={{ lineHeight: 16 }}>
+            {article.title}
+          </Text>
+        )}
 
         {/* Impact Comment */}
         {article.impact_comment && (
           <View
-            className="bg-primary-light rounded-xl px-3 py-2.5 mb-2.5"
+            className="bg-primary-light rounded-xl px-3 py-2.5 mb-2"
             style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}
           >
             <View
@@ -244,13 +258,6 @@ function NewsCard({ article, onPress }: { article: Article; onPress: () => void 
               {article.impact_comment}
             </Text>
           </View>
-        )}
-
-        {/* Summary */}
-        {article.summary && (
-          <Text className="text-text-muted text-sm" style={{ lineHeight: 20 }} numberOfLines={3}>
-            {article.summary}
-          </Text>
         )}
 
         {/* Footer */}

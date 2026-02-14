@@ -17,15 +17,15 @@ export type NewsCategory = NewsCategoryNew | NewsCategoryLegacy;
 
 export const NEWS_CATEGORY_LABELS: Record<NewsCategory, string> = {
   // 신규 3 카테고리
-  core_tech: 'Core Tech',
-  dev_tools: 'Dev & Tools',
-  trend_insight: 'Trend & Insight',
+  core_tech: '모델·논문',
+  dev_tools: '개발·도구',
+  trend_insight: '트렌드·인사이트',
   // 레거시 5 카테고리 (Firestore 하위호환)
-  models_architecture: '모델&아키텍처',
-  agentic_reality: '에이전틱리얼리티',
-  opensource_code: '오픈소스&코드',
+  models_architecture: '모델·아키텍처',
+  agentic_reality: '에이전틱',
+  opensource_code: '오픈소스',
   physical_ai: 'Physical AI',
-  policy_safety: '정책&안전',
+  policy_safety: '정책·안전',
 };
 
 export const NEWS_CATEGORY_COLORS: Record<string, string> = {
