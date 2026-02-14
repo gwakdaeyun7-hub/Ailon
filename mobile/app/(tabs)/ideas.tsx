@@ -245,6 +245,97 @@ function MarketSection({ idea }: { idea: SynergyIdea }) {
   );
 }
 
+function TopIdeaBanner({ idea }: { idea: SynergyIdea }) {
+  return (
+    <View
+      className="mx-4 mb-4 rounded-2xl overflow-hidden"
+      style={{
+        elevation: 5,
+        shadowColor: '#E53935',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.18,
+        shadowRadius: 10,
+        borderWidth: 1,
+        borderColor: '#FFCDD2',
+      }}
+    >
+      {/* Red header strip */}
+      <View
+        style={{
+          backgroundColor: '#E53935',
+          paddingHorizontal: 16,
+          paddingVertical: 10,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 8,
+        }}
+      >
+        <Lightbulb size={14} color="#FFFFFF" />
+        <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '800', letterSpacing: 0.5 }}>
+          이번 주 TOP 아이디어
+        </Text>
+        {idea.total_score != null && (
+          <View
+            style={{
+              marginLeft: 'auto',
+              backgroundColor: 'rgba(255,255,255,0.22)',
+              paddingHorizontal: 8,
+              paddingVertical: 2,
+              borderRadius: 8,
+            }}
+          >
+            <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '700' }}>
+              총점 {idea.total_score}/30
+            </Text>
+          </View>
+        )}
+      </View>
+
+      {/* Content */}
+      <View className="bg-card p-4">
+        <Text className="text-text font-bold" style={{ fontSize: 17, lineHeight: 25, marginBottom: 8 }}>
+          {idea.concept_name}
+        </Text>
+        {idea.problem_addressed && (
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'flex-start',
+              gap: 8,
+              backgroundColor: '#FFF8E1',
+              borderRadius: 10,
+              padding: 10,
+              marginBottom: 8,
+            }}
+          >
+            <Target size={12} color="#FB8C00" style={{ marginTop: 2 }} />
+            <Text style={{ color: '#E65100', fontSize: 13, flex: 1, lineHeight: 19 }} numberOfLines={2}>
+              {idea.problem_addressed}
+            </Text>
+          </View>
+        )}
+        {idea.first_step && (
+          <View
+            style={{
+              backgroundColor: '#FFEBEE',
+              borderRadius: 10,
+              paddingHorizontal: 12,
+              paddingVertical: 8,
+            }}
+          >
+            <Text style={{ color: '#C62828', fontSize: 11, fontWeight: '700', marginBottom: 2 }}>
+              오늘 시작하기
+            </Text>
+            <Text style={{ color: '#212121', fontSize: 13, lineHeight: 19 }} numberOfLines={2}>
+              {idea.first_step}
+            </Text>
+          </View>
+        )}
+      </View>
+    </View>
+  );
+}
+
 function IdeaCard({ idea, rank }: { idea: SynergyIdea; rank: number }) {
   const [expanded, setExpanded] = useState(rank === 1);
 
@@ -567,6 +658,11 @@ export default function IdeasScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#E53935" />}
       >
+        {/* Top Idea Banner - 이번 주 TOP 아이디어 */}
+        {!loading && !error && ideas.length > 0 && (
+          <TopIdeaBanner idea={ideas[0]} />
+        )}
+
         {loading ? (
           <>
             <IdeaCardSkeleton />
@@ -622,8 +718,9 @@ export default function IdeasScreen() {
             <Text className="text-text-muted text-sm">잠시 후 다시 확인해보세요</Text>
           </View>
         ) : (
-          ideas.map((idea, index) => (
-            <IdeaCard key={`${idea.concept_name}-${index}`} idea={idea} rank={index + 1} />
+          // ideas[0]은 TopIdeaBanner에서 표시, 나머지 rank 2부터
+          ideas.slice(1).map((idea, index) => (
+            <IdeaCard key={`${idea.concept_name}-${index}`} idea={idea} rank={index + 2} />
           ))
         )}
         <View className="h-6" />

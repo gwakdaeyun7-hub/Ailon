@@ -197,6 +197,92 @@ function ArticleDetailModal({ article, visible, onClose }: { article: Article | 
   );
 }
 
+function HighlightNewsCard({ article, onPress }: { article: Article; onPress: () => void }) {
+  const catColor = getCategoryColor(article.category);
+
+  return (
+    <Pressable
+      onPress={onPress}
+      className="mx-4 mb-4 rounded-2xl overflow-hidden active:opacity-90"
+      style={{
+        elevation: 5,
+        shadowColor: '#E53935',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.18,
+        shadowRadius: 10,
+        borderWidth: 1,
+        borderColor: '#FFCDD2',
+      }}
+    >
+      {/* Red header strip */}
+      <View
+        style={{
+          backgroundColor: '#E53935',
+          paddingHorizontal: 16,
+          paddingVertical: 10,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 8,
+        }}
+      >
+        <Zap size={14} color="#FFFFFF" />
+        <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '800', letterSpacing: 0.5 }}>
+          오늘의 주목 기사
+        </Text>
+        {article.category && (
+          <View
+            style={{
+              marginLeft: 'auto',
+              backgroundColor: 'rgba(255,255,255,0.22)',
+              paddingHorizontal: 8,
+              paddingVertical: 2,
+              borderRadius: 8,
+            }}
+          >
+            <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '600' }}>
+              {NEWS_CATEGORY_LABELS[article.category] ?? article.category}
+            </Text>
+          </View>
+        )}
+      </View>
+
+      {/* Content */}
+      <View className="bg-card p-4">
+        <Text className="text-text font-bold" style={{ fontSize: 17, lineHeight: 26, marginBottom: 8 }}>
+          {article.summary ?? article.title}
+        </Text>
+        {article.impact_comment && (
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'flex-start',
+              gap: 8,
+              backgroundColor: '#FFEBEE',
+              borderRadius: 10,
+              padding: 10,
+              marginBottom: 10,
+            }}
+          >
+            <Zap size={12} color="#E53935" style={{ marginTop: 2 }} />
+            <Text style={{ color: '#C62828', fontSize: 13, flex: 1, lineHeight: 19 }}>
+              {article.impact_comment}
+            </Text>
+          </View>
+        )}
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 }}>
+          <Text className="text-text-muted text-xs">
+            {article.source} · {article.published ? new Date(article.published).toLocaleDateString('ko-KR') : ''}
+          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Text style={{ color: '#E53935', fontSize: 12, fontWeight: '700' }}>자세히</Text>
+            <ChevronRight size={14} color="#E53935" />
+          </View>
+        </View>
+      </View>
+    </Pressable>
+  );
+}
+
 function NewsCard({ article, onPress }: { article: Article; onPress: () => void }) {
   const catColor = getCategoryColor(article.category);
 
@@ -396,6 +482,14 @@ export default function NewsScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#E53935" />}
       >
+        {/* Highlight Card - 오늘의 주목 기사 */}
+        {!loading && !error && newsData?.highlight && selectedCategory === 'all' && (
+          <HighlightNewsCard
+            article={newsData.highlight}
+            onPress={() => setSelectedArticle(newsData.highlight!)}
+          />
+        )}
+
         {loading ? (
           <>
             <NewsCardSkeleton />

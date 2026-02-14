@@ -83,6 +83,91 @@ function LearnMoreLinkButton({ link }: { link: LearnMoreLink }) {
   );
 }
 
+function TodayPrincipleCard({ principle }: { principle: Principle }) {
+  const fieldColor = getFieldColor(principle.superCategory);
+  const diffColor = DIFFICULTY_COLORS[principle.difficulty ?? 'intermediate'];
+
+  return (
+    <View
+      className="mx-4 mb-4 rounded-2xl overflow-hidden"
+      style={{
+        elevation: 5,
+        shadowColor: fieldColor,
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.18,
+        shadowRadius: 10,
+        borderWidth: 1,
+        borderColor: '#F0F0F0',
+      }}
+    >
+      {/* Colored header strip */}
+      <View
+        style={{
+          backgroundColor: fieldColor,
+          paddingHorizontal: 16,
+          paddingVertical: 10,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 8,
+        }}
+      >
+        <Sparkles size={14} color="#FFFFFF" />
+        <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '800', letterSpacing: 0.5 }}>
+          오늘의 원리
+        </Text>
+        {principle.superCategory && (
+          <View
+            style={{
+              marginLeft: 'auto',
+              backgroundColor: 'rgba(255,255,255,0.22)',
+              paddingHorizontal: 8,
+              paddingVertical: 2,
+              borderRadius: 8,
+            }}
+          >
+            <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '600' }}>
+              {principle.superCategory}
+            </Text>
+          </View>
+        )}
+      </View>
+
+      {/* Content */}
+      <View className="bg-card p-4">
+        {principle.hook && (
+          <Text
+            style={{ color: '#C62828', fontSize: 13, fontStyle: 'italic', lineHeight: 20, marginBottom: 8 }}
+          >
+            "{principle.hook}"
+          </Text>
+        )}
+        <Text className="text-text font-bold" style={{ fontSize: 17, lineHeight: 25, marginBottom: 6 }}>
+          {principle.title}
+        </Text>
+        <Text className="text-text-muted text-sm" style={{ lineHeight: 20 }} numberOfLines={3}>
+          {principle.simpleSummary ?? principle.description}
+        </Text>
+        {principle.difficulty && (
+          <View style={{ marginTop: 10, flexDirection: 'row' }}>
+            <View
+              style={{
+                backgroundColor: `${diffColor}15`,
+                paddingHorizontal: 10,
+                paddingVertical: 4,
+                borderRadius: 8,
+              }}
+            >
+              <Text style={{ color: diffColor, fontSize: 12, fontWeight: '600' }}>
+                {DIFFICULTY_LABELS[principle.difficulty]}
+              </Text>
+            </View>
+          </View>
+        )}
+      </View>
+    </View>
+  );
+}
+
 function SnapCard({ principle }: { principle: Principle }) {
   const [expanded, setExpanded] = useState(false);
   const diffColor = DIFFICULTY_COLORS[principle.difficulty ?? 'intermediate'];
@@ -250,7 +335,11 @@ function SnapCard({ principle }: { principle: Principle }) {
 }
 
 export default function SnapsScreen() {
-  const { allPrinciples, principlesData, loading, error, refresh } = usePrinciples();
+  const { allPrinciples, principlesData, todayPrinciple, loading, error, refresh } = usePrinciples();
+  // todayPrinciple이 있으면 목록에서 제외 (하이라이트로 따로 표시)
+  const displayPrinciples = todayPrinciple
+    ? allPrinciples.filter((p) => p.title !== todayPrinciple.title)
+    : allPrinciples;
   const [refreshing, setRefreshing] = useState(false);
 
   const handleRefresh = async () => {
@@ -259,7 +348,7 @@ export default function SnapsScreen() {
     setRefreshing(false);
   };
 
-  // 학문 분야 count
+  // 학문 분야 count (전체 기준)
   const fieldCount = new Set(allPrinciples.map((p) => p.superCategory).filter(Boolean)).size;
 
   return (
@@ -320,6 +409,11 @@ export default function SnapsScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#E53935" />}
       >
+        {/* Today's Highlight Principle */}
+        {!loading && !error && todayPrinciple && (
+          <TodayPrincipleCard principle={todayPrinciple} />
+        )}
+
         {loading ? (
           <>
             <SnapCardSkeleton />
@@ -375,7 +469,7 @@ export default function SnapsScreen() {
             <Text className="text-text-muted text-sm">잠시 후 다시 확인해보세요</Text>
           </View>
         ) : (
-          allPrinciples.map((principle, index) => (
+          displayPrinciples.map((principle, index) => (
             <SnapCard key={`${principle.title}-${index}`} principle={principle} />
           ))
         )}
