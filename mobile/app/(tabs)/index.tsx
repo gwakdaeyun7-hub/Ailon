@@ -7,7 +7,7 @@
  *   4. 제목 탭 → 상세 모달 (요약 + 원문링크 + 좋아요/싫어요/공유)
  */
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -20,6 +20,7 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   ExternalLink, Share2, X, Zap, Newspaper,
   RefreshCw, Menu, ThumbsUp, ThumbsDown,
@@ -335,10 +336,14 @@ function ArticleListItem({ article, onPress, isLast }: { article: Article; onPre
 export default function NewsScreen() {
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedCat, setSelectedCat] = useState<NewsCategory>('core_tech');
 
-  const { selectedDates, openDrawer } = useDrawer();
+  const { selectedDates, openDrawer, activeTab: _activeTab, setActiveTab, newsCategory: selectedCat, setNewsCategory } = useDrawer();
   const selectedDate = selectedDates.news;
+
+  // 이 탭에 포커스될 때 드로어가 news 콘텐츠를 표시하도록 설정
+  useFocusEffect(useCallback(() => {
+    setActiveTab('news');
+  }, [setActiveTab]));
 
   const { newsData, loading, error, refresh } = useNews(selectedDate);
 
@@ -433,7 +438,7 @@ export default function NewsScreen() {
                 return (
                   <Pressable
                     key={cat.key}
-                    onPress={() => setSelectedCat(cat.key)}
+                    onPress={() => setNewsCategory(cat.key)}
                     style={{
                       flex: 1,
                       paddingVertical: 10,

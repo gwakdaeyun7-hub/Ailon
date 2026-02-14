@@ -6,18 +6,19 @@
  * - TOP 아이디어 배너, 로드맵 아코디언, 점수바, ReactionBar
  */
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
   ScrollView,
   Pressable,
-  SafeAreaView,
   RefreshControl,
   LayoutAnimation,
   Share,
   TextInput,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   ChevronDown, ChevronUp, Share2, Lightbulb, Target,
   Map, TrendingUp, Rocket, RefreshCw, Search, X, Menu,
@@ -328,8 +329,12 @@ export default function IdeasScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
-  const { selectedDates, openDrawer } = useDrawer();
+  const { selectedDates, openDrawer, setActiveTab } = useDrawer();
   const selectedDate = selectedDates.ideas;
+
+  useFocusEffect(useCallback(() => {
+    setActiveTab('ideas');
+  }, [setActiveTab]));
 
   const { ideasData, ideas, loading, error, refresh } = useSynergyIdeas(selectedDate);
   const { user } = useAuth();

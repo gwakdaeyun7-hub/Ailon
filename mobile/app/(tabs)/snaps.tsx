@@ -7,18 +7,19 @@
  * - SnapCard 확장/축소: LayoutAnimation + ReactionBar
  */
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
   ScrollView,
   Pressable,
-  SafeAreaView,
   RefreshControl,
   LayoutAnimation,
   Linking,
   TextInput,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { ChevronDown, ChevronUp, ExternalLink, BookOpen, Sparkles, RefreshCw, Search, X, Menu } from 'lucide-react-native';
 import { usePrinciples } from '@/hooks/usePrinciples';
 import { useAuth } from '@/hooks/useAuth';
@@ -226,8 +227,12 @@ export default function SnapsScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
-  const { selectedDates, openDrawer } = useDrawer();
+  const { selectedDates, openDrawer, setActiveTab } = useDrawer();
   const selectedDate = selectedDates.snaps;
+
+  useFocusEffect(useCallback(() => {
+    setActiveTab('snaps');
+  }, [setActiveTab]));
 
   const { allPrinciples, principlesData, todayPrinciple, loading, error, refresh } = usePrinciples(selectedDate);
   const { user } = useAuth();
