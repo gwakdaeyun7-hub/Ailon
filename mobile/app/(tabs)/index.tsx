@@ -53,20 +53,20 @@ function ArticleDetailModal({ article, visible, onClose }: { article: Article | 
         {/* Header */}
         <View className="flex-row items-center justify-between px-4 py-3 border-b border-border">
           <Pressable onPress={onClose} className="p-2 rounded-full bg-surface active:opacity-70">
-            <X size={18} color="#f5f5f5" />
+            <X size={18} color="#1a1a1a" />
           </Pressable>
           <View className="flex-row gap-2">
             <Pressable
               onPress={() => Share.share({ message: `${article.title}\n\n${article.summary ?? article.description}\n\n${article.link}`, title: article.title })}
               className="p-2 rounded-full bg-surface active:opacity-70"
             >
-              <Share2 size={18} color="#f5f5f5" />
+              <Share2 size={18} color="#1a1a1a" />
             </Pressable>
             <Pressable
               onPress={() => article.link && Linking.openURL(article.link)}
               className="p-2 rounded-full bg-surface active:opacity-70"
             >
-              <ExternalLink size={18} color="#f5f5f5" />
+              <ExternalLink size={18} color="#1a1a1a" />
             </Pressable>
           </View>
         </View>
@@ -184,7 +184,7 @@ function NewsCard({ article, onPress }: { article: Article; onPress: () => void 
         <Text className="text-text-dim text-xs">
           {article.published ? new Date(article.published).toLocaleDateString('ko-KR') : ''}
         </Text>
-        <ChevronRight size={14} color="#6a6a6a" />
+        <ChevronRight size={14} color="#999999" />
       </View>
     </Pressable>
   );
@@ -246,7 +246,7 @@ export default function NewsScreen() {
               >
                 <Text
                   className="text-sm font-medium"
-                  style={{ color: isActive ? color : '#a0a0a0' }}
+                  style={{ color: isActive ? color : '#555555' }}
                 >
                   {cat.label}
                 </Text>

@@ -28,7 +28,7 @@ const DIFFICULTY_COLORS = { beginner: '#22c55e', intermediate: '#f59e0b', advanc
 
 function LearnMoreLinkButton({ link }: { link: LearnMoreLink }) {
   const icon = link.type === 'youtube' ? '▶' : link.type === 'wikipedia' ? 'W' : '📄';
-  const color = link.type === 'youtube' ? '#ef4444' : link.type === 'wikipedia' ? '#3b82f6' : '#a0a0a0';
+  const color = link.type === 'youtube' ? '#ef4444' : link.type === 'wikipedia' ? '#3b82f6' : '#555555';
 
   return (
     <Pressable
@@ -39,7 +39,7 @@ function LearnMoreLinkButton({ link }: { link: LearnMoreLink }) {
       <Text className="text-text-muted text-xs" numberOfLines={1} style={{ maxWidth: 180 }}>
         {link.title}
       </Text>
-      <ExternalLink size={10} color="#6a6a6a" />
+      <ExternalLink size={10} color="#999999" />
     </Pressable>
   );
 }
@@ -71,9 +71,9 @@ function SnapCard({ principle }: { principle: Principle }) {
             )}
           </View>
           {expanded ? (
-            <ChevronUp size={16} color="#a0a0a0" />
+            <ChevronUp size={16} color="#555555" />
           ) : (
-            <ChevronDown size={16} color="#a0a0a0" />
+            <ChevronDown size={16} color="#555555" />
           )}
         </View>
 
@@ -208,7 +208,7 @@ export default function SnapsScreen() {
           </View>
         ) : allPrinciples.length === 0 ? (
           <View className="items-center justify-center py-20">
-            <BookOpen size={40} color="#6a6a6a" />
+            <BookOpen size={40} color="#999999" />
             <Text className="text-text-muted mt-4">아직 학문 스낵이 없어요</Text>
           </View>
         ) : (

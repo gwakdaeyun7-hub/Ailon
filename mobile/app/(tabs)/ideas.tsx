@@ -52,7 +52,7 @@ function RoadmapSection({ phases }: { phases: RoadmapPhase[] }) {
           <Map size={14} color="#e53935" />
           <Text className="text-text font-semibold text-sm">기술 로드맵</Text>
         </View>
-        {expanded ? <ChevronUp size={14} color="#a0a0a0" /> : <ChevronDown size={14} color="#a0a0a0" />}
+        {expanded ? <ChevronUp size={14} color="#555555" /> : <ChevronDown size={14} color="#555555" />}
       </Pressable>
 
       {expanded && (
@@ -103,7 +103,7 @@ function MarketSection({ idea }: { idea: SynergyIdea }) {
           <TrendingUp size={14} color="#22c55e" />
           <Text className="text-text font-semibold text-sm">시장 분석</Text>
         </View>
-        {expanded ? <ChevronUp size={14} color="#a0a0a0" /> : <ChevronDown size={14} color="#a0a0a0" />}
+        {expanded ? <ChevronUp size={14} color="#555555" /> : <ChevronDown size={14} color="#555555" />}
       </Pressable>
 
       {expanded && (
@@ -174,9 +174,9 @@ function IdeaCard({ idea, rank }: { idea: SynergyIdea; rank: number }) {
           </View>
           <View className="flex-row items-center gap-1">
             <Pressable onPress={handleShare} className="p-1.5 rounded-full bg-surface active:opacity-70 mr-1">
-              <Share2 size={14} color="#a0a0a0" />
+              <Share2 size={14} color="#555555" />
             </Pressable>
-            {expanded ? <ChevronUp size={16} color="#a0a0a0" /> : <ChevronDown size={16} color="#a0a0a0" />}
+            {expanded ? <ChevronUp size={16} color="#555555" /> : <ChevronDown size={16} color="#555555" />}
           </View>
         </View>
 
@@ -336,7 +336,7 @@ export default function IdeasScreen() {
           </View>
         ) : ideas.length === 0 ? (
           <View className="items-center justify-center py-20">
-            <Lightbulb size={40} color="#6a6a6a" />
+            <Lightbulb size={40} color="#999999" />
             <Text className="text-text-muted mt-4">아직 아이디어가 없어요</Text>
           </View>
         ) : (

@@ -18,7 +18,7 @@ export function BookmarkButton({ isBookmarked, onToggle, size = 18 }: BookmarkBu
       {isBookmarked ? (
         <BookmarkCheck size={size} color="#e53935" strokeWidth={2} />
       ) : (
-        <Bookmark size={size} color="#a0a0a0" strokeWidth={2} />
+        <Bookmark size={size} color="#999999" strokeWidth={2} />
       )}
     </Pressable>
   );
