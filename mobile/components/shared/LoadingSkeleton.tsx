@@ -26,7 +26,7 @@ function SkeletonItem({ width, height = 16, borderRadius = 8 }: SkeletonProps) {
         width: width ?? '100%',
         height,
         borderRadius,
-        backgroundColor: '#2e2e2e',
+        backgroundColor: '#363636',
         opacity,
       }}
     />

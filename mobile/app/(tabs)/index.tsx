@@ -38,8 +38,8 @@ const DISPLAY_CATEGORIES: Array<{ key: NewsCategory | 'all'; label: string }> = 
 ];
 
 function getCategoryColor(category?: string): string {
-  if (!category) return '#6366f1';
-  return NEWS_CATEGORY_COLORS[category] ?? '#6366f1';
+  if (!category) return '#e53935';
+  return NEWS_CATEGORY_COLORS[category] ?? '#e53935';
 }
 
 function ArticleDetailModal({ article, visible, onClose }: { article: Article | null; visible: boolean; onClose: () => void }) {
@@ -53,20 +53,20 @@ function ArticleDetailModal({ article, visible, onClose }: { article: Article | 
         {/* Header */}
         <View className="flex-row items-center justify-between px-4 py-3 border-b border-border">
           <Pressable onPress={onClose} className="p-2 rounded-full bg-surface active:opacity-70">
-            <X size={18} color="#f0f0f0" />
+            <X size={18} color="#f5f5f5" />
           </Pressable>
           <View className="flex-row gap-2">
             <Pressable
               onPress={() => Share.share({ message: `${article.title}\n\n${article.summary ?? article.description}\n\n${article.link}`, title: article.title })}
               className="p-2 rounded-full bg-surface active:opacity-70"
             >
-              <Share2 size={18} color="#f0f0f0" />
+              <Share2 size={18} color="#f5f5f5" />
             </Pressable>
             <Pressable
               onPress={() => article.link && Linking.openURL(article.link)}
               className="p-2 rounded-full bg-surface active:opacity-70"
             >
-              <ExternalLink size={18} color="#f0f0f0" />
+              <ExternalLink size={18} color="#f5f5f5" />
             </Pressable>
           </View>
         </View>
@@ -94,7 +94,7 @@ function ArticleDetailModal({ article, visible, onClose }: { article: Article | 
           {/* Impact Comment */}
           {article.impact_comment && (
             <View className="bg-primary/10 rounded-2xl p-4 mb-4 flex-row gap-2">
-              <Zap size={16} color="#6366f1" />
+              <Zap size={16} color="#e53935" />
               <Text className="text-primary text-sm flex-1 leading-relaxed">{article.impact_comment}</Text>
             </View>
           )}
@@ -127,7 +127,7 @@ function ArticleDetailModal({ article, visible, onClose }: { article: Article | 
               onPress={() => Linking.openURL(article.link)}
               className="flex-row items-center justify-center gap-2 bg-primary/20 rounded-2xl py-3 mt-2 mb-6 active:opacity-70"
             >
-              <ExternalLink size={16} color="#6366f1" />
+              <ExternalLink size={16} color="#e53935" />
               <Text className="text-primary font-semibold">원문 보기</Text>
             </Pressable>
           )}
@@ -165,7 +165,7 @@ function NewsCard({ article, onPress }: { article: Article; onPress: () => void 
       {/* Impact Comment (신규 필드) */}
       {article.impact_comment && (
         <View className="flex-row items-start gap-1.5 bg-primary/10 rounded-xl px-3 py-2 mb-2">
-          <Zap size={12} color="#6366f1" style={{ marginTop: 2 }} />
+          <Zap size={12} color="#e53935" style={{ marginTop: 2 }} />
           <Text className="text-primary text-xs flex-1 leading-relaxed" numberOfLines={2}>
             {article.impact_comment}
           </Text>
@@ -184,7 +184,7 @@ function NewsCard({ article, onPress }: { article: Article; onPress: () => void 
         <Text className="text-text-dim text-xs">
           {article.published ? new Date(article.published).toLocaleDateString('ko-KR') : ''}
         </Text>
-        <ChevronRight size={14} color="#555555" />
+        <ChevronRight size={14} color="#6a6a6a" />
       </View>
     </Pressable>
   );
@@ -236,7 +236,7 @@ export default function NewsScreen() {
         >
           {visibleTabs.map((cat) => {
             const isActive = selectedCategory === cat.key;
-            const color = cat.key !== 'all' ? getCategoryColor(cat.key) : '#6366f1';
+            const color = cat.key !== 'all' ? getCategoryColor(cat.key) : '#e53935';
             return (
               <Pressable
                 key={cat.key}
@@ -246,7 +246,7 @@ export default function NewsScreen() {
               >
                 <Text
                   className="text-sm font-medium"
-                  style={{ color: isActive ? color : '#888888' }}
+                  style={{ color: isActive ? color : '#a0a0a0' }}
                 >
                   {cat.label}
                 </Text>
@@ -260,7 +260,7 @@ export default function NewsScreen() {
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#6366f1" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#e53935" />}
       >
         {loading ? (
           <>

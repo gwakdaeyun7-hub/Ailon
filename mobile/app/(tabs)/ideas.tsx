@@ -49,10 +49,10 @@ function RoadmapSection({ phases }: { phases: RoadmapPhase[] }) {
     <View className="mb-3">
       <Pressable onPress={toggle} className="flex-row items-center justify-between py-2">
         <View className="flex-row items-center gap-2">
-          <Map size={14} color="#6366f1" />
+          <Map size={14} color="#e53935" />
           <Text className="text-text font-semibold text-sm">기술 로드맵</Text>
         </View>
-        {expanded ? <ChevronUp size={14} color="#888888" /> : <ChevronDown size={14} color="#888888" />}
+        {expanded ? <ChevronUp size={14} color="#a0a0a0" /> : <ChevronDown size={14} color="#a0a0a0" />}
       </Pressable>
 
       {expanded && (
@@ -103,7 +103,7 @@ function MarketSection({ idea }: { idea: SynergyIdea }) {
           <TrendingUp size={14} color="#22c55e" />
           <Text className="text-text font-semibold text-sm">시장 분석</Text>
         </View>
-        {expanded ? <ChevronUp size={14} color="#888888" /> : <ChevronDown size={14} color="#888888" />}
+        {expanded ? <ChevronUp size={14} color="#a0a0a0" /> : <ChevronDown size={14} color="#a0a0a0" />}
       </Pressable>
 
       {expanded && (
@@ -174,9 +174,9 @@ function IdeaCard({ idea, rank }: { idea: SynergyIdea; rank: number }) {
           </View>
           <View className="flex-row items-center gap-1">
             <Pressable onPress={handleShare} className="p-1.5 rounded-full bg-surface active:opacity-70 mr-1">
-              <Share2 size={14} color="#888888" />
+              <Share2 size={14} color="#a0a0a0" />
             </Pressable>
-            {expanded ? <ChevronUp size={16} color="#888888" /> : <ChevronDown size={16} color="#888888" />}
+            {expanded ? <ChevronUp size={16} color="#a0a0a0" /> : <ChevronDown size={16} color="#a0a0a0" />}
           </View>
         </View>
 
@@ -215,8 +215,8 @@ function IdeaCard({ idea, rank }: { idea: SynergyIdea; rank: number }) {
           {/* Score Bars */}
           <View className="mb-3">
             <Text className="text-text-muted text-xs uppercase tracking-wider mb-2">평가 점수</Text>
-            <ScoreBar label="실현가능성" score={idea.feasibility_score ?? 0} color="#6366f1" />
-            <ScoreBar label="참신성" score={idea.novelty_score ?? 0} color="#8b5cf6" />
+            <ScoreBar label="실현가능성" score={idea.feasibility_score ?? 0} color="#e53935" />
+            <ScoreBar label="참신성" score={idea.novelty_score ?? 0} color="#ff6b6b" />
             <ScoreBar label="임팩트" score={idea.impact_score ?? 0} color="#22c55e" />
           </View>
 
@@ -319,7 +319,7 @@ export default function IdeasScreen() {
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#6366f1" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#e53935" />}
       >
         {loading ? (
           <>
@@ -336,7 +336,7 @@ export default function IdeasScreen() {
           </View>
         ) : ideas.length === 0 ? (
           <View className="items-center justify-center py-20">
-            <Lightbulb size={40} color="#555555" />
+            <Lightbulb size={40} color="#6a6a6a" />
             <Text className="text-text-muted mt-4">아직 아이디어가 없어요</Text>
           </View>
         ) : (

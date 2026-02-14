@@ -13,8 +13,8 @@ export default function RootLayout() {
 
   return (
     <>
-      <StatusBar style="light" backgroundColor="#0a0a0a" />
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#0a0a0a' } }}>
+      <StatusBar style="light" backgroundColor="#141414" />
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#141414' } }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="auth" options={{ headerShown: false, presentation: 'modal' }} />
       </Stack>

@@ -16,9 +16,9 @@ export function BookmarkButton({ isBookmarked, onToggle, size = 18 }: BookmarkBu
       accessibilityLabel={isBookmarked ? '북마크 제거' : '북마크 추가'}
     >
       {isBookmarked ? (
-        <BookmarkCheck size={size} color="#6366f1" strokeWidth={2} />
+        <BookmarkCheck size={size} color="#e53935" strokeWidth={2} />
       ) : (
-        <Bookmark size={size} color="#888888" strokeWidth={2} />
+        <Bookmark size={size} color="#a0a0a0" strokeWidth={2} />
       )}
     </Pressable>
   );

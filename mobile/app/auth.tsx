@@ -42,7 +42,7 @@ export default function AuthScreen() {
           className="w-full bg-white flex-row items-center justify-center gap-3 py-4 px-6 rounded-2xl active:opacity-80"
         >
           {loading ? (
-            <ActivityIndicator color="#6366f1" />
+            <ActivityIndicator color="#e53935" />
           ) : (
             <>
               <Text className="text-xl">G</Text>

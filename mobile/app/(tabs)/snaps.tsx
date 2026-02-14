@@ -28,7 +28,7 @@ const DIFFICULTY_COLORS = { beginner: '#22c55e', intermediate: '#f59e0b', advanc
 
 function LearnMoreLinkButton({ link }: { link: LearnMoreLink }) {
   const icon = link.type === 'youtube' ? '▶' : link.type === 'wikipedia' ? 'W' : '📄';
-  const color = link.type === 'youtube' ? '#ef4444' : link.type === 'wikipedia' ? '#3b82f6' : '#888888';
+  const color = link.type === 'youtube' ? '#ef4444' : link.type === 'wikipedia' ? '#3b82f6' : '#a0a0a0';
 
   return (
     <Pressable
@@ -39,7 +39,7 @@ function LearnMoreLinkButton({ link }: { link: LearnMoreLink }) {
       <Text className="text-text-muted text-xs" numberOfLines={1} style={{ maxWidth: 180 }}>
         {link.title}
       </Text>
-      <ExternalLink size={10} color="#555555" />
+      <ExternalLink size={10} color="#6a6a6a" />
     </Pressable>
   );
 }
@@ -71,16 +71,16 @@ function SnapCard({ principle }: { principle: Principle }) {
             )}
           </View>
           {expanded ? (
-            <ChevronUp size={16} color="#888888" />
+            <ChevronUp size={16} color="#a0a0a0" />
           ) : (
-            <ChevronDown size={16} color="#888888" />
+            <ChevronDown size={16} color="#a0a0a0" />
           )}
         </View>
 
         {/* Hook (알고 계셨나요?) */}
         {principle.hook && (
           <View className="flex-row items-start gap-2 bg-accent/10 rounded-xl px-3 py-2 mb-3">
-            <Sparkles size={14} color="#8b5cf6" style={{ marginTop: 2 }} />
+            <Sparkles size={14} color="#ff6b6b" style={{ marginTop: 2 }} />
             <Text className="text-accent text-sm flex-1 leading-relaxed italic" numberOfLines={expanded ? undefined : 2}>
               {principle.hook}
             </Text>
@@ -191,7 +191,7 @@ export default function SnapsScreen() {
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#6366f1" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#e53935" />}
       >
         {loading ? (
           <>
@@ -208,7 +208,7 @@ export default function SnapsScreen() {
           </View>
         ) : allPrinciples.length === 0 ? (
           <View className="items-center justify-center py-20">
-            <BookOpen size={40} color="#555555" />
+            <BookOpen size={40} color="#6a6a6a" />
             <Text className="text-text-muted mt-4">아직 학문 스낵이 없어요</Text>
           </View>
         ) : (
