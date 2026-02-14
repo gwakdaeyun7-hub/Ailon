@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  SafeAreaView,
   Pressable,
   ScrollView,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { LogOut, Bookmark, User as UserIcon, ChevronRight } from 'lucide-react-native';
 import { useAuth } from '@/hooks/useAuth';
 import { useBookmarks } from '@/hooks/useBookmarks';

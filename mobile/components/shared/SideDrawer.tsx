@@ -5,8 +5,8 @@ import {
   Pressable,
   Animated,
   ScrollView,
-  SafeAreaView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { X, Newspaper, BookOpen, Lightbulb } from 'lucide-react-native';
 import { useDrawer, DRAWER_WIDTH, type TabKey } from '@/context/DrawerContext';
 

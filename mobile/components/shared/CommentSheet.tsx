@@ -8,9 +8,9 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
   ActivityIndicator,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { X, Send, MessageCircle } from 'lucide-react-native';
 import { useComments, type Comment } from '@/hooks/useComments';
 import { useAuth } from '@/hooks/useAuth';
