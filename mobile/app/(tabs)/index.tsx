@@ -18,7 +18,7 @@ import {
   Linking,
   Share,
 } from 'react-native';
-import { ExternalLink, Share2, X, ChevronRight, Zap } from 'lucide-react-native';
+import { ExternalLink, Share2, X, ChevronRight, Zap, Newspaper, RefreshCw } from 'lucide-react-native';
 import { useNews } from '@/hooks/useNews';
 import { NewsCardSkeleton } from '@/components/shared/LoadingSkeleton';
 import type { Article, NewsCategory } from '@/lib/types';
@@ -37,9 +37,17 @@ const DISPLAY_CATEGORIES: Array<{ key: NewsCategory | 'all'; label: string }> = 
   { key: 'policy_safety', label: '정책&안전' },
 ];
 
+const cardShadow = {
+  elevation: 2,
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 1 },
+  shadowOpacity: 0.08,
+  shadowRadius: 4,
+};
+
 function getCategoryColor(category?: string): string {
-  if (!category) return '#e53935';
-  return NEWS_CATEGORY_COLORS[category] ?? '#e53935';
+  if (!category) return '#E53935';
+  return NEWS_CATEGORY_COLORS[category] ?? '#E53935';
 }
 
 function ArticleDetailModal({ article, visible, onClose }: { article: Article | null; visible: boolean; onClose: () => void }) {
@@ -51,32 +59,45 @@ function ArticleDetailModal({ article, visible, onClose }: { article: Article | 
     <Modal visible={visible} presentationStyle="pageSheet" animationType="slide" onRequestClose={onClose}>
       <SafeAreaView className="flex-1 bg-background">
         {/* Header */}
-        <View className="flex-row items-center justify-between px-4 py-3 border-b border-border">
-          <Pressable onPress={onClose} className="p-2 rounded-full bg-surface active:opacity-70">
-            <X size={18} color="#1a1a1a" />
+        <View
+          className="flex-row items-center justify-between px-4 py-3"
+          style={{ borderBottomWidth: 1, borderBottomColor: '#F0F0F0' }}
+        >
+          <Pressable
+            onPress={onClose}
+            className="active:opacity-70"
+            style={{
+              padding: 8,
+              borderRadius: 20,
+              backgroundColor: '#FAFAFA',
+            }}
+          >
+            <X size={18} color="#212121" />
           </Pressable>
           <View className="flex-row gap-2">
             <Pressable
               onPress={() => Share.share({ message: `${article.title}\n\n${article.summary ?? article.description}\n\n${article.link}`, title: article.title })}
-              className="p-2 rounded-full bg-surface active:opacity-70"
+              className="active:opacity-70"
+              style={{ padding: 8, borderRadius: 20, backgroundColor: '#FAFAFA' }}
             >
-              <Share2 size={18} color="#1a1a1a" />
+              <Share2 size={18} color="#212121" />
             </Pressable>
             <Pressable
               onPress={() => article.link && Linking.openURL(article.link)}
-              className="p-2 rounded-full bg-surface active:opacity-70"
+              className="active:opacity-70"
+              style={{ padding: 8, borderRadius: 20, backgroundColor: '#FAFAFA' }}
             >
-              <ExternalLink size={18} color="#1a1a1a" />
+              <ExternalLink size={18} color="#212121" />
             </Pressable>
           </View>
         </View>
 
-        <ScrollView className="flex-1 px-4 py-4">
+        <ScrollView className="flex-1 px-5 py-5">
           {/* Category badge */}
           {article.category && (
-            <View className="flex-row mb-3">
-              <View className="px-3 py-1 rounded-full" style={{ backgroundColor: `${catColor}20` }}>
-                <Text style={{ color: catColor }} className="text-xs font-semibold">
+            <View className="flex-row mb-4">
+              <View className="px-3 py-1.5 rounded-full" style={{ backgroundColor: `${catColor}15` }}>
+                <Text style={{ color: catColor }} className="text-xs font-bold tracking-wide">
                   {NEWS_CATEGORY_LABELS[article.category] ?? article.category}
                 </Text>
               </View>
@@ -84,40 +105,61 @@ function ArticleDetailModal({ article, visible, onClose }: { article: Article | 
           )}
 
           {/* Title */}
-          <Text className="text-text text-xl font-bold mb-3 leading-tight">{article.title}</Text>
+          <Text className="text-text text-xl font-bold mb-3" style={{ lineHeight: 28 }}>
+            {article.title}
+          </Text>
 
           {/* Source & Date */}
-          <Text className="text-text-muted text-sm mb-4">
+          <Text className="text-text-muted text-sm mb-5">
             {article.source} · {article.published ? new Date(article.published).toLocaleDateString('ko-KR') : ''}
           </Text>
 
           {/* Impact Comment */}
           {article.impact_comment && (
-            <View className="bg-primary/10 rounded-2xl p-4 mb-4 flex-row gap-2">
-              <Zap size={16} color="#e53935" />
-              <Text className="text-primary text-sm flex-1 leading-relaxed">{article.impact_comment}</Text>
+            <View
+              className="bg-primary-light rounded-2xl p-4 mb-5"
+              style={{ flexDirection: 'row', gap: 10 }}
+            >
+              <View
+                style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: 14,
+                  backgroundColor: '#E53935',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Zap size={14} color="#FFFFFF" />
+              </View>
+              <Text className="text-text text-sm flex-1" style={{ lineHeight: 22 }}>
+                {article.impact_comment}
+              </Text>
             </View>
           )}
 
           {/* Summary */}
           {article.summary && (
-            <View className="mb-4">
-              <Text className="text-text-muted text-xs uppercase tracking-wider mb-2">요약</Text>
-              <Text className="text-text text-base leading-relaxed">{article.summary}</Text>
+            <View className="mb-5">
+              <Text className="text-text-muted text-xs uppercase tracking-wider mb-2 font-semibold">요약</Text>
+              <Text className="text-text text-base" style={{ lineHeight: 24 }}>{article.summary}</Text>
             </View>
           )}
 
           {/* Description */}
-          <View className="mb-4">
-            <Text className="text-text-muted text-xs uppercase tracking-wider mb-2">원문 내용</Text>
-            <Text className="text-text-muted text-sm leading-relaxed">{article.description}</Text>
+          <View className="mb-5">
+            <Text className="text-text-muted text-xs uppercase tracking-wider mb-2 font-semibold">원문 내용</Text>
+            <Text className="text-text-muted text-sm" style={{ lineHeight: 22 }}>{article.description}</Text>
           </View>
 
           {/* How-to Guide */}
           {article.howToGuide && (
-            <View className="bg-surface rounded-2xl p-4 mb-4">
-              <Text className="text-accent text-sm font-semibold mb-2">실전 가이드</Text>
-              <Text className="text-text text-sm leading-relaxed">{article.howToGuide}</Text>
+            <View
+              className="rounded-2xl p-4 mb-5"
+              style={{ backgroundColor: '#FFF3E0' }}
+            >
+              <Text className="text-accent text-sm font-bold mb-2">실전 가이드</Text>
+              <Text className="text-text text-sm" style={{ lineHeight: 22 }}>{article.howToGuide}</Text>
             </View>
           )}
 
@@ -125,10 +167,21 @@ function ArticleDetailModal({ article, visible, onClose }: { article: Article | 
           {article.link && (
             <Pressable
               onPress={() => Linking.openURL(article.link)}
-              className="flex-row items-center justify-center gap-2 bg-primary/20 rounded-2xl py-3 mt-2 mb-6 active:opacity-70"
+              className="active:opacity-70"
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                backgroundColor: '#E53935',
+                borderRadius: 16,
+                paddingVertical: 14,
+                marginTop: 4,
+                marginBottom: 24,
+              }}
             >
-              <ExternalLink size={16} color="#e53935" />
-              <Text className="text-primary font-semibold">원문 보기</Text>
+              <ExternalLink size={16} color="#FFFFFF" />
+              <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 15 }}>원문 보기</Text>
             </Pressable>
           )}
         </ScrollView>
@@ -143,48 +196,73 @@ function NewsCard({ article, onPress }: { article: Article; onPress: () => void 
   return (
     <Pressable
       onPress={onPress}
-      className="bg-card rounded-2xl p-4 mb-3 mx-4 active:opacity-80"
+      className="bg-card rounded-2xl mb-3 mx-4 active:opacity-80"
+      style={{
+        ...cardShadow,
+        borderLeftWidth: 3,
+        borderLeftColor: catColor,
+      }}
     >
-      {/* Category + Source */}
-      <View className="flex-row items-center justify-between mb-2">
-        {article.category && (
-          <View className="px-2.5 py-1 rounded-full" style={{ backgroundColor: `${catColor}20` }}>
-            <Text style={{ color: catColor }} className="text-xs font-semibold">
-              {NEWS_CATEGORY_LABELS[article.category] ?? article.category}
+      <View className="p-4">
+        {/* Category + Source */}
+        <View className="flex-row items-center justify-between mb-2.5">
+          {article.category && (
+            <View className="px-2.5 py-1 rounded-full" style={{ backgroundColor: `${catColor}15` }}>
+              <Text style={{ color: catColor }} className="text-xs font-bold">
+                {NEWS_CATEGORY_LABELS[article.category] ?? article.category}
+              </Text>
+            </View>
+          )}
+          <Text className="text-text-dim text-xs">{article.source}</Text>
+        </View>
+
+        {/* Title */}
+        <Text className="text-text font-bold text-base mb-2" style={{ lineHeight: 22 }} numberOfLines={2}>
+          {article.title}
+        </Text>
+
+        {/* Impact Comment */}
+        {article.impact_comment && (
+          <View
+            className="bg-primary-light rounded-xl px-3 py-2.5 mb-2.5"
+            style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}
+          >
+            <View
+              style={{
+                width: 20,
+                height: 20,
+                borderRadius: 10,
+                backgroundColor: '#E53935',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginTop: 1,
+              }}
+            >
+              <Zap size={10} color="#FFFFFF" />
+            </View>
+            <Text className="text-text text-xs flex-1" style={{ lineHeight: 18 }} numberOfLines={2}>
+              {article.impact_comment}
             </Text>
           </View>
         )}
-        <Text className="text-text-dim text-xs">{article.source}</Text>
-      </View>
 
-      {/* Title */}
-      <Text className="text-text font-semibold text-base leading-snug mb-2" numberOfLines={2}>
-        {article.title}
-      </Text>
-
-      {/* Impact Comment (신규 필드) */}
-      {article.impact_comment && (
-        <View className="flex-row items-start gap-1.5 bg-primary/10 rounded-xl px-3 py-2 mb-2">
-          <Zap size={12} color="#e53935" style={{ marginTop: 2 }} />
-          <Text className="text-primary text-xs flex-1 leading-relaxed" numberOfLines={2}>
-            {article.impact_comment}
+        {/* Summary */}
+        {article.summary && (
+          <Text className="text-text-muted text-sm" style={{ lineHeight: 20 }} numberOfLines={3}>
+            {article.summary}
           </Text>
+        )}
+
+        {/* Footer */}
+        <View className="flex-row items-center justify-between mt-3">
+          <Text className="text-text-dim text-xs">
+            {article.published ? new Date(article.published).toLocaleDateString('ko-KR') : ''}
+          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Text style={{ color: '#E53935', fontSize: 12, fontWeight: '600' }}>자세히</Text>
+            <ChevronRight size={14} color="#E53935" />
+          </View>
         </View>
-      )}
-
-      {/* Summary */}
-      {article.summary && (
-        <Text className="text-text-muted text-sm leading-relaxed" numberOfLines={3}>
-          {article.summary}
-        </Text>
-      )}
-
-      {/* Footer */}
-      <View className="flex-row items-center justify-between mt-3">
-        <Text className="text-text-dim text-xs">
-          {article.published ? new Date(article.published).toLocaleDateString('ko-KR') : ''}
-        </Text>
-        <ChevronRight size={14} color="#999999" />
       </View>
     </Pressable>
   );
@@ -210,23 +288,55 @@ export default function NewsScreen() {
   return (
     <SafeAreaView className="flex-1 bg-background">
       {/* Header */}
-      <View className="px-4 pt-4 pb-2">
-        <Text className="text-text text-2xl font-bold">AI 트렌드</Text>
-        <Text className="text-text-muted text-sm mt-1">
-          {newsData?.date ? `${newsData.date} 기준` : '오늘의 AI 뉴스'}
-        </Text>
+      <View className="px-5 pt-5 pb-3">
+        <View className="flex-row items-center justify-between">
+          <View>
+            <Text className="text-text text-2xl font-bold">오늘의 AI 트렌드</Text>
+            <Text className="text-text-muted text-sm mt-1">
+              {newsData?.date ? `${newsData.date} 기준` : '오늘의 AI 뉴스'}
+            </Text>
+          </View>
+          <View
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: '#FFEBEE',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Newspaper size={20} color="#E53935" />
+          </View>
+        </View>
+        {/* Red accent line */}
+        <View
+          style={{
+            width: 40,
+            height: 3,
+            backgroundColor: '#E53935',
+            borderRadius: 2,
+            marginTop: 12,
+          }}
+        />
       </View>
 
       {/* Daily Overview */}
       {newsData?.daily_overview && (
-        <View className="mx-4 mb-3 bg-surface rounded-2xl p-4">
-          <Text className="text-text-muted text-sm leading-relaxed" numberOfLines={3}>
+        <View
+          className="mx-4 mb-3 rounded-2xl p-4"
+          style={{
+            backgroundColor: '#FFFFFF',
+            ...cardShadow,
+          }}
+        >
+          <Text className="text-text-muted text-sm" style={{ lineHeight: 20 }} numberOfLines={3}>
             {newsData.daily_overview}
           </Text>
         </View>
       )}
 
-      {/* Category Tabs */}
+      {/* Category Tabs - pill buttons */}
       {visibleTabs.length > 1 && (
         <ScrollView
           horizontal
@@ -236,17 +346,34 @@ export default function NewsScreen() {
         >
           {visibleTabs.map((cat) => {
             const isActive = selectedCategory === cat.key;
-            const color = cat.key !== 'all' ? getCategoryColor(cat.key) : '#e53935';
             return (
               <Pressable
                 key={cat.key}
                 onPress={() => setSelectedCategory(cat.key as NewsCategory | 'all')}
-                className={`px-4 py-2 rounded-full ${isActive ? '' : 'bg-surface'}`}
-                style={isActive ? { backgroundColor: `${color}20`, borderWidth: 1, borderColor: color } : undefined}
+                style={
+                  isActive
+                    ? {
+                        backgroundColor: '#E53935',
+                        paddingHorizontal: 16,
+                        paddingVertical: 8,
+                        borderRadius: 20,
+                      }
+                    : {
+                        backgroundColor: '#FFFFFF',
+                        paddingHorizontal: 16,
+                        paddingVertical: 8,
+                        borderRadius: 20,
+                        borderWidth: 1,
+                        borderColor: '#F0F0F0',
+                      }
+                }
               >
                 <Text
-                  className="text-sm font-medium"
-                  style={{ color: isActive ? color : '#555555' }}
+                  style={{
+                    fontSize: 13,
+                    fontWeight: '600',
+                    color: isActive ? '#FFFFFF' : '#757575',
+                  }}
                 >
                   {cat.label}
                 </Text>
@@ -260,7 +387,7 @@ export default function NewsScreen() {
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#e53935" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#E53935" />}
       >
         {loading ? (
           <>
@@ -269,15 +396,54 @@ export default function NewsScreen() {
             <NewsCardSkeleton />
           </>
         ) : error ? (
-          <View className="flex-1 items-center justify-center py-20">
-            <Text className="text-text-muted text-center">{error}</Text>
-            <Pressable onPress={refresh} className="mt-4 px-6 py-2 bg-primary rounded-xl active:opacity-70">
-              <Text className="text-white font-semibold">다시 시도</Text>
+          <View className="flex-1 items-center justify-center py-20 px-8">
+            <View
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: 32,
+                backgroundColor: '#FFEBEE',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 16,
+              }}
+            >
+              <RefreshCw size={28} color="#E53935" />
+            </View>
+            <Text className="text-text font-semibold text-base mb-2">연결에 문제가 있어요</Text>
+            <Text className="text-text-muted text-sm text-center mb-5" style={{ lineHeight: 20 }}>
+              {error}
+            </Text>
+            <Pressable
+              onPress={refresh}
+              className="active:opacity-70"
+              style={{
+                backgroundColor: '#E53935',
+                paddingHorizontal: 28,
+                paddingVertical: 12,
+                borderRadius: 12,
+              }}
+            >
+              <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 15 }}>다시 시도</Text>
             </Pressable>
           </View>
         ) : filteredArticles.length === 0 ? (
           <View className="items-center justify-center py-20">
-            <Text className="text-text-muted">아직 뉴스가 없어요</Text>
+            <View
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: 32,
+                backgroundColor: '#FFEBEE',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 16,
+              }}
+            >
+              <Newspaper size={28} color="#E53935" />
+            </View>
+            <Text className="text-text font-semibold text-base mb-1">아직 뉴스가 없어요</Text>
+            <Text className="text-text-muted text-sm">잠시 후 다시 확인해보세요</Text>
           </View>
         ) : (
           filteredArticles.map((article, index) => (

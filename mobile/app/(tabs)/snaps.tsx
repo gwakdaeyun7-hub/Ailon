@@ -18,28 +18,67 @@ import {
   LayoutAnimation,
   Linking,
 } from 'react-native';
-import { ChevronDown, ChevronUp, ExternalLink, BookOpen, Sparkles } from 'lucide-react-native';
+import { ChevronDown, ChevronUp, ExternalLink, BookOpen, Sparkles, RefreshCw } from 'lucide-react-native';
 import { usePrinciples } from '@/hooks/usePrinciples';
 import { SnapCardSkeleton } from '@/components/shared/LoadingSkeleton';
 import type { Principle, LearnMoreLink } from '@/lib/types';
 
 const DIFFICULTY_LABELS = { beginner: '입문', intermediate: '중급', advanced: '심화' };
-const DIFFICULTY_COLORS = { beginner: '#22c55e', intermediate: '#f59e0b', advanced: '#ef4444' };
+const DIFFICULTY_COLORS = { beginner: '#43A047', intermediate: '#FB8C00', advanced: '#E53935' };
+
+const cardShadow = {
+  elevation: 2,
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 1 },
+  shadowOpacity: 0.08,
+  shadowRadius: 4,
+};
+
+// 학문 분야별 accent bar 색상
+const FIELD_COLORS: Record<string, string> = {
+  '수학': '#3b82f6',
+  '물리학': '#8b5cf6',
+  '생물학': '#43A047',
+  '화학': '#FB8C00',
+  '경제학': '#E53935',
+  '심리학': '#ec4899',
+  '철학': '#6366f1',
+  '컴퓨터과학': '#06b6d4',
+  '통계학': '#14b8a6',
+};
+
+function getFieldColor(field?: string): string {
+  if (!field) return '#E53935';
+  return FIELD_COLORS[field] ?? '#FF7043';
+}
 
 function LearnMoreLinkButton({ link }: { link: LearnMoreLink }) {
   const icon = link.type === 'youtube' ? '▶' : link.type === 'wikipedia' ? 'W' : '📄';
-  const color = link.type === 'youtube' ? '#ef4444' : link.type === 'wikipedia' ? '#3b82f6' : '#555555';
+  const color = link.type === 'youtube' ? '#E53935' : link.type === 'wikipedia' ? '#3b82f6' : '#757575';
 
   return (
     <Pressable
       onPress={() => Linking.openURL(link.url)}
-      className="flex-row items-center gap-2 bg-surface rounded-xl px-3 py-2 mr-2 mb-2 active:opacity-70"
+      className="active:opacity-70"
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        backgroundColor: '#FAFAFA',
+        borderRadius: 12,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        marginRight: 8,
+        marginBottom: 8,
+        borderWidth: 1,
+        borderColor: '#F0F0F0',
+      }}
     >
-      <Text style={{ color }} className="text-xs font-bold">{icon}</Text>
+      <Text style={{ color, fontSize: 12, fontWeight: '700' }}>{icon}</Text>
       <Text className="text-text-muted text-xs" numberOfLines={1} style={{ maxWidth: 180 }}>
         {link.title}
       </Text>
-      <ExternalLink size={10} color="#999999" />
+      <ExternalLink size={10} color="#BDBDBD" />
     </Pressable>
   );
 }
@@ -47,6 +86,7 @@ function LearnMoreLinkButton({ link }: { link: LearnMoreLink }) {
 function SnapCard({ principle }: { principle: Principle }) {
   const [expanded, setExpanded] = useState(false);
   const diffColor = DIFFICULTY_COLORS[principle.difficulty ?? 'intermediate'];
+  const fieldColor = getFieldColor(principle.superCategory);
 
   const toggle = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -54,89 +94,131 @@ function SnapCard({ principle }: { principle: Principle }) {
   };
 
   return (
-    <View className="bg-card rounded-2xl mx-4 mb-3 overflow-hidden">
+    <View
+      className="bg-card rounded-2xl mx-4 mb-3 overflow-hidden"
+      style={cardShadow}
+    >
+      {/* Top accent bar */}
+      <View style={{ height: 4, backgroundColor: fieldColor }} />
+
       {/* Card Header */}
       <Pressable onPress={toggle} className="p-4 active:opacity-80">
-        <View className="flex-row items-center justify-between mb-2">
+        <View className="flex-row items-center justify-between mb-3">
           <View className="flex-row items-center gap-2">
-            <View className="px-2.5 py-1 rounded-full bg-accent/20">
-              <Text className="text-accent text-xs font-semibold">{principle.superCategory ?? '학문'}</Text>
+            <View className="px-2.5 py-1 rounded-full" style={{ backgroundColor: `${fieldColor}15` }}>
+              <Text style={{ color: fieldColor, fontSize: 12, fontWeight: '700' }}>
+                {principle.superCategory ?? '학문'}
+              </Text>
             </View>
             {principle.difficulty && (
-              <View className="px-2.5 py-1 rounded-full" style={{ backgroundColor: `${diffColor}20` }}>
-                <Text style={{ color: diffColor }} className="text-xs font-medium">
+              <View className="px-2.5 py-1 rounded-full" style={{ backgroundColor: `${diffColor}15` }}>
+                <Text style={{ color: diffColor, fontSize: 12, fontWeight: '600' }}>
                   {DIFFICULTY_LABELS[principle.difficulty]}
                 </Text>
               </View>
             )}
           </View>
-          {expanded ? (
-            <ChevronUp size={16} color="#555555" />
-          ) : (
-            <ChevronDown size={16} color="#555555" />
-          )}
+          <Pressable
+            onPress={toggle}
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: 14,
+              backgroundColor: '#FAFAFA',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {expanded ? (
+              <ChevronUp size={16} color="#757575" />
+            ) : (
+              <ChevronDown size={16} color="#757575" />
+            )}
+          </Pressable>
         </View>
 
-        {/* Hook (알고 계셨나요?) */}
+        {/* Hook */}
         {principle.hook && (
-          <View className="flex-row items-start gap-2 bg-accent/10 rounded-xl px-3 py-2 mb-3">
-            <Sparkles size={14} color="#ff6b6b" style={{ marginTop: 2 }} />
-            <Text className="text-accent text-sm flex-1 leading-relaxed italic" numberOfLines={expanded ? undefined : 2}>
+          <View
+            className="bg-primary-light rounded-xl px-3 py-3 mb-3"
+            style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}
+          >
+            <Sparkles size={14} color="#E53935" style={{ marginTop: 2 }} />
+            <Text
+              style={{ color: '#C62828', fontSize: 13, fontStyle: 'italic', flex: 1, lineHeight: 20 }}
+              numberOfLines={expanded ? undefined : 2}
+            >
               {principle.hook}
             </Text>
           </View>
         )}
 
         {/* Title */}
-        <Text className="text-text font-bold text-lg mb-1">{principle.title}</Text>
+        <Text className="text-text font-bold text-lg mb-1.5">{principle.title}</Text>
 
-        {/* Description (simpleSummary 또는 description) */}
-        <Text className="text-text-muted text-sm leading-relaxed" numberOfLines={expanded ? undefined : 2}>
+        {/* Description */}
+        <Text className="text-text-muted text-sm" style={{ lineHeight: 20 }} numberOfLines={expanded ? undefined : 2}>
           {principle.simpleSummary ?? principle.description}
         </Text>
       </Pressable>
 
       {/* Expanded Content */}
       {expanded && (
-        <View className="px-4 pb-4 border-t border-border">
+        <View className="px-4 pb-4" style={{ borderTopWidth: 1, borderTopColor: '#F0F0F0' }}>
           {/* Explanation */}
-          <View className="mt-3 mb-3">
-            <Text className="text-text-muted text-xs uppercase tracking-wider mb-2">상세 설명</Text>
-            <Text className="text-text text-sm leading-relaxed">{principle.explanation}</Text>
+          <View className="mt-4 mb-4">
+            <Text className="text-text-muted text-xs uppercase tracking-wider mb-2 font-semibold">상세 설명</Text>
+            <Text className="text-text text-sm" style={{ lineHeight: 22 }}>{principle.explanation}</Text>
           </View>
 
-          {/* Friendly Explanation (카카오톡/넷플릭스 비유) */}
+          {/* Friendly Explanation */}
           {principle.friendlyExplanation && (
-            <View className="bg-surface rounded-xl p-3 mb-3">
-              <Text className="text-text-muted text-xs mb-1.5">💡 이렇게 생각해봐요</Text>
-              <Text className="text-text text-sm leading-relaxed">{principle.friendlyExplanation}</Text>
+            <View
+              className="rounded-xl p-3 mb-4"
+              style={{ backgroundColor: '#FFF3E0', borderWidth: 1, borderColor: '#FFE0B2' }}
+            >
+              <Text style={{ color: '#E65100', fontSize: 12, fontWeight: '600', marginBottom: 6 }}>
+                이렇게 생각해봐요
+              </Text>
+              <Text className="text-text text-sm" style={{ lineHeight: 22 }}>{principle.friendlyExplanation}</Text>
             </View>
           )}
 
           {/* Everyday Analogy */}
           {principle.everydayAnalogy && !principle.friendlyExplanation && (
-            <View className="bg-surface rounded-xl p-3 mb-3">
-              <Text className="text-text-muted text-xs mb-1.5">일상 비유</Text>
-              <Text className="text-text text-sm leading-relaxed">{principle.everydayAnalogy}</Text>
+            <View
+              className="rounded-xl p-3 mb-4"
+              style={{ backgroundColor: '#FFF3E0', borderWidth: 1, borderColor: '#FFE0B2' }}
+            >
+              <Text style={{ color: '#E65100', fontSize: 12, fontWeight: '600', marginBottom: 6 }}>일상 비유</Text>
+              <Text className="text-text text-sm" style={{ lineHeight: 22 }}>{principle.everydayAnalogy}</Text>
             </View>
           )}
 
           {/* AI Relevance */}
           {principle.aiRelevance && (
-            <View className="bg-primary/10 rounded-xl p-3 mb-3">
-              <Text className="text-primary text-xs font-semibold mb-1.5">AI와의 연결</Text>
-              <Text className="text-text text-sm leading-relaxed">{principle.aiRelevance}</Text>
+            <View className="bg-primary-light rounded-xl p-3 mb-4">
+              <Text style={{ color: '#E53935', fontSize: 12, fontWeight: '700', marginBottom: 6 }}>AI와의 연결</Text>
+              <Text className="text-text text-sm" style={{ lineHeight: 22 }}>{principle.aiRelevance}</Text>
             </View>
           )}
 
           {/* Application Ideas */}
           {principle.applicationIdeas?.length > 0 && (
-            <View className="mb-3">
-              <Text className="text-text-muted text-xs uppercase tracking-wider mb-2">AI 적용 아이디어</Text>
+            <View className="mb-4">
+              <Text className="text-text-muted text-xs uppercase tracking-wider mb-2 font-semibold">AI 적용 아이디어</Text>
               {principle.applicationIdeas.map((idea, i) => (
-                <View key={i} className="flex-row items-start gap-2 mb-1.5">
-                  <Text className="text-accent text-sm">•</Text>
-                  <Text className="text-text text-sm flex-1 leading-relaxed">{idea}</Text>
+                <View key={i} className="flex-row items-start gap-2 mb-2">
+                  <View
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: 3,
+                      backgroundColor: '#FF7043',
+                      marginTop: 6,
+                    }}
+                  />
+                  <Text className="text-text text-sm flex-1" style={{ lineHeight: 22 }}>{idea}</Text>
                 </View>
               ))}
             </View>
@@ -144,16 +226,16 @@ function SnapCard({ principle }: { principle: Principle }) {
 
           {/* Real World Example */}
           {principle.realWorldExample && (
-            <View className="mb-3">
-              <Text className="text-text-muted text-xs uppercase tracking-wider mb-2">실생활 예시</Text>
-              <Text className="text-text text-sm leading-relaxed">{principle.realWorldExample}</Text>
+            <View className="mb-4">
+              <Text className="text-text-muted text-xs uppercase tracking-wider mb-2 font-semibold">실생활 예시</Text>
+              <Text className="text-text text-sm" style={{ lineHeight: 22 }}>{principle.realWorldExample}</Text>
             </View>
           )}
 
           {/* Learn More Links */}
           {principle.learn_more_links && principle.learn_more_links.length > 0 && (
             <View>
-              <Text className="text-text-muted text-xs uppercase tracking-wider mb-2">더 알아보기</Text>
+              <Text className="text-text-muted text-xs uppercase tracking-wider mb-2 font-semibold">더 알아보기</Text>
               <View className="flex-row flex-wrap">
                 {principle.learn_more_links.map((link, i) => (
                   <LearnMoreLinkButton key={i} link={link} />
@@ -177,21 +259,66 @@ export default function SnapsScreen() {
     setRefreshing(false);
   };
 
+  // 학문 분야 count
+  const fieldCount = new Set(allPrinciples.map((p) => p.superCategory).filter(Boolean)).size;
+
   return (
     <SafeAreaView className="flex-1 bg-background">
       {/* Header */}
-      <View className="px-4 pt-4 pb-2">
-        <Text className="text-text text-2xl font-bold">학문 스낵</Text>
-        <Text className="text-text-muted text-sm mt-1">
-          {principlesData?.date ? `${principlesData.date} · ` : ''}
-          오늘의 학문 원리 {allPrinciples.length}개
-        </Text>
+      <View className="px-5 pt-5 pb-3">
+        <View className="flex-row items-center justify-between">
+          <View>
+            <Text className="text-text text-2xl font-bold">학문 스낵</Text>
+            <Text className="text-text-muted text-sm mt-1">
+              {principlesData?.date ? `${principlesData.date} · ` : ''}
+              오늘의 학문 원리 {allPrinciples.length}개
+            </Text>
+          </View>
+          <View className="flex-row items-center gap-2">
+            {fieldCount > 0 && (
+              <View
+                style={{
+                  backgroundColor: '#FFEBEE',
+                  paddingHorizontal: 10,
+                  paddingVertical: 5,
+                  borderRadius: 12,
+                }}
+              >
+                <Text style={{ color: '#E53935', fontSize: 12, fontWeight: '700' }}>
+                  {fieldCount}개 분야
+                </Text>
+              </View>
+            )}
+            <View
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor: '#FFEBEE',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <BookOpen size={20} color="#E53935" />
+            </View>
+          </View>
+        </View>
+        {/* Red accent line */}
+        <View
+          style={{
+            width: 40,
+            height: 3,
+            backgroundColor: '#E53935',
+            borderRadius: 2,
+            marginTop: 12,
+          }}
+        />
       </View>
 
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#e53935" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#E53935" />}
       >
         {loading ? (
           <>
@@ -200,16 +327,52 @@ export default function SnapsScreen() {
             <SnapCardSkeleton />
           </>
         ) : error ? (
-          <View className="items-center justify-center py-20">
-            <Text className="text-text-muted text-center">{error}</Text>
-            <Pressable onPress={refresh} className="mt-4 px-6 py-2 bg-primary rounded-xl active:opacity-70">
-              <Text className="text-white font-semibold">다시 시도</Text>
+          <View className="items-center justify-center py-20 px-8">
+            <View
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: 32,
+                backgroundColor: '#FFEBEE',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 16,
+              }}
+            >
+              <RefreshCw size={28} color="#E53935" />
+            </View>
+            <Text className="text-text font-semibold text-base mb-2">연결에 문제가 있어요</Text>
+            <Text className="text-text-muted text-sm text-center mb-5" style={{ lineHeight: 20 }}>{error}</Text>
+            <Pressable
+              onPress={refresh}
+              className="active:opacity-70"
+              style={{
+                backgroundColor: '#E53935',
+                paddingHorizontal: 28,
+                paddingVertical: 12,
+                borderRadius: 12,
+              }}
+            >
+              <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 15 }}>다시 시도</Text>
             </Pressable>
           </View>
         ) : allPrinciples.length === 0 ? (
           <View className="items-center justify-center py-20">
-            <BookOpen size={40} color="#999999" />
-            <Text className="text-text-muted mt-4">아직 학문 스낵이 없어요</Text>
+            <View
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: 32,
+                backgroundColor: '#FFEBEE',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 16,
+              }}
+            >
+              <BookOpen size={28} color="#E53935" />
+            </View>
+            <Text className="text-text font-semibold text-base mb-1">아직 학문 스낵이 없어요</Text>
+            <Text className="text-text-muted text-sm">잠시 후 다시 확인해보세요</Text>
           </View>
         ) : (
           allPrinciples.map((principle, index) => (

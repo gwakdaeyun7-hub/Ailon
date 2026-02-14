@@ -1,5 +1,25 @@
 import { Tabs } from 'expo-router';
+import { View } from 'react-native';
 import { Newspaper, BookOpen, Lightbulb } from 'lucide-react-native';
+
+function TabIcon({ Icon, color, focused }: { Icon: any; color: string; focused: boolean }) {
+  return (
+    <View style={{ alignItems: 'center' }}>
+      <Icon size={22} color={color} strokeWidth={focused ? 2.5 : 1.8} />
+      {focused && (
+        <View
+          style={{
+            width: 5,
+            height: 5,
+            borderRadius: 2.5,
+            backgroundColor: '#E53935',
+            marginTop: 4,
+          }}
+        />
+      )}
+    </View>
+  );
+}
 
 export default function TabLayout() {
   return (
@@ -7,19 +27,24 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#ffffff',
-          borderTopColor: '#e0e0e0',
+          backgroundColor: '#FFFFFF',
+          borderTopColor: '#F0F0F0',
           borderTopWidth: 1,
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 8,
+          height: 64,
+          paddingBottom: 10,
+          paddingTop: 10,
+          elevation: 8,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.06,
+          shadowRadius: 8,
         },
-        tabBarActiveTintColor: '#e53935',
-        tabBarInactiveTintColor: '#999999',
+        tabBarActiveTintColor: '#E53935',
+        tabBarInactiveTintColor: '#BDBDBD',
         tabBarLabelStyle: {
           fontSize: 11,
-          fontWeight: '500',
-          marginTop: 2,
+          fontWeight: '600',
+          marginTop: 0,
         },
       }}
     >
@@ -27,21 +52,21 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'AI 트렌드',
-          tabBarIcon: ({ color, size }) => <Newspaper size={size} color={color} strokeWidth={2} />,
+          tabBarIcon: ({ color, focused }) => <TabIcon Icon={Newspaper} color={color} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="snaps"
         options={{
           title: '학문 스낵',
-          tabBarIcon: ({ color, size }) => <BookOpen size={size} color={color} strokeWidth={2} />,
+          tabBarIcon: ({ color, focused }) => <TabIcon Icon={BookOpen} color={color} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="ideas"
         options={{
           title: '시너지 랩',
-          tabBarIcon: ({ color, size }) => <Lightbulb size={size} color={color} strokeWidth={2} />,
+          tabBarIcon: ({ color, focused }) => <TabIcon Icon={Lightbulb} color={color} focused={focused} />,
         }}
       />
     </Tabs>
