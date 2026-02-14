@@ -1,12 +1,12 @@
 /**
  * 북마크 관리 Hook - Firestore users/{uid}/bookmarks 서브컬렉션
- * frontend/lib/hooks/useBookmarks.ts와 동일한 쿼리 로직
+ * metadata 파라미터 지원: 제목, 부제목, 카테고리, 링크 저장
  */
 
 import { useEffect, useState } from 'react';
-import { collection, doc, setDoc, deleteDoc, getDocs, onSnapshot } from 'firebase/firestore';
+import { collection, doc, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { Bookmark } from '@/lib/types';
+import type { Bookmark, BookmarkMeta } from '@/lib/types';
 
 export function useBookmarks(userId: string | null) {
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
@@ -29,13 +29,14 @@ export function useBookmarks(userId: string | null) {
     return () => unsubscribe();
   }, [userId]);
 
-  const addBookmark = async (type: Bookmark['type'], itemId: string) => {
+  const addBookmark = async (type: Bookmark['type'], itemId: string, metadata?: BookmarkMeta) => {
     if (!userId) return;
     const bookmarkRef = doc(db, 'users', userId, 'bookmarks', `${type}_${itemId}`);
     await setDoc(bookmarkRef, {
       type,
       itemId,
       createdAt: new Date().toISOString(),
+      ...(metadata ? { metadata } : {}),
     });
   };
 
@@ -49,11 +50,11 @@ export function useBookmarks(userId: string | null) {
     return bookmarks.some((b) => b.type === type && b.itemId === itemId);
   };
 
-  const toggleBookmark = async (type: Bookmark['type'], itemId: string) => {
+  const toggleBookmark = async (type: Bookmark['type'], itemId: string, metadata?: BookmarkMeta) => {
     if (isBookmarked(type, itemId)) {
       await removeBookmark(type, itemId);
     } else {
-      await addBookmark(type, itemId);
+      await addBookmark(type, itemId, metadata);
     }
   };
 

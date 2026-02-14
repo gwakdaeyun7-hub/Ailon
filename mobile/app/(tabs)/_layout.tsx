@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import { View } from 'react-native';
-import { Newspaper, BookOpen, Lightbulb } from 'lucide-react-native';
+import { Newspaper, BookOpen, Lightbulb, Bookmark } from 'lucide-react-native';
 
 function TabIcon({ Icon, color, focused }: { Icon: any; color: string; focused: boolean }) {
   return (
@@ -67,6 +67,13 @@ export default function TabLayout() {
         options={{
           title: '시너지 랩',
           tabBarIcon: ({ color, focused }) => <TabIcon Icon={Lightbulb} color={color} focused={focused} />,
+        }}
+      />
+      <Tabs.Screen
+        name="saved"
+        options={{
+          title: '저장',
+          tabBarIcon: ({ color, focused }) => <TabIcon Icon={Bookmark} color={color} focused={focused} />,
         }}
       />
     </Tabs>

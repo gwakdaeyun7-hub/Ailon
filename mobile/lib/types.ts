@@ -208,10 +208,18 @@ export interface UserProfile {
   lastLoginAt: any;
 }
 
+export interface BookmarkMeta {
+  title: string;
+  subtitle?: string;
+  category?: string;
+  link?: string;
+}
+
 export interface Bookmark {
   type: 'news' | 'principle' | 'snap' | 'idea';
   itemId: string;
   createdAt: any;
+  metadata?: BookmarkMeta;
 }
 
 export interface UserFeedback {

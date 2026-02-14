@@ -1,6 +1,6 @@
 /**
  * 학문 원리 데이터 Hook - Firestore daily_principles 컬렉션
- * frontend/lib/hooks/usePrinciples.ts와 동일한 쿼리 로직
+ * targetDate: 특정 날짜 지정 가능 (히스토리 기능)
  */
 
 import { useEffect, useState } from 'react';
@@ -8,36 +8,46 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { DailyPrinciples, Principle } from '@/lib/types';
 
-export function usePrinciples() {
+export function usePrinciples(targetDate?: string) {
   const [principlesData, setPrinciplesData] = useState<DailyPrinciples | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchPrinciples();
-  }, []);
+  }, [targetDate]);
 
   const fetchPrinciples = async () => {
     try {
       setLoading(true);
       setError(null);
+      setPrinciplesData(null);
 
-      const today = new Date().toISOString().split('T')[0];
-      const docRef = doc(db, 'daily_principles', today);
-      const docSnap = await getDoc(docRef);
-
-      if (docSnap.exists()) {
-        setPrinciplesData(docSnap.data() as DailyPrinciples);
+      if (targetDate) {
+        const docRef = doc(db, 'daily_principles', targetDate);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setPrinciplesData(docSnap.data() as DailyPrinciples);
+        } else {
+          setError('해당 날짜의 데이터가 없어요.');
+        }
       } else {
-        for (let i = 1; i <= 7; i++) {
-          const d = new Date();
-          d.setDate(d.getDate() - i);
-          const dateStr = d.toISOString().split('T')[0];
-          const prevRef = doc(db, 'daily_principles', dateStr);
-          const prevSnap = await getDoc(prevRef);
-          if (prevSnap.exists()) {
-            setPrinciplesData(prevSnap.data() as DailyPrinciples);
-            break;
+        const today = new Date().toISOString().split('T')[0];
+        const docRef = doc(db, 'daily_principles', today);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setPrinciplesData(docSnap.data() as DailyPrinciples);
+        } else {
+          for (let i = 1; i <= 7; i++) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            const dateStr = d.toISOString().split('T')[0];
+            const prevRef = doc(db, 'daily_principles', dateStr);
+            const prevSnap = await getDoc(prevRef);
+            if (prevSnap.exists()) {
+              setPrinciplesData(prevSnap.data() as DailyPrinciples);
+              break;
+            }
           }
         }
       }
