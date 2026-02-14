@@ -1,10 +1,10 @@
 /**
  * AI 트렌드 뉴스 화면
- * - 날짜 이동: 사이드바 통해서만 (날짜 필 제거)
- * - 상단: 하이라이트 카드 1개 (전체 항상 표시)
- * - 중간: 카테고리 3개 버튼 (core_tech / dev_tools / trend_insight)
- * - 하단: 선택 카테고리 기사 목록 (아코디언: 기본=제목만, 펼침=summary+impact+원문링크+ReactionBar)
- * - 검색, 북마크 유지
+ * 구조:
+ *   1. 하이라이트 카드 (최고 점수 기사 1개, 항상 상단)
+ *   2. 카테고리 버튼 3개 (core_tech / dev_tools / trend_insight)
+ *   3. 선택 카테고리 기사 목록 — 제목 + 좋아요/싫어요 수
+ *   4. 제목 탭 → 상세 모달 (요약 + 원문링크 + 좋아요/싫어요/공유)
  */
 
 import React, { useState } from 'react';
@@ -14,189 +14,284 @@ import {
   ScrollView,
   Pressable,
   Modal,
-  SafeAreaView,
   RefreshControl,
   Linking,
   Share,
-  TextInput,
-  LayoutAnimation,
+  Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
-  ExternalLink, Share2, X, ChevronRight, Zap,
-  Newspaper, RefreshCw, Search, Menu, ChevronDown, ChevronUp,
+  ExternalLink, Share2, X, Zap, Newspaper,
+  RefreshCw, Menu, ThumbsUp, ThumbsDown,
 } from 'lucide-react-native';
 import { useNews } from '@/hooks/useNews';
 import { useAuth } from '@/hooks/useAuth';
-import { useBookmarks } from '@/hooks/useBookmarks';
 import { useDrawer } from '@/context/DrawerContext';
-import { BookmarkButton } from '@/components/shared/BookmarkButton';
+import { useReactions } from '@/hooks/useReactions';
 import { NewsCardSkeleton } from '@/components/shared/LoadingSkeleton';
-import { ReactionBar } from '@/components/shared/ReactionBar';
 import type { Article, NewsCategory } from '@/lib/types';
-import { NEWS_CATEGORY_LABELS, NEWS_CATEGORY_COLORS } from '@/lib/types';
+import { NEWS_CATEGORY_COLORS } from '@/lib/types';
 
-// ─── 카테고리 탭 (3개 핵심 + 레거시 하위호환) ──────────────────────────────────
-const PRIMARY_CATEGORIES: Array<{ key: NewsCategory | 'all'; label: string }> = [
-  { key: 'all', label: '전체' },
-  { key: 'core_tech', label: '🔬 모델·논문' },
-  { key: 'dev_tools', label: '🛠 개발·도구' },
-  { key: 'trend_insight', label: '📈 트렌드' },
+// ─── 3개 핵심 카테고리 ────────────────────────────────────────────────────────
+const CATEGORIES = [
+  { key: 'core_tech' as NewsCategory, label: '🔬 모델·논문' },
+  { key: 'dev_tools' as NewsCategory, label: '🛠 개발·도구' },
+  { key: 'trend_insight' as NewsCategory, label: '📈 트렌드' },
 ];
 
-const LEGACY_CATEGORIES: Array<{ key: NewsCategory | 'all'; label: string }> = [
-  { key: 'models_architecture', label: '모델·아키텍처' },
-  { key: 'agentic_reality', label: '에이전틱' },
-  { key: 'opensource_code', label: '오픈소스' },
-  { key: 'physical_ai', label: 'Physical AI' },
-  { key: 'policy_safety', label: '정책·안전' },
-];
-
-const cardShadow = {
-  elevation: 2,
-  shadowColor: '#000',
-  shadowOffset: { width: 0, height: 1 },
-  shadowOpacity: 0.08,
-  shadowRadius: 4,
+// 레거시 카테고리 → 새 카테고리 매핑
+const LEGACY_MAP: Record<string, NewsCategory> = {
+  models_architecture: 'core_tech',
+  agentic_reality: 'trend_insight',
+  opensource_code: 'dev_tools',
+  physical_ai: 'core_tech',
+  policy_safety: 'trend_insight',
 };
 
+function normalizeCategory(cat?: string): NewsCategory {
+  if (!cat) return 'core_tech';
+  if (cat === 'core_tech' || cat === 'dev_tools' || cat === 'trend_insight') return cat;
+  return LEGACY_MAP[cat] ?? 'core_tech';
+}
+
 function getCategoryColor(category?: string): string {
-  if (!category) return '#E53935';
-  return NEWS_CATEGORY_COLORS[category] ?? '#E53935';
+  const norm = normalizeCategory(category);
+  return NEWS_CATEGORY_COLORS[norm] ?? '#E53935';
+}
+
+// 기사 흥미로운 제목: 한국어 요약이 있으면 우선, 없으면 원문 제목
+function getDisplayTitle(article: Article): string {
+  return article.summary ?? article.title;
+}
+
+const cardShadow = {
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.08,
+  shadowRadius: 6,
+  elevation: 3,
+};
+
+// ─── 좋아요/싫어요 수 표시 (읽기 전용, 목록용) ───────────────────────────────
+function ReactionCount({ itemId }: { itemId: string }) {
+  const { likes, dislikes } = useReactions('news', itemId);
+  if (likes === 0 && dislikes === 0) return null;
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+      {likes > 0 && (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+          <ThumbsUp size={11} color="#E53935" />
+          <Text style={{ color: '#E53935', fontSize: 11, fontWeight: '700' }}>{likes}</Text>
+        </View>
+      )}
+      {dislikes > 0 && (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+          <ThumbsDown size={11} color="#9E9E9E" />
+          <Text style={{ color: '#9E9E9E', fontSize: 11, fontWeight: '600' }}>{dislikes}</Text>
+        </View>
+      )}
+    </View>
+  );
 }
 
 // ─── 상세 모달 ────────────────────────────────────────────────────────────────
-function ArticleDetailModal({ article, visible, onClose }: { article: Article | null; visible: boolean; onClose: () => void }) {
+function ArticleDetailModal({
+  article,
+  visible,
+  onClose,
+}: {
+  article: Article | null;
+  visible: boolean;
+  onClose: () => void;
+}) {
+  const { user } = useAuth();
+  const itemId = article?.link ?? article?.title ?? '';
+  const { likes, dislikes, liked, disliked, toggleLike, toggleDislike } = useReactions('news', itemId);
+  const catColor = getCategoryColor(article?.category);
+
   if (!article) return null;
-  const catColor = getCategoryColor(article.category);
+
+  const handleLike = async () => {
+    if (!user) { Alert.alert('로그인 필요', '좋아요를 남기려면 로그인이 필요해요.'); return; }
+    await toggleLike();
+  };
+  const handleDislike = async () => {
+    if (!user) { Alert.alert('로그인 필요', '싫어요를 남기려면 로그인이 필요해요.'); return; }
+    await toggleDislike();
+  };
+  const handleShare = () => {
+    Share.share({
+      message: `${getDisplayTitle(article)}\n\n${article.link ?? ''}`,
+      title: getDisplayTitle(article),
+    });
+  };
 
   return (
-    <Modal visible={visible} presentationStyle="pageSheet" animationType="slide" onRequestClose={onClose}>
-      <SafeAreaView className="flex-1 bg-background">
-        <View className="flex-row items-center justify-between px-4 py-3" style={{ borderBottomWidth: 1, borderBottomColor: '#F0F0F0' }}>
-          <Pressable onPress={onClose} className="active:opacity-70" style={{ padding: 8, borderRadius: 20, backgroundColor: '#FAFAFA' }}>
-            <X size={18} color="#212121" />
-          </Pressable>
-          <View className="flex-row gap-2">
-            <Pressable
-              onPress={() => Share.share({ message: `${article.title}\n\n${article.summary ?? article.description}\n\n${article.link}`, title: article.title })}
-              className="active:opacity-70"
-              style={{ padding: 8, borderRadius: 20, backgroundColor: '#FAFAFA' }}
-            >
-              <Share2 size={18} color="#212121" />
-            </Pressable>
-            <Pressable
-              onPress={() => article.link && Linking.openURL(article.link)}
-              className="active:opacity-70"
-              style={{ padding: 8, borderRadius: 20, backgroundColor: '#FAFAFA' }}
-            >
-              <ExternalLink size={18} color="#212121" />
-            </Pressable>
+    <Modal
+      visible={visible}
+      presentationStyle="pageSheet"
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+        {/* 모달 헤더 */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F0F0F0' }}>
+          <View style={{ backgroundColor: `${catColor}15`, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 }}>
+            <Text style={{ color: catColor, fontSize: 12, fontWeight: '700' }}>
+              {CATEGORIES.find(c => c.key === normalizeCategory(article.category))?.label ?? article.category}
+            </Text>
           </View>
+          <Pressable
+            onPress={onClose}
+            style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: '#F5F5F5', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <X size={16} color="#757575" />
+          </Pressable>
         </View>
 
-        <ScrollView className="flex-1 px-5 py-5">
-          {article.category && (
-            <View className="flex-row mb-4">
-              <View className="px-3 py-1.5 rounded-full" style={{ backgroundColor: `${catColor}15` }}>
-                <Text style={{ color: catColor }} className="text-xs font-bold tracking-wide">
-                  {NEWS_CATEGORY_LABELS[article.category] ?? article.category}
-                </Text>
-              </View>
-            </View>
-          )}
-          <Text className="text-text text-xl font-bold mb-2" style={{ lineHeight: 30 }}>
-            {article.summary ?? article.title}
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20 }} showsVerticalScrollIndicator={false}>
+          {/* 흥미로운 제목 (한국어 요약) */}
+          <Text style={{ fontSize: 20, fontWeight: '800', color: '#212121', lineHeight: 30, marginBottom: 6 }}>
+            {getDisplayTitle(article)}
           </Text>
-          {article.summary && (
-            <Text className="text-text-dim text-sm mb-3" style={{ lineHeight: 20 }}>{article.title}</Text>
-          )}
-          <Text className="text-text-muted text-sm mb-5">
+          <Text style={{ fontSize: 12, color: '#BDBDBD', marginBottom: 20 }}>
             {article.source} · {article.published ? new Date(article.published).toLocaleDateString('ko-KR') : ''}
           </Text>
+
+          {/* 임팩트 코멘트 */}
           {article.impact_comment && (
-            <View className="bg-primary-light rounded-2xl p-4 mb-5" style={{ flexDirection: 'row', gap: 10 }}>
-              <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: '#E53935', alignItems: 'center', justifyContent: 'center' }}>
-                <Zap size={14} color="#FFFFFF" />
+            <View style={{ flexDirection: 'row', gap: 10, backgroundColor: '#FFEBEE', borderRadius: 14, padding: 14, marginBottom: 18 }}>
+              <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: '#E53935', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Zap size={13} color="#FFFFFF" />
               </View>
-              <Text className="text-text text-sm flex-1" style={{ lineHeight: 22 }}>{article.impact_comment}</Text>
+              <Text style={{ color: '#C62828', fontSize: 14, flex: 1, lineHeight: 22, fontWeight: '500' }}>
+                {article.impact_comment}
+              </Text>
             </View>
           )}
+
+          {/* 요약 */}
           {article.summary && (
-            <View className="mb-5">
-              <Text className="text-text-muted text-xs uppercase tracking-wider mb-2 font-semibold">요약</Text>
-              <Text className="text-text text-base" style={{ lineHeight: 24 }}>{article.summary}</Text>
+            <View style={{ marginBottom: 20 }}>
+              <Text style={{ fontSize: 11, color: '#BDBDBD', fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 8 }}>요약</Text>
+              <Text style={{ fontSize: 15, color: '#424242', lineHeight: 24 }}>{article.summary}</Text>
             </View>
           )}
-          <View className="mb-5">
-            <Text className="text-text-muted text-xs uppercase tracking-wider mb-2 font-semibold">원문 내용</Text>
-            <Text className="text-text-muted text-sm" style={{ lineHeight: 22 }}>{article.description}</Text>
-          </View>
-          {article.howToGuide && (
-            <View className="rounded-2xl p-4 mb-5" style={{ backgroundColor: '#FFF3E0' }}>
-              <Text className="text-accent text-sm font-bold mb-2">실전 가이드</Text>
-              <Text className="text-text text-sm" style={{ lineHeight: 22 }}>{article.howToGuide}</Text>
+
+          {/* 원문 설명 */}
+          {article.description && (
+            <View style={{ marginBottom: 24 }}>
+              <Text style={{ fontSize: 11, color: '#BDBDBD', fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 8 }}>원문 내용</Text>
+              <Text style={{ fontSize: 14, color: '#757575', lineHeight: 22 }}>{article.description}</Text>
             </View>
           )}
+
+          {/* 원문 보기 버튼 */}
           {article.link && (
             <Pressable
               onPress={() => Linking.openURL(article.link)}
-              className="active:opacity-70"
-              style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#E53935', borderRadius: 16, paddingVertical: 14, marginTop: 4, marginBottom: 24 }}
+              style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#212121', borderRadius: 14, paddingVertical: 14, marginBottom: 24 }}
             >
-              <ExternalLink size={16} color="#FFFFFF" />
+              <ExternalLink size={15} color="#FFFFFF" />
               <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 15 }}>원문 보기</Text>
             </Pressable>
           )}
+
+          {/* 구분선 */}
+          <View style={{ height: 1, backgroundColor: '#F0F0F0', marginBottom: 16 }} />
+
+          {/* 좋아요 / 싫어요 / 공유 */}
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            {/* 좋아요 */}
+            <Pressable
+              onPress={handleLike}
+              style={{
+                flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+                paddingVertical: 12, borderRadius: 14,
+                backgroundColor: liked ? '#FFEBEE' : '#F5F5F5',
+                borderWidth: 1.5,
+                borderColor: liked ? '#E53935' : 'transparent',
+              }}
+            >
+              <ThumbsUp size={17} color={liked ? '#E53935' : '#9E9E9E'} fill={liked ? '#E53935' : 'none'} />
+              <Text style={{ color: liked ? '#E53935' : '#9E9E9E', fontWeight: '700', fontSize: 14 }}>
+                {likes > 0 ? likes : '좋아요'}
+              </Text>
+            </Pressable>
+
+            {/* 싫어요 */}
+            <Pressable
+              onPress={handleDislike}
+              style={{
+                flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+                paddingVertical: 12, borderRadius: 14,
+                backgroundColor: disliked ? '#F5F5F5' : '#F5F5F5',
+                borderWidth: 1.5,
+                borderColor: disliked ? '#757575' : 'transparent',
+              }}
+            >
+              <ThumbsDown size={17} color={disliked ? '#424242' : '#9E9E9E'} fill={disliked ? '#424242' : 'none'} />
+              <Text style={{ color: disliked ? '#424242' : '#9E9E9E', fontWeight: '700', fontSize: 14 }}>
+                {dislikes > 0 ? dislikes : '싫어요'}
+              </Text>
+            </Pressable>
+
+            {/* 공유 */}
+            <Pressable
+              onPress={handleShare}
+              style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, borderRadius: 14, backgroundColor: '#F5F5F5' }}
+            >
+              <Share2 size={17} color="#9E9E9E" />
+              <Text style={{ color: '#9E9E9E', fontWeight: '700', fontSize: 14 }}>공유</Text>
+            </Pressable>
+          </View>
+
+          <View style={{ height: 16 }} />
         </ScrollView>
       </SafeAreaView>
     </Modal>
   );
 }
 
-// ─── 하이라이트 뉴스 카드 ──────────────────────────────────────────────────────
-function HighlightNewsCard({
-  article, onPress, isBookmarked, onBookmark,
-}: { article: Article; onPress: () => void; isBookmarked: boolean; onBookmark: () => void }) {
+// ─── 하이라이트 카드 ──────────────────────────────────────────────────────────
+function HighlightCard({ article, onPress }: { article: Article; onPress: () => void }) {
   const catColor = getCategoryColor(article.category);
+  const catLabel = CATEGORIES.find(c => c.key === normalizeCategory(article.category))?.label;
 
   return (
     <Pressable
       onPress={onPress}
-      className="mx-4 mb-4 rounded-2xl overflow-hidden active:opacity-90"
-      style={{ elevation: 5, shadowColor: '#E53935', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.18, shadowRadius: 10, borderWidth: 1, borderColor: '#FFCDD2' }}
+      style={{ marginHorizontal: 16, marginBottom: 20, borderRadius: 20, overflow: 'hidden', ...cardShadow }}
     >
+      {/* 상단 배너 */}
       <View style={{ backgroundColor: '#E53935', paddingHorizontal: 16, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <Zap size={14} color="#FFFFFF" />
+        <Zap size={13} color="#FFFFFF" />
         <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '800', letterSpacing: 0.5 }}>오늘의 주목 기사</Text>
-        {article.category && (
-          <View style={{ marginLeft: 'auto', backgroundColor: 'rgba(255,255,255,0.22)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 }}>
-            <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '600' }}>
-              {NEWS_CATEGORY_LABELS[article.category] ?? article.category}
-            </Text>
+        {catLabel && (
+          <View style={{ marginLeft: 'auto', backgroundColor: 'rgba(255,255,255,0.22)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 }}>
+            <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '600' }}>{catLabel}</Text>
           </View>
         )}
       </View>
 
-      <View className="bg-card p-4">
-        <Text className="text-text font-bold" style={{ fontSize: 17, lineHeight: 26, marginBottom: 8 }}>
-          {article.summary ?? article.title}
+      {/* 본문 */}
+      <View style={{ backgroundColor: '#FFFFFF', padding: 16 }}>
+        <Text style={{ fontSize: 17, fontWeight: '800', color: '#212121', lineHeight: 26, marginBottom: 10 }}>
+          {getDisplayTitle(article)}
         </Text>
         {article.impact_comment && (
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, backgroundColor: '#FFEBEE', borderRadius: 10, padding: 10, marginBottom: 10 }}>
-            <Zap size={12} color="#E53935" style={{ marginTop: 2 }} />
-            <Text style={{ color: '#C62828', fontSize: 13, flex: 1, lineHeight: 19 }}>{article.impact_comment}</Text>
+            <Zap size={11} color="#E53935" style={{ marginTop: 3 }} />
+            <Text style={{ color: '#C62828', fontSize: 13, flex: 1, lineHeight: 19 }} numberOfLines={2}>
+              {article.impact_comment}
+            </Text>
           </View>
         )}
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 }}>
-          <Text className="text-text-muted text-xs">
-            {article.source} · {article.published ? new Date(article.published).toLocaleDateString('ko-KR') : ''}
-          </Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <BookmarkButton isBookmarked={isBookmarked} onToggle={onBookmark} size={16} />
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <Text style={{ color: '#E53935', fontSize: 12, fontWeight: '700' }}>자세히</Text>
-              <ChevronRight size={14} color="#E53935" />
-            </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Text style={{ color: '#BDBDBD', fontSize: 12 }}>{article.source}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Text style={{ color: '#E53935', fontSize: 13, fontWeight: '700' }}>자세히 보기</Text>
+            <ExternalLink size={12} color="#E53935" />
           </View>
         </View>
       </View>
@@ -204,114 +299,48 @@ function HighlightNewsCard({
   );
 }
 
-// ─── 아코디언 뉴스 카드 ───────────────────────────────────────────────────────
-function AccordionNewsCard({
-  article, isBookmarked, onBookmark,
-}: { article: Article; isBookmarked: boolean; onBookmark: () => void }) {
-  const [expanded, setExpanded] = useState(false);
+// ─── 기사 목록 아이템 (제목 + 좋아요/싫어요 수만) ────────────────────────────
+function ArticleListItem({ article, onPress, isLast }: { article: Article; onPress: () => void; isLast: boolean }) {
   const catColor = getCategoryColor(article.category);
-
-  const toggle = () => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setExpanded((p) => !p);
-  };
+  const itemId = article.link ?? article.title;
 
   return (
-    <View
-      className="bg-card rounded-2xl mb-3 mx-4 overflow-hidden"
-      style={{ ...cardShadow, borderLeftWidth: 3, borderLeftColor: catColor }}
+    <Pressable
+      onPress={onPress}
+      style={{
+        paddingVertical: 14,
+        paddingHorizontal: 0,
+        borderBottomWidth: isLast ? 0 : 1,
+        borderBottomColor: '#F5F5F5',
+      }}
     >
-      {/* Title Row — always visible */}
-      <Pressable onPress={toggle} className="p-4 active:opacity-80">
-        <View className="flex-row items-center justify-between mb-2">
-          {article.category && (
-            <View className="px-2.5 py-1 rounded-full" style={{ backgroundColor: `${catColor}15` }}>
-              <Text style={{ color: catColor }} className="text-xs font-bold">
-                {NEWS_CATEGORY_LABELS[article.category] ?? article.category}
-              </Text>
-            </View>
-          )}
-          <Text className="text-text-dim text-xs">{article.source}</Text>
-        </View>
-        <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
-          <Text className="text-text font-bold text-base flex-1" style={{ lineHeight: 23 }}>
-            {article.summary ?? article.title}
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
+        {/* 카테고리 색상 인디케이터 */}
+        <View style={{ width: 3, height: '100%', minHeight: 20, backgroundColor: catColor, borderRadius: 2, marginTop: 3, flexShrink: 0 }} />
+        <View style={{ flex: 1, gap: 6 }}>
+          <Text style={{ fontSize: 15, fontWeight: '700', color: '#212121', lineHeight: 22 }} numberOfLines={2}>
+            {getDisplayTitle(article)}
           </Text>
-          <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: '#FAFAFA', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
-            {expanded ? <ChevronUp size={14} color="#757575" /> : <ChevronDown size={14} color="#757575" />}
-          </View>
-        </View>
-      </Pressable>
-
-      {/* Expanded Content */}
-      {expanded && (
-        <View style={{ paddingHorizontal: 16, paddingBottom: 16, borderTopWidth: 1, borderTopColor: '#F5F5F5' }}>
-          {/* Korean summary headline */}
-          {article.summary && (
-            <View className="mt-3 mb-3">
-              <Text className="text-text-muted text-xs uppercase tracking-wider mb-1.5 font-semibold">원문 제목</Text>
-              <Text className="text-text-dim text-sm" style={{ lineHeight: 20 }}>{article.title}</Text>
-            </View>
-          )}
-
-          {/* Impact comment */}
-          {article.impact_comment && (
-            <View className="bg-primary-light rounded-xl px-3 py-2.5 mb-3" style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
-              <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: '#E53935', alignItems: 'center', justifyContent: 'center', marginTop: 1 }}>
-                <Zap size={10} color="#FFFFFF" />
-              </View>
-              <Text className="text-text text-xs flex-1" style={{ lineHeight: 18 }}>
-                {article.impact_comment}
-              </Text>
-            </View>
-          )}
-
-          {/* Source link */}
-          {article.link && (
-            <Pressable
-              onPress={() => Linking.openURL(article.link)}
-              className="active:opacity-70"
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#FAFAFA', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 10, borderWidth: 1, borderColor: '#F0F0F0', alignSelf: 'flex-start' }}
-            >
-              <ExternalLink size={13} color="#E53935" />
-              <Text style={{ color: '#E53935', fontSize: 12, fontWeight: '600' }}>원문 보기</Text>
-            </Pressable>
-          )}
-
-          {/* Bottom row: bookmark + reaction */}
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <BookmarkButton isBookmarked={isBookmarked} onToggle={onBookmark} size={16} />
-            <Text className="text-text-dim text-xs">
-              {article.published ? new Date(article.published).toLocaleDateString('ko-KR') : ''}
-            </Text>
+            <Text style={{ fontSize: 12, color: '#BDBDBD' }}>{article.source}</Text>
+            <ReactionCount itemId={itemId} />
           </View>
-
-          <ReactionBar
-            itemType="news"
-            itemId={article.link ?? article.title}
-            shareText={`${article.summary ?? article.title}\n\n${article.link ?? ''}`}
-            shareTitle={article.summary ?? article.title}
-          />
         </View>
-      )}
-    </View>
+      </View>
+    </Pressable>
   );
 }
 
 // ─── 메인 화면 ────────────────────────────────────────────────────────────────
 export default function NewsScreen() {
-  const [showSearch, setShowSearch] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedCat, setSelectedCat] = useState<NewsCategory>('core_tech');
 
-  const { selectedDates } = useDrawer();
+  const { selectedDates, openDrawer } = useDrawer();
   const selectedDate = selectedDates.news;
-  const { openDrawer } = useDrawer();
 
-  const { newsData, filteredArticles, loading, error, selectedCategory, setSelectedCategory, refresh } = useNews(selectedDate);
-  const { user } = useAuth();
-  const { isBookmarked, toggleBookmark } = useBookmarks(user?.uid ?? null);
+  const { newsData, loading, error, refresh } = useNews(selectedDate);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -319,27 +348,27 @@ export default function NewsScreen() {
     setRefreshing(false);
   };
 
-  // 검색 필터 적용
-  const searchedArticles = searchQuery.trim()
-    ? filteredArticles.filter((a) =>
-        (a.summary ?? a.title).toLowerCase().includes(searchQuery.toLowerCase()) ||
-        a.source.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : filteredArticles;
-
-  // 현재 데이터에 실제로 존재하는 카테고리만 표시 (3개 우선 + 레거시 하위호환)
-  const existingCats = new Set(newsData?.articles?.map((a) => a.category) ?? []);
-  const visibleTabs = [
-    ...PRIMARY_CATEGORIES.filter((c) => c.key === 'all' || existingCats.has(c.key as NewsCategory)),
-    ...LEGACY_CATEGORIES.filter((c) => existingCats.has(c.key as NewsCategory)),
-  ];
-
-  const bookmarkMeta = (article: Article) => ({
-    title: article.summary ?? article.title,
-    subtitle: article.source,
-    category: article.category,
-    link: article.link,
+  // 카테고리별 기사 분류 (레거시 카테고리도 새 3개로 병합)
+  const articlesByCategory: Record<NewsCategory, Article[]> = {
+    core_tech: [],
+    dev_tools: [],
+    trend_insight: [],
+    models_architecture: [],
+    agentic_reality: [],
+    opensource_code: [],
+    physical_ai: [],
+    policy_safety: [],
+  };
+  (newsData?.articles ?? []).forEach((a) => {
+    const norm = normalizeCategory(a.category);
+    articlesByCategory[norm]?.push(a);
   });
+
+  // 선택된 카테고리에서 하이라이트와 같은 기사는 중복 방지를 위해 제외
+  const highlightTitle = newsData?.highlight?.title;
+  const categoryArticles = (articlesByCategory[selectedCat] ?? []).filter(
+    (a) => a.title !== highlightTitle
+  );
 
   // 선택된 날짜 표시
   const dateLabel = selectedDate
@@ -347,155 +376,113 @@ export default function NewsScreen() {
     : '오늘';
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
-      {/* Header */}
-      <View className="px-5 pt-5 pb-3">
-        <View className="flex-row items-center justify-between">
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#FAFAFA' }}>
+      {/* 헤더 */}
+      <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <View>
-            <Text className="text-text text-2xl font-bold">오늘의 AI 트렌드</Text>
-            <Text className="text-text-muted text-sm mt-1">
-              {newsData?.date ? `${newsData.date} 기준` : `${dateLabel} 기준 AI 뉴스`}
-            </Text>
+            <Text style={{ fontSize: 24, fontWeight: '800', color: '#212121' }}>AI 트렌드</Text>
+            <Text style={{ fontSize: 13, color: '#BDBDBD', marginTop: 2 }}>{dateLabel} 기준 AI 뉴스</Text>
           </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Pressable
-              onPress={() => { setShowSearch((s) => !s); setSearchQuery(''); }}
-              style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: showSearch ? '#FFEBEE' : '#FAFAFA', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: showSearch ? '#FFCDD2' : '#F0F0F0' }}
-            >
-              <Search size={18} color={showSearch ? '#E53935' : '#757575'} />
-            </Pressable>
-            {/* Hamburger → SideDrawer */}
-            <Pressable
-              onPress={openDrawer}
-              style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#FAFAFA', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#F0F0F0' }}
-            >
-              <Menu size={20} color="#757575" />
-            </Pressable>
-          </View>
+          <Pressable
+            onPress={openDrawer}
+            style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#F0F0F0', ...cardShadow }}
+          >
+            <Menu size={18} color="#757575" />
+          </Pressable>
         </View>
-        <View style={{ width: 40, height: 3, backgroundColor: '#E53935', borderRadius: 2, marginTop: 12 }} />
+        <View style={{ width: 36, height: 3, backgroundColor: '#E53935', borderRadius: 2, marginTop: 12 }} />
       </View>
 
-      {/* Search Bar */}
-      {showSearch && (
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#FFFFFF', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, marginHorizontal: 16, marginBottom: 8, borderWidth: 1, borderColor: '#F0F0F0', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4 }}>
-          <Search size={16} color="#BDBDBD" />
-          <TextInput
-            placeholder="뉴스 검색..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            autoFocus
-            style={{ flex: 1, fontSize: 14, color: '#212121', paddingVertical: 0 }}
-            placeholderTextColor="#BDBDBD"
-          />
-          {searchQuery.length > 0 && (
-            <Pressable onPress={() => setSearchQuery('')}>
-              <X size={16} color="#BDBDBD" />
-            </Pressable>
-          )}
-        </View>
-      )}
-
-      {/* Category Tabs */}
-      {visibleTabs.length > 1 && !searchQuery && (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          className="mb-3"
-          contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
-        >
-          {visibleTabs.map((cat) => {
-            const isActive = selectedCategory === cat.key;
-            return (
-              <Pressable
-                key={cat.key}
-                onPress={() => setSelectedCategory(cat.key as NewsCategory | 'all')}
-                style={isActive
-                  ? { backgroundColor: '#E53935', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 }
-                  : { backgroundColor: '#FFFFFF', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: '#F0F0F0' }
-                }
-              >
-                <Text style={{ fontSize: 13, fontWeight: '600', color: isActive ? '#FFFFFF' : '#757575' }}>
-                  {cat.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-      )}
-
-      {/* Article List */}
       <ScrollView
-        className="flex-1"
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#E53935" />}
       >
-        {/* Daily Overview */}
-        {newsData?.daily_overview && !searchQuery && (
-          <View className="mx-4 mb-3 rounded-2xl p-4" style={{ backgroundColor: '#FFFFFF', ...cardShadow }}>
-            <Text className="text-text-muted text-sm" style={{ lineHeight: 20 }} numberOfLines={3}>
-              {newsData.daily_overview}
-            </Text>
-          </View>
-        )}
-
-        {/* Highlight Card — always show in '전체' tab when no search */}
-        {!loading && !error && newsData?.highlight && selectedCategory === 'all' && !searchQuery && (
-          <HighlightNewsCard
-            article={newsData.highlight}
-            onPress={() => setSelectedArticle(newsData.highlight!)}
-            isBookmarked={isBookmarked('news', newsData.highlight.link)}
-            onBookmark={() => toggleBookmark('news', newsData.highlight!.link, bookmarkMeta(newsData.highlight!))}
-          />
-        )}
-
         {loading ? (
-          <>
+          <View style={{ paddingHorizontal: 16 }}>
             <NewsCardSkeleton />
             <NewsCardSkeleton />
             <NewsCardSkeleton />
-          </>
+          </View>
         ) : error ? (
-          <View className="flex-1 items-center justify-center py-20 px-8">
+          <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 80, paddingHorizontal: 32 }}>
             <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: '#FFEBEE', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
               <RefreshCw size={28} color="#E53935" />
             </View>
-            <Text className="text-text font-semibold text-base mb-2">연결에 문제가 있어요</Text>
-            <Text className="text-text-muted text-sm text-center mb-5" style={{ lineHeight: 20 }}>{error}</Text>
-            <Pressable
-              onPress={refresh}
-              className="active:opacity-70"
-              style={{ backgroundColor: '#E53935', paddingHorizontal: 28, paddingVertical: 12, borderRadius: 12 }}
-            >
+            <Text style={{ color: '#212121', fontWeight: '600', fontSize: 16, marginBottom: 8 }}>연결에 문제가 있어요</Text>
+            <Text style={{ color: '#BDBDBD', fontSize: 14, textAlign: 'center', marginBottom: 20 }}>{error}</Text>
+            <Pressable onPress={refresh} style={{ backgroundColor: '#E53935', paddingHorizontal: 28, paddingVertical: 12, borderRadius: 12 }}>
               <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 15 }}>다시 시도</Text>
             </Pressable>
           </View>
-        ) : searchedArticles.length === 0 ? (
-          <View className="items-center justify-center py-20">
-            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: '#FFEBEE', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-              <Newspaper size={28} color="#E53935" />
-            </View>
-            <Text className="text-text font-semibold text-base mb-1">
-              {searchQuery ? `'${searchQuery}' 검색 결과가 없어요` : '아직 뉴스가 없어요'}
-            </Text>
-            <Text className="text-text-muted text-sm">
-              {searchQuery ? '다른 키워드로 검색해보세요' : '잠시 후 다시 확인해보세요'}
-            </Text>
-          </View>
         ) : (
-          searchedArticles.map((article, index) => (
-            <AccordionNewsCard
-              key={`${article.title}-${index}`}
-              article={article}
-              isBookmarked={isBookmarked('news', article.link)}
-              onBookmark={() => toggleBookmark('news', article.link, bookmarkMeta(article))}
-            />
-          ))
+          <>
+            {/* 1. 하이라이트 카드 */}
+            {newsData?.highlight && (
+              <HighlightCard
+                article={newsData.highlight}
+                onPress={() => setSelectedArticle(newsData.highlight!)}
+              />
+            )}
+
+            {/* 2. 카테고리 버튼 3개 */}
+            <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: 16, marginBottom: 12 }}>
+              {CATEGORIES.map((cat) => {
+                const isActive = selectedCat === cat.key;
+                const count = articlesByCategory[cat.key]?.length ?? 0;
+                return (
+                  <Pressable
+                    key={cat.key}
+                    onPress={() => setSelectedCat(cat.key)}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 10,
+                      borderRadius: 14,
+                      alignItems: 'center',
+                      backgroundColor: isActive ? '#E53935' : '#FFFFFF',
+                      borderWidth: 1,
+                      borderColor: isActive ? '#E53935' : '#F0F0F0',
+                      ...cardShadow,
+                    }}
+                  >
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: isActive ? '#FFFFFF' : '#757575', textAlign: 'center' }}>
+                      {cat.label}
+                    </Text>
+                    {count > 0 && (
+                      <Text style={{ fontSize: 10, color: isActive ? 'rgba(255,255,255,0.75)' : '#BDBDBD', marginTop: 2 }}>
+                        {count}개
+                      </Text>
+                    )}
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            {/* 3. 선택 카테고리 기사 목록 */}
+            <View style={{ marginHorizontal: 16, backgroundColor: '#FFFFFF', borderRadius: 18, paddingHorizontal: 16, ...cardShadow }}>
+              {categoryArticles.length === 0 ? (
+                <View style={{ alignItems: 'center', paddingVertical: 40 }}>
+                  <Newspaper size={32} color="#E0E0E0" />
+                  <Text style={{ color: '#BDBDBD', fontSize: 14, marginTop: 10 }}>이 카테고리엔 아직 기사가 없어요</Text>
+                </View>
+              ) : (
+                categoryArticles.map((article, index) => (
+                  <ArticleListItem
+                    key={`${article.title}-${index}`}
+                    article={article}
+                    onPress={() => setSelectedArticle(article)}
+                    isLast={index === categoryArticles.length - 1}
+                  />
+                ))
+              )}
+            </View>
+
+            <View style={{ height: 32 }} />
+          </>
         )}
-        <View className="h-6" />
       </ScrollView>
 
-      {/* Detail Modal (하이라이트 카드 탭 시) */}
+      {/* 상세 모달 */}
       <ArticleDetailModal
         article={selectedArticle}
         visible={!!selectedArticle}

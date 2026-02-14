@@ -13,20 +13,27 @@ import {
   GoogleAuthProvider,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { Alert } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
 import { auth, db } from '@/lib/firebase';
 
 WebBrowser.maybeCompleteAuthSession();
 
+// Google OAuth 클라이언트 ID가 설정되지 않은 경우 placeholder로 크래시 방지
+const WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? '__missing__';
+const ANDROID_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID ?? WEB_CLIENT_ID;
+const IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
+const GOOGLE_AUTH_READY = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID != null;
+
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   const [_request, response, promptAsync] = Google.useAuthRequest({
-    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
-    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+    webClientId: WEB_CLIENT_ID,
+    androidClientId: ANDROID_CLIENT_ID,
+    iosClientId: IOS_CLIENT_ID,
   });
 
   // Firebase 인증 상태 감지
@@ -70,6 +77,13 @@ export function useAuth() {
 
   // expo-web-browser OAuth 방식 (Expo Go + 네이티브 빌드 모두 호환)
   const signInWithGoogle = async () => {
+    if (!GOOGLE_AUTH_READY) {
+      Alert.alert(
+        'Google 로그인 설정 필요',
+        '.env 파일에 EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID를 추가해주세요.',
+      );
+      return;
+    }
     await promptAsync();
   };
 
