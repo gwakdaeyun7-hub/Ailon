@@ -61,3 +61,10 @@ serviceAccountKey.json
 
 # OS
 Thumbs.db
+
+# Expo
+.expo/
+nativewind-env.d.ts
+
+# Local Claude Code settings
+.claude/settings.local.json

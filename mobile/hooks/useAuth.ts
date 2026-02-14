@@ -1,22 +1,35 @@
 /**
- * 사용자 인증 관리 Hook - React Native (Google Sign-In 네이티브 방식)
- * 웹 차이: signInWithPopup() → GoogleSignin.signIn() + signInWithCredential()
+ * 사용자 인증 관리 Hook
+ * Expo Go 호환: expo-web-browser OAuth 방식 사용
+ * APK 빌드: 동일 코드 동작 (expo-web-browser는 네이티브 빌드에서도 작동)
  */
 
 import { useEffect, useState } from 'react';
-import { User, signOut as firebaseSignOut, onAuthStateChanged, signInWithCredential, GoogleAuthProvider } from 'firebase/auth';
+import {
+  User,
+  signOut as firebaseSignOut,
+  onAuthStateChanged,
+  signInWithCredential,
+  GoogleAuthProvider,
+} from 'firebase/auth';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import * as WebBrowser from 'expo-web-browser';
+import * as Google from 'expo-auth-session/providers/google';
 import { auth, db } from '@/lib/firebase';
 
-GoogleSignin.configure({
-  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-});
+WebBrowser.maybeCompleteAuthSession();
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const [_request, response, promptAsync] = Google.useAuthRequest({
+    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
+    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+  });
+
+  // Firebase 인증 상태 감지
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
@@ -44,23 +57,24 @@ export function useAuth() {
     return () => unsubscribe();
   }, []);
 
-  // React Native: GoogleSignin.signIn() → signInWithCredential()
-  // 웹의 signInWithPopup(auth, googleProvider)는 RN에서 사용 불가
-  const signInWithGoogle = async () => {
-    try {
-      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-      const { data } = await GoogleSignin.signIn();
-      const credential = GoogleAuthProvider.credential(data?.idToken ?? null);
-      await signInWithCredential(auth, credential);
-    } catch (error) {
-      console.error('Google Sign-In error:', error);
-      throw error;
+  // Google OAuth 응답 처리
+  useEffect(() => {
+    if (response?.type === 'success') {
+      const { id_token } = response.params;
+      const credential = GoogleAuthProvider.credential(id_token);
+      signInWithCredential(auth, credential).catch((err) =>
+        console.error('signInWithCredential error:', err)
+      );
     }
+  }, [response]);
+
+  // expo-web-browser OAuth 방식 (Expo Go + 네이티브 빌드 모두 호환)
+  const signInWithGoogle = async () => {
+    await promptAsync();
   };
 
   const signOut = async () => {
     try {
-      await GoogleSignin.signOut();
       await firebaseSignOut(auth);
     } catch (error) {
       console.error('Sign-out error:', error);
