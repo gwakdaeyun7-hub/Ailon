@@ -1,10 +1,10 @@
 /**
  * AI 트렌드 뉴스 화면
- * - 검색: 헤더 돋보기 버튼 → 검색바 토글
- * - 히스토리: 날짜 필 (최근 7일)
- * - 북마크: NewsCard + HighlightNewsCard에 BookmarkButton 추가
- * - 3 신규 카테고리 탭 + 레거시 5개 하위호환
- * - 하이라이트 카드, impact_comment, 상세 모달
+ * - 날짜 이동: 사이드바 통해서만 (날짜 필 제거)
+ * - 상단: 하이라이트 카드 1개 (전체 항상 표시)
+ * - 중간: 카테고리 3개 버튼 (core_tech / dev_tools / trend_insight)
+ * - 하단: 선택 카테고리 기사 목록 (아코디언: 기본=제목만, 펼침=summary+impact+원문링크+ReactionBar)
+ * - 검색, 북마크 유지
  */
 
 import React, { useState } from 'react';
@@ -19,39 +19,31 @@ import {
   Linking,
   Share,
   TextInput,
+  LayoutAnimation,
 } from 'react-native';
 import {
   ExternalLink, Share2, X, ChevronRight, Zap,
-  Newspaper, RefreshCw, Search,
+  Newspaper, RefreshCw, Search, Menu, ChevronDown, ChevronUp,
 } from 'lucide-react-native';
 import { useNews } from '@/hooks/useNews';
 import { useAuth } from '@/hooks/useAuth';
 import { useBookmarks } from '@/hooks/useBookmarks';
+import { useDrawer } from '@/context/DrawerContext';
 import { BookmarkButton } from '@/components/shared/BookmarkButton';
 import { NewsCardSkeleton } from '@/components/shared/LoadingSkeleton';
+import { ReactionBar } from '@/components/shared/ReactionBar';
 import type { Article, NewsCategory } from '@/lib/types';
 import { NEWS_CATEGORY_LABELS, NEWS_CATEGORY_COLORS } from '@/lib/types';
 
-// ─── 날짜 옵션 (최근 7일) ──────────────────────────────────────────────────
-const DAYS_KO = ['일', '월', '화', '수', '목', '금', '토'];
-const DATE_OPTIONS = Array.from({ length: 7 }, (_, i) => {
-  const d = new Date();
-  d.setDate(d.getDate() - i);
-  const dateStr = d.toISOString().split('T')[0];
-  return {
-    dateStr,
-    label: i === 0 ? '오늘' : `${d.getMonth() + 1}/${d.getDate()}`,
-    dayLabel: DAYS_KO[d.getDay()],
-    isToday: i === 0,
-  };
-});
-
-// ─── 카테고리 탭 ─────────────────────────────────────────────────────────────
-const DISPLAY_CATEGORIES: Array<{ key: NewsCategory | 'all'; label: string }> = [
+// ─── 카테고리 탭 (3개 핵심 + 레거시 하위호환) ──────────────────────────────────
+const PRIMARY_CATEGORIES: Array<{ key: NewsCategory | 'all'; label: string }> = [
   { key: 'all', label: '전체' },
   { key: 'core_tech', label: '🔬 모델·논문' },
   { key: 'dev_tools', label: '🛠 개발·도구' },
   { key: 'trend_insight', label: '📈 트렌드' },
+];
+
+const LEGACY_CATEGORIES: Array<{ key: NewsCategory | 'all'; label: string }> = [
   { key: 'models_architecture', label: '모델·아키텍처' },
   { key: 'agentic_reality', label: '에이전틱' },
   { key: 'opensource_code', label: '오픈소스' },
@@ -173,7 +165,6 @@ function HighlightNewsCard({
       className="mx-4 mb-4 rounded-2xl overflow-hidden active:opacity-90"
       style={{ elevation: 5, shadowColor: '#E53935', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.18, shadowRadius: 10, borderWidth: 1, borderColor: '#FFCDD2' }}
     >
-      {/* Red header strip */}
       <View style={{ backgroundColor: '#E53935', paddingHorizontal: 16, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <Zap size={14} color="#FFFFFF" />
         <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '800', letterSpacing: 0.5 }}>오늘의 주목 기사</Text>
@@ -186,7 +177,6 @@ function HighlightNewsCard({
         )}
       </View>
 
-      {/* Content */}
       <View className="bg-card p-4">
         <Text className="text-text font-bold" style={{ fontSize: 17, lineHeight: 26, marginBottom: 8 }}>
           {article.summary ?? article.title}
@@ -214,20 +204,26 @@ function HighlightNewsCard({
   );
 }
 
-// ─── 뉴스 카드 ────────────────────────────────────────────────────────────────
-function NewsCard({
-  article, onPress, isBookmarked, onBookmark,
-}: { article: Article; onPress: () => void; isBookmarked: boolean; onBookmark: () => void }) {
+// ─── 아코디언 뉴스 카드 ───────────────────────────────────────────────────────
+function AccordionNewsCard({
+  article, isBookmarked, onBookmark,
+}: { article: Article; isBookmarked: boolean; onBookmark: () => void }) {
+  const [expanded, setExpanded] = useState(false);
   const catColor = getCategoryColor(article.category);
 
+  const toggle = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpanded((p) => !p);
+  };
+
   return (
-    <Pressable
-      onPress={onPress}
-      className="bg-card rounded-2xl mb-3 mx-4 active:opacity-80"
+    <View
+      className="bg-card rounded-2xl mb-3 mx-4 overflow-hidden"
       style={{ ...cardShadow, borderLeftWidth: 3, borderLeftColor: catColor }}
     >
-      <View className="p-4">
-        <View className="flex-row items-center justify-between mb-2.5">
+      {/* Title Row — always visible */}
+      <Pressable onPress={toggle} className="p-4 active:opacity-80">
+        <View className="flex-row items-center justify-between mb-2">
           {article.category && (
             <View className="px-2.5 py-1 rounded-full" style={{ backgroundColor: `${catColor}15` }}>
               <Text style={{ color: catColor }} className="text-xs font-bold">
@@ -237,48 +233,81 @@ function NewsCard({
           )}
           <Text className="text-text-dim text-xs">{article.source}</Text>
         </View>
-        <Text className="text-text font-bold text-base mb-1.5" style={{ lineHeight: 23 }} numberOfLines={3}>
-          {article.summary ?? article.title}
-        </Text>
-        {article.summary && (
-          <Text className="text-text-dim text-xs mb-2" numberOfLines={1} style={{ lineHeight: 16 }}>
-            {article.title}
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+          <Text className="text-text font-bold text-base flex-1" style={{ lineHeight: 23 }}>
+            {article.summary ?? article.title}
           </Text>
-        )}
-        {article.impact_comment && (
-          <View className="bg-primary-light rounded-xl px-3 py-2.5 mb-2" style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
-            <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: '#E53935', alignItems: 'center', justifyContent: 'center', marginTop: 1 }}>
-              <Zap size={10} color="#FFFFFF" />
-            </View>
-            <Text className="text-text text-xs flex-1" style={{ lineHeight: 18 }} numberOfLines={2}>
-              {article.impact_comment}
-            </Text>
-          </View>
-        )}
-        <View className="flex-row items-center justify-between mt-3">
-          <Text className="text-text-dim text-xs">
-            {article.published ? new Date(article.published).toLocaleDateString('ko-KR') : ''}
-          </Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <BookmarkButton isBookmarked={isBookmarked} onToggle={onBookmark} size={16} />
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <Text style={{ color: '#E53935', fontSize: 12, fontWeight: '600' }}>자세히</Text>
-              <ChevronRight size={14} color="#E53935" />
-            </View>
+          <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: '#FAFAFA', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
+            {expanded ? <ChevronUp size={14} color="#757575" /> : <ChevronDown size={14} color="#757575" />}
           </View>
         </View>
-      </View>
-    </Pressable>
+      </Pressable>
+
+      {/* Expanded Content */}
+      {expanded && (
+        <View style={{ paddingHorizontal: 16, paddingBottom: 16, borderTopWidth: 1, borderTopColor: '#F5F5F5' }}>
+          {/* Korean summary headline */}
+          {article.summary && (
+            <View className="mt-3 mb-3">
+              <Text className="text-text-muted text-xs uppercase tracking-wider mb-1.5 font-semibold">원문 제목</Text>
+              <Text className="text-text-dim text-sm" style={{ lineHeight: 20 }}>{article.title}</Text>
+            </View>
+          )}
+
+          {/* Impact comment */}
+          {article.impact_comment && (
+            <View className="bg-primary-light rounded-xl px-3 py-2.5 mb-3" style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
+              <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: '#E53935', alignItems: 'center', justifyContent: 'center', marginTop: 1 }}>
+                <Zap size={10} color="#FFFFFF" />
+              </View>
+              <Text className="text-text text-xs flex-1" style={{ lineHeight: 18 }}>
+                {article.impact_comment}
+              </Text>
+            </View>
+          )}
+
+          {/* Source link */}
+          {article.link && (
+            <Pressable
+              onPress={() => Linking.openURL(article.link)}
+              className="active:opacity-70"
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#FAFAFA', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 10, borderWidth: 1, borderColor: '#F0F0F0', alignSelf: 'flex-start' }}
+            >
+              <ExternalLink size={13} color="#E53935" />
+              <Text style={{ color: '#E53935', fontSize: 12, fontWeight: '600' }}>원문 보기</Text>
+            </Pressable>
+          )}
+
+          {/* Bottom row: bookmark + reaction */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <BookmarkButton isBookmarked={isBookmarked} onToggle={onBookmark} size={16} />
+            <Text className="text-text-dim text-xs">
+              {article.published ? new Date(article.published).toLocaleDateString('ko-KR') : ''}
+            </Text>
+          </View>
+
+          <ReactionBar
+            itemType="news"
+            itemId={article.link ?? article.title}
+            shareText={`${article.summary ?? article.title}\n\n${article.link ?? ''}`}
+            shareTitle={article.summary ?? article.title}
+          />
+        </View>
+      )}
+    </View>
   );
 }
 
 // ─── 메인 화면 ────────────────────────────────────────────────────────────────
 export default function NewsScreen() {
-  const [selectedDate, setSelectedDate] = useState<string | undefined>(undefined);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+
+  const { selectedDates } = useDrawer();
+  const selectedDate = selectedDates.news;
+  const { openDrawer } = useDrawer();
 
   const { newsData, filteredArticles, loading, error, selectedCategory, setSelectedCategory, refresh } = useNews(selectedDate);
   const { user } = useAuth();
@@ -290,13 +319,6 @@ export default function NewsScreen() {
     setRefreshing(false);
   };
 
-  const handleDateSelect = (dateStr: string, isToday: boolean) => {
-    setSelectedDate(isToday ? undefined : dateStr);
-    setSelectedCategory('all');
-    setSearchQuery('');
-    setShowSearch(false);
-  };
-
   // 검색 필터 적용
   const searchedArticles = searchQuery.trim()
     ? filteredArticles.filter((a) =>
@@ -305,11 +327,12 @@ export default function NewsScreen() {
       )
     : filteredArticles;
 
-  // 현재 데이터에 실제로 존재하는 카테고리만 표시
+  // 현재 데이터에 실제로 존재하는 카테고리만 표시 (3개 우선 + 레거시 하위호환)
   const existingCats = new Set(newsData?.articles?.map((a) => a.category) ?? []);
-  const visibleTabs = DISPLAY_CATEGORIES.filter(
-    (c) => c.key === 'all' || existingCats.has(c.key as NewsCategory)
-  );
+  const visibleTabs = [
+    ...PRIMARY_CATEGORIES.filter((c) => c.key === 'all' || existingCats.has(c.key as NewsCategory)),
+    ...LEGACY_CATEGORIES.filter((c) => existingCats.has(c.key as NewsCategory)),
+  ];
 
   const bookmarkMeta = (article: Article) => ({
     title: article.summary ?? article.title,
@@ -318,8 +341,10 @@ export default function NewsScreen() {
     link: article.link,
   });
 
-  // 현재 선택 날짜 표시용
-  const selectedDateStr = selectedDate ?? DATE_OPTIONS[0].dateStr;
+  // 선택된 날짜 표시
+  const dateLabel = selectedDate
+    ? new Date(selectedDate).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })
+    : '오늘';
 
   return (
     <SafeAreaView className="flex-1 bg-background">
@@ -329,7 +354,7 @@ export default function NewsScreen() {
           <View>
             <Text className="text-text text-2xl font-bold">오늘의 AI 트렌드</Text>
             <Text className="text-text-muted text-sm mt-1">
-              {newsData?.date ? `${newsData.date} 기준` : '오늘의 AI 뉴스'}
+              {newsData?.date ? `${newsData.date} 기준` : `${dateLabel} 기준 AI 뉴스`}
             </Text>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -339,9 +364,13 @@ export default function NewsScreen() {
             >
               <Search size={18} color={showSearch ? '#E53935' : '#757575'} />
             </Pressable>
-            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#FFEBEE', alignItems: 'center', justifyContent: 'center' }}>
-              <Newspaper size={20} color="#E53935" />
-            </View>
+            {/* Hamburger → SideDrawer */}
+            <Pressable
+              onPress={openDrawer}
+              style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#FAFAFA', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#F0F0F0' }}
+            >
+              <Menu size={20} color="#757575" />
+            </Pressable>
           </View>
         </View>
         <View style={{ width: 40, height: 3, backgroundColor: '#E53935', borderRadius: 2, marginTop: 12 }} />
@@ -364,41 +393,6 @@ export default function NewsScreen() {
               <X size={16} color="#BDBDBD" />
             </Pressable>
           )}
-        </View>
-      )}
-
-      {/* Date History Pills */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        className="mb-2"
-        contentContainerStyle={{ paddingHorizontal: 16, gap: 8, paddingVertical: 4 }}
-      >
-        {DATE_OPTIONS.map(({ dateStr, label, dayLabel, isToday }) => {
-          const isSelected = selectedDateStr === dateStr;
-          return (
-            <Pressable
-              key={dateStr}
-              onPress={() => handleDateSelect(dateStr, isToday)}
-              style={{ alignItems: 'center', backgroundColor: isSelected ? '#E53935' : '#FFFFFF', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, borderWidth: 1, borderColor: isSelected ? '#E53935' : '#F0F0F0', minWidth: 52 }}
-            >
-              <Text style={{ color: isSelected ? 'rgba(255,255,255,0.8)' : '#BDBDBD', fontSize: 10, fontWeight: '600' }}>
-                {isToday ? '오늘' : dayLabel}
-              </Text>
-              <Text style={{ color: isSelected ? '#FFFFFF' : '#212121', fontSize: 13, fontWeight: '700' }}>
-                {label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
-
-      {/* Daily Overview */}
-      {newsData?.daily_overview && (
-        <View className="mx-4 mb-3 rounded-2xl p-4" style={{ backgroundColor: '#FFFFFF', ...cardShadow }}>
-          <Text className="text-text-muted text-sm" style={{ lineHeight: 20 }} numberOfLines={3}>
-            {newsData.daily_overview}
-          </Text>
         </View>
       )}
 
@@ -436,7 +430,16 @@ export default function NewsScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#E53935" />}
       >
-        {/* Highlight Card (전체 탭 + 검색 없을 때만) */}
+        {/* Daily Overview */}
+        {newsData?.daily_overview && !searchQuery && (
+          <View className="mx-4 mb-3 rounded-2xl p-4" style={{ backgroundColor: '#FFFFFF', ...cardShadow }}>
+            <Text className="text-text-muted text-sm" style={{ lineHeight: 20 }} numberOfLines={3}>
+              {newsData.daily_overview}
+            </Text>
+          </View>
+        )}
+
+        {/* Highlight Card — always show in '전체' tab when no search */}
         {!loading && !error && newsData?.highlight && selectedCategory === 'all' && !searchQuery && (
           <HighlightNewsCard
             article={newsData.highlight}
@@ -481,10 +484,9 @@ export default function NewsScreen() {
           </View>
         ) : (
           searchedArticles.map((article, index) => (
-            <NewsCard
+            <AccordionNewsCard
               key={`${article.title}-${index}`}
               article={article}
-              onPress={() => setSelectedArticle(article)}
               isBookmarked={isBookmarked('news', article.link)}
               onBookmark={() => toggleBookmark('news', article.link, bookmarkMeta(article))}
             />
@@ -493,7 +495,7 @@ export default function NewsScreen() {
         <View className="h-6" />
       </ScrollView>
 
-      {/* Detail Modal */}
+      {/* Detail Modal (하이라이트 카드 탭 시) */}
       <ArticleDetailModal
         article={selectedArticle}
         visible={!!selectedArticle}

@@ -1,10 +1,10 @@
 /**
  * 학문 스낵 화면
+ * - 날짜 이동: 사이드바 통해서만 (날짜 필 제거)
  * - 검색: 헤더 돋보기 버튼 → 검색바 토글
- * - 히스토리: 날짜 필 (최근 7일)
  * - 북마크: SnapCard에 BookmarkButton 추가
  * - 오늘의 원리 하이라이트 카드
- * - SnapCard 확장/축소: LayoutAnimation
+ * - SnapCard 확장/축소: LayoutAnimation + ReactionBar
  */
 
 import React, { useState } from 'react';
@@ -19,12 +19,14 @@ import {
   Linking,
   TextInput,
 } from 'react-native';
-import { ChevronDown, ChevronUp, ExternalLink, BookOpen, Sparkles, RefreshCw, Search, X } from 'lucide-react-native';
+import { ChevronDown, ChevronUp, ExternalLink, BookOpen, Sparkles, RefreshCw, Search, X, Menu } from 'lucide-react-native';
 import { usePrinciples } from '@/hooks/usePrinciples';
 import { useAuth } from '@/hooks/useAuth';
 import { useBookmarks } from '@/hooks/useBookmarks';
+import { useDrawer } from '@/context/DrawerContext';
 import { BookmarkButton } from '@/components/shared/BookmarkButton';
 import { SnapCardSkeleton } from '@/components/shared/LoadingSkeleton';
+import { ReactionBar } from '@/components/shared/ReactionBar';
 import type { Principle, LearnMoreLink } from '@/lib/types';
 
 const DIFFICULTY_LABELS = { beginner: '입문', intermediate: '중급', advanced: '심화' };
@@ -49,19 +51,6 @@ const FIELD_COLORS: Record<string, string> = {
   '컴퓨터과학': '#06b6d4',
   '통계학': '#14b8a6',
 };
-
-// ─── 날짜 옵션 ───────────────────────────────────────────────────────────────
-const DAYS_KO = ['일', '월', '화', '수', '목', '금', '토'];
-const DATE_OPTIONS = Array.from({ length: 7 }, (_, i) => {
-  const d = new Date();
-  d.setDate(d.getDate() - i);
-  return {
-    dateStr: d.toISOString().split('T')[0],
-    label: i === 0 ? '오늘' : `${d.getMonth() + 1}/${d.getDate()}`,
-    dayLabel: DAYS_KO[d.getDay()],
-    isToday: i === 0,
-  };
-});
 
 function getFieldColor(field?: string): string {
   if (!field) return '#E53935';
@@ -212,13 +201,19 @@ function SnapCard({
             </View>
           )}
           {principle.learn_more_links && principle.learn_more_links.length > 0 && (
-            <View>
+            <View className="mb-2">
               <Text className="text-text-muted text-xs uppercase tracking-wider mb-2 font-semibold">더 알아보기</Text>
               <View className="flex-row flex-wrap">
                 {principle.learn_more_links.map((link, i) => <LearnMoreLinkButton key={i} link={link} />)}
               </View>
             </View>
           )}
+          <ReactionBar
+            itemType="snap"
+            itemId={principle.title}
+            shareText={`${principle.title}\n\n${principle.simpleSummary ?? principle.description ?? ''}`}
+            shareTitle={principle.title}
+          />
         </View>
       )}
     </View>
@@ -227,10 +222,12 @@ function SnapCard({
 
 // ─── 메인 화면 ────────────────────────────────────────────────────────────────
 export default function SnapsScreen() {
-  const [selectedDate, setSelectedDate] = useState<string | undefined>(undefined);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+
+  const { selectedDates, openDrawer } = useDrawer();
+  const selectedDate = selectedDates.snaps;
 
   const { allPrinciples, principlesData, todayPrinciple, loading, error, refresh } = usePrinciples(selectedDate);
   const { user } = useAuth();
@@ -240,12 +237,6 @@ export default function SnapsScreen() {
     setRefreshing(true);
     await refresh();
     setRefreshing(false);
-  };
-
-  const handleDateSelect = (dateStr: string, isToday: boolean) => {
-    setSelectedDate(isToday ? undefined : dateStr);
-    setSearchQuery('');
-    setShowSearch(false);
   };
 
   // todayPrinciple이 있으면 목록에서 제외
@@ -263,13 +254,17 @@ export default function SnapsScreen() {
     : basePrinciples;
 
   const fieldCount = new Set(allPrinciples.map((p) => p.superCategory).filter(Boolean)).size;
-  const selectedDateStr = selectedDate ?? DATE_OPTIONS[0].dateStr;
 
   const bookmarkMeta = (p: Principle) => ({
     title: p.title,
     subtitle: p.superCategory,
     category: p.difficulty,
   });
+
+  // 선택된 날짜 표시
+  const dateLabel = selectedDate
+    ? new Date(selectedDate).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })
+    : '오늘';
 
   return (
     <SafeAreaView className="flex-1 bg-background">
@@ -279,7 +274,7 @@ export default function SnapsScreen() {
           <View>
             <Text className="text-text text-2xl font-bold">학문 스낵</Text>
             <Text className="text-text-muted text-sm mt-1">
-              {principlesData?.date ? `${principlesData.date} · ` : ''}오늘의 학문 원리 {allPrinciples.length}개
+              {principlesData?.date ? `${principlesData.date} · ` : `${dateLabel} · `}오늘의 학문 원리 {allPrinciples.length}개
             </Text>
           </View>
           <View className="flex-row items-center gap-2">
@@ -294,9 +289,13 @@ export default function SnapsScreen() {
                 <Text style={{ color: '#E53935', fontSize: 12, fontWeight: '700' }}>{fieldCount}개 분야</Text>
               </View>
             )}
-            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#FFEBEE', alignItems: 'center', justifyContent: 'center' }}>
-              <BookOpen size={20} color="#E53935" />
-            </View>
+            {/* Hamburger → SideDrawer */}
+            <Pressable
+              onPress={openDrawer}
+              style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#FAFAFA', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#F0F0F0' }}
+            >
+              <Menu size={20} color="#757575" />
+            </Pressable>
           </View>
         </View>
         <View style={{ width: 40, height: 3, backgroundColor: '#E53935', borderRadius: 2, marginTop: 12 }} />
@@ -319,30 +318,6 @@ export default function SnapsScreen() {
           )}
         </View>
       )}
-
-      {/* Date History Pills */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        className="mb-2"
-        contentContainerStyle={{ paddingHorizontal: 16, gap: 8, paddingVertical: 4 }}
-      >
-        {DATE_OPTIONS.map(({ dateStr, label, dayLabel, isToday }) => {
-          const isSelected = selectedDateStr === dateStr;
-          return (
-            <Pressable
-              key={dateStr}
-              onPress={() => handleDateSelect(dateStr, isToday)}
-              style={{ alignItems: 'center', backgroundColor: isSelected ? '#E53935' : '#FFFFFF', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, borderWidth: 1, borderColor: isSelected ? '#E53935' : '#F0F0F0', minWidth: 52 }}
-            >
-              <Text style={{ color: isSelected ? 'rgba(255,255,255,0.8)' : '#BDBDBD', fontSize: 10, fontWeight: '600' }}>
-                {isToday ? '오늘' : dayLabel}
-              </Text>
-              <Text style={{ color: isSelected ? '#FFFFFF' : '#212121', fontSize: 13, fontWeight: '700' }}>{label}</Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
 
       <ScrollView
         className="flex-1"

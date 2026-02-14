@@ -1,9 +1,9 @@
 /**
  * 시너지 랩 화면
+ * - 날짜 이동: 사이드바 통해서만 (날짜 필 제거)
  * - 검색: 헤더 돋보기 버튼 → 검색바 토글
- * - 히스토리: 날짜 필 (최근 7일)
  * - 북마크: IdeaCard에 BookmarkButton 추가
- * - TOP 아이디어 배너, 로드맵 아코디언, 점수바
+ * - TOP 아이디어 배너, 로드맵 아코디언, 점수바, ReactionBar
  */
 
 import React, { useState } from 'react';
@@ -20,13 +20,15 @@ import {
 } from 'react-native';
 import {
   ChevronDown, ChevronUp, Share2, Lightbulb, Target,
-  Map, TrendingUp, Rocket, RefreshCw, Search, X,
+  Map, TrendingUp, Rocket, RefreshCw, Search, X, Menu,
 } from 'lucide-react-native';
 import { useSynergyIdeas } from '@/hooks/useSynergyIdeas';
 import { useAuth } from '@/hooks/useAuth';
 import { useBookmarks } from '@/hooks/useBookmarks';
+import { useDrawer } from '@/context/DrawerContext';
 import { BookmarkButton } from '@/components/shared/BookmarkButton';
 import { IdeaCardSkeleton } from '@/components/shared/LoadingSkeleton';
+import { ReactionBar } from '@/components/shared/ReactionBar';
 import type { SynergyIdea, RoadmapPhase } from '@/lib/types';
 
 const cardShadow = {
@@ -36,19 +38,6 @@ const cardShadow = {
   shadowOpacity: 0.08,
   shadowRadius: 4,
 };
-
-// ─── 날짜 옵션 ───────────────────────────────────────────────────────────────
-const DAYS_KO = ['일', '월', '화', '수', '목', '금', '토'];
-const DATE_OPTIONS = Array.from({ length: 7 }, (_, i) => {
-  const d = new Date();
-  d.setDate(d.getDate() - i);
-  return {
-    dateStr: d.toISOString().split('T')[0],
-    label: i === 0 ? '오늘' : `${d.getMonth() + 1}/${d.getDate()}`,
-    dayLabel: DAYS_KO[d.getDay()],
-    isToday: i === 0,
-  };
-});
 
 function ScoreBar({ label, score, color }: { label: string; score: number; color: string }) {
   const pct = Math.min(Math.max((score / 10) * 100, 0), 100);
@@ -310,7 +299,7 @@ function IdeaCard({
             </View>
           )}
           {idea.required_tech?.length > 0 && (
-            <View>
+            <View className="mb-4">
               <Text className="text-text-muted text-xs uppercase tracking-wider mb-2 font-semibold">필요 기술</Text>
               <View className="flex-row flex-wrap gap-2">
                 {idea.required_tech.map((tech, i) => (
@@ -321,6 +310,12 @@ function IdeaCard({
               </View>
             </View>
           )}
+          <ReactionBar
+            itemType="idea"
+            itemId={idea.concept_name}
+            shareText={`${idea.concept_name}\n\n${idea.narrative ?? idea.description ?? ''}\n\n첫 단계: ${idea.first_step ?? ''}`}
+            shareTitle={idea.concept_name}
+          />
         </View>
       )}
     </View>
@@ -329,10 +324,12 @@ function IdeaCard({
 
 // ─── 메인 화면 ────────────────────────────────────────────────────────────────
 export default function IdeasScreen() {
-  const [selectedDate, setSelectedDate] = useState<string | undefined>(undefined);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+
+  const { selectedDates, openDrawer } = useDrawer();
+  const selectedDate = selectedDates.ideas;
 
   const { ideasData, ideas, loading, error, refresh } = useSynergyIdeas(selectedDate);
   const { user } = useAuth();
@@ -342,12 +339,6 @@ export default function IdeasScreen() {
     setRefreshing(true);
     await refresh();
     setRefreshing(false);
-  };
-
-  const handleDateSelect = (dateStr: string, isToday: boolean) => {
-    setSelectedDate(isToday ? undefined : dateStr);
-    setSearchQuery('');
-    setShowSearch(false);
   };
 
   // 검색 필터 (TOP 배너 포함 전체 목록 대상)
@@ -363,12 +354,15 @@ export default function IdeasScreen() {
   const topIdea = displayIdeas[0];
   const restIdeas = displayIdeas.slice(1);
 
-  const selectedDateStr = selectedDate ?? DATE_OPTIONS[0].dateStr;
-
   const bookmarkMeta = (idea: SynergyIdea) => ({
     title: idea.concept_name,
     subtitle: idea.problem_addressed,
   });
+
+  // 선택된 날짜 표시
+  const dateLabel = selectedDate
+    ? new Date(selectedDate).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })
+    : '오늘';
 
   return (
     <SafeAreaView className="flex-1 bg-background">
@@ -378,7 +372,7 @@ export default function IdeasScreen() {
           <View>
             <Text className="text-text text-2xl font-bold">시너지 랩</Text>
             <Text className="text-text-muted text-sm mt-1">
-              {ideasData?.date ? `${ideasData.date} · ` : ''}AI x 학문 융합 아이디어
+              {ideasData?.date ? `${ideasData.date} · ` : `${dateLabel} · `}AI x 학문 융합 아이디어
             </Text>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -388,9 +382,13 @@ export default function IdeasScreen() {
             >
               <Search size={18} color={showSearch ? '#E53935' : '#757575'} />
             </Pressable>
-            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#FFEBEE', alignItems: 'center', justifyContent: 'center' }}>
-              <Lightbulb size={20} color="#E53935" />
-            </View>
+            {/* Hamburger → SideDrawer */}
+            <Pressable
+              onPress={openDrawer}
+              style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#FAFAFA', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#F0F0F0' }}
+            >
+              <Menu size={20} color="#757575" />
+            </Pressable>
           </View>
         </View>
         <View style={{ width: 40, height: 3, backgroundColor: '#E53935', borderRadius: 2, marginTop: 12 }} />
@@ -413,30 +411,6 @@ export default function IdeasScreen() {
           )}
         </View>
       )}
-
-      {/* Date History Pills */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        className="mb-2"
-        contentContainerStyle={{ paddingHorizontal: 16, gap: 8, paddingVertical: 4 }}
-      >
-        {DATE_OPTIONS.map(({ dateStr, label, dayLabel, isToday }) => {
-          const isSelected = selectedDateStr === dateStr;
-          return (
-            <Pressable
-              key={dateStr}
-              onPress={() => handleDateSelect(dateStr, isToday)}
-              style={{ alignItems: 'center', backgroundColor: isSelected ? '#E53935' : '#FFFFFF', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, borderWidth: 1, borderColor: isSelected ? '#E53935' : '#F0F0F0', minWidth: 52 }}
-            >
-              <Text style={{ color: isSelected ? 'rgba(255,255,255,0.8)' : '#BDBDBD', fontSize: 10, fontWeight: '600' }}>
-                {isToday ? '오늘' : dayLabel}
-              </Text>
-              <Text style={{ color: isSelected ? '#FFFFFF' : '#212121', fontSize: 13, fontWeight: '700' }}>{label}</Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
 
       {/* Source Principle */}
       {ideasData?.source_principle && !searchQuery && (
