@@ -9,5 +9,4 @@ pydantic>=2.0.0
 tavily-python>=0.5.0
 arxiv>=2.1.0
 google-api-python-client>=2.100.0
-crewai>=0.80.0
-crewai-tools>=0.17.0
+langgraph>=0.2.0
