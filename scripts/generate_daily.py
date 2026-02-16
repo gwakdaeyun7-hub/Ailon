@@ -21,7 +21,7 @@ from agents.config import (
     get_today_discipline_key,
     get_discipline_info,
 )
-from agents.news_graph import run_news_graph as run_news_team
+from agents.news_team import run_news_team
 from agents.knowledge_graph import run_knowledge_graph as run_knowledge_team
 from agents.idea_graph import run_idea_graph as run_idea_team
 
