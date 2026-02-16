@@ -3,9 +3,9 @@
  * 구조:
  *   1. 헤더: "A" 로고 + AI News + 검색 + 햄버거
  *   2. "오늘의 하이라이트" 섹션 — 히어로 카드 (그라디언트 배경)
- *   3. 카테고리 탭 (모델/논문 | 개발/도구 | 트렌드)
- *   4. 뉴스 카드 목록 (오른쪽 썸네일, 좋아요/싫어요)
- *   5. 아코디언 펼침 → 요약 + 원문링크 + ReactionBar
+ *   3. 가로 스크롤 섹션: 공식 발표 / 한국 AI / 큐레이션
+ *   4. 카테고리 탭 (모델/연구 | 제품/도구 | 산업/비즈니스)
+ *   5. 뉴스 카드 목록 (오른쪽 썸네일, 아코디언 → 요약 + 원문링크 + ReactionBar)
  */
 
 import React, { useState, useCallback } from 'react';
@@ -18,6 +18,7 @@ import {
   Linking,
   LayoutAnimation,
   StatusBar,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -31,7 +32,7 @@ import { useDrawer } from '@/context/DrawerContext';
 import { useReactions } from '@/hooks/useReactions';
 import { ReactionBar } from '@/components/shared/ReactionBar';
 import { NewsCardSkeleton } from '@/components/shared/LoadingSkeleton';
-import type { Article, NewsCategory } from '@/lib/types';
+import type { Article, NewsCategory, HorizontalArticle } from '@/lib/types';
 
 // ─── 색상 / 상수 ───────────────────────────────────────────────────────────────
 const PRIMARY = '#F43F5E';      // rose-500
@@ -40,46 +41,57 @@ const BG = '#F5F7FA';
 const CARD = '#FFFFFF';
 
 const CATEGORY_COLORS: Record<string, string> = {
-  core_tech:     '#F43F5E',
-  dev_tools:     '#10B981',
-  trend_insight: '#F59E0B',
+  model_research:    '#F43F5E',
+  product_tools:     '#10B981',
+  industry_business: '#F59E0B',
+  // 하위 호환
+  core_tech:           '#F43F5E',
+  dev_tools:           '#10B981',
+  trend_insight:       '#F59E0B',
   models_architecture: '#F43F5E',
-  agentic_reality: '#F59E0B',
-  opensource_code: '#10B981',
-  physical_ai: '#F43F5E',
-  policy_safety: '#F59E0B',
+  agentic_reality:     '#F59E0B',
+  opensource_code:     '#10B981',
+  physical_ai:         '#F43F5E',
+  policy_safety:       '#F59E0B',
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
-  core_tech: '모델/논문',
-  dev_tools: '개발/도구',
-  trend_insight: '트렌드',
-  models_architecture: '모델/논문',
-  agentic_reality: '트렌드',
-  opensource_code: '개발/도구',
-  physical_ai: '모델/논문',
-  policy_safety: '트렌드',
+  model_research:    '모델/연구',
+  product_tools:     '제품/도구',
+  industry_business: '산업/비즈니스',
+  // 하위 호환
+  core_tech:           '모델/연구',
+  dev_tools:           '제품/도구',
+  trend_insight:       '산업/비즈니스',
+  models_architecture: '모델/연구',
+  agentic_reality:     '제품/도구',
+  opensource_code:     '제품/도구',
+  physical_ai:         '모델/연구',
+  policy_safety:       '산업/비즈니스',
 };
 
 const TABS = [
-  { key: 'core_tech',     label: '모델/논문' },
-  { key: 'dev_tools',     label: '개발/도구' },
-  { key: 'trend_insight', label: '트렌드' },
+  { key: 'model_research',    label: '모델/연구' },
+  { key: 'product_tools',     label: '제품/도구' },
+  { key: 'industry_business', label: '산업/비즈니스' },
 ] as const;
 
 // 레거시 카테고리 → 신규 매핑
 const LEGACY: Record<string, NewsCategory> = {
-  models_architecture: 'core_tech',
-  agentic_reality: 'trend_insight',
-  opensource_code: 'dev_tools',
-  physical_ai: 'core_tech',
-  policy_safety: 'trend_insight',
+  core_tech:           'model_research',
+  dev_tools:           'product_tools',
+  trend_insight:       'industry_business',
+  models_architecture: 'model_research',
+  agentic_reality:     'product_tools',
+  opensource_code:     'product_tools',
+  physical_ai:         'model_research',
+  policy_safety:       'industry_business',
 };
 
 function normCat(cat?: string): NewsCategory {
-  if (!cat) return 'core_tech';
-  if (cat === 'core_tech' || cat === 'dev_tools' || cat === 'trend_insight') return cat;
-  return LEGACY[cat] ?? 'core_tech';
+  if (!cat) return 'model_research';
+  if (cat === 'model_research' || cat === 'product_tools' || cat === 'industry_business') return cat;
+  return (LEGACY[cat] as NewsCategory) ?? 'model_research';
 }
 
 function catColor(cat?: string) { return CATEGORY_COLORS[normCat(cat)] ?? PRIMARY; }
@@ -95,6 +107,10 @@ function formatDate(str?: string) {
 
 // 카테고리별 그라디언트 색상 (이미지 대체용)
 const CAT_GRADIENTS: Record<string, [string, string]> = {
+  model_research:    ['#1E3A5F', '#0F1F3D'],
+  product_tools:     ['#064E3B', '#022C22'],
+  industry_business: ['#78350F', '#3D1A05'],
+  // 하위 호환
   core_tech:     ['#1E3A5F', '#0F1F3D'],
   dev_tools:     ['#064E3B', '#022C22'],
   trend_insight: ['#78350F', '#3D1A05'],
@@ -113,6 +129,62 @@ function LikeCount({ itemId }: { itemId: string }) {
         <ThumbsDown size={13} color="#9CA3AF" />
         <Text style={{ fontSize: 12, color: '#6B7280', fontWeight: '500' }}>{dislikes}</Text>
       </View>
+    </View>
+  );
+}
+
+// ─── 가로 스크롤 카드 (공식 발표 / 한국 AI / 큐레이션) ──────────────────────
+function HorizontalCard({ article }: { article: HorizontalArticle }) {
+  const color = article.brand_color ?? PRIMARY;
+  return (
+    <Pressable
+      onPress={() => article.link && Linking.openURL(article.link)}
+      style={{
+        width: 220, backgroundColor: CARD, borderRadius: 14, overflow: 'hidden',
+        marginRight: 12, elevation: 2,
+        shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 6,
+      }}
+    >
+      {/* 상단 컬러 바 */}
+      <View style={{ height: 4, backgroundColor: color }} />
+      <View style={{ padding: 12 }}>
+        {/* 소스 배지 */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+          <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: color, alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ color: '#FFF', fontSize: 9, fontWeight: '800' }}>{article.source.charAt(0)}</Text>
+          </View>
+          <Text style={{ fontSize: 11, fontWeight: '700', color: color }}>{article.source}</Text>
+        </View>
+        <Text style={{ fontSize: 13, fontWeight: '700', color: '#111827', lineHeight: 19 }} numberOfLines={3}>
+          {article.title}
+        </Text>
+      </View>
+    </Pressable>
+  );
+}
+
+function HorizontalSection({
+  title,
+  articles,
+  color = PRIMARY,
+}: {
+  title: string;
+  articles: HorizontalArticle[];
+  color?: string;
+}) {
+  if (!articles || articles.length === 0) return null;
+  return (
+    <View style={{ marginBottom: 20 }}>
+      <SectionHeader title={title} color={color} />
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 4 }}
+      >
+        {articles.map((a, i) => (
+          <HorizontalCard key={`${a.source}-${i}`} article={a} />
+        ))}
+      </ScrollView>
     </View>
   );
 }
@@ -301,11 +373,14 @@ export default function NewsScreen() {
   };
 
   // 카테고리 + 레거시 매핑 병합
-  const articlesByCategory: Record<string, Article[]> = { core_tech: [], dev_tools: [], trend_insight: [] };
+  const articlesByCategory: Record<string, Article[]> = { model_research: [], product_tools: [], industry_business: [] };
   (newsData?.articles ?? []).forEach(a => {
     const k = normCat(a.category);
-    articlesByCategory[k]?.push(a);
+    if (articlesByCategory[k]) articlesByCategory[k].push(a);
   });
+
+  // 가로 스크롤 섹션 데이터
+  const hs = newsData?.horizontal_sections ?? {};
 
   const highlightTitle = newsData?.highlight?.title;
   const categoryArticles = (articlesByCategory[newsCategory] ?? []).filter(a => a.title !== highlightTitle);
@@ -371,6 +446,23 @@ export default function NewsScreen() {
                 <HeroCard article={newsData.highlight} />
               </View>
             )}
+
+            {/* ── 가로 스크롤 섹션 ────────────────────────────────────── */}
+            <HorizontalSection
+              title="공식 발표"
+              articles={hs.official_announcements ?? []}
+              color="#7C3AED"
+            />
+            <HorizontalSection
+              title="한국 AI"
+              articles={hs.korean_ai ?? []}
+              color="#E53935"
+            />
+            <HorizontalSection
+              title="큐레이션"
+              articles={hs.curation ?? []}
+              color="#0EA5E9"
+            />
 
             {/* ── 카테고리 탭 + 기사 목록 ───────────────────────────────── */}
             <View style={{ marginHorizontal: 16, backgroundColor: CARD, borderRadius: 18, overflow: 'hidden', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, marginBottom: 20 }}>

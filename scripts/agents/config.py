@@ -1,7 +1,7 @@
 """
 공통 설정 모듈 - LLM, Firebase 초기화 및 공유 상수
-Phase 1: NEWS_CATEGORIES 추가
-Phase 2: CrewAI LLM 지원 추가
+뉴스 카테고리: model_research / product_tools / industry_business (3개)
+가로 스크롤: official_announcements / korean_ai / curation (3개)
 """
 
 import os
@@ -14,52 +14,51 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# ─── 뉴스 카테고리 정의 (Phase 1) ───
+# ─── 뉴스 카테고리 정의 ───
 NEWS_CATEGORIES = {
-    "models_architecture": "모델&아키텍처",
-    "agentic_reality": "에이전틱리얼리티",
-    "opensource_code": "오픈소스&코드",
-    "physical_ai": "Physical AI",
-    "policy_safety": "정책&안전",
+    "model_research":    "모델/연구",
+    "product_tools":     "제품/도구",
+    "industry_business": "산업/비즈니스",
+}
+
+# 가로 스크롤 섹션 (공식 발표 / 한국 AI / 큐레이션)
+HORIZONTAL_SECTIONS = {
+    "official_announcements": "공식 발표",
+    "korean_ai":              "한국 AI",
+    "curation":               "큐레이션",
 }
 
 # 카테고리별 키워드 (분류 보조용)
 CATEGORY_KEYWORDS = {
-    "models_architecture": [
+    "model_research": [
         "llm", "slm", "gpt", "claude", "gemini", "llama", "mistral",
-        "attention", "transformer", "architecture", "benchmark",
+        "model", "paper", "research", "arxiv", "benchmark",
+        "attention", "transformer", "architecture",
         "parameter", "training", "fine-tuning", "inference",
-        "model", "foundation model", "multimodal", "vision language",
+        "foundation model", "multimodal", "vision language",
         "scaling", "moe", "mixture of experts", "quantization",
+        "diffusion", "weights", "dataset", "evaluation",
+        "hugging face", "deepseek", "qwen",
     ],
-    "agentic_reality": [
-        "agent", "agentic", "multi-agent", "autonomous", "workflow",
-        "tool use", "function calling", "rag", "retrieval",
+    "product_tools": [
+        "launch", "release", "product", "app", "tool", "framework",
+        "sdk", "api", "github", "open source", "library",
+        "plugin", "extension", "update", "version",
+        "developer", "code", "cli", "platform",
         "langchain", "langgraph", "crewai", "autogen",
-        "reasoning", "planning", "chain of thought", "cot",
-        "mcp", "model context protocol", "a2a",
+        "ollama", "vllm", "cursor", "copilot",
+        "agent", "agentic", "rag", "retrieval",
+        "mcp", "model context protocol",
     ],
-    "opensource_code": [
-        "open source", "github", "repository", "library",
-        "framework", "cli", "api", "sdk", "package",
-        "hugging face", "ollama", "vllm", "mlx",
-        "release", "launch", "update", "version",
-        "developer", "code", "programming",
-    ],
-    "physical_ai": [
-        "robot", "robotics", "embodied", "physical",
-        "edge ai", "embedded", "iot", "sensor",
-        "autonomous driving", "self-driving", "drone",
-        "manufacturing", "industrial", "hardware",
-        "neuromorphic", "chip", "accelerator", "tpu", "npu",
-    ],
-    "policy_safety": [
+    "industry_business": [
+        "funding", "investment", "startup", "vc", "valuation",
+        "acquisition", "partnership", "revenue", "enterprise",
         "regulation", "policy", "law", "legislation",
-        "ethics", "ethical", "bias", "fairness",
-        "safety", "alignment", "guardrail",
-        "privacy", "security", "copyright",
-        "governance", "compliance", "eu ai act",
-        "deepfake", "misinformation", "responsible ai",
+        "safety", "alignment", "ethics", "governance",
+        "market", "competition", "strategy", "business",
+        "microsoft", "google", "meta", "openai", "anthropic",
+        "trend", "report", "analysis", "industry",
+        "robot", "robotics", "autonomous driving",
     ],
 }
 

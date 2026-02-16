@@ -1,9 +1,16 @@
 """
-공유 도구 모듈 - CollectorAgent의 3개 전용 Tool + 유틸리티
+공유 도구 모듈 - CollectorAgent 전용 Tool + 가로 스크롤 섹션
 
-Tool A (Academic): arXiv API + Hugging Face Daily Papers (논문 및 SOTA 모델)
-Tool B (Developer): GitHub Search API (24h 내 Star 급증 Repo, trending)
-Tool C (Market/News): Tavily AI Search (VC 투자 동향, 테크 뉴스, 비즈니스 인사이트)
+[메인 피드 소스]
+  model_research  : arXiv, HuggingFace Papers
+  product_tools   : GitHub Trending
+  industry_business: VentureBeat AI, TechCrunch AI
+  분산(3 카테고리)  : Tavily, Reddit, Hacker News
+
+[가로 스크롤 섹션]
+  official_announcements: OpenAI / Anthropic / DeepMind 블로그
+  korean_ai             : AI 타임스
+  curation              : TLDR AI
 """
 
 import os
@@ -403,30 +410,118 @@ def tool_market_news() -> list[dict]:
 
 
 # ═══════════════════════════════════════════════════════════════
-# 통합 수집 함수 — 3개 Tool 실행 + 중복 제거 + 정렬
+# Tool D: Industry/Business — VentureBeat AI + TechCrunch AI + Hacker News
+# ═══════════════════════════════════════════════════════════════
+
+def tool_industry_news() -> list[dict]:
+    """
+    [Tool D] 산업/비즈니스 뉴스 수집
+    - VentureBeat AI: VC 투자, 기업 동향
+    - TechCrunch AI: 제품 출시, 인수합병
+    - Hacker News: 커뮤니티 큐레이션 (포인트 기준)
+    """
+    print("  [Tool D: Industry] VentureBeat AI + TechCrunch AI + Hacker News 수집 중...")
+    articles = []
+
+    # D-1: VentureBeat AI RSS
+    try:
+        feed = feedparser.parse("https://venturebeat.com/category/ai/feed/")
+        for entry in feed.entries[:15]:
+            title = entry.get("title", "")
+            if not title:
+                continue
+            articles.append({
+                "title": title,
+                "description": (entry.get("summary", "") or "")[:500],
+                "link": entry.get("link", ""),
+                "published": entry.get("published", datetime.now().isoformat()),
+                "source": "VentureBeat AI",
+                "source_type": "venturebeat",
+                "tool": "industry_news",
+                "social_score": 30,
+                "importance_score": calculate_importance_score("default", social_score=30),
+            })
+    except Exception as e:
+        print(f"    [WARNING] VentureBeat AI feed failed: {e}")
+
+    # D-2: TechCrunch AI RSS
+    try:
+        feed = feedparser.parse("https://techcrunch.com/tag/artificial-intelligence/feed/")
+        for entry in feed.entries[:15]:
+            title = entry.get("title", "")
+            if not title:
+                continue
+            articles.append({
+                "title": title,
+                "description": (entry.get("summary", "") or "")[:500],
+                "link": entry.get("link", ""),
+                "published": entry.get("published", datetime.now().isoformat()),
+                "source": "TechCrunch AI",
+                "source_type": "techcrunch",
+                "tool": "industry_news",
+                "social_score": 30,
+                "importance_score": calculate_importance_score("default", social_score=30),
+            })
+    except Exception as e:
+        print(f"    [WARNING] TechCrunch AI feed failed: {e}")
+
+    # D-3: Hacker News (Algolia API)
+    try:
+        resp = requests.get(
+            "https://hn.algolia.com/api/v1/search",
+            params={
+                "query": "AI OR LLM OR GPT OR machine learning",
+                "tags": "story",
+                "numericFilters": "points>30",
+                "hitsPerPage": 20,
+            },
+            timeout=15,
+        )
+        if resp.status_code == 200:
+            for hit in resp.json().get("hits", []):
+                title = hit.get("title", "")
+                if not title or not is_ai_related(title, ""):
+                    continue
+                points = hit.get("points", 0)
+                obj_id = hit.get("objectID", "")
+                articles.append({
+                    "title": title,
+                    "description": f"Hacker News | 포인트: {points}",
+                    "link": hit.get("url", f"https://news.ycombinator.com/item?id={obj_id}"),
+                    "published": hit.get("created_at", datetime.now().isoformat()),
+                    "source": "Hacker News",
+                    "source_type": "hackernews",
+                    "tool": "industry_news",
+                    "social_score": points,
+                    "importance_score": calculate_importance_score("default", social_score=points),
+                })
+    except Exception as e:
+        print(f"    [WARNING] Hacker News API failed: {e}")
+
+    print(f"    Industry/Business: {len(articles)}개 수집")
+    return articles
+
+
+# ═══════════════════════════════════════════════════════════════
+# 통합 수집 함수 — 4개 Tool 실행 + 중복 제거 + 정렬
 # ═══════════════════════════════════════════════════════════════
 
 def fetch_all_sources() -> list[dict]:
     """
-    CollectorAgent가 3개 전용 Tool을 순차 실행하여 수집
-    Tool A (Academic) + Tool B (Developer) + Tool C (Market/News)
+    CollectorAgent가 4개 전용 Tool을 순차 실행하여 수집
+    Tool A (Academic) + Tool B (Developer) + Tool C (Market/News) + Tool D (Industry)
     목표: 100-200개 기사 수집 후 중복 제거
     """
-    print("\n  ╔═══ CollectorAgent: 3개 Tool 실행 ═══╗")
+    print("\n  ╔═══ CollectorAgent: 4개 Tool 실행 ═══╗")
 
-    # Tool A: Academic
-    academic_articles = tool_academic()
-
-    # Tool B: Developer
+    academic_articles  = tool_academic()
     developer_articles = tool_developer()
-
-    # Tool C: Market/News
-    market_articles = tool_market_news()
+    market_articles    = tool_market_news()
+    industry_articles  = tool_industry_news()
 
     print("  ╚═══════════════════════════════════════╝")
 
-    # 모든 소스 병합
-    all_articles = academic_articles + developer_articles + market_articles
+    all_articles = academic_articles + developer_articles + market_articles + industry_articles
 
     # 중복 제거 (제목 기반, 접두사 제거 후 비교)
     seen_titles = set()
@@ -436,21 +531,123 @@ def fetch_all_sources() -> list[dict]:
         for prefix in ["[arXiv] ", "[HF Paper] ", "[GitHub] "]:
             clean_title = clean_title.replace(prefix, "")
         clean_title_lower = clean_title.lower().strip()
-
         if clean_title_lower not in seen_titles:
             deduplicated.append(article)
             seen_titles.add(clean_title_lower)
 
-    # 중요도 점수로 정렬
     deduplicated.sort(key=lambda x: x.get("importance_score", 0), reverse=True)
 
     print(f"\n  ═══ 전체 수집 결과 ═══")
     print(f"  Tool A (Academic):    {len(academic_articles)}개")
     print(f"  Tool B (Developer):   {len(developer_articles)}개")
     print(f"  Tool C (Market/News): {len(market_articles)}개")
+    print(f"  Tool D (Industry):    {len(industry_articles)}개")
     print(f"  합계: {len(all_articles)}개 → 중복 제거 후: {len(deduplicated)}개")
 
     return deduplicated
+
+
+# ═══════════════════════════════════════════════════════════════
+# 가로 스크롤 섹션 소스 (공식 발표 / 한국 AI / 큐레이션)
+# ═══════════════════════════════════════════════════════════════
+
+def _fetch_official_blogs() -> list[dict]:
+    """OpenAI / Anthropic / DeepMind 공식 블로그 RSS"""
+    FEEDS = [
+        ("https://openai.com/blog/rss.xml",        "OpenAI",    "#10B981"),
+        ("https://www.anthropic.com/rss.xml",       "Anthropic", "#7C3AED"),
+        ("https://deepmind.google/blog/rss/",       "DeepMind",  "#1D4ED8"),
+    ]
+    articles = []
+    for url, source_name, color in FEEDS:
+        try:
+            feed = feedparser.parse(url)
+            for entry in feed.entries[:5]:
+                title = entry.get("title", "")
+                if not title:
+                    continue
+                articles.append({
+                    "title": title,
+                    "description": (entry.get("summary", "") or "")[:300],
+                    "link": entry.get("link", ""),
+                    "published": entry.get("published", datetime.now().isoformat()),
+                    "source": source_name,
+                    "source_type": "official_blog",
+                    "section": "official_announcements",
+                    "brand_color": color,
+                })
+        except Exception as e:
+            print(f"    [WARNING] {source_name} blog RSS failed: {e}")
+    return articles
+
+
+def _fetch_korean_ai() -> list[dict]:
+    """AI 타임스 RSS"""
+    articles = []
+    try:
+        feed = feedparser.parse("https://www.aitimes.com/rss/allArticle.xml")
+        for entry in feed.entries[:10]:
+            title = entry.get("title", "")
+            if not title:
+                continue
+            articles.append({
+                "title": title,
+                "description": (entry.get("summary", "") or "")[:300],
+                "link": entry.get("link", ""),
+                "published": entry.get("published", datetime.now().isoformat()),
+                "source": "AI 타임스",
+                "source_type": "korean_news",
+                "section": "korean_ai",
+                "brand_color": "#E53935",
+            })
+    except Exception as e:
+        print(f"    [WARNING] AI 타임스 RSS failed: {e}")
+    return articles
+
+
+def _fetch_tldr_ai() -> list[dict]:
+    """TLDR AI RSS"""
+    articles = []
+    try:
+        feed = feedparser.parse("https://tldr.tech/api/rss/ai")
+        for entry in feed.entries[:8]:
+            title = entry.get("title", "")
+            if not title:
+                continue
+            articles.append({
+                "title": title,
+                "description": (entry.get("summary", "") or "")[:300],
+                "link": entry.get("link", ""),
+                "published": entry.get("published", datetime.now().isoformat()),
+                "source": "TLDR AI",
+                "source_type": "curation",
+                "section": "curation",
+                "brand_color": "#0EA5E9",
+            })
+    except Exception as e:
+        print(f"    [WARNING] TLDR AI RSS failed: {e}")
+    return articles
+
+
+def fetch_horizontal_sources() -> dict[str, list[dict]]:
+    """
+    가로 스크롤 섹션 3개 수집
+    반환: {"official_announcements": [...], "korean_ai": [...], "curation": [...]}
+    """
+    print("\n  ╔═══ 가로 스크롤 섹션 수집 ═══╗")
+
+    official = _fetch_official_blogs()
+    korean   = _fetch_korean_ai()
+    curation = _fetch_tldr_ai()
+
+    print(f"    공식 발표: {len(official)}개 | 한국 AI: {len(korean)}개 | 큐레이션: {len(curation)}개")
+    print("  ╚══════════════════════════════╝")
+
+    return {
+        "official_announcements": official,
+        "korean_ai": korean,
+        "curation": curation,
+    }
 
 
 # ═══════════════════════════════════════════════════════════════

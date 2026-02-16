@@ -45,9 +45,9 @@ function getDisciplineColor(name?: string): string {
 
 // ─── NEWS 탭: 카테고리별 날짜 히스토리 ───────────────────────────────────────
 const NEWS_CATEGORIES: { key: NewsCategory; label: string; color: string; emoji: string }[] = [
-  { key: 'core_tech',     label: '모델·논문',     color: '#3b82f6', emoji: '🔬' },
-  { key: 'dev_tools',     label: '개발·도구',     color: '#22c55e', emoji: '🛠' },
-  { key: 'trend_insight', label: '트렌드·인사이트', color: '#a855f7', emoji: '📈' },
+  { key: 'model_research',    label: '모델/연구',     color: '#F43F5E', emoji: '🔬' },
+  { key: 'product_tools',     label: '제품/도구',     color: '#10B981', emoji: '🛠' },
+  { key: 'industry_business', label: '산업/비즈니스', color: '#F59E0B', emoji: '📈' },
 ];
 
 function NewsCategorySection({

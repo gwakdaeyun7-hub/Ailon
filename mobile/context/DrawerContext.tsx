@@ -32,7 +32,7 @@ export function DrawerProvider({ children }: { children: React.ReactNode }) {
   const overlayOpacity = useRef(new Animated.Value(0)).current;
 
   const [activeTab, setActiveTab] = useState<TabKey>('news');
-  const [newsCategory, setNewsCategory] = useState<NewsCategory>('core_tech');
+  const [newsCategory, setNewsCategory] = useState<NewsCategory>('model_research');
 
   const [selectedDates, setSelectedDates] = useState<Record<TabKey, string | undefined>>({
     news: undefined,

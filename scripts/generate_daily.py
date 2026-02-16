@@ -49,6 +49,7 @@ def save_news_to_firestore(result: dict):
         "highlight": result.get("highlight", {}),
         "themes": result.get("themes", []),
         "categories": result.get("categories", {}),
+        "horizontal_sections": result.get("horizontal_sections", {}),
         "agent_metadata": {
             "collected_count": len(result.get("raw_articles", [])),
             "analyzed_count": len(result.get("analyzed_articles", [])),
@@ -59,7 +60,11 @@ def save_news_to_firestore(result: dict):
         "updated_at": firestore.SERVER_TIMESTAMP,
     }
     doc_ref.set(doc_data)
-    print(f"  💾 뉴스 {len(result['final_articles'])}개 저장 완료")
+    hs = result.get("horizontal_sections", {})
+    print(f"  💾 뉴스 {len(result['final_articles'])}개 저장 완료 "
+          f"(공식발표 {len(hs.get('official_announcements', []))}개 | "
+          f"한국AI {len(hs.get('korean_ai', []))}개 | "
+          f"큐레이션 {len(hs.get('curation', []))}개)")
 
 
 def save_principles_to_firestore(result: dict):
