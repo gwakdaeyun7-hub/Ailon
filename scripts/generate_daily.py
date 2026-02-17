@@ -53,7 +53,7 @@ def save_news_to_firestore(result: dict):
         "agent_metadata": {
             "collected_count": len(result.get("raw_articles", [])),
             "analyzed_count": len(result.get("analyzed_articles", [])),
-            "curated_count": len(result.get("curated_articles", [])),
+            "ranked_count": sum(len(v) for v in result.get("ranked_categories", {}).values()),
             "final_count": len(result["final_articles"]),
             "run_timestamp": datetime.now().isoformat(),
         },

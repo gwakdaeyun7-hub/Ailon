@@ -2,14 +2,14 @@
 공유 도구 모듈 - CollectorAgent 전용 Tool + 가로 스크롤 섹션
 
 [메인 피드 소스]
-  model_research  : arXiv, HuggingFace Papers
-  product_tools   : GitHub Trending
-  industry_business: VentureBeat AI, TechCrunch AI
-  분산(3 카테고리)  : Tavily, Reddit, Hacker News
+  Tool A (Academic)   : arXiv, HuggingFace Papers            → model_research
+  Tool B (Developer)  : GitHub Trending                      → product_tools
+  Tool C (Industry)   : VentureBeat AI, TechCrunch AI        → industry_business
+  Tool D (Discovery)  : Tavily + Reddit AI 서브레딧 + HN      → 3카테고리 분산 (LLM)
 
 [가로 스크롤 섹션]
   official_announcements: OpenAI / Anthropic / DeepMind 블로그
-  korean_ai             : AI 타임스
+  korean_ai             : AI타임스, GeekNews
   curation              : TLDR AI
 """
 
@@ -319,111 +319,19 @@ def tool_developer() -> list[dict]:
 
 
 # ═══════════════════════════════════════════════════════════════
-# Tool C: Market/News — Tavily AI Search
-# ═══════════════════════════════════════════════════════════════
-
-def tool_market_news() -> list[dict]:
-    """
-    [Tool C] Tavily AI Search로 VC 투자 동향, 테크 뉴스, 비즈니스 인사이트 수집
-    - 다양한 쿼리로 시장 관점의 AI 뉴스 확보
-    - 투자, 인수합병, 제품 출시, 규제 등 비즈니스 관련 뉴스 포커스
-    """
-    print("  [Tool C: Market/News] Tavily AI Search 수집 중...")
-
-    api_key = os.getenv("TAVILY_API_KEY")
-    if not api_key:
-        print("    [WARNING] TAVILY_API_KEY not found, skipping Tavily search")
-        return []
-
-    try:
-        from tavily import TavilyClient
-
-        client = TavilyClient(api_key=api_key)
-
-        # 시장/비즈니스 관점 쿼리
-        queries = [
-            "latest AI news today breakthroughs",
-            "AI startup funding investment VC 2025 2026",
-            "new AI model release launch product",
-            "AI agent framework tool developer",
-            "AI regulation policy safety alignment",
-            "AI open source trending project",
-        ]
-
-        all_articles = []
-        seen_urls = set()
-
-        for q in queries:
-            try:
-                results = client.search(
-                    query=q,
-                    search_depth="advanced",
-                    max_results=5,
-                    include_answer=False,
-                    days=3,
-                )
-
-                for result in results.get("results", []):
-                    url = result.get("url", "")
-                    if url in seen_urls:
-                        continue
-
-                    title = result.get("title", "")
-                    content = result.get("content", "")
-
-                    if not is_ai_related(title, content):
-                        continue
-
-                    relevance_score = result.get("score", 0)
-
-                    article = {
-                        "title": title,
-                        "description": content[:500],
-                        "link": url,
-                        "published": datetime.now().isoformat(),
-                        "source": "Tavily Search",
-                        "source_type": "tavily",
-                        "tool": "market_news",
-                        "social_score": int(relevance_score * 100),
-                        "tavily_score": relevance_score,
-                        "importance_score": calculate_importance_score(
-                            "tavily",
-                            social_score=int(relevance_score * 100),
-                        ),
-                    }
-
-                    all_articles.append(article)
-                    seen_urls.add(url)
-
-            except Exception as e:
-                print(f"    [WARNING] Tavily query '{q}' failed: {e}")
-
-        print(f"    Tavily: {len(all_articles)}개 기사 수집")
-        return all_articles
-
-    except ImportError:
-        print("    [WARNING] tavily-python not installed, skipping Tavily search")
-        return []
-    except Exception as e:
-        print(f"    [WARNING] Tavily search failed: {e}")
-        return []
-
-
-# ═══════════════════════════════════════════════════════════════
-# Tool D: Industry/Business — VentureBeat AI + TechCrunch AI + Hacker News
+# Tool C: Industry — VentureBeat AI + TechCrunch AI
 # ═══════════════════════════════════════════════════════════════
 
 def tool_industry_news() -> list[dict]:
     """
-    [Tool D] 산업/비즈니스 뉴스 수집
+    [Tool C] 산업/비즈니스 전문 미디어 수집
     - VentureBeat AI: VC 투자, 기업 동향
     - TechCrunch AI: 제품 출시, 인수합병
-    - Hacker News: 커뮤니티 큐레이션 (포인트 기준)
     """
-    print("  [Tool D: Industry] VentureBeat AI + TechCrunch AI + Hacker News 수집 중...")
+    print("  [Tool C: Industry] VentureBeat AI + TechCrunch AI 수집 중...")
     articles = []
 
-    # D-1: VentureBeat AI RSS
+    # C-1: VentureBeat AI RSS
     try:
         feed = feedparser.parse("https://venturebeat.com/category/ai/feed/")
         for entry in feed.entries[:15]:
@@ -444,7 +352,7 @@ def tool_industry_news() -> list[dict]:
     except Exception as e:
         print(f"    [WARNING] VentureBeat AI feed failed: {e}")
 
-    # D-2: TechCrunch AI RSS
+    # C-2: TechCrunch AI RSS
     try:
         feed = feedparser.parse("https://techcrunch.com/tag/artificial-intelligence/feed/")
         for entry in feed.entries[:15]:
@@ -465,15 +373,129 @@ def tool_industry_news() -> list[dict]:
     except Exception as e:
         print(f"    [WARNING] TechCrunch AI feed failed: {e}")
 
-    # D-3: Hacker News (Algolia API)
+    print(f"    Industry: {len(articles)}개 수집")
+    return articles
+
+
+# ═══════════════════════════════════════════════════════════════
+# Tool D: Discovery — Tavily + Reddit AI 서브레딧 + Hacker News (3카테고리 분산)
+# ═══════════════════════════════════════════════════════════════
+
+def tool_discovery() -> list[dict]:
+    """
+    [Tool D] 디스커버리 소스 — 카테고리를 가로지르는 AI 뉴스 발굴
+    - Tavily AI Search: 웹 전반 AI 뉴스 (연구/제품/투자 쿼리 혼합)
+    - Reddit: r/LocalLLaMA, r/MachineLearning, r/singularity, r/ChatGPT, r/OpenAI
+    - Hacker News: Algolia API, points>30
+    → LLM이 기사 내용 기반으로 3개 카테고리에 분산 분류 (Tool C와 역할 구분)
+    """
+    print("  [Tool D: Discovery] Tavily + Reddit + Hacker News 수집 중...")
+    articles = []
+
+    # D-1: Tavily AI Search
+    api_key = os.getenv("TAVILY_API_KEY")
+    if api_key:
+        try:
+            from tavily import TavilyClient
+            client = TavilyClient(api_key=api_key)
+            queries = [
+                "latest AI news today breakthroughs",
+                "AI startup funding investment VC 2025 2026",
+                "new AI model release launch product",
+                "AI agent framework tool developer",
+                "AI regulation policy safety alignment",
+                "AI open source trending project",
+            ]
+            seen_urls: set[str] = set()
+            for q in queries:
+                try:
+                    results = client.search(
+                        query=q,
+                        search_depth="advanced",
+                        max_results=5,
+                        include_answer=False,
+                        days=3,
+                    )
+                    for result in results.get("results", []):
+                        url = result.get("url", "")
+                        if url in seen_urls:
+                            continue
+                        title = result.get("title", "")
+                        content = result.get("content", "")
+                        if not is_ai_related(title, content):
+                            continue
+                        relevance_score = result.get("score", 0)
+                        articles.append({
+                            "title": title,
+                            "description": content[:500],
+                            "link": url,
+                            "published": datetime.now().isoformat(),
+                            "source": "Tavily Search",
+                            "source_type": "tavily",
+                            "tool": "discovery",
+                            "social_score": int(relevance_score * 100),
+                            "tavily_score": relevance_score,
+                            "importance_score": calculate_importance_score(
+                                "tavily", social_score=int(relevance_score * 100),
+                            ),
+                        })
+                        seen_urls.add(url)
+                except Exception as e:
+                    print(f"    [WARNING] Tavily query '{q}' failed: {e}")
+        except ImportError:
+            print("    [WARNING] tavily-python not installed, skipping Tavily search")
+        except Exception as e:
+            print(f"    [WARNING] Tavily search failed: {e}")
+    else:
+        print("    [WARNING] TAVILY_API_KEY not found, skipping Tavily search")
+
+    tavily_count = len([a for a in articles if a["source_type"] == "tavily"])
+
+    # D-2: Reddit RSS (AI 관련 서브레딧)
+    REDDIT_FEEDS = [
+        ("https://www.reddit.com/r/LocalLLaMA/hot.rss?limit=30",      "r/LocalLLaMA"),
+        ("https://www.reddit.com/r/MachineLearning/hot.rss?limit=30",  "r/MachineLearning"),
+        ("https://www.reddit.com/r/singularity/hot.rss?limit=25",      "r/singularity"),
+        ("https://www.reddit.com/r/ChatGPT/hot.rss?limit=20",          "r/ChatGPT"),
+        ("https://www.reddit.com/r/OpenAI/hot.rss?limit=20",           "r/OpenAI"),
+    ]
+    seen_titles: set[str] = set()
+    for feed_url, subreddit in REDDIT_FEEDS:
+        try:
+            feed = feedparser.parse(feed_url)
+            for entry in feed.entries:
+                title = entry.get("title", "")
+                if not title or title in seen_titles:
+                    continue
+                description = (entry.get("summary", "") or "")[:400]
+                if not is_ai_related(title, description):
+                    continue
+                articles.append({
+                    "title": title,
+                    "description": description,
+                    "link": entry.get("link", ""),
+                    "published": entry.get("published", datetime.now().isoformat()),
+                    "source": f"Reddit {subreddit}",
+                    "source_type": "reddit",
+                    "tool": "discovery",
+                    "social_score": 20,
+                    "importance_score": calculate_importance_score("default", social_score=20),
+                })
+                seen_titles.add(title)
+        except Exception as e:
+            print(f"    [WARNING] Reddit RSS {subreddit} failed: {e}")
+
+    reddit_count = len([a for a in articles if a["source_type"] == "reddit"])
+
+    # D-3: Hacker News (Algolia API, points>30)
     try:
         resp = requests.get(
             "https://hn.algolia.com/api/v1/search",
             params={
-                "query": "AI OR LLM OR GPT OR machine learning",
+                "query": "AI OR LLM OR GPT OR machine learning OR agent",
                 "tags": "story",
                 "numericFilters": "points>30",
-                "hitsPerPage": 20,
+                "hitsPerPage": 25,
             },
             timeout=15,
         )
@@ -491,14 +513,15 @@ def tool_industry_news() -> list[dict]:
                     "published": hit.get("created_at", datetime.now().isoformat()),
                     "source": "Hacker News",
                     "source_type": "hackernews",
-                    "tool": "industry_news",
+                    "tool": "discovery",
                     "social_score": points,
                     "importance_score": calculate_importance_score("default", social_score=points),
                 })
     except Exception as e:
         print(f"    [WARNING] Hacker News API failed: {e}")
 
-    print(f"    Industry/Business: {len(articles)}개 수집")
+    hn_count = len([a for a in articles if a["source_type"] == "hackernews"])
+    print(f"    Discovery: Tavily {tavily_count}개 | Reddit {reddit_count}개 | HN {hn_count}개 | 합계: {len(articles)}개")
     return articles
 
 
@@ -509,22 +532,27 @@ def tool_industry_news() -> list[dict]:
 def fetch_all_sources() -> list[dict]:
     """
     CollectorAgent가 4개 전용 Tool을 순차 실행하여 수집
-    Tool A (Academic) + Tool B (Developer) + Tool C (Market/News) + Tool D (Industry)
-    목표: 100-200개 기사 수집 후 중복 제거
+    Tool A (Academic) + Tool B (Developer) + Tool C (Industry) + Tool D (Discovery)
+    목표: 150-250개 기사 수집 후 중복 제거
     """
     print("\n  ╔═══ CollectorAgent: 4개 Tool 실행 ═══╗")
 
     academic_articles  = tool_academic()
     developer_articles = tool_developer()
-    market_articles    = tool_market_news()
     industry_articles  = tool_industry_news()
+    discovery_articles = tool_discovery()
 
     print("  ╚═══════════════════════════════════════╝")
 
-    all_articles = academic_articles + developer_articles + market_articles + industry_articles
+    all_articles = (
+        academic_articles
+        + developer_articles
+        + industry_articles
+        + discovery_articles
+    )
 
     # 중복 제거 (제목 기반, 접두사 제거 후 비교)
-    seen_titles = set()
+    seen_titles: set[str] = set()
     deduplicated = []
     for article in all_articles:
         clean_title = article["title"]
@@ -540,8 +568,8 @@ def fetch_all_sources() -> list[dict]:
     print(f"\n  ═══ 전체 수집 결과 ═══")
     print(f"  Tool A (Academic):    {len(academic_articles)}개")
     print(f"  Tool B (Developer):   {len(developer_articles)}개")
-    print(f"  Tool C (Market/News): {len(market_articles)}개")
-    print(f"  Tool D (Industry):    {len(industry_articles)}개")
+    print(f"  Tool C (Industry):    {len(industry_articles)}개")
+    print(f"  Tool D (Discovery):   {len(discovery_articles)}개")
     print(f"  합계: {len(all_articles)}개 → 중복 제거 후: {len(deduplicated)}개")
 
     return deduplicated
@@ -562,7 +590,7 @@ def _fetch_official_blogs() -> list[dict]:
     for url, source_name, color in FEEDS:
         try:
             feed = feedparser.parse(url)
-            for entry in feed.entries[:5]:
+            for entry in feed.entries[:10]:
                 title = entry.get("title", "")
                 if not title:
                     continue
@@ -582,26 +610,35 @@ def _fetch_official_blogs() -> list[dict]:
 
 
 def _fetch_korean_ai() -> list[dict]:
-    """AI 타임스 RSS"""
+    """AI타임스 + GeekNews RSS"""
+    SOURCES = [
+        ("https://www.aitimes.com/rss/allArticle.xml", "AI타임스",  "#E53935", 15, False),
+        ("https://news.hada.io/rss",                   "GeekNews",  "#FF6B35", 10, True),
+    ]
     articles = []
-    try:
-        feed = feedparser.parse("https://www.aitimes.com/rss/allArticle.xml")
-        for entry in feed.entries[:10]:
-            title = entry.get("title", "")
-            if not title:
-                continue
-            articles.append({
-                "title": title,
-                "description": (entry.get("summary", "") or "")[:300],
-                "link": entry.get("link", ""),
-                "published": entry.get("published", datetime.now().isoformat()),
-                "source": "AI 타임스",
-                "source_type": "korean_news",
-                "section": "korean_ai",
-                "brand_color": "#E53935",
-            })
-    except Exception as e:
-        print(f"    [WARNING] AI 타임스 RSS failed: {e}")
+    for feed_url, source_name, color, limit, ai_filter in SOURCES:
+        try:
+            feed = feedparser.parse(feed_url)
+            for entry in feed.entries[:limit]:
+                title = entry.get("title", "")
+                if not title:
+                    continue
+                description = (entry.get("summary", "") or "")[:300]
+                # GeekNews는 전체 IT 뉴스이므로 AI 관련 항목만 필터링
+                if ai_filter and not is_ai_related(title, description):
+                    continue
+                articles.append({
+                    "title": title,
+                    "description": description,
+                    "link": entry.get("link", ""),
+                    "published": entry.get("published", datetime.now().isoformat()),
+                    "source": source_name,
+                    "source_type": "korean_news",
+                    "section": "korean_ai",
+                    "brand_color": color,
+                })
+        except Exception as e:
+            print(f"    [WARNING] {source_name} RSS failed: {e}")
     return articles
 
 
@@ -610,7 +647,7 @@ def _fetch_tldr_ai() -> list[dict]:
     articles = []
     try:
         feed = feedparser.parse("https://tldr.tech/api/rss/ai")
-        for entry in feed.entries[:8]:
+        for entry in feed.entries[:10]:
             title = entry.get("title", "")
             if not title:
                 continue

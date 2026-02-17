@@ -59,13 +59,14 @@ export const NEWS_CATEGORY_COLORS: Record<string, string> = {
 
 export interface Article {
   title: string;
+  display_title?: string;   // SummarizerAgent 생성 독자 친화 제목 (없으면 title 사용)
   description: string;
   link: string;
   published: string;
   source: string;
   source_type?: string;
   summary?: string;
-  impact_comment?: string;  // 신규: 1줄 임팩트 코멘트
+  impact_comment?: string;
   theme?: string;
   category?: NewsCategory;
   category_name?: string;
@@ -73,6 +74,8 @@ export interface Article {
   howToGuide?: string;
   importance_score?: number;
   social_score?: number;
+  image_url?: string;
+  reading_time?: number;
 }
 
 // 가로 스크롤 섹션 아이템 (공식 발표 / 한국 AI / 큐레이션)
@@ -103,7 +106,7 @@ export interface DailyNews {
   agent_metadata?: {
     collected_count: number;
     analyzed_count: number;
-    curated_count: number;
+    ranked_count: number;
     final_count: number;
     run_timestamp: string;
   };

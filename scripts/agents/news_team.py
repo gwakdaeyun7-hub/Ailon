@@ -2,11 +2,11 @@
 뉴스 에이전트 팀 - LangGraph 기반 멀티에이전트 뉴스 큐레이션
 
 CollectorAgent (4개 전용 Tool 장착)
-  → Tool A (Academic):   arXiv + Hugging Face Daily Papers  → model_research
-  → Tool B (Developer):  GitHub Trending                   → product_tools
-  → Tool C (Market):     Tavily AI Search                  → 분산
-  → Tool D (Industry):   VentureBeat + TechCrunch + HN     → industry_business
-  → 가로 스크롤:          OpenAI/Anthropic/DeepMind, AI타임스, TLDR AI
+  → Tool A (Academic):   arXiv + Hugging Face Daily Papers       → model_research
+  → Tool B (Developer):  GitHub Trending                         → product_tools
+  → Tool C (Industry):   VentureBeat AI + TechCrunch AI          → industry_business
+  → Tool D (Discovery):  Tavily + Reddit AI 서브레딧 + HN         → 3카테고리 분산 (LLM)
+  → 가로 스크롤:          OpenAI/Anthropic/DeepMind, AI타임스+GeekNews, TLDR AI
 → AnalyzerAgent (3개 카테고리 분류 + 중요도 산정)
 → CuratorAgent (카테고리당 TOP 3 선별 + 하이라이트)
 → SummarizerAgent (한국어 요약 + impact_comment + How-to Guide)
@@ -35,6 +35,14 @@ class NewsState(TypedDict):
     themes: list[str]
     categories: dict           # 카테고리별 분류 결과
     horizontal_sections: dict  # 가로 스크롤 섹션 (공식 발표 / 한국 AI / 큐레이션)
+
+
+# 출처 신뢰도 티어 (rank_score 계산용)
+_SOURCE_TIER: dict[str, int] = {
+    "arxiv": 9, "huggingface": 9, "official_blog": 9,
+    "github": 8, "tavily": 7, "venturebeat": 7, "techcrunch": 7,
+    "hackernews": 6, "curation": 6, "korean_news": 5, "reddit": 4,
+}
 
 
 # ─── JSON 파싱 유틸리티 ───
@@ -86,7 +94,7 @@ def analyzer_node(state: NewsState) -> dict:
     all_scored_articles = []
     batch_size = 50
 
-    for batch_start in range(0, min(len(articles), 200), batch_size):
+    for batch_start in range(0, min(len(articles), 250), batch_size):
         batch = articles[batch_start:batch_start + batch_size]
 
         articles_text = ""
@@ -111,13 +119,15 @@ def analyzer_node(state: NewsState) -> dict:
 ## 분석 기준
 각 기사에 대해 다음을 수행하세요:
 1. 3개 카테고리 중 가장 적합한 카테고리 1개 선택 (key 값 사용)
-2. 다음 3가지 기준으로 1~10점 점수 부여:
-   - relevance: AI 학습자/실무자에게 얼마나 관련 있는지
-   - novelty: 얼마나 새롭고 독창적인 정보인지
-   - practicality: 실용적 가치 (코드, 도구, 방법론 등 적용 가능성)
+2. 다음 5가지 기준으로 1~10점 점수 부여:
+   - relevance:     AI 학습자/실무자에게 얼마나 관련 있는지
+   - novelty:       얼마나 새롭고 독창적인 정보인지
+   - practicality:  실용적 가치 (코드, 도구, 방법론 등 적용 가능성)
+   - timeliness:    오늘 기준 정보 신선도 (AI는 1주일 전도 구식일 수 있음, 최신일수록 높게)
+   - accessibility: 한국 AI 실무자가 배경지식 없이 이해·활용 가능한가
 
 반드시 JSON 배열로만 응답하세요. 다른 텍스트 없이 JSON만 출력하세요:
-[{{"index": 0, "category": "model_research", "relevance": 8, "novelty": 7, "practicality": 6}}, ...]
+[{{"index": 0, "category": "model_research", "relevance": 8, "novelty": 7, "practicality": 6, "timeliness": 9, "accessibility": 7}}, ...]
 
 기사 목록:
 {articles_text}"""
@@ -130,21 +140,37 @@ def analyzer_node(state: NewsState) -> dict:
                 idx = score_item.get("index", 0)
                 if idx < len(batch):
                     article = batch[idx].copy()
-                    article["category"] = score_item.get("category", "model_research")
-                    article["relevance"] = score_item.get("relevance", 5)
-                    article["novelty"] = score_item.get("novelty", 5)
+                    article["category"]     = score_item.get("category", "model_research")
+                    article["relevance"]    = score_item.get("relevance", 5)
+                    article["novelty"]      = score_item.get("novelty", 5)
                     article["practicality"] = score_item.get("practicality", 5)
+                    article["timeliness"]   = score_item.get("timeliness", 5)
+                    article["accessibility"]= score_item.get("accessibility", 5)
 
-                    # 중요도 점수 재계산 (실용성 점수 반영)
+                    # 소셜 반응 정규화 (0-10)
+                    s = article.get("social_score", 0)
+                    social_n = (10 if s > 1000 else 8 if s > 500 else 6 if s > 100
+                                else 5 if s > 50 else 3 if s > 10 else 1)
+                    # 출처 신뢰도 티어
+                    src_tier = _SOURCE_TIER.get(article.get("source_type", ""), 5)
+
+                    # 복합 랭킹 점수 (rank_score)
+                    article["rank_score"] = round(
+                        article["practicality"]    * 3.0   # 30% — 실무 적용 가능성
+                        + article["relevance"]     * 2.5   # 25% — 카테고리 관련성
+                        + article["accessibility"] * 2.0   # 20% — 독자 접근성
+                        + article["novelty"]       * 1.5   # 15% — 정보 참신성
+                        + article["timeliness"]    * 1.0   # 10% — 정보 신선도
+                        + social_n                 * 0.5   # 소셜 반응 보너스
+                        + src_tier                 * 0.3   # 출처 신뢰도 보너스
+                    , 2)
+
+                    # importance_score 유지 (레거시 호환)
                     from agents.tools import calculate_importance_score
                     article["importance_score"] = calculate_importance_score(
                         source_name=article.get("source", ""),
                         social_score=article.get("social_score", 0),
                         practicality_score=article["practicality"],
-                    )
-
-                    article["total_score"] = (
-                        article["relevance"] + article["novelty"] + article["practicality"]
                     )
                     all_scored_articles.append(article)
 
@@ -152,22 +178,32 @@ def analyzer_node(state: NewsState) -> dict:
             print(f"  [WARNING] 배치 {batch_start} 분석 파싱 실패 (폴백: 키워드 분류): {e}")
             for a in batch:
                 article = a.copy()
-                article["category"] = _keyword_classify(article)
-                article["relevance"] = 5
-                article["novelty"] = 5
-                article["practicality"] = 5
-                article["total_score"] = 15
+                article["category"]      = _keyword_classify(article)
+                article["relevance"]     = 5
+                article["novelty"]       = 5
+                article["practicality"]  = 5
+                article["timeliness"]    = 5
+                article["accessibility"] = 5
+                s = article.get("social_score", 0)
+                social_n = (10 if s > 1000 else 8 if s > 500 else 6 if s > 100
+                            else 5 if s > 50 else 3 if s > 10 else 1)
+                src_tier = _SOURCE_TIER.get(article.get("source_type", ""), 5)
+                article["rank_score"] = round(
+                    5 * 3.0 + 5 * 2.5 + 5 * 2.0 + 5 * 1.5 + 5 * 1.0
+                    + social_n * 0.5 + src_tier * 0.3
+                , 2)
+                article["importance_score"] = article.get("importance_score", 50)
                 all_scored_articles.append(article)
 
     # 카테고리별 그룹화
     categories_grouped = {}
     for cat_key in NEWS_CATEGORIES:
         cat_articles = [a for a in all_scored_articles if a.get("category") == cat_key]
-        cat_articles.sort(key=lambda x: x.get("importance_score", 0), reverse=True)
+        cat_articles.sort(key=lambda x: x.get("rank_score", 0), reverse=True)
         categories_grouped[cat_key] = cat_articles
 
     # 전체 점수 순 정렬
-    all_scored_articles.sort(key=lambda x: x.get("importance_score", 0), reverse=True)
+    all_scored_articles.sort(key=lambda x: x.get("rank_score", 0), reverse=True)
 
     print(f"  [OK] {len(all_scored_articles)}개 기사 분석 완료")
     for cat_key, cat_name in NEWS_CATEGORIES.items():
@@ -205,72 +241,169 @@ def _keyword_classify(article: dict) -> str:
     return best_category
 
 
-# ─── Agent 3: CuratorAgent ───
-def curator_node(state: NewsState) -> dict:
-    """
-    카테고리별 TOP 3 기사 선별 (3개 카테고리 × TOP 3 = 최대 9개)
-    + 전체 하이라이트 1개
-    """
-    print("\n[CuratorAgent] 카테고리별 TOP 3 선별 중...")
+# ─── 다양성 보조 함수 ───
+def _diversify_articles(articles: list[dict], max_count: int = 10, max_per_source: int = 2) -> list[dict]:
+    """rank_score 정렬 후 출처당 최대 max_per_source개 제한으로 다양성 확보"""
+    sorted_arts = sorted(articles, key=lambda x: x.get("rank_score", 0), reverse=True)
+    source_counts: dict[str, int] = {}
+    result = []
+    for a in sorted_arts:
+        src = a.get("source", "unknown")
+        if source_counts.get(src, 0) < max_per_source:
+            result.append(a)
+            source_counts[src] = source_counts.get(src, 0) + 1
+        if len(result) >= max_count:
+            break
+    return result
 
+
+# ─── Agent 3: RankerAgent (CuratorAgent 대체) ───
+def ranker_node(state: NewsState) -> dict:
+    """
+    카테고리별 TOP 10 선별 (5개 기본 표시 + 더보기 5개)
+    - 알고리즘: rank_score 정렬 + 출처 다양성 확보 (출처당 최대 2개)
+    - LLM 1회: 전체 하이라이트 1개 선정 (9개 후보 중 파급력/실용성 기준)
+    """
+    print("\n[RankerAgent] 카테고리별 TOP 10 선별 + 하이라이트 선정 중...")
+
+    llm = get_llm(temperature=0.3, max_tokens=512)
     categories = state.get("categories", {})
     analyzed = state["analyzed_articles"]
 
     if not analyzed:
-        return {"curated_articles": [], "highlight": {}, "themes": []}
+        return {"ranked_categories": {}, "highlight": {}, "themes": []}
 
-    curated_articles = []
+    ranked_categories: dict[str, list[dict]] = {}
+    used_titles: set[str] = set()
     themes = []
 
+    FALLBACK_SOURCES = {
+        "model_research":    ["arxiv", "huggingface"],
+        "product_tools":     ["github"],
+        "industry_business": ["venturebeat", "techcrunch"],
+    }
+
     for cat_key, cat_name in NEWS_CATEGORIES.items():
-        cat_articles = categories.get(cat_key, [])
+        cat_articles = list(categories.get(cat_key, []))
+
+        # 폴백: 해당 카테고리 기사가 5개 미만이면 소스 타입 기반 보충
+        if len(cat_articles) < 5:
+            preferred = FALLBACK_SOURCES.get(cat_key, [])
+            extra = [
+                a for a in analyzed
+                if a.get("source_type") in preferred
+                and a["title"] not in {x["title"] for x in cat_articles}
+            ]
+            cat_articles = cat_articles + extra
 
         if not cat_articles:
-            # 해당 카테고리에 기사가 없으면 전체에서 소스 타입 기반 보충
-            source_map = {
-                "model_research":    ["arxiv", "huggingface"],
-                "product_tools":     ["github"],
-                "industry_business": ["venturebeat", "techcrunch", "hackernews"],
-            }
-            preferred_types = source_map.get(cat_key, [])
-            cat_articles = [a for a in analyzed if a.get("source_type", "") in preferred_types][:5]
-            if not cat_articles:
-                cat_articles = analyzed[:5]
+            cat_articles = [a for a in analyzed if a["title"] not in used_titles]
 
-        # TOP 3 선별
-        top3 = cat_articles[:3]
-        for article in top3:
-            a = article.copy()
-            a["category"] = cat_key
-            a["category_name"] = cat_name
-            curated_articles.append(a)
+        # 다양성 확보: rank_score 정렬 + 출처당 최대 2개 → TOP 11 (하이라이트 분리 후 10개 확보용)
+        top11 = []
+        for a in _diversify_articles(cat_articles, max_count=11, max_per_source=2):
+            if a["title"] not in used_titles:
+                ac = a.copy()
+                ac["category"] = cat_key
+                ac["category_name"] = cat_name
+                top11.append(ac)
+                used_titles.add(ac["title"])
 
-        if cat_articles:
+        ranked_categories[cat_key] = top11
+        if top11:
             themes.append(cat_name)
+        print(f"  [OK] {cat_name}: {len(top11)}개 선별")
 
-    # 하이라이트: 전체에서 가장 중요도 높은 기사
-    highlight = max(curated_articles, key=lambda x: x.get("importance_score", 0)) if curated_articles else {}
+    # ─── 하이라이트 선정 (LLM) — 각 카테고리 상위 3개 = 최대 9개 후보 ───
+    highlight_candidates = []
+    for articles in ranked_categories.values():
+        highlight_candidates.extend(articles[:3])
 
-    print(f"  [OK] 총 {len(curated_articles)}개 선별 완료 (카테고리당 최대 3개)")
-    print(f"  [OK] 하이라이트: {highlight.get('title', 'N/A')[:50]}...")
+    highlight: dict = {}
+    if highlight_candidates:
+        candidates_text = "\n".join([
+            f"[{i}] [{a.get('category_name', '')}] {a['title'][:90]}\n"
+            f"     출처:{a.get('source','')} | rank:{a.get('rank_score',0)} "
+            f"| 관련성:{a.get('relevance',0)} 실용성:{a.get('practicality',0)} "
+            f"시의성:{a.get('timeliness',0)} 접근성:{a.get('accessibility',0)}"
+            for i, a in enumerate(highlight_candidates)
+        ])
+        prompt = f"""당신은 AI 뉴스 편집장입니다. 오늘의 하이라이트 기사 1개를 선정하세요.
+
+## 후보 기사 ({len(highlight_candidates)}개)
+{candidates_text}
+
+## 평가 기준 (각 항목 1~5점)
+1. 파급력(impact)  : AI 업계 전반에 미치는 영향 — 연구자·개발자·비즈니스 모두 포함
+2. 시의성(urgency) : 오늘 당장 알아야 할 긴급성과 최신성
+3. 실용성(utility) : 독자가 내일 바로 활용·적용할 수 있는 구체적 가치
+4. 독창성(novelty) : 다른 기사와 차별화되는 오늘만의 특별한 발견
+5. 흥미도(appeal)  : AI 비전문가도 "이게 뭐야?" 하고 클릭할 만한 스토리성
+
+## 선정 규칙
+- 5개 점수 합산 → 최고점 기사 선정
+- 동점 시 우선순위: 파급력 > 실용성 > 흥미도
+- "오늘 이 뉴스를 놓치면 안 된다"는 기사, 단순 점수 1위가 아닌 편집 판단 허용
+
+반드시 JSON으로만 응답:
+{{"index": 0, "scores": {{"impact": 5, "urgency": 4, "utility": 4, "novelty": 3, "appeal": 5}}, "total": 21, "reason": "선정 이유 (50자 이내)"}}"""
+
+        try:
+            response = llm.invoke([HumanMessage(content=prompt)])
+            result_json = parse_llm_json(response.content)
+            idx = result_json.get("index", 0)
+            if 0 <= idx < len(highlight_candidates):
+                highlight = highlight_candidates[idx].copy()
+                highlight["highlight_reason"] = result_json.get("reason", "")
+                highlight["highlight_scores"] = result_json.get("scores", {})
+            else:
+                highlight = max(highlight_candidates, key=lambda x: x.get("rank_score", 0))
+        except Exception as e:
+            print(f"  [WARNING] 하이라이트 LLM 선정 실패 (폴백: rank_score): {e}")
+            highlight = max(highlight_candidates, key=lambda x: x.get("rank_score", 0))
+
+    # ─── 하이라이트 분리 후 카테고리 정리 → 각 카테고리 정확히 10개 ───
+    # 하이라이트가 속한 카테고리: 해당 기사 제거 (11개 → 10개)
+    # 하이라이트가 없는 카테고리: 최하위 1개 제거 (11개 → 10개)
+    if highlight:
+        highlight_title = highlight.get("title", "")
+        for cat_key in list(ranked_categories.keys()):
+            arts = ranked_categories[cat_key]
+            if any(a["title"] == highlight_title for a in arts):
+                ranked_categories[cat_key] = [a for a in arts if a["title"] != highlight_title]
+            else:
+                ranked_categories[cat_key] = arts[:10]
+
+    total = sum(len(v) for v in ranked_categories.values())
+    print(f"  [OK] 총 {total}개 선별 (하이라이트 1개 + 카테고리당 10개)")
+    print(f"  [OK] 하이라이트: {highlight.get('title', 'N/A')[:60]}")
 
     return {
-        "curated_articles": curated_articles,
+        "ranked_categories": ranked_categories,
         "highlight": highlight,
         "themes": themes,
     }
 
 
-# ─── Agent 4: SummarizerAgent ───
+# ─── Agent 4: SummarizerAgent (카테고리당 10개 × 3 = 최대 30개 처리) ───
 def summarizer_node(state: NewsState) -> dict:
     """
-    선별된 기사를 한국어로 요약하고 How-to Guide 생성
-    숏폼: 50-100자 핵심 요약
-    롱폼: 300-500자 상세 요약 + How-to Guide (코드 스니펫, 프롬프트 예시)
+    선별된 최대 30개 기사 한국어 요약 + How-to Guide 생성
+    5개 배치 × 최대 6회 LLM + 일일 개요 1회 = 최대 7회 LLM 호출
     """
     print("\n[SummarizerAgent] 한국어 요약 및 How-to Guide 생성 중...")
 
-    articles = state["curated_articles"]
+    ranked_categories = state.get("ranked_categories", {})
+
+    # ranked_categories 평탄화 (카테고리 순서 유지, 중복 제거)
+    seen_titles: set[str] = set()
+    articles: list[dict] = []
+    for cat_arts in ranked_categories.values():
+        for a in cat_arts:
+            if a["title"] not in seen_titles:
+                articles.append(a)
+                seen_titles.add(a["title"])
+
     if not articles:
         return {
             "final_articles": [],
@@ -280,30 +413,42 @@ def summarizer_node(state: NewsState) -> dict:
 
     llm = get_llm(temperature=0.7, max_tokens=8192)
 
-    # ─── 전체 기사 요약 (배치, 5개씩) ───
+    HOW_TO_GUIDE_HINT = {
+        "model_research":    "코드/수식/논문 활용법 예시 포함 (없으면 빈 문자열)",
+        "product_tools":     "설치/사용법 커맨드 또는 API 예시 포함 (없으면 빈 문자열)",
+        "industry_business": "비즈니스 시사점 또는 투자·전략적 관점 1-2줄 (없으면 빈 문자열)",
+    }
+
+    # ─── 배치 요약 (5개씩) ───
     batch_size = 5
     for batch_start in range(0, len(articles), batch_size):
         batch = articles[batch_start:batch_start + batch_size]
 
         batch_text = ""
         for i, a in enumerate(batch):
+            cat = a.get("category", "model_research")
+            guide_hint = HOW_TO_GUIDE_HINT.get(cat, "없으면 빈 문자열")
             batch_text += (
-                f"\n[기사 {i+1}]\n"
+                f"\n[기사 {i+1}] (카테고리: {a.get('category_name', '')})\n"
                 f"제목: {a['title']}\n"
                 f"설명: {a['description'][:400]}\n"
-                f"카테고리: {a.get('category_name', '')}\n"
                 f"출처: {a.get('source', '')}\n"
+                f"howToGuide 기준: {guide_hint}\n"
             )
 
         prompt = f"""다음 {len(batch)}개의 AI 뉴스를 각각 한국어로 요약해주세요.
 
 ## 요구사항
+- display_title: 독자가 클릭하고 싶게 만드는 한국어 제목 (30자 이내)
+  * 원문 제목의 핵심을 독자 관점으로 재해석 (영어 용어는 한국어 병기 또는 풀어쓰기)
+  * 패턴 예시: "구글, 새 AI 모델 공개 — 추론·코딩 모두 1위", "무료로 GPT-4 수준 코딩 AI 쓰는 법"
+  * 숫자, 대비, 행동 유발 요소 활용
 - summary: 150-300자 한국어 요약 (핵심 내용 + 시사점)
 - impact_comment: 한 줄 임팩트 코멘트 (40자 이내, 예: "개발자 필수 — 오늘부터 바로 써보세요")
-- howToGuide: 실무 활용 가이드 (코드/프롬프트 예시 포함, 없으면 빈 문자열)
+- howToGuide: 각 기사의 'howToGuide 기준'에 맞게 작성 (없으면 빈 문자열 "")
 
 반드시 JSON 배열로만 응답하세요:
-[{{"index": 1, "summary": "...", "impact_comment": "...", "howToGuide": "..."}}]
+[{{"index": 1, "display_title": "...", "summary": "...", "impact_comment": "...", "howToGuide": "..."}}]
 
 {batch_text}"""
 
@@ -313,24 +458,28 @@ def summarizer_node(state: NewsState) -> dict:
             for s in summaries:
                 idx = s.get("index", 1) - 1
                 if 0 <= idx < len(batch):
+                    batch[idx]["display_title"] = s.get("display_title", "")
                     batch[idx]["summary"] = s.get("summary", batch[idx]["description"][:300])
                     batch[idx]["impact_comment"] = s.get("impact_comment", "")
                     batch[idx]["howToGuide"] = s.get("howToGuide", "")
         except (json.JSONDecodeError, KeyError) as e:
             print(f"  [WARNING] 배치 {batch_start} 요약 파싱 실패: {e}")
             for a in batch:
+                a.setdefault("display_title", "")
                 a.setdefault("summary", a["description"][:300])
                 a.setdefault("impact_comment", "")
                 a.setdefault("howToGuide", "")
 
     # ─── 일일 개요 생성 ───
     themes = ", ".join(state.get("themes", []))
-    titles = "\n".join([f"- [{a.get('category_name', '')}] {a['title']}" for a in articles[:9]])
-
+    rep_titles = "\n".join([
+        f"- [{a.get('category_name', '')}] {a['title']}"
+        for a in articles[:9]
+    ])
     overview_prompt = f"""오늘의 AI 뉴스 카테고리: {themes}
 
 주요 기사:
-{titles}
+{rep_titles}
 
 위 내용을 바탕으로 오늘의 AI 뉴스 동향을 3-4문장으로 한국어 요약하세요.
 각 카테고리(모델/연구, 제품/도구, 산업/비즈니스)의 핵심을 한 줄씩 언급하세요.
@@ -343,25 +492,26 @@ def summarizer_node(state: NewsState) -> dict:
         print(f"  [WARNING] 일일 개요 생성 실패: {e}")
         daily_overview = f"오늘의 AI 뉴스: {themes} 분야에서 주요 업데이트가 있었습니다."
 
-    # ─── 최종 기사 정리 ───
-    final_articles = []
-    for a in articles:
-        final_articles.append({
-            "title": a["title"],
-            "description": a["description"],
-            "link": a["link"],
-            "published": a["published"],
-            "source": a["source"],
-            "source_type": a.get("source_type", ""),
-            "summary": a.get("summary", a["description"][:300]),
-            "impact_comment": a.get("impact_comment", ""),
-            "category": a.get("category", ""),
-            "category_name": a.get("category_name", ""),
-            "howToGuide": a.get("howToGuide", ""),
-            "importance_score": a.get("importance_score", 0),
-            "social_score": a.get("social_score", 0),
-            "theme": a.get("category_name", ""),
-        })
+    # ─── 최종 기사 정리 (image_url, reading_time은 EnricherAgent에서 채움) ───
+    final_articles = [{
+        "title":           a["title"],
+        "display_title":   a.get("display_title", ""),  # SummarizerAgent 생성 독자 친화 제목
+        "description":     a["description"],
+        "link":            a["link"],
+        "published":       a["published"],
+        "source":          a["source"],
+        "source_type":     a.get("source_type", ""),
+        "summary":         a.get("summary", a["description"][:300]),
+        "impact_comment":  a.get("impact_comment", ""),
+        "category":        a.get("category", ""),
+        "category_name":   a.get("category_name", ""),
+        "howToGuide":      a.get("howToGuide", ""),
+        "importance_score": a.get("importance_score", 0),
+        "social_score":    a.get("social_score", 0),
+        "theme":           a.get("category_name", ""),
+        "image_url":       "",   # EnricherAgent에서 채움
+        "reading_time":    0,    # EnricherAgent에서 채움
+    } for a in articles]
 
     howto_count = len([a for a in final_articles if a.get("howToGuide")])
     print(f"  [OK] 총 {len(final_articles)}개 요약 완료 | How-to Guide: {howto_count}개")
@@ -373,21 +523,106 @@ def summarizer_node(state: NewsState) -> dict:
     }
 
 
+# ─── Agent 5: EnricherAgent (신규) ───
+_SKIP_IMG_TYPES = {"arxiv", "reddit"}
+_SKIP_IMG_URLS  = ("arxiv.org", "reddit.com", "youtu.be", "youtube.com")
+
+
+def _try_og_image(url: str, source_type: str) -> str:
+    """기사 URL에서 og:image / twitter:image 메타태그 추출 (실패 시 빈 문자열)"""
+    if source_type in _SKIP_IMG_TYPES or not url:
+        return ""
+    if any(p in url for p in _SKIP_IMG_URLS):
+        return ""
+    try:
+        import requests as _req
+        from bs4 import BeautifulSoup as _BS
+        headers = {"User-Agent": "Mozilla/5.0 (compatible; AilonNewsBot/1.0)"}
+        resp = _req.get(url, headers=headers, timeout=4, allow_redirects=True)
+        if resp.status_code != 200:
+            return ""
+        soup = _BS(resp.content[:30000], "html.parser")
+        for prop, attr in [("og:image", "property"), ("twitter:image", "name")]:
+            meta = soup.find("meta", {attr: prop})
+            if meta and meta.get("content"):
+                img = str(meta["content"])
+                if img.startswith("http") and not img.endswith(".svg"):
+                    return img
+        return ""
+    except Exception:
+        return ""
+
+
+def _estimate_reading_time(text: str) -> int:
+    """읽기 시간 추정 (분, 한국어 기준 200자/분, 1~10분 범위)"""
+    return max(1, min(10, round(len(text) / 200)))
+
+
+def enricher_node(state: NewsState) -> dict:
+    """
+    기사 이미지(og:image) + 읽기 시간 보강 — LLM 미사용
+    ─ 이미지 판단 ──────────────────────────────────────
+    ✅ og:image 추출: VentureBeat, TechCrunch, Tavily, HN 링크, GitHub
+    ❌ 스킵(이미지 의미 없음): arXiv(논문 로고만), Reddit(썸네일 없음)
+    ❌ AI 생성 이미지: 비용 $36+/월, 신뢰도 낮아 미적용
+       → 이미지 없으면 앱에서 카테고리별 그라디언트 표시
+    ─ 속도 최적화 ──────────────────────────────────────
+    ThreadPoolExecutor 8개 병렬 네트워크 요청 (4초 타임아웃)
+    """
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    print("\n[EnricherAgent] og:image 추출 + 읽기 시간 추정 중...")
+
+    final_articles = state.get("final_articles", [])
+    if not final_articles:
+        return {"final_articles": []}
+
+    # 병렬 og:image 추출
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        futures = {
+            executor.submit(_try_og_image, a["link"], a.get("source_type", "")): i
+            for i, a in enumerate(final_articles)
+        }
+        img_count = 0
+        for future in as_completed(futures):
+            idx = futures[future]
+            try:
+                img_url = future.result()
+                if img_url:
+                    final_articles[idx]["image_url"] = img_url
+                    img_count += 1
+            except Exception:
+                pass
+
+    # 읽기 시간 추정
+    for a in final_articles:
+        text = a.get("summary", "") or a.get("description", "")
+        a["reading_time"] = _estimate_reading_time(text)
+
+    skip_count = len(final_articles) - img_count
+    print(f"  [OK] 이미지 {img_count}/{len(final_articles)}개 확보 "
+          f"({skip_count}개는 카테고리 그라디언트로 표시)")
+
+    return {"final_articles": final_articles}
+
+
 # ─── 뉴스 에이전트 팀 그래프 빌드 ───
 def build_news_team_graph():
     """뉴스 큐레이션 에이전트 팀 그래프 생성"""
     graph = StateGraph(NewsState)
 
-    graph.add_node("collector", collector_node)
-    graph.add_node("analyzer", analyzer_node)
-    graph.add_node("curator", curator_node)
+    graph.add_node("collector",  collector_node)
+    graph.add_node("analyzer",   analyzer_node)
+    graph.add_node("ranker",     ranker_node)
     graph.add_node("summarizer", summarizer_node)
+    graph.add_node("enricher",   enricher_node)
 
-    graph.add_edge(START, "collector")
-    graph.add_edge("collector", "analyzer")
-    graph.add_edge("analyzer", "curator")
-    graph.add_edge("curator", "summarizer")
-    graph.add_edge("summarizer", END)
+    graph.add_edge(START,        "collector")
+    graph.add_edge("collector",  "analyzer")
+    graph.add_edge("analyzer",   "ranker")
+    graph.add_edge("ranker",     "summarizer")
+    graph.add_edge("summarizer", "enricher")
+    graph.add_edge("enricher",   END)
 
     return graph.compile()
 
@@ -395,31 +630,33 @@ def build_news_team_graph():
 def run_news_team() -> dict:
     """뉴스 에이전트 팀 실행 및 결과 반환"""
     print("=" * 60)
-    print("[START] 뉴스 에이전트 팀 시작 (3개 Tool: Academic + Developer + Market/News, 5개 카테고리)")
+    print("[START] 뉴스 에이전트 팀 시작 (5 Agent: Collector→Analyzer→Ranker→Summarizer→Enricher)")
     print("=" * 60)
 
     graph = build_news_team_graph()
-    initial_state = {
-        "raw_articles": [],
+    initial_state: NewsState = {
+        "raw_articles":      [],
         "analyzed_articles": [],
-        "curated_articles": [],
-        "final_articles": [],
-        "daily_overview": "",
-        "highlight": {},
-        "themes": [],
-        "categories": {},
+        "ranked_categories": {},
+        "final_articles":    [],
+        "daily_overview":    "",
+        "highlight":         {},
+        "themes":            [],
+        "categories":        {},
         "horizontal_sections": {},
     }
 
     result = graph.invoke(initial_state)
 
-    final = result["final_articles"]
-    hs = result.get("horizontal_sections", {})
+    final  = result["final_articles"]
+    hs     = result.get("horizontal_sections", {})
+    ranked = result.get("ranked_categories", {})
 
     print(f"\n[DONE] 뉴스 에이전트 팀 완료")
-    print(f"  수집: {len(result.get('raw_articles', []))}개")
-    print(f"  분석: {len(result.get('analyzed_articles', []))}개")
-    print(f"  최종: {len(final)}개 (3 카테고리)")
-    print(f"  가로 섹션: 공식발표 {len(hs.get('official_announcements', []))}개 | 한국AI {len(hs.get('korean_ai', []))}개 | 큐레이션 {len(hs.get('curation', []))}개")
+    print(f"  수집:   {len(result.get('raw_articles', []))}개")
+    print(f"  분석:   {len(result.get('analyzed_articles', []))}개")
+    print(f"  선별:   {sum(len(v) for v in ranked.values())}개 (카테고리당 최대 10개)")
+    print(f"  최종:   {len(final)}개 | 이미지: {len([a for a in final if a.get('image_url')])}개")
+    print(f"  가로섹션: 공식발표 {len(hs.get('official_announcements', []))}개 | 한국AI {len(hs.get('korean_ai', []))}개 | 큐레이션 {len(hs.get('curation', []))}개")
 
     return result

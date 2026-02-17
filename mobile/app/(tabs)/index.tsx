@@ -19,6 +19,7 @@ import {
   LayoutAnimation,
   StatusBar,
   Platform,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -97,7 +98,7 @@ function normCat(cat?: string): NewsCategory {
 function catColor(cat?: string) { return CATEGORY_COLORS[normCat(cat)] ?? PRIMARY; }
 function catLabel(cat?: string) { return CATEGORY_LABELS[normCat(cat)] ?? '기타'; }
 
-function displayTitle(a: Article) { return a.summary ?? a.title; }
+function displayTitle(a: Article) { return a.display_title || a.title; }
 
 function formatDate(str?: string) {
   if (!str) return '';
@@ -167,12 +168,17 @@ function HorizontalSection({
   title,
   articles,
   color = PRIMARY,
+  showAll = false,
+  onShowAll,
 }: {
   title: string;
   articles: HorizontalArticle[];
   color?: string;
+  showAll?: boolean;
+  onShowAll?: () => void;
 }) {
   if (!articles || articles.length === 0) return null;
+  const visible = showAll ? articles : articles.slice(0, 5);
   return (
     <View style={{ marginBottom: 20 }}>
       <SectionHeader title={title} color={color} />
@@ -181,9 +187,19 @@ function HorizontalSection({
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 4 }}
       >
-        {articles.map((a, i) => (
+        {visible.map((a, i) => (
           <HorizontalCard key={`${a.source}-${i}`} article={a} />
         ))}
+        {!showAll && articles.length > 5 && onShowAll && (
+          <Pressable
+            onPress={onShowAll}
+            style={{ width: 80, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 8 }}
+          >
+            <View style={{ borderRadius: 20, borderWidth: 1.5, borderColor: color, paddingHorizontal: 12, paddingVertical: 8 }}>
+              <Text style={{ color, fontSize: 12, fontWeight: '700' }}>더보기</Text>
+            </View>
+          </Pressable>
+        )}
       </ScrollView>
     </View>
   );
@@ -214,12 +230,19 @@ function HeroCard({ article }: { article: Article }) {
     <View style={{ marginHorizontal: 16, marginBottom: 20, borderRadius: 18, overflow: 'hidden', elevation: 6, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.18, shadowRadius: 12 }}>
       {/* 이미지 영역 (그라디언트 배경) */}
       <Pressable onPress={toggle} style={{ backgroundColor: grad[0], minHeight: 190, padding: 16, justifyContent: 'flex-end' }}>
-        {/* 그라디언트 오버레이 패턴 */}
-        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: grad[1], opacity: 0.45 }} />
-
-        {/* 배경 장식 원 */}
-        <View style={{ position: 'absolute', top: -30, right: -30, width: 150, height: 150, borderRadius: 75, backgroundColor: 'rgba(255,255,255,0.04)' }} />
-        <View style={{ position: 'absolute', top: 20, right: 40, width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(255,255,255,0.06)' }} />
+        {/* 배경: og:image 또는 그라디언트 */}
+        {article.image_url ? (
+          <>
+            <Image source={{ uri: article.image_url }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} resizeMode="cover" />
+            <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.55)' }} />
+          </>
+        ) : (
+          <>
+            <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: grad[1], opacity: 0.45 }} />
+            <View style={{ position: 'absolute', top: -30, right: -30, width: 150, height: 150, borderRadius: 75, backgroundColor: 'rgba(255,255,255,0.04)' }} />
+            <View style={{ position: 'absolute', top: 20, right: 40, width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(255,255,255,0.06)' }} />
+          </>
+        )}
 
         {/* HOT 배지 + 날짜 */}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 }}>
@@ -261,7 +284,7 @@ function HeroCard({ article }: { article: Article }) {
           )}
           {(article.summary || article.description) && (
             <Text style={{ fontSize: 14, color: '#374151', lineHeight: 22, marginBottom: 12 }}>
-              {article.description ?? article.summary}
+              {article.summary ?? article.description}
             </Text>
           )}
           {article.link && (
@@ -315,11 +338,17 @@ function NewsCard({ article, isLast }: { article: Article; isLast: boolean }) {
         </View>
 
         {/* 오른쪽: 썸네일 */}
-        <View style={{ width: 80, height: 80, borderRadius: 10, backgroundColor: thumbColor, overflow: 'hidden', flexShrink: 0, alignItems: 'center', justifyContent: 'center' }}>
-          <View style={{ position: 'absolute', top: -10, right: -10, width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(255,255,255,0.12)' }} />
-          <Text style={{ color: '#FFFFFF', fontSize: 22, fontWeight: '800', opacity: 0.6 }}>
-            {cl.charAt(0)}
-          </Text>
+        <View style={{ width: 80, height: 80, borderRadius: 10, backgroundColor: thumbColor, overflow: 'hidden', flexShrink: 0 }}>
+          {article.image_url ? (
+            <Image source={{ uri: article.image_url }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} resizeMode="cover" />
+          ) : (
+            <>
+              <View style={{ position: 'absolute', top: -10, right: -10, width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(255,255,255,0.12)' }} />
+              <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ color: '#FFFFFF', fontSize: 22, fontWeight: '800', opacity: 0.6 }}>{cl.charAt(0)}</Text>
+              </View>
+            </>
+          )}
           {/* 펼침 인디케이터 */}
           <View style={{ position: 'absolute', bottom: 4, right: 4, width: 18, height: 18, borderRadius: 9, backgroundColor: 'rgba(0,0,0,0.3)', alignItems: 'center', justifyContent: 'center' }}>
             {expanded ? <ChevronUp size={10} color="#FFFFFF" /> : <ChevronDown size={10} color="#FFFFFF" />}
@@ -336,8 +365,10 @@ function NewsCard({ article, isLast }: { article: Article; isLast: boolean }) {
               <Text style={{ color: '#BE123C', fontSize: 12, flex: 1, lineHeight: 18 }}>{article.impact_comment}</Text>
             </View>
           )}
-          {article.description && (
-            <Text style={{ fontSize: 13, color: '#6B7280', lineHeight: 20, marginBottom: 10 }}>{article.description}</Text>
+          {(article.summary || article.description) && (
+            <Text style={{ fontSize: 13, color: '#6B7280', lineHeight: 20, marginBottom: 10 }}>
+              {article.summary ?? article.description}
+            </Text>
           )}
           {article.link && (
             <Pressable onPress={() => Linking.openURL(article.link)} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#F9FAFB', borderRadius: 10, paddingVertical: 9, paddingHorizontal: 12, marginBottom: 10, borderWidth: 1, borderColor: '#E5E7EB' }}>
@@ -356,6 +387,8 @@ function NewsCard({ article, isLast }: { article: Article; isLast: boolean }) {
 export default function NewsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  const [showAllMap, setShowAllMap] = useState<Record<string, boolean>>({});
+  const [showAllHs, setShowAllHs] = useState<Record<string, boolean>>({});
 
   const { selectedDates, newsCategory, setNewsCategory, openDrawer, setActiveTab } = useDrawer();
   const selectedDate = selectedDates.news;
@@ -452,16 +485,22 @@ export default function NewsScreen() {
               title="공식 발표"
               articles={hs.official_announcements ?? []}
               color="#7C3AED"
+              showAll={showAllHs['official'] ?? false}
+              onShowAll={() => setShowAllHs(prev => ({ ...prev, official: true }))}
             />
             <HorizontalSection
               title="한국 AI"
               articles={hs.korean_ai ?? []}
               color="#E53935"
+              showAll={showAllHs['korean'] ?? false}
+              onShowAll={() => setShowAllHs(prev => ({ ...prev, korean: true }))}
             />
             <HorizontalSection
               title="큐레이션"
               articles={hs.curation ?? []}
               color="#0EA5E9"
+              showAll={showAllHs['curation'] ?? false}
+              onShowAll={() => setShowAllHs(prev => ({ ...prev, curation: true }))}
             />
 
             {/* ── 카테고리 탭 + 기사 목록 ───────────────────────────────── */}
@@ -493,15 +532,30 @@ export default function NewsScreen() {
                 <View style={{ alignItems: 'center', paddingVertical: 40 }}>
                   <Text style={{ color: '#D1D5DB', fontSize: 14 }}>이 카테고리엔 아직 기사가 없어요</Text>
                 </View>
-              ) : (
-                categoryArticles.map((article, i) => (
-                  <NewsCard
-                    key={`${article.title}-${i}`}
-                    article={article}
-                    isLast={i === categoryArticles.length - 1}
-                  />
-                ))
-              )}
+              ) : (() => {
+                const showAll = showAllMap[newsCategory] ?? false;
+                const visible = showAll ? categoryArticles : categoryArticles.slice(0, 5);
+                return (
+                  <>
+                    {visible.map((article, i) => (
+                      <NewsCard
+                        key={`${article.title}-${i}`}
+                        article={article}
+                        isLast={i === visible.length - 1 && (showAll || categoryArticles.length <= 5)}
+                      />
+                    ))}
+                    {!showAll && categoryArticles.length > 5 && (
+                      <Pressable
+                        onPress={() => setShowAllMap(prev => ({ ...prev, [newsCategory]: true }))}
+                        style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 14, borderTopWidth: 1, borderTopColor: '#F3F4F6' }}
+                      >
+                        <Text style={{ color: PRIMARY, fontWeight: '700', fontSize: 14 }}>더보기</Text>
+                        <ChevronDown size={14} color={PRIMARY} />
+                      </Pressable>
+                    )}
+                  </>
+                );
+              })()}
             </View>
 
             <View style={{ height: 20 }} />

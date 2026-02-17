@@ -16,7 +16,26 @@
       "Bash(npx tsc:*)",
       "Bash(npm run build:*)",
       "Bash(npm install:*)",
-      "Bash(npm show:*)"
+      "Bash(npm show:*)",
+      "Bash(curl:*)",
+      "Bash(timeout 15 npm run dev:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)",
+      "Bash(cmd /c \"taskkill /F /PID 6840\")",
+      "Bash(python3:*)",
+      "Bash(node:*)",
+      "Bash(python:*)",
+      "Bash(cmd /c \"for /f \"\"tokens=5\"\" %a in \\(''netstat -aon ^| findstr :300''\\) do taskkill /F /PID %a 2>nul\")",
+      "Bash(cmd /c \"taskkill /F /PID 6840 & taskkill /F /PID 15044 & taskkill /F /PID 20436 & taskkill /F /PID 4404\")",
+      "Bash(echo:*)",
+      "Bash(powershell -Command:*)",
+      "Bash(vercel:*)",
+      "Bash(npx expo start:*)",
+      "Bash(npx expo install:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(git rm:*)",
+      "Bash(ls:*)"
     ]
   }
 }
