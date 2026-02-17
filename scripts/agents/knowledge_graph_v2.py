@@ -48,49 +48,47 @@ def parse_llm_json(text: str):
 # ─── Node 1: integration (융합 사례 생성) ───
 def integration_node(state: KnowledgeGraphState) -> dict:
     """
-    Step 1: 유명한 융합 사례를 먼저 생성
-    - 학문 분야를 입력받아 실제로 존재하는 유명한 융합 사례 선정
-    - 다른 학문의 문제를 해결한 검증된 사례만 생성
+    Step 1: 학제간 융합 사례를 먼저 생성
+    - 한 학문의 원리/아이디어가 다른 학문의 문제를 해결하거나 성능을 향상시킨 실제 사례
+    - AI에 국한되지 않고 모든 학문 분야의 융합 사례 포함
     """
     info = state["discipline_info"]
     llm = get_llm(temperature=0.5, max_tokens=4096)
     
-    # 유명한 융합 사례 예시를 프롬프트에 명시하여 정확도 향상
-    prompt = f"""당신은 학제간 융합 사례 전문가입니다. {info['name']} 분야에서 실제로 다른 학문의 문제를 해결한 **유명하고 검증된** 융합 사례를 1개 선정해주세요.
+    # 다양한 학문 간 융합 사례 예시를 제시
+    prompt = f"""당신은 학제간 융합 사례 전문가입니다. {info['name']} 분야의 원리나 아이디어가 **실제로** 다른 학문의 문제를 해결하거나 성능을 향상시킨 사례를 1개 선정해주세요.
 
 학문 분야: {info['name']}
 초점 영역: {info['focus']}
-AI와의 연결: {info['ai_connection']}
 
-유명한 융합 사례 예시:
-- 물리학 → AI: Simulated Annealing (담금질 → 최적화 알고리즘 → AI 학습)
-- 생물학 → AI: 유전 알고리즘 (자연선택 → 최적화 → AI 진화 전략)
-- 뇌과학 → AI: 신경망 (뉴런 → 인공신경망 → 딥러닝)
-- 경제학 → AI: 게임이론 (전략적 의사결정 → 강화학습)
-- 수학 → AI: 선형대수 (행렬 연산 → 신경망 계산)
+**학제간 융합 사례 예시** (AI가 아니어도 됩니다):
+- 물리학 → 생물학: X-선 결정학 → DNA 이중나선 구조 발견
+- 물리학 → 컴퓨터: 양자역학 → 양자컴퓨팅
+- 생물학 → 건축: 흰개미집 환기 구조 → 에너지 효율적 건물 설계
+- 수학 → 음악: 푸리에 변환 → 디지털 음향 합성
+- 화학 → 의학: 페니실린 발견 → 항생제 치료
+- 생물학 → 재료공학: 거미줄 구조 → 고강도 섬유
+- 물리학 → 의학: MRI (자기공명) → 비침습 진단
+- 수학 → 암호학: 소수 이론 → RSA 암호화
+- 생물학 → AI: 신경망 → 딥러닝 (이런 것도 가능)
 
-**중요**: 반드시 실제로 존재하는 유명한 사례만 선정하세요. 지어내지 마세요.
+**중요**: AI 문제 해결에 국한하지 마세요. 순수하게 한 학문이 다른 학문에 기여한 실제 사례를 선정하세요.
 
 다음 JSON 형식으로 응답하세요:
 {{
-  "title": "융합 사례 이름 (한국어, 예: Simulated Annealing)",
-  "originalTitle": "영문 원제 (예: Simulated Annealing)",
-  "problemSolved": "해결한 문제 (50자 이내, ~이에요/~해요 체)",
-  "solution": "해결 방법 (150-200자, ~이에요/~해요 체)",
-  "targetField": "적용된 타 학문 분야 (예: 인공지능, 컴퓨터공학)",
+  "title": "융합 사례 이름 (한국어)",
+  "originalTitle": "영문 원제 (있다면)",
+  "problemSolved": "해결한 문제 또는 향상시킨 부분 (50자 이내, ~이에요/~해요 체)",
+  "solution": "어떻게 해결했는지 (150-200자, ~이에요/~해요 체)",
+  "targetField": "영향받은 학문 분야 (예: 생물학, 의학, 건축)",
   "realWorldExamples": ["실제 사례 1", "실제 사례 2", "실제 사례 3"],
   "impactField": "영향 분야들 (80자 이내)",
-  "whyItWorks": "효과적인 이유 (100-150자, ~이에요/~해요 체)",
-  "famousLevel": 1-10 (얼마나 유명한 사례인지, 10이 가장 유명)
+  "whyItWorks": "왜 효과적인지 (100-150자, ~이에요/~해요 체)"
 }}"""
     
     try:
         result = llm.invoke([HumanMessage(content=prompt)])
         integration_case = parse_llm_json(result.content)
-        
-        # 유명도 점수가 너무 낮으면 경고
-        if integration_case.get("famousLevel", 0) < 5:
-            print(f"  ⚠️  [{info['name']}] 융합 사례 유명도가 낮음: {integration_case.get('famousLevel')}/10")
         
     except Exception as e:
         print(f"  [WARNING] integration_node 파싱 실패: {e}")
@@ -99,14 +97,13 @@ AI와의 연결: {info['ai_connection']}
             "originalTitle": "",
             "problemSolved": "문제 정보를 찾을 수 없어요",
             "solution": "해결 방법 정보를 찾을 수 없어요",
-            "targetField": "AI",
+            "targetField": "타 학문",
             "realWorldExamples": [],
             "impactField": "",
             "whyItWorks": "",
-            "famousLevel": 0,
         }
     
-    print(f"  [OK] [{info['name']}] integration_node 완료: {integration_case.get('title', 'N/A')} (유명도: {integration_case.get('famousLevel', 0)}/10)")
+    print(f"  [OK] [{info['name']}] integration_node 완료: {integration_case.get('title', 'N/A')} → {integration_case.get('targetField', 'N/A')}")
     return {"integration_case": integration_case}
 
 

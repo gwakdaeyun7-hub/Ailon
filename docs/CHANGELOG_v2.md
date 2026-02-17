@@ -1,7 +1,7 @@
 # Academic Snaps v2 - 역방향 파이프라인 변경 사항
 
 **날짜**: 2026-02-17  
-**변경 이유**: 융합 사례의 정확성(Accuracy) 향상 및 Hallucination 방지
+**변경 이유**: 융합 사례의 정확성(Accuracy) 향상 및 학제간 융합 범위 확장
 
 ---
 
@@ -22,9 +22,21 @@ FoundationAgent → ApplicationAgent → IntegrationAgent
 IntegrationAgent → ApplicationAgent → FoundationAgent → VerificationAgent
   (융합 사례)        (응용 원리)         (기본 원리)         (검증)
 ```
-- ✅ 장점: **유명한 융합 사례**부터 시작 (Simulated Annealing, 신경망, 유전 알고리즘 등)
-- ✅ 장점: 실제 존재하는 사례에서 출발하여 **역추적**
+- ✅ 장점: **실제 존재하는 융합 사례**부터 시작
+- ✅ 장점: 한 학문이 다른 학문의 문제를 해결한 **역사적 사실**에서 출발
 - ✅ 장점: **웹 검색 검증** 추가로 사실 확인
+- ✅ 장점: AI에 국한하지 않고 **모든 학문 분야의 융합** 포함
+
+### 2. **학제간 융합 범위 확장**
+
+- **기존**: AI 문제 해결에 집중
+- **신규**: 의학, 건축, 음악, 재료공학 등 **모든 분야의 융합 사례**
+
+**예시**:
+- 물리학 → 생물학: X-선 결정학 → DNA 구조 발견
+- 생물학 → 건축: 흰개미집 → 에너지 효율 건물
+- 수학 → 음악: 푸리에 변환 → 디지털 음향
+- 화학 → 의학: 페니실린 → 항생제
 
 ---
 
@@ -34,7 +46,7 @@ IntegrationAgent → ApplicationAgent → FoundationAgent → VerificationAgent
 
 | 순서 | 에이전트 | 입력 | 출력 | 역할 |
 |------|---------|------|------|------|
-| 1 | **IntegrationAgent** | 학문 분야 정보 | 융합 사례 | 유명한 융합 사례를 먼저 선정 (famousLevel 1-10) |
+| 1 | **IntegrationAgent** | 학문 분야 정보 | 융합 사례 | 실제 학제간 융합 사례 선정 (AI 아니어도 됨) |
 | 2 | **ApplicationAgent** | 융합 사례 | 응용 원리 | 융합 사례에서 응용 원리 **역추적** |
 | 3 | **FoundationAgent** | 융합 + 응용 | 기본 원리 | 응용 원리에서 기본 원리 **역추적** |
 | 4 | **VerificationAgent** | 전체 정보 | 검증 결과 | Tavily API로 웹 검색하여 **사실 확인** |
