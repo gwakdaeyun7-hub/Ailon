@@ -8,7 +8,7 @@
 import { useEffect, useState } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { DailyIdeas, SynergyIdea } from '@/lib/types';
+import type { DailySynergyIdeas, SynergyIdea } from '@/lib/types';
 
 export function useSynergyIdeas() {
   const [ideas, setIdeas] = useState<SynergyIdea[]>([]);
@@ -24,22 +24,22 @@ export function useSynergyIdeas() {
         setError(null);
 
         const today = new Date().toISOString().split('T')[0];
-        const ideasRef = doc(db, 'daily_ideas', today);
+        const ideasRef = doc(db, 'synergy_ideas', today);
         const ideasDoc = await getDoc(ideasRef);
 
-        let data: DailyIdeas | null = null;
+        let data: DailySynergyIdeas | null = null;
 
         if (ideasDoc.exists()) {
-          data = ideasDoc.data() as DailyIdeas;
+          data = ideasDoc.data() as DailySynergyIdeas;
         } else {
           const yesterday = new Date(Date.now() - 86400000)
             .toISOString()
             .split('T')[0];
-          const yesterdayRef = doc(db, 'daily_ideas', yesterday);
+          const yesterdayRef = doc(db, 'synergy_ideas', yesterday);
           const yesterdayDoc = await getDoc(yesterdayRef);
 
           if (yesterdayDoc.exists()) {
-            data = yesterdayDoc.data() as DailyIdeas;
+            data = yesterdayDoc.data() as DailySynergyIdeas;
           }
         }
 

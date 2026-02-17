@@ -162,21 +162,21 @@ export default function ArchivePage() {
                   {data.principles.discipline_info.name}
                 </span>
               </h2>
-              {data.principles.today_principle && (
+              {data.principles.principle && (
                 <div className="p-5 border border-border rounded-lg">
                   <h3 className="text-card-title text-foreground mb-2">
-                    {data.principles.today_principle.title}
+                    {data.principles.principle.title}
                   </h3>
                   <p className="text-body-kr text-muted-foreground leading-korean-tight mb-3">
-                    {data.principles.today_principle.description}
+                    {data.principles.principle.foundation.principle}
                   </p>
-                  {data.principles.today_principle.realWorldExample && (
+                  {data.principles.principle.integration.solution && (
                     <div className="pt-3 border-t border-border">
                       <p className="text-xs text-muted-foreground mb-1">
-                        실생활 예시
+                        융합 사례
                       </p>
                       <p className="text-caption text-foreground/80">
-                        {data.principles.today_principle.realWorldExample}
+                        {data.principles.principle.integration.solution}
                       </p>
                     </div>
                   )}

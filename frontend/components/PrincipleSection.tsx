@@ -103,24 +103,41 @@ export function PrincipleSection() {
         <div className="bg-white">
           {/* Stage Tabs */}
           <div className="flex border-b border-border">
-            {[
-              { num: 1, icon: Lightbulb, label: '기본 원리', color: 'blue' },
-              { num: 2, icon: Zap, label: '응용', color: 'green' },
-              { num: 3, icon: Target, label: '융합 사례', color: 'red' }
-            ].map(({ num, icon: Icon, label, color }) => (
-              <button
-                key={num}
-                onClick={() => setActiveStage(num)}
-                className={`flex-1 flex items-center justify-center gap-2 py-4 px-6 transition-colors ${activeStage === num
-                    ? `bg-${color}-50 border-b-2 border-${color}-500 text-${color}-700`
-                    : 'text-muted-foreground hover:bg-muted/30'
-                  }`}
-              >
-                <Icon className="h-4 w-4" />
-                <span className="font-semibold text-sm">{num}. {label}</span>
-                {activeStage === num && <CheckCircle className="h-4 w-4 ml-auto" />}
-              </button>
-            ))}
+            <button
+              onClick={() => setActiveStage(1)}
+              className={`flex-1 flex items-center justify-center gap-2 py-4 px-6 transition-colors ${activeStage === 1
+                  ? 'bg-blue-50 border-b-2 border-blue-500 text-blue-700'
+                  : 'text-muted-foreground hover:bg-muted/30'
+                }`}
+            >
+              <Lightbulb className="h-4 w-4" />
+              <span className="font-semibold text-sm">1. 기본 원리</span>
+              {activeStage === 1 && <CheckCircle className="h-4 w-4 ml-auto" />}
+            </button>
+
+            <button
+              onClick={() => setActiveStage(2)}
+              className={`flex-1 flex items-center justify-center gap-2 py-4 px-6 transition-colors ${activeStage === 2
+                  ? 'bg-green-50 border-b-2 border-green-500 text-green-700'
+                  : 'text-muted-foreground hover:bg-muted/30'
+                }`}
+            >
+              <Zap className="h-4 w-4" />
+              <span className="font-semibold text-sm">2. 응용</span>
+              {activeStage === 2 && <CheckCircle className="h-4 w-4 ml-auto" />}
+            </button>
+
+            <button
+              onClick={() => setActiveStage(3)}
+              className={`flex-1 flex items-center justify-center gap-2 py-4 px-6 transition-colors ${activeStage === 3
+                  ? 'bg-red-50 border-b-2 border-red-500 text-red-700'
+                  : 'text-muted-foreground hover:bg-muted/30'
+                }`}
+            >
+              <Target className="h-4 w-4" />
+              <span className="font-semibold text-sm">3. 융합 사례</span>
+              {activeStage === 3 && <CheckCircle className="h-4 w-4 ml-auto" />}
+            </button>
           </div>
 
           {/* Stage Content */}
@@ -248,8 +265,8 @@ export function PrincipleSection() {
                     <ExternalLink className="h-3.5 w-3.5 flex-shrink-0" />
                     <span className="text-muted-foreground">{link.title}</span>
                     <span className={`text-xs px-1.5 py-0.5 rounded ${link.type === 'youtube' ? 'bg-red-100 text-red-700' :
-                        link.type === 'wikipedia' ? 'bg-blue-100 text-blue-700' :
-                          'bg-gray-100 text-gray-700'
+                      link.type === 'wikipedia' ? 'bg-blue-100 text-blue-700' :
+                        'bg-gray-100 text-gray-700'
                       }`}>
                       {link.type === 'youtube' ? 'YouTube' : link.type === 'wikipedia' ? 'Wiki' : '링크'}
                     </span>
