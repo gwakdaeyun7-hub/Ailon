@@ -1,6 +1,6 @@
 /**
- * 학문 스냅 데이터 관리 Hook
- * daily_principles 컬렉션에서 학문 스냅 데이터를 가져옵니다.
+ * 학문 스냅 데이터 관리 Hook (New Structure)
+ * daily_principles 컬렉션에서 단일 원리(Foundation-Application-Integration) 데이터를 가져옵니다.
  */
 
 'use client';
@@ -52,7 +52,6 @@ export function useAcademicSnaps() {
     };
 
     fetchSnaps();
-  }, []);
-
+  }, []); // Trigger re-render only on mount
   return { snaps, disciplineInfo, loading, error };
 }
