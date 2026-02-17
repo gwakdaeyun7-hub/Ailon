@@ -491,43 +491,33 @@ export default function NewsScreen() {
           </View>
         ) : (
           <>
-            {/* ── 오늘의 하이라이트 ──────────────────────────────────────── */}
+            {/* ── 1. 오늘의 하이라이트 (FIRST) ──────────────────────────────────────── */}
             {newsData?.highlight && (
               <View style={{ marginBottom: 8 }}>
                 <View style={{ paddingTop: 8, paddingBottom: 10 }}>
-                  <SectionHeader title="오늘의 하이라이트" color={PRIMARY} />
+                  <SectionHeader title="⭐ 오늘의 하이라이트" color="#60a5fa" />
                 </View>
                 <HeroCard article={newsData.highlight} />
               </View>
             )}
 
-            {/* ── 가로 스크롤 섹션 ────────────────────────────────────── */}
-            <HorizontalSection
-              title="공식 발표"
-              articles={hs.official_announcements ?? []}
-              color="#7C3AED"
-              showAll={showAllHs['official'] ?? false}
-              onShowAll={() => setShowAllHs(prev => ({ ...prev, official: true }))}
-            />
-            <HorizontalSection
-              title="한국 AI"
-              articles={hs.korean_ai ?? []}
-              color="#E53935"
-              showAll={showAllHs['korean'] ?? false}
-              onShowAll={() => setShowAllHs(prev => ({ ...prev, korean: true }))}
-            />
-            <HorizontalSection
-              title="큐레이션"
-              articles={hs.curation ?? []}
-              color="#0EA5E9"
-              showAll={showAllHs['curation'] ?? false}
-              onShowAll={() => setShowAllHs(prev => ({ ...prev, curation: true }))}
-            />
-
-            {/* ── 카테고리 탭 + 기사 목록 ───────────────────────────────── */}
-            <View style={{ marginHorizontal: 16, backgroundColor: CARD, borderRadius: 18, overflow: 'hidden', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, marginBottom: 20 }}>
+            {/* ── 2. 카테고리 탭 + 기사 목록 (SECOND) ───────────────────────────────── */}
+            <View style={{
+              marginHorizontal: 16,
+              backgroundColor: CARD,
+              borderRadius: 18,
+              borderWidth: 2,
+              borderColor: '#e0e7ff',
+              overflow: 'hidden',
+              shadowColor: '#a78bfa',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.15,
+              shadowRadius: 10,
+              elevation: 6,
+              marginBottom: 20
+            }}>
               {/* 탭 */}
-              <View style={{ flexDirection: 'row', padding: 8, gap: 6, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}>
+              <View style={{ flexDirection: 'row', padding: 8, gap: 6, borderBottomWidth: 1, borderBottomColor: '#F3F4F6', backgroundColor: '#fafafa' }}>
                 {TABS.map(tab => {
                   const isActive = newsCategory === tab.key;
                   return (
@@ -537,7 +527,7 @@ export default function NewsScreen() {
                       style={{
                         flex: 1, alignItems: 'center', paddingVertical: 9,
                         borderRadius: 12,
-                        backgroundColor: isActive ? PRIMARY : 'transparent',
+                        backgroundColor: isActive ? '#60a5fa' : 'transparent',
                       }}
                     >
                       <Text style={{ fontSize: 13, fontWeight: '700', color: isActive ? '#FFFFFF' : '#6B7280' }}>
@@ -570,14 +560,37 @@ export default function NewsScreen() {
                         onPress={() => setShowAllMap(prev => ({ ...prev, [newsCategory]: true }))}
                         style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 14, borderTopWidth: 1, borderTopColor: '#F3F4F6' }}
                       >
-                        <Text style={{ color: PRIMARY, fontWeight: '700', fontSize: 14 }}>더보기</Text>
-                        <ChevronDown size={14} color={PRIMARY} />
+                        <Text style={{ color: '#60a5fa', fontWeight: '700', fontSize: 14 }}>더보기</Text>
+                        <ChevronDown size={14} color="#60a5fa" />
                       </Pressable>
                     )}
                   </>
                 );
               })()}
             </View>
+
+            {/* ── 3. 가로 스크롤 섹션 (THIRD) ────────────────────────────────────── */}
+            <HorizontalSection
+              title="💫 공식 발표"
+              articles={hs.official_announcements ?? []}
+              color="#7C3AED"
+              showAll={showAllHs['official'] ?? false}
+              onShowAll={() => setShowAllHs(prev => ({ ...prev, official: true }))}
+            />
+            <HorizontalSection
+              title="🇰🇷 한국 AI"
+              articles={hs.korean_ai ?? []}
+              color="#E53935"
+              showAll={showAllHs['korean'] ?? false}
+              onShowAll={() => setShowAllHs(prev => ({ ...prev, korean: true }))}
+            />
+            <HorizontalSection
+              title="📚 큐레이션"
+              articles={hs.curation ?? []}
+              color="#0EA5E9"
+              showAll={showAllHs['curation'] ?? false}
+              onShowAll={() => setShowAllHs(prev => ({ ...prev, curation: true }))}
+            />
 
             <View style={{ height: 20 }} />
           </>
