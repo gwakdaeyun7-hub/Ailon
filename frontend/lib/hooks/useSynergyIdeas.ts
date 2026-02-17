@@ -23,23 +23,21 @@ export function useSynergyIdeas() {
         setLoading(true);
         setError(null);
 
-        const today = new Date().toISOString().split('T')[0];
-        const ideasRef = doc(db, 'synergy_ideas', today);
-        const ideasDoc = await getDoc(ideasRef);
-
         let data: DailySynergyIdeas | null = null;
 
-        if (ideasDoc.exists()) {
-          data = ideasDoc.data() as DailySynergyIdeas;
-        } else {
-          const yesterday = new Date(Date.now() - 86400000)
+        // 최근 7일 동안 데이터 찾기
+        for (let daysAgo = 0; daysAgo < 7; daysAgo++) {
+          const date = new Date(Date.now() - daysAgo * 86400000)
             .toISOString()
             .split('T')[0];
-          const yesterdayRef = doc(db, 'synergy_ideas', yesterday);
-          const yesterdayDoc = await getDoc(yesterdayRef);
 
-          if (yesterdayDoc.exists()) {
-            data = yesterdayDoc.data() as DailySynergyIdeas;
+          const ideasRef = doc(db, 'synergy_ideas', date);
+          const ideasDoc = await getDoc(ideasRef);
+
+          if (ideasDoc.exists()) {
+            data = ideasDoc.data() as DailySynergyIdeas;
+            console.log(`💡 Found synergy ideas from ${date} (${daysAgo} days ago)`);
+            break;
           }
         }
 
@@ -48,6 +46,7 @@ export function useSynergyIdeas() {
           setSourceDiscipline(data.source_discipline || '');
           setSourcePrinciple(data.source_principle || '');
         } else {
+          console.warn('⚠️ No synergy ideas found in the last 7 days');
           setIdeas([]);
         }
       } catch (err) {

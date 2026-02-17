@@ -23,27 +23,21 @@ export function useNews() {
         setLoading(true);
         setError(null);
 
-        // 오늘 날짜
-        const today = new Date().toISOString().split('T')[0];
-
-        // Firestore에서 오늘 뉴스 가져오기
-        const newsRef = doc(db, 'daily_news', today);
-        const newsDoc = await getDoc(newsRef);
-
         let data: DailyNews | null = null;
 
-        if (newsDoc.exists()) {
-          data = newsDoc.data() as DailyNews;
-        } else {
-          // 오늘 뉴스가 없으면 어제 뉴스 가져오기
-          const yesterday = new Date(Date.now() - 86400000)
+        // 최근 7일 동안 데이터 찾기
+        for (let daysAgo = 0; daysAgo < 7; daysAgo++) {
+          const date = new Date(Date.now() - daysAgo * 86400000)
             .toISOString()
             .split('T')[0];
-          const yesterdayRef = doc(db, 'daily_news', yesterday);
-          const yesterdayDoc = await getDoc(yesterdayRef);
 
-          if (yesterdayDoc.exists()) {
-            data = yesterdayDoc.data() as DailyNews;
+          const newsRef = doc(db, 'daily_news', date);
+          const newsDoc = await getDoc(newsRef);
+
+          if (newsDoc.exists()) {
+            data = newsDoc.data() as DailyNews;
+            console.log(`📰 Found news data from ${date} (${daysAgo} days ago)`);
+            break;
           }
         }
 
@@ -53,6 +47,7 @@ export function useNews() {
           setHighlight(data.highlight || null);
           setThemes(data.themes || []);
         } else {
+          console.warn('⚠️ No news data found in the last 7 days');
           setNews([]);
         }
       } catch (err) {
