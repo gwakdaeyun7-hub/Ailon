@@ -186,7 +186,7 @@ function RoadmapAccordion({ idea }: { idea: SynergyIdea }) {
 export function IdeaSection() {
   const { user } = useAuth();
   const { news } = useNews();
-  const { getTodayPrinciple } = usePrinciples();
+  const { principle } = usePrinciples();
   const {
     ideas,
     sourceDiscipline,
@@ -199,8 +199,6 @@ export function IdeaSection() {
   const [error, setError] = useState<string | null>(null);
   const [expandedIdea, setExpandedIdea] = useState<number | null>(0);
 
-  const todayPrinciple = getTodayPrinciple();
-
   const generateIdea = async () => {
     if (!user) {
       setError('로그인이 필요합니다.');
@@ -210,7 +208,7 @@ export function IdeaSection() {
       setError('뉴스 데이터가 없습니다.');
       return;
     }
-    if (!todayPrinciple) {
+    if (!principle) {
       setError('학문 원리 데이터가 없습니다.');
       return;
     }
@@ -231,10 +229,10 @@ export function IdeaSection() {
             link: randomNews.link,
           },
           principle: {
-            title: todayPrinciple.title,
-            category: todayPrinciple.category,
-            description: todayPrinciple.description,
-            explanation: todayPrinciple.explanation,
+            title: principle.title,
+            category: principle.category,
+            description: principle.foundation.principle,
+            explanation: principle.integration.solution,
           },
         }),
       });
@@ -538,7 +536,7 @@ export function IdeaSection() {
 
         <Button
           onClick={generateIdea}
-          disabled={generating || !user || !news || news.length === 0 || !todayPrinciple}
+          disabled={generating || !user || !news || news.length === 0 || !principle}
           size="lg"
           className="w-full"
         >

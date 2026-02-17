@@ -22,8 +22,8 @@ from agents.config import (
     get_discipline_info,
 )
 from agents.news_team import run_news_team
-from agents.knowledge_graph_v2 import run_knowledge_graph as run_knowledge_team
-from agents.idea_graph_v2 import run_idea_graph as run_idea_team
+from agents.knowledge_graph import run_knowledge_graph as run_knowledge_team
+from agents.idea_graph import run_idea_graph as run_idea_team
 
 
 def save_news_to_firestore(result: dict):
@@ -259,9 +259,9 @@ def main():
     news_result = run_news_team()
     save_news_to_firestore(news_result)
 
-    # ─── Step 2: 학문 원리 에이전트 팀 (3개 분야) ───
+    # ─── Step 2: 학문 원리 에이전트 팀 (1개 원리) ───
     print("\n" + "─" * 40)
-    print("📚 Step 2/3: 학문 원리 에이전트 팀 (3개 분야)")
+    print("📚 Step 2/3: 학문 원리 에이전트 팀 (1개 원리)")
     print("─" * 40)
     knowledge_result = run_knowledge_team()
     save_principles_to_firestore(knowledge_result)
@@ -288,8 +288,8 @@ def main():
     print("\n" + "=" * 60)
     print("✅ Daily Agent Pipeline 완료!")
     print(f"   📰 뉴스: {len(news_result.get('raw_articles', []))}개 수집 → {len(news_result.get('final_articles', []))}개 큐레이션")
-    all_principles = knowledge_result.get("all_principles", knowledge_result.get("final_principles", []))
-    print(f"   📚 원리: 3개 분야 → {len(all_principles)}개 생성")
+    principle_title = knowledge_result.get("final_principle", {}).get("title", "N/A")
+    print(f"   📚 원리: 1개 융합 사례 생성 ({principle_title})")
     print(f"   💡 아이디어: {len(idea_result.get('problems', []))}개 문제 → {len(idea_result.get('final_ideas', []))}개 융합 아이디어")
     print("=" * 60)
 
