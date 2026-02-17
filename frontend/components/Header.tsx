@@ -1,10 +1,11 @@
 /**
  * Header - minimal navigation inspired by Newneek
- * Clean text logo, simple auth, white background
+ * Ailon logo image with clean design
  */
 
 'use client';
 
+import Image from 'next/image';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { LogIn, LogOut, User } from 'lucide-react';
@@ -16,9 +17,18 @@ export function Header() {
     <header className="sticky top-0 z-50 w-full bg-background border-b border-border">
       <div className="container mx-auto max-w-3xl flex h-14 items-center justify-between px-6">
         {/* Logo */}
-        <h1 className="text-lg font-extrabold tracking-tight text-foreground">
-          Ailon
-        </h1>
+        <div className="flex items-center gap-2">
+          <Image
+            src="/ailon_logo.png"
+            alt="Ailon"
+            width={32}
+            height={32}
+            className="rounded"
+          />
+          <h1 className="text-lg font-extrabold tracking-tight text-foreground">
+            Ailon
+          </h1>
+        </div>
 
         {/* Auth */}
         <div className="flex items-center gap-3">
