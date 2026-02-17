@@ -47,73 +47,101 @@
 
 ---
 
-## LangGraph AI 에이전트 아키텍처
+## LangGraph AI 에이전트 아키텍처 (v2 - 역방향 파이프라인)
 
-Academic Snaps는 **3개의 전문화된 AI 에이전트**가 LangGraph 프레임워크를 통해 순차적으로 협력합니다.
+Academic Snaps v2는 **4개의 전문화된 AI 에이전트**가 **역방향(Top-Down)** 순서로 협력하여 정확한 융합 사례를 생성합니다.
 
 ```mermaid
 graph LR
-    A[FoundationAgent] --> B[ApplicationAgent]
-    B --> C[IntegrationAgent]
-    C --> D[Firestore DB]
+    A[IntegrationAgent] --> B[ApplicationAgent]
+    B --> C[FoundationAgent]
+    C --> D[VerificationAgent]
+    D --> E[Firestore DB]
     
-    style A fill:#8B5CF6
+    style A fill:#10B981
     style B fill:#3B82F6
-    style C fill:#10B981
-    style D fill:#6B7280
+    style C fill:#8B5CF6
+    style D fill:#F59E0B
+    style E fill:#6B7280
 ```
 
-### 에이전트 파이프라인
+### 에이전트 파이프라인 (역방향)
 
-| 순서 | 에이전트 | 입력 | 출력 | LLM 사용 |
-|------|---------|------|------|----------|
-| 1 | FoundationAgent | 학문 분야 정보 | 기본 원리 | ✅ (1회) |
-| 2 | ApplicationAgent | 기본 원리 | 응용 사례 | ✅ (1회) |
-| 3 | IntegrationAgent | 기본 + 응용 | 융합 사례 | ✅ (1회) |
+| 순서 | 에이전트 | 입력 | 출력 | 역할 |
+|------|---------|------|------|------|
+| 1 | **IntegrationAgent** | 학문 분야 정보 | 융합 사례 | **유명한 융합 사례를 먼저 선정** ✨ |
+| 2 | **ApplicationAgent** | 융합 사례 | 응용 원리 | 융합 사례에서 **응용 원리 역추적** |
+| 3 | **FoundationAgent** | 융합 + 응용 | 기본 원리 | 응용 원리에서 **기본 원리 역추적** |
+| 4 | **VerificationAgent** | 전체 정보 | 검증 결과 | **웹 검색으로 사실 확인** 🔍 |
 
-**총 3회 LLM 호출/일** (기존 12회 대비 75% 감소)
+### 왜 역방향인가?
+
+**정확성(Accuracy)** 최우선:
+- ✅ **유명한 사례부터**: Simulated Annealing, 신경망, 유전 알고리즘 등 검증된 사례에서 출발
+- ✅ **Hallucination 방지**: 기본 원리에서 시작하면 LLM이 융합 사례를 지어낼 위험
+- ✅ **웹 검증**: Tavily API로 실제 존재 여부 확인
+
+**4회 LLM 호출/일** (integration → application → foundation → verification)
+
+### 📱 사용자 화면 표시 순서
+
+**생성 순서 (내부)**: 융합 → 응용 → 기본 → 검증  
+**표시 순서 (화면)**: **기본 → 응용 → 융합** ✨
+
+사용자에게는 학습 흐름에 맞게 **기본 원리부터 시작**하여 융합 사례까지 자연스럽게 이해할 수 있도록 표시합니다.
 
 ---
 
-## 3단계 콘텐츠 구조
+## 3단계 콘텐츠 구조 (생성 순서대로)
 
-### 1️⃣ Foundation (기본 원리)
+### 1️⃣ Integration (융합 사례) — **먼저 생성** ✨
 
-**FoundationAgent**: 해당 학문의 기본 원리를 쉽고 친근하게 설명
+**IntegrationAgent**: 유명한 융합 사례를 먼저 선정
 
 **출력 필드**:
 ```typescript
 {
-  title: string;                // 원리 이름
-  principle: string;            // 기본 원리 설명 (200-300자)
-  keyIdea: string;              // 핵심 아이디어 한 줄 (50자 이내)
-  everydayAnalogy: string;      // 일상 비유 (100-150자)
+  title: string;                // 융합 사례 이름 (예: "Simulated Annealing")
+  originalTitle: string;        // 영문 원제
+  problemSolved: string;        // 해결한 문제 (50자 이내)
+  solution: string;             // 해결 방법 (150-200자)
+  targetField: string;          // 적용된 타 학문 분야
+  realWorldExamples: string[];  // 실제 사례 3-4개
+  impactField: string;          // 영향 분야들
+  whyItWorks: string;           // 효과적인 이유
+  famousLevel: number;          // 유명도 (1-10)
 }
 ```
 
 **예시**:
 ```json
 {
-  "title": "담금질(Annealing)",
-  "principle": "금속을 높은 온도로 가열 후 천천히 냉각시키면, 원자들이 가장 안정적인 결정 구조를 갖게 돼요...",
-  "keyIdea": "천천히 식히면 에너지가 가장 낮은 안정한 상태에 도달해요",
-  "everydayAnalogy": "퍼즐 조각을 맞출 때 여유롭게 하나씩 맞추는 것과 비슷해요"
+  "title": "Simulated Annealing",
+  "originalTitle": "Simulated Annealing",
+  "problemSolved": "AI 로컬 미니마 문제",
+  "solution": "담금질 기법으로 확률적 도박을 허용하여 전역 최솟값 탐색...",
+  "targetField": "인공지능, 컴퓨터공학",
+  "realWorldExamples": ["물류 배송 최적화", "반도체 칩 설계", "단백질 폴딩"],
+  "impactField": "AI, 물류, 반도체, 생명과학",
+  "whyItWorks": "국소 최적해에 갇히지 않고 전역 최적해를 찾을 수 있음",
+  "famousLevel": 10
 }
 ```
 
 ---
 
-### 2️⃣ Application (응용 사례)
+### 2️⃣ Application (응용 원리) — **역추적**
 
-**ApplicationAgent**: 기본 원리를 다른 영역(통계, 계산, 공학 등)에 응용
+**ApplicationAgent**: 융합 사례에서 응용 원리를 역추적
 
 **출력 필드**:
 ```typescript
 {
   applicationField: string;     // 응용 분야
   description: string;          // 응용 설명 (200-300자)
-  mechanism: string;            // 응용 메커니즘 한 줄 (50-80자)
+  mechanism: string;            // 응용 메커니즘 한 줄
   technicalTerms: string[];     // 관련 기술 용어 3-5개
+  bridgeRole: string;           // 기본 원리와 융합 사례를 연결하는 역할
 }
 ```
 
@@ -123,39 +151,68 @@ graph LR
   "applicationField": "통계 물리학/최적화 알고리즘",
   "description": "높은 '온도(변수)'를 설정해 무작위로 답을 찾다가, 시간이 흐를수록 '온도'를 낮추며...",
   "mechanism": "온도를 낮추며 탐색 범위를 좁혀가는 방식이에요",
-  "technicalTerms": ["확률적 탐색", "전역 최적화", "메트로폴리스 알고리즘"]
+  "technicalTerms": ["확률적 탐색", "전역 최적화", "메트로폴리스 알고리즘"],
+  "bridgeRole": "물리학의 에너지 최소화 원리를 수학적 최적화 문제로 변환했어요"
 }
 ```
 
 ---
 
-### 3️⃣ Integration (융합 사례)
+### 3️⃣ Foundation (기본 원리) — **근원 찾기**
 
-**IntegrationAgent**: 다른 학문의 실제 문제를 해결한 융합 사례
+**FoundationAgent**: 응용 원리의 근원이 된 기본 원리 역추적
 
 **출력 필드**:
 ```typescript
 {
-  problemSolved: string;        // 해결한 문제 (50자 이내)
-  solution: string;             // 해결 방법 (150-200자)
-  realWorldExamples: string[];  // 실제 사례 3-4개
-  impactField: string;          // 영향 분야들 (80자 이내)
-  whyItWorks: string;           // 효과적인 이유 (100-150자)
+  title: string;                // 원리 이름
+  principle: string;            // 기본 원리 설명 (200-300자)
+  keyIdea: string;              // 핵심 아이디어 한 줄
+  everydayAnalogy: string;      // 일상 비유
+  scientificContext: string;    // 해당 학문에서 이 원리가 중요한 이유
 }
 ```
 
 **예시**:
 ```json
 {
-  "problemSolved": "AI 로컬 미니마 문제",
-  "solution": "담금질 기법으로 확률적 도박을 허용하여 전역 최솟값 탐색...",
-  "realWorldExamples": [
-    "물류 배송 경로 최적화",
-    "반도체 칩 설계(VLSI)",
-    "단백질 폴딩 예측"
+  "title": "담금질(Annealing)",
+  "principle": "금속을 높은 온도로 가열 후 천천히 냉각시키면, 원자들이 가장 안정적인 결정 구조를 갖게 돼요...",
+  "keyIdea": "천천히 식히면 에너지가 가장 낮은 안정한 상태에 도달해요",
+  "everydayAnalogy": "퍼즐 조각을 맞출 때 여유롭게 하나씩 맞추는 것과 비슷해요",
+  "scientificContext": "물리학에서 재료의 물성을 개선하는 핵심 공정이에요"
+}
+```
+
+---
+
+### 4️⃣ Verification (검증) — **사실 확인** 🔍
+
+**VerificationAgent**: Tavily API로 웹 검색하여 정보 검증
+
+**출력 필드**:
+```typescript
+{
+  verified: boolean;            // 검증 통과 여부
+  confidence: number;           // 신뢰도 (0.0-1.0)
+  sources: Array<{              // 검증 소스 (위키피디아, 논문 등)
+    title: string;
+    url: string;
+  }>;
+  factCheck: string;            // 검증 결과 설명
+}
+```
+
+**예시**:
+```json
+{
+  "verified": true,
+  "confidence": 0.8,
+  "sources": [
+    {"title": "Simulated annealing - Wikipedia", "url": "https://en.wikipedia.org/wiki/Simulated_annealing"},
+    {"title": "Optimization by Simulated Annealing - Science", "url": "https://..."}
   ],
-  "impactField": "AI, 물류, 반도체, 생명과학",
-  "whyItWorks": "국소 최적해에 갇히지 않고 전역 최적해를 찾을 수 있음"
+  "factCheck": "웹 검색 결과 이 융합 사례는 실제로 존재해요. Simulated Annealing은 1983년 Kirkpatrick이 제안한..."
 }
 ```
 
