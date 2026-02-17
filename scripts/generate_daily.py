@@ -23,7 +23,7 @@ from agents.config import (
 )
 from agents.news_team import run_news_team
 from agents.knowledge_graph_v2 import run_knowledge_graph as run_knowledge_team
-from agents.idea_graph import run_idea_graph as run_idea_team
+from agents.idea_graph_v2 import run_idea_graph as run_idea_team
 
 
 def save_news_to_firestore(result: dict):
