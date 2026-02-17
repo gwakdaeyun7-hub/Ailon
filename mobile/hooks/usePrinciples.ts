@@ -1,6 +1,8 @@
 /**
  * 학문 원리 데이터 Hook - Firestore daily_principles 컬렉션
  * targetDate: 특정 날짜 지정 가능 (히스토리 기능)
+ * 
+ * 새로운 구조: 단일 원리 (Foundation → Application → Integration)
  */
 
 import { useEffect, useState } from 'react';
@@ -59,13 +61,12 @@ export function usePrinciples(targetDate?: string) {
     }
   };
 
-  const allPrinciples: Principle[] = principlesData?.principles ?? [];
-  const todayPrinciple: Principle | null = principlesData?.today_principle ?? null;
+  // 단일 원리 (새로운 구조)
+  const principle: Principle | null = principlesData?.principle ?? null;
 
   return {
     principlesData,
-    allPrinciples,
-    todayPrinciple,
+    principle,  // 단일 원리
     loading,
     error,
     refresh: fetchPrinciples,

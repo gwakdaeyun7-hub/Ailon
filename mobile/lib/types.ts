@@ -23,34 +23,34 @@ export type NewsCategory = NewsCategoryLatest | NewsCategoryLegacy;
 
 export const NEWS_CATEGORY_LABELS: Record<string, string> = {
   // 최신 3 카테고리
-  model_research:    '모델/연구',
-  product_tools:     '제품/도구',
+  model_research: '모델/연구',
+  product_tools: '제품/도구',
   industry_business: '산업/비즈니스',
   // 구 3 카테고리 (하위 호환)
-  core_tech:     '모델/연구',
-  dev_tools:     '제품/도구',
+  core_tech: '모델/연구',
+  dev_tools: '제품/도구',
   trend_insight: '산업/비즈니스',
   // 레거시 5 카테고리
   models_architecture: '모델/연구',
-  agentic_reality:     '제품/도구',
-  opensource_code:     '제품/도구',
-  physical_ai:         '모델/연구',
-  policy_safety:       '산업/비즈니스',
+  agentic_reality: '제품/도구',
+  opensource_code: '제품/도구',
+  physical_ai: '모델/연구',
+  policy_safety: '산업/비즈니스',
 };
 
 export const NEWS_CATEGORY_COLORS: Record<string, string> = {
-  model_research:    '#F43F5E',
-  product_tools:     '#10B981',
+  model_research: '#F43F5E',
+  product_tools: '#10B981',
   industry_business: '#F59E0B',
   // 하위 호환
-  core_tech:           '#F43F5E',
-  dev_tools:           '#10B981',
-  trend_insight:       '#F59E0B',
+  core_tech: '#F43F5E',
+  dev_tools: '#10B981',
+  trend_insight: '#F59E0B',
   models_architecture: '#F43F5E',
-  agentic_reality:     '#F59E0B',
-  opensource_code:     '#10B981',
-  physical_ai:         '#F43F5E',
-  policy_safety:       '#F59E0B',
+  agentic_reality: '#F59E0B',
+  opensource_code: '#10B981',
+  physical_ai: '#F43F5E',
+  policy_safety: '#F59E0B',
 };
 
 // ---------------------------------------------------------------------------
@@ -114,7 +114,7 @@ export interface DailyNews {
 }
 
 // ---------------------------------------------------------------------------
-// Principle & Daily Principles
+// Principle & Daily Principles (New Structure: Foundation → Application → Integration)
 // ---------------------------------------------------------------------------
 
 export interface LearnMoreLink {
@@ -123,23 +123,46 @@ export interface LearnMoreLink {
   url: string;
 }
 
+export interface PrincipleFoundation {
+  principle: string;        // 기본 원리 설명
+  keyIdea: string;          // 핵심 아이디어 한 줄
+  everydayAnalogy: string;  // 일상 비유
+  scientificContext?: string; // 학문에서의 중요성
+}
+
+export interface PrincipleApplication {
+  applicationField: string;   // 응용 분야
+  description: string;         // 응용 설명
+  mechanism: string;           // 응용 메커니즘
+  technicalTerms: string[];    // 관련 기술 용어
+  bridgeRole?: string;         // 교량 역할
+}
+
+export interface PrincipleIntegration {
+  problemSolved: string;       // 해결한 문제
+  solution: string;            // 해결 방법
+  targetField: string;         // 영향받은 학문
+  realWorldExamples: string[]; // 실제 사례들
+  impactField: string;         // 영향 분야
+  whyItWorks: string;          // 왜 효과적인지
+}
+
+export interface PrincipleVerification {
+  verified: boolean;
+  confidence: number;
+  factCheck: string;
+}
+
 export interface Principle {
-  id?: string;
+  title: string;  // 융합 사례 이름
   category: string;
-  superCategory?: string;
-  title: string;
-  hook?: string;
-  description: string;
-  explanation: string;
-  everydayAnalogy?: string;
-  realWorldExample: string;
-  applicationIdeas: string[];
-  aiRelevance?: string;
-  crossDisciplineLinks?: string[];
-  difficulty?: 'beginner' | 'intermediate' | 'advanced';
+  superCategory: string;
+
+  foundation: PrincipleFoundation;
+  application: PrincipleApplication;
+  integration: PrincipleIntegration;
+  verification?: PrincipleVerification;
   learn_more_links?: LearnMoreLink[];
-  friendlyExplanation?: string;
-  simpleSummary?: string;
 }
 
 export interface DailyPrinciples {
@@ -151,10 +174,7 @@ export interface DailyPrinciples {
     ai_connection: string;
     superCategory: string;
   };
-  principles: Principle[];
-  disciplines?: any[];
-  today_principle: Principle;
-  count: number;
+  principle: Principle;  // 단일 원리 (3단계 구조)
   updated_at: any;
 }
 

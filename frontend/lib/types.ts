@@ -76,33 +76,55 @@ export interface DailyNews {
 }
 
 // ---------------------------------------------------------------------------
-// Principle & Daily Principles
+// Principle & Daily Principles (New Structure: Foundation → Application → Integration)
 // ---------------------------------------------------------------------------
 
-export interface Principle {
-  id?: string;
-  category:
-    | 'physics'
-    | 'chemistry'
-    | 'biology'
-    | 'philosophy'
-    | 'economics'
-    | 'psychology'
-    | 'mathematics'
-    | 'medicine_neuroscience'
-    | 'computer_science'
-    | 'electrical_engineering'
-    | 'psychology_cognitive_science'
-    | 'philosophy_ethics';
-  superCategory?: '기초과학' | '생명과학' | '공학' | '사회과학' | '인문학';
+export interface LearnMoreLink {
+  type: 'wikipedia' | 'youtube' | 'article';
   title: string;
-  description: string;
-  explanation: string;
-  realWorldExample: string;
-  applicationIdeas: string[];
-  aiRelevance?: string;
-  crossDisciplineLinks?: string[];
-  difficulty?: 'beginner' | 'intermediate' | 'advanced';
+  url: string;
+}
+
+export interface PrincipleFoundation {
+  principle: string;        // 기본 원리 설명
+  keyIdea: string;          // 핵심 아이디어 한 줄
+  everydayAnalogy: string;  // 일상 비유
+  scientificContext?: string; // 학문에서의 중요성
+}
+
+export interface PrincipleApplication {
+  applicationField: string;   // 응용 분야
+  description: string;         // 응용 설명
+  mechanism: string;           // 응용 메커니즘
+  technicalTerms: string[];    // 관련 기술 용어
+  bridgeRole?: string;         // 교량 역할
+}
+
+export interface PrincipleIntegration {
+  problemSolved: string;       // 해결한 문제
+  solution: string;            // 해결 방법
+  targetField: string;         // 영향받은 학문
+  realWorldExamples: string[]; // 실제 사례들
+  impactField: string;         // 영향 분야
+  whyItWorks: string;          // 왜 효과적인지
+}
+
+export interface PrincipleVerification {
+  verified: boolean;
+  confidence: number;
+  factCheck: string;
+}
+
+export interface Principle {
+  title: string;  // 융합 사례 이름
+  category: string;
+  superCategory: string;
+
+  foundation: PrincipleFoundation;
+  application: PrincipleApplication;
+  integration: PrincipleIntegration;
+  verification?: PrincipleVerification;
+  learn_more_links?: LearnMoreLink[];
 }
 
 export interface DailyPrinciples {
@@ -114,21 +136,13 @@ export interface DailyPrinciples {
     ai_connection: string;
     superCategory: string;
   };
-  principles: Principle[];
-  today_principle: Principle;
-  count: number;
+  principle: Principle;  // 단일 원리 (3단계 구조)
   updated_at: any;
 }
 
 // ---------------------------------------------------------------------------
 // Academic Snap & Daily Academic Snaps
 // ---------------------------------------------------------------------------
-
-export interface LearnMoreLink {
-  type: 'wikipedia' | 'youtube' | 'article';
-  title: string;
-  url: string;
-}
 
 export interface AcademicSnap {
   id?: string;
