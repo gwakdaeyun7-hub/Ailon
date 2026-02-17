@@ -68,46 +68,40 @@ def save_news_to_firestore(result: dict):
 
 
 def save_principles_to_firestore(result: dict):
-    """학문 원리 결과를 Firestore에 저장 (3개 분야 × 1원리)
-
-    Supports both single-discipline (legacy) and multi-discipline (new) results.
+    """학문 원리 결과를 Firestore daily_principles 컬렉션에 저장
+    
+    New format (1개 학문):
+        - discipline_key: 학문 분야 키
+        - discipline_info: 학문 분야 정보
+        - principle: {
+            title, category, superCategory,
+            foundation: {principle, keyIdea, everydayAnalogy},
+            application: {applicationField, description, mechanism, technicalTerms},
+            integration: {problemSolved, solution, realWorldExamples, impactField, whyItWorks},
+            learn_more_links: [...]
+          }
     """
     db = get_firestore_client()
     today = datetime.now().strftime("%Y-%m-%d")
 
-    # New multi-discipline format
-    all_principles = result.get("all_principles", result.get("final_principles", []))
-    for principle in all_principles:
-        if "learn_more_links" not in principle:
-            principle["learn_more_links"] = []
+    principle = result.get("final_principle", {})
+    discipline_key = result.get("discipline_key", "")
+    discipline_info = result.get("discipline_info", {})
 
-    today_principle = result.get("today_principle", {})
-    if today_principle and "learn_more_links" not in today_principle:
-        today_principle["learn_more_links"] = []
-
-    # Build per-discipline summary for storage
-    disciplines_results = result.get("disciplines_results", [])
-    disciplines_summary = []
-    for dr in disciplines_results:
-        disciplines_summary.append({
-            "discipline_key": dr.get("discipline_key", ""),
-            "discipline_info": dr.get("discipline_info", {}),
-            "principle": dr.get("today_principle", dr.get("final_principles", [{}])[0] if dr.get("final_principles") else {}),
-        })
+    # learn_more_links 기본값 설정
+    if "learn_more_links" not in principle:
+        principle["learn_more_links"] = []
 
     doc_ref = db.collection("daily_principles").document(today)
     doc_data = {
         "date": today,
-        "discipline_key": result.get("discipline_key", disciplines_summary[0]["discipline_key"] if disciplines_summary else ""),
-        "discipline_info": result.get("discipline_info", disciplines_summary[0]["discipline_info"] if disciplines_summary else {}),
-        "principles": all_principles,
-        "disciplines": disciplines_summary,
-        "today_principle": today_principle,
-        "count": len(all_principles),
+        "discipline_key": discipline_key,
+        "discipline_info": discipline_info,
+        "principle": principle,
         "updated_at": firestore.SERVER_TIMESTAMP,
     }
     doc_ref.set(doc_data)
-    print(f"  💾 학문 원리 {len(all_principles)}개 저장 완료 (3개 분야)")
+    print(f"  💾 학문 원리 저장 완료: {principle.get('title', 'N/A')} ({discipline_info.get('name', 'N/A')})")
 
 
 def save_ideas_to_firestore(result: dict, news_result: dict, knowledge_result: dict):

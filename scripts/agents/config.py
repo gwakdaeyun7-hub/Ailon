@@ -169,18 +169,6 @@ def get_crewai_llm(temperature: float = 0.7, max_tokens: int = 4096):
     )
 
 
-def get_adjacent_discipline_keys(center_key: str) -> list:
-    """주어진 학문 분야 키의 전후 인접 키를 포함해 3개 반환 (순환)"""
-    keys = ALL_DISCIPLINE_KEYS
-    total = len(keys)
-    try:
-        idx = keys.index(center_key)
-    except ValueError:
-        idx = 0
-    prev_idx = (idx - 1) % total
-    next_idx = (idx + 1) % total
-    return [keys[prev_idx], keys[idx], keys[next_idx]]
-
 
 def initialize_firebase():
     """Firebase 초기화"""

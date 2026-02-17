@@ -1,12 +1,16 @@
 """
-학문 원리 에이전트 팀 - LangGraph 기반 매일 동적 생성
-DisciplineExpertAgent -> AIRelevanceAgent -> QualityReviewerAgent -> FriendlyExplainerAgent
-매일 순환하는 10개 학문 분야에서 핵심 원리를 생성합니다.
+학문 원리 에이전트 팀 - LangGraph 기반 기본-응용-융합 구조
+FoundationAgent -> ApplicationAgent -> IntegrationAgent
 
-v3: 3개 학문 분야 동시 처리, 분야당 1개 원리,
-    FriendlyExplainerAgent 추가 (친절한 설명가),
-    friendlyExplanation + simpleSummary 필드 추가,
-    한국 학생 일상 앱(카톡, 유튜브, 배달앱 등) 비유 강화
+매일 1개 학문 분야에서 3단계 콘텐츠 생성:
+- 기본(Foundation): 해당 학문의 기본 원리
+- 응용(Application): 원리를 다른 영역에 응용
+- 융합(Integration): 다른 학문의 문제를 해결한 융합 사례
+
+예시: Simulated Annealing (물리학)
+- 기본: 담금질 원리 (금속을 높은 온도로 가열 후 천천히 냉각)
+- 응용: 확률적 최적화 알고리즘
+- 융합: AI 로컬 미니마 문제, 물류 최적화, 반도체 설계
 """
 
 import json
@@ -18,8 +22,6 @@ from agents.config import (
     get_llm,
     get_today_discipline_key,
     get_discipline_info,
-    DISCIPLINES,
-    ALL_DISCIPLINE_KEYS,
 )
 
 
@@ -37,35 +39,21 @@ def parse_llm_json(text: str):
     return json.loads(text)
 
 
-def get_adjacent_discipline_keys(center_key: str) -> list[str]:
-    """주어진 학문 분야 키의 전후 인접 키를 포함해 3개 반환 (순환)"""
-    keys = ALL_DISCIPLINE_KEYS
-    total = len(keys)
-    try:
-        idx = keys.index(center_key)
-    except ValueError:
-        idx = 0
-    prev_idx = (idx - 1) % total
-    next_idx = (idx + 1) % total
-    return [keys[prev_idx], keys[idx], keys[next_idx]]
-
-
 # ─── 상태 정의 ───
 class KnowledgeState(TypedDict):
     discipline_key: str
     discipline_info: dict
-    raw_principles: list[dict]
-    enriched_principles: list[dict]
-    final_principles: list[dict]
-    friendly_principles: list[dict]
-    today_principle: dict
+    foundation: dict
+    application: dict
+    integration: dict
+    final_principle: dict
 
 
-# ─── Agent 1: DisciplineExpertAgent ───
-def discipline_expert_node(state: KnowledgeState) -> dict:
-    """특정 학문 분야의 핵심 원리 1개를 생성 (LLM 1회) - 친근한 톤 + 알고 계셨나요? 훅 + 일상 비유"""
+# ─── Agent 1: FoundationAgent ───
+def foundation_agent_node(state: KnowledgeState) -> dict:
+    """해당 학문의 기본 원리를 쉽고 친근하게 설명 (LLM 1회)"""
     info = state["discipline_info"]
-    print(f"\n📚 [DisciplineExpertAgent] {info['name']} 분야 핵심 원리 생성 중...")
+    print(f"\n📚 [FoundationAgent] {info['name']} 분야 기본 원리 생성 중...")
 
     llm = get_llm(temperature=0.8, max_tokens=4096)
 
@@ -76,475 +64,302 @@ AI를 공부하는 학생들에게 따뜻하고 친근한 말투로 {info['name'
 초점 영역: {info['focus']}
 AI와의 연결: {info['ai_connection']}
 
-가장 핵심적이고 AI와 연결이 깊은 원리 1개만 생성해주세요. 원리는 다음을 포함해야 해요:
-- title: 원리의 이름 (한국어)
-- hook: "알고 계셨나요?" 스타일의 흥미로운 도입 문장 1개 (한국어, ~이에요/~해요 체로 작성)
-  예: "알고 계셨나요? 우리 뇌가 꿈을 꿀 때도 신경망이 학습을 계속하고 있다는 사실! 이것이 바로 오프라인 학습의 원리예요."
-- description: 한 줄 요약 (한국어, ~이에요/~해요 체)
-- explanation: 상세 설명 2-3문장 (한국어, ~이에요/~해요 체, 비전공자도 이해할 수 있게 친근하게)
-- everydayAnalogy: 일상 비유 2-3문장 (한국어, ~이에요/~해요 체)
-  예: "이건 마치 레시피를 따라 요리하는 것과 비슷해요. 재료(입력)를 넣고, 레시피(알고리즘)를 따르면, 맛있는 요리(출력)가 나오는 것처럼요!"
-  반드시 학생들이 일상에서 공감할 수 있는 비유를 사용하세요 (요리, 게임, SNS, 쇼핑, 음악 등).
-- realWorldExample: 실생활 예시 1-2문장 (한국어, ~이에요/~해요 체)
-- applicationIdeas: AI에 적용할 수 있는 아이디어 3개 (한국어, 배열, ~이에요/~해요 체)
+Simulated Annealing의 '담금질' 원리처럼, 다른 학문에 응용되거나 융합될 수 있는 
+**근본적이고 강력한 원리** 1개를 선정해 설명해주세요.
 
-기본적이지만 깊이 있는 원리를 선택하세요. 너무 전문적이거나 너무 상식적인 것은 피하세요.
-매번 다양한 원리를 제공하기 위해 창의적으로 선택해주세요.
-모든 텍스트는 반드시 친근한 ~이에요/~해요 체로 작성해주세요. 딱딱한 ~이다/~한다 체는 사용하지 마세요.
+원리는 다음을 포함해야 해요:
+- title: 원리의 이름 (한국어, 핵심 개념을 담은 명확한 제목)
+  예: "담금질(Annealing)", "경사하강법", "양자 중첩"
+- principle: 기본 원리 설명 (200-300자, ~이에요/~해요 체)
+  핵심 메커니즘과 작동 방식을 포함하세요.
+  예: "금속을 높은 온도로 가열했다가 천천히 냉각시키면, 원자들이 가장 안정적인 결정 구조를 갖게 돼요. 
+       급하게 식히면 불순물이 갇히지만, 천천히 식히면 에너지가 가장 낮은 안정한 상태에 도달하게 된답니다."
+- keyIdea: 핵심 아이디어 한 줄 (50자 이내, ~이에요/~해요 체)
+  예: "천천히 식히면 에너지가 가장 낮은 안정한 상태에 도달해요"
+- everydayAnalogy: 일상 비유 (100-150자, ~이에요/~해요 체)
+  예: "이건 마치 퍼즐 조각을 맞출 때 급하게 억지로 끼우는 대신, 
+       여유롭게 하나씩 정확한 위치를 찾아가는 것과 비슷해요."
 
-반드시 JSON 배열로만 응답하세요 (원리 1개를 담은 배열):
-[
-  {{
-    "title": "원리 이름",
-    "hook": "알고 계셨나요? ...",
-    "description": "한 줄 요약이에요",
-    "explanation": "상세 설명이에요...",
-    "everydayAnalogy": "일상 비유예요...",
-    "realWorldExample": "실생활 예시예요...",
-    "applicationIdeas": ["AI 적용 1이에요", "AI 적용 2예요", "AI 적용 3이에요"]
-  }}
-]"""
+다른 분야에 응용될 수 있는 보편적인 원리를 선택하세요.
+모든 텍스트는 반드시 친근한 ~이에요/~해요 체로 작성해주세요.
+
+반드시 JSON으로만 응답하세요:
+{{
+  "title": "원리 이름",
+  "principle": "기본 원리 설명이에요...",
+  "keyIdea": "핵심 아이디어예요",
+  "everydayAnalogy": "일상 비유예요..."
+}}"""
 
     response = llm.invoke([HumanMessage(content=prompt)])
 
     try:
-        principles = parse_llm_json(response.content)
-        # 혹시 여러 개가 왔으면 첫 번째만 사용
-        if isinstance(principles, list) and len(principles) > 1:
-            principles = [principles[0]]
-        print(f"  ✓ {len(principles)}개 원리 생성 완료")
+        foundation = parse_llm_json(response.content)
+        print(f"  ✓ 기본 원리 생성 완료: {foundation.get('title', 'N/A')}")
 
     except (json.JSONDecodeError, KeyError) as e:
         print(f"  ⚠ 원리 생성 파싱 실패: {e}")
-        principles = [{
+        foundation = {
             "title": f"{info['name']}의 기본 원리",
-            "hook": f"알고 계셨나요? {info['name']}에는 AI와 깊이 연결된 흥미로운 원리들이 숨어 있어요!",
-            "description": f"{info['name']}의 핵심 개념이에요.",
-            "explanation": f"{info['focus']}에 관한 기본 원리예요. 쉽게 말하면 우리 주변에서 흔히 볼 수 있는 현상이에요.",
-            "everydayAnalogy": "이건 마치 퍼즐을 맞추는 것과 비슷해요. 조각 하나하나가 모여 큰 그림을 완성하는 거예요.",
-            "realWorldExample": "다양한 분야에서 활용되고 있어요.",
-            "applicationIdeas": [info['ai_connection']],
-        }]
+            "principle": f"{info['focus']}에 관한 핵심 원리예요. 자연 현상이나 수학적 법칙에서 유래한 보편적인 개념이에요.",
+            "keyIdea": "기본 메커니즘을 이해하는 것이 중요해요",
+            "everydayAnalogy": "일상에서 흔히 볼 수 있는 현상과 비슷해요.",
+        }
 
-    return {"raw_principles": principles}
+    return {"foundation": foundation}
 
 
-# ─── Agent 2: AIRelevanceAgent ───
-def ai_relevance_node(state: KnowledgeState) -> dict:
-    """생성된 원리에 AI 관련성과 타 학문 연결고리를 추가 (LLM 1회) - 강화된 AI 연결성"""
-    print("\n🤖 [AIRelevanceAgent] AI 관련성 및 학문 간 연결 분석 중...")
+# ─── Agent 2: ApplicationAgent ───
+def application_agent_node(state: KnowledgeState) -> dict:
+    """기본 원리를 다른 영역에 응용한 사례 생성 (LLM 1회)"""
+    print("\n🔧 [ApplicationAgent] 응용 사례 생성 중...")
 
-    principles = state["raw_principles"]
+    foundation = state["foundation"]
     info = state["discipline_info"]
 
-    if not principles:
-        return {"enriched_principles": []}
+    if not foundation:
+        return {"application": {}}
 
     llm = get_llm(temperature=0.7, max_tokens=4096)
 
-    principles_text = json.dumps(principles, ensure_ascii=False, indent=2)
+    foundation_text = json.dumps(foundation, ensure_ascii=False, indent=2)
 
-    # 다른 학문 분야 목록
-    other_disciplines = []
-    for super_cat, disc_dict in DISCIPLINES.items():
-        for key, disc_info in disc_dict.items():
-            if key != state["discipline_key"]:
-                other_disciplines.append(f"{disc_info['name']} ({super_cat})")
+    prompt = f"""안녕하세요! 당신은 학제간 응용 전문가예요.
+다음 {info['name']} 원리를 다른 영역(통계, 계산, 공학 등)에 응용한 사례를 설명해주세요.
 
-    prompt = f"""안녕하세요! 당신은 AI와 학제간 연구의 전문가예요.
-다음 {info['name']} 원리에 대해 AI 관련성과 타 학문 연결고리를 분석해주세요.
+기본 원리:
+{foundation_text}
 
-원리:
-{principles_text}
+Simulated Annealing의 예시처럼:
+- 기본 원리: 물리학의 담금질
+- 응용: 통계 물리학/최적화 알고리즘으로 확장
+  "높은 '온도(변수)'를 설정해 무작위로 답을 찾다가, 시간이 흐를수록 '온도'를 낮추며 
+   정답 확률이 높은 쪽으로 탐색 범위를 좁혀가는 방식이에요."
 
-다른 학문 분야: {', '.join(other_disciplines)}
+다음을 생성해주세요 (~이에요/~해요 체):
+- applicationField: 응용된 분야 (예: "통계 물리학/최적화 알고리즘")
+- description: 어떻게 응용되는지 설명 (200-300자)
+  원리가 새로운 맥락에서 어떻게 작동하는지 구체적으로 설명하세요.
+- mechanism: 응용된 메커니즘 한 줄 (50-80자)
+  예: "온도를 낮추며 탐색 범위를 좁혀가는 방식이에요"
+- technicalTerms: 관련 기술 용어 3-5개 (배열)
+  예: ["확률적 탐색", "전역 최적화", "메트로폴리스 알고리즘"]
 
-각 원리에 대해 다음을 추가해주세요. 모든 텍스트는 ~이에요/~해요 체로 친근하게 작성해주세요:
-
-- aiRelevance: "이것이 AI에 중요한 이유" 섹션이에요.
-  반드시 구체적인 AI 기술/모델/연구 사례를 언급하면서 3-4문장으로 작성해주세요.
-  예를 들어 "이 원리는 GPT 시리즈의 어텐션 메커니즘에 직접 적용돼요" 같이 구체적으로요.
-  추상적인 설명("AI 발전에 도움이 돼요") 대신, 실제 AI 시스템/알고리즘/연구에서 어떻게 사용되는지 명확하게 설명해주세요.
-  포맷: "이것이 AI에 중요한 이유: [구체적 설명]"
-
-- crossDisciplineLinks: 이 원리와 연결되는 다른 학문 분야 2-3개와 연결 이유 (한국어, 배열, ~해요 체)
-  각 항목은 "학문명: 연결 이유" 형식이에요.
-
-- difficulty: 난이도 ("beginner", "intermediate", "advanced")
-
-반드시 JSON 배열로만 응답하세요. 원래 필드를 모두 유지하고 새 필드를 추가하세요:
-[
-  {{
-    "title": "...",
-    "hook": "...",
-    "description": "...",
-    "explanation": "...",
-    "everydayAnalogy": "...",
-    "realWorldExample": "...",
-    "applicationIdeas": [...],
-    "aiRelevance": "이것이 AI에 중요한 이유: ...",
-    "crossDisciplineLinks": ["수학: 연결 이유예요", "뇌과학: 연결 이유예요"],
-    "difficulty": "intermediate"
-  }}
-]"""
-
-    response = llm.invoke([HumanMessage(content=prompt)])
-
-    try:
-        enriched = parse_llm_json(response.content)
-        print(f"  ✓ {len(enriched)}개 원리에 AI 관련성 추가 완료")
-
-    except (json.JSONDecodeError, KeyError) as e:
-        print(f"  ⚠ AI 관련성 파싱 실패, 기본값 추가: {e}")
-        enriched = principles
-        for p in enriched:
-            p["aiRelevance"] = f"이것이 AI에 중요한 이유: {info.get('ai_connection', '')}와(과) 깊이 연결되어 있어요."
-            p["crossDisciplineLinks"] = []
-            p["difficulty"] = "intermediate"
-
-    return {"enriched_principles": enriched}
-
-
-# ─── Agent 3: QualityReviewerAgent ───
-def quality_reviewer_node(state: KnowledgeState) -> dict:
-    """정확성, 실용성, 이해도를 검증하고 최종 다듬기 + learn_more_links 생성 (LLM 1회) - 1개 원리 최종 선별"""
-    print("\n✅ [QualityReviewerAgent] 품질 검증 및 최종 다듬기 중...")
-
-    principles = state["enriched_principles"]
-    info = state["discipline_info"]
-
-    if not principles:
-        return {"final_principles": [], "today_principle": {}}
-
-    llm = get_llm(temperature=0.5, max_tokens=4096)
-
-    principles_text = json.dumps(principles, ensure_ascii=False, indent=2)
-
-    prompt = f"""안녕하세요! 당신은 교육 콘텐츠 품질 검수 전문가예요.
-다음 {info['name']} 원리를 검수하고 최종 버전을 작성해주세요.
-
-검수 기준:
-1. 정확성: 학문적으로 정확한가요?
-2. 이해도: 비전공자 대학생이 이해할 수 있나요?
-3. 실용성: AI를 공부하는 사람에게 실질적 도움이 되나요?
-4. 흥미도: 읽고 싶어지는 내용인가요?
-5. 톤: 모든 텍스트가 ~이에요/~해요 체의 친근한 말투인가요?
-
-다음을 수행하세요:
-- 설명이 너무 전문적이면 쉽고 친근하게 수정해주세요
-- 예시가 약하면 더 좋은 예시로 교체해주세요
-- AI 관련성이 피상적이면 구체적인 AI 기술/모델을 언급해서 보강해주세요
-- "알고 계셨나요?" 훅이 매력적인지 확인하고 필요하면 개선해주세요
-- 일상 비유(everydayAnalogy)가 공감 가능한지 확인하고 필요하면 개선해주세요
-- ~이다/~한다 체가 있으면 ~이에요/~해요 체로 수정해주세요
-- 가장 품질이 높은 원리 1개만 최종 결과로 반환해주세요
-- 원리에 learn_more_links를 2-3개 추가해주세요
-
-learn_more_links 작성 규칙:
-- 원리의 주제와 직접 관련된 위키피디아 한국어 페이지, 유튜브 교육 영상, 관련 기사/블로그를 추천해주세요
-- 위키피디아 링크는 한국어 위키피디아(ko.wikipedia.org)를 우선으로 해주세요
-- 유튜브 링크는 해당 개념을 잘 설명하는 교육 채널의 영상을 추천해주세요
-- 형식: [{{"type": "wikipedia", "title": "페이지 제목", "url": "https://ko.wikipedia.org/wiki/..."}}, {{"type": "youtube", "title": "영상 제목", "url": "https://www.youtube.com/watch?v=..."}}, {{"type": "article", "title": "기사 제목", "url": "https://..."}}]
-
-반드시 다음 JSON 형식으로만 응답하세요 (최종 원리 1개만):
+반드시 JSON으로만 응답하세요:
 {{
-  "principle": {{
-    "title": "...",
-    "hook": "알고 계셨나요? ...",
-    "description": "...",
-    "explanation": "...",
-    "everydayAnalogy": "...",
-    "realWorldExample": "...",
-    "applicationIdeas": [...],
-    "aiRelevance": "이것이 AI에 중요한 이유: ...",
-    "crossDisciplineLinks": [...],
-    "difficulty": "...",
-    "learn_more_links": [
-      {{"type": "wikipedia", "title": "...", "url": "..."}},
-      {{"type": "youtube", "title": "...", "url": "..."}},
-      {{"type": "article", "title": "...", "url": "..."}}
-    ]
-  }}
-}}
-
-원리:
-{principles_text}"""
+  "applicationField": "응용 분야",
+  "description": "응용 설명이에요...",
+  "mechanism": "메커니즘이에요",
+  "technicalTerms": ["용어1", "용어2", "용어3"]
+}}"""
 
     response = llm.invoke([HumanMessage(content=prompt)])
 
     try:
-        result = parse_llm_json(response.content)
-
-        # 새로운 형식: 단일 principle 객체
-        if "principle" in result:
-            best_principle = result["principle"]
-        # 이전 형식 호환: principles 배열
-        elif "principles" in result:
-            all_principles = result.get("principles", principles)
-            best_idx = result.get("best_index", 0)
-            best_principle = all_principles[best_idx] if best_idx < len(all_principles) else all_principles[0]
-        else:
-            # result 자체가 원리일 수 있음
-            best_principle = result
-
-        # 메타데이터 추가
-        best_principle["category"] = state["discipline_key"]
-        best_principle["superCategory"] = info.get("superCategory", "")
-        if "learn_more_links" not in best_principle:
-            best_principle["learn_more_links"] = []
-
-        final_principles = [best_principle]
-        today_principle = best_principle
-        print(f"  ✓ 품질 검증 완료, 최종 원리: {today_principle['title']}")
+        application = parse_llm_json(response.content)
+        print(f"  ✓ 응용 사례 생성 완료: {application.get('applicationField', 'N/A')}")
 
     except (json.JSONDecodeError, KeyError) as e:
-        print(f"  ⚠ 품질 검증 파싱 실패, 원본 사용: {e}")
-        final_principles = principles[:1] if principles else []
-        for p in final_principles:
-            p["category"] = state["discipline_key"]
-            p["superCategory"] = info.get("superCategory", "")
-            if "learn_more_links" not in p:
-                p["learn_more_links"] = []
-        today_principle = final_principles[0] if final_principles else {}
+        print(f"  ⚠ 응용 사례 파싱 실패: {e}")
+        application = {
+            "applicationField": "수학/컴퓨터과학",
+            "description": "이 원리는 복잡한 계산 문제를 해결하는 데 응용될 수 있어요.",
+            "mechanism": "기본 원리를 알고리즘으로 변환하는 방식이에요",
+            "technicalTerms": ["알고리즘", "최적화", "계산"],
+        }
 
-    return {"final_principles": final_principles, "today_principle": today_principle}
+    return {"application": application}
 
 
-# ─── Agent 4: FriendlyExplainerAgent (친절한 설명가) ───
-def friendly_explainer_node(state: KnowledgeState) -> dict:
-    """최종 원리에 친근한 설명, 일상 앱 비유, 중학생 요약을 추가 (LLM 1회)"""
-    print("\n😊 [FriendlyExplainerAgent] 친절한 설명 및 일상 비유 강화 중...")
+# ─── Agent 3: IntegrationAgent ───
+def integration_agent_node(state: KnowledgeState) -> dict:
+    """다른 학문의 실제 문제를 해결한 융합 사례 생성 (LLM 1회)"""
+    print("\n🌐 [IntegrationAgent] 융합 사례 생성 중...")
 
-    principles = state["final_principles"]
+    foundation = state["foundation"]
+    application = state["application"]
     info = state["discipline_info"]
 
-    if not principles:
-        return {"friendly_principles": [], "today_principle": {}}
+    if not foundation or not application:
+        return {"integration": {}}
 
-    llm = get_llm(temperature=0.9, max_tokens=4096)
+    llm = get_llm(temperature=0.7, max_tokens=4096)
 
-    principles_text = json.dumps(principles, ensure_ascii=False, indent=2)
+    foundation_text = json.dumps(foundation, ensure_ascii=False, indent=2)
+    application_text = json.dumps(application, ensure_ascii=False, indent=2)
 
-    prompt = f"""안녕하세요! 당신은 어려운 개념을 누구나 이해할 수 있게 설명하는 천재적인 설명가예요.
-한국 10대~20대 학생들이 매일 사용하는 앱과 서비스로 학문 원리를 설명하는 것이 특기예요.
+    prompt = f"""안녕하세요! 당신은 학제간 융합 연구 전문가예요.
+다음 원리와 응용 사례를 바탕으로, 실제로 다른 학문의 문제를 해결한 융합 사례를 설명해주세요.
 
-다음 {info['name']} 원리를 더 친근하고 이해하기 쉽게 보강해주세요.
+기본 원리:
+{foundation_text}
 
-원리:
-{principles_text}
+응용 사례:
+{application_text}
 
-각 원리에 대해 다음 작업을 수행해주세요:
+Simulated Annealing의 예시처럼:
+- 문제: AI 로컬 미니마 문제
+- 해결: 담금질 기법으로 확률적 도박을 허용하여 전역 최솟값 탐색
+- 실제 사례: 물류 배송 최적화, 반도체 칩 설계(VLSI), 단백질 폴딩 예측
+- 영향 분야: AI, 물류, 반도체, 생명과학
 
-1. **비유법 강화 (everydayAnalogy 개선)**:
-   - 기존 everydayAnalogy를 한국 학생들이 매일 사용하는 앱/서비스로 비유를 강화해주세요
-   - 카카오톡, 넷플릭스, 배달의민족/쿠팡이츠, 유튜브 알고리즘, 인스타그램, 틱톡, 당근마켓, 쿠팡, 네이버, 멜론, 리그오브레전드/발로란트 등
-   - 비유가 원리의 핵심을 정확하게 전달하는지 확인해주세요
+**중요**: AI 문제만 다룰 필요는 없어요. 다른 학문 분야의 문제를 해결한 사례도 좋아요.
+예: 경제학 → 게임 이론 → 통신망 설계, 생물학 → 진화 알고리즘 → 공학 최적화 등
 
-2. **톤 체크 및 수정**:
-   - 모든 텍스트가 ~이에요/~해요 체인지 다시 한번 확인하고, ~이다/~한다 체가 남아있으면 수정해주세요
-   - 딱딱하거나 교과서적인 표현을 자연스럽고 대화하듯 편한 표현으로 바꿔주세요
+다음을 생성해주세요 (~이에요/~해요 체):
+- problemSolved: 해결한 문제 (간결하게, 50자 이내)
+  예: "AI 로컬 미니마 문제", "복잡한 물류 경로 최적화"
+- solution: 어떻게 해결했는지 (150-200자)
+  원리와 응용이 어떻게 결합되어 문제를 해결했는지 설명하세요.
+- realWorldExamples: 실제 사례 3-4개 (배열, 각 30자 이내)
+  예: ["물류 배송 경로 최적화", "반도체 칩 설계(VLSI)", "단백질 폴딩 예측"]
+- impactField: 영향을 미친 분야들 (쉼표로 구분, 80자 이내)
+  예: "AI, 물류, 반도체, 생명과학"
+- whyItWorks: 왜 효과적인지 (100-150자)
+  이 융합이 왜 성공적인지 핵심 이유를 설명하세요.
 
-3. **friendlyExplanation 필드 추가**:
-   - 2-3문장으로 이 원리를 일상 앱/서비스 비유로 설명해주세요
-   - 반드시 구체적인 앱 이름을 사용하세요 (카카오톡, 넷플릭스, 배달앱, 유튜브, 인스타그램, 쿠팡 등)
-   - 예시: "넷플릭스가 내 취향을 귀신같이 아는 것, 경험해 보셨죠? 이게 바로 협업 필터링이에요. 나와 비슷한 취향의 사람들이 좋아한 콘텐츠를 추천해주는 거예요. 배달앱에서 '이 메뉴를 시킨 사람들이 함께 주문한 메뉴'를 보여주는 것도 같은 원리예요!"
-   - 예시: "카카오톡에서 단톡방에 메시지를 보내면 모든 사람에게 동시에 전달되죠? 이것이 바로 브로드캐스트 통신의 원리예요. 유튜브 알림도 마찬가지로 구독자 전체에게 한 번에 알림이 가는 거예요!"
-
-4. **simpleSummary 필드 추가**:
-   - 중학생도 이해할 수 있는 한 줄 요약이에요
-   - 최대한 쉬운 단어만 사용하고, 전문 용어는 피해주세요
-   - 예시: "컴퓨터가 많은 예시를 보고 스스로 규칙을 찾아내는 방법이에요"
-   - 예시: "여러 명이 함께 문제를 풀면 혼자보다 더 정확한 답을 찾을 수 있어요"
-
-반드시 다음 JSON 배열 형식으로만 응답하세요. 기존 필드를 모두 유지하고 개선하며, 새 필드를 추가하세요:
-[
-  {{
-    "title": "...",
-    "hook": "...",
-    "description": "...",
-    "explanation": "...",
-    "everydayAnalogy": "(강화된 버전)...",
-    "realWorldExample": "...",
-    "applicationIdeas": [...],
-    "aiRelevance": "...",
-    "crossDisciplineLinks": [...],
-    "difficulty": "...",
-    "learn_more_links": [...],
-    "category": "...",
-    "superCategory": "...",
-    "friendlyExplanation": "카카오톡/넷플릭스/배달앱 등을 활용한 2-3문장 설명...",
-    "simpleSummary": "중학생도 이해할 수 있는 한 줄 요약이에요"
-  }}
-]"""
+반드시 JSON으로만 응답하세요:
+{{
+  "problemSolved": "해결한 문제",
+  "solution": "해결 방법이에요...",
+  "realWorldExamples": ["사례1", "사례2", "사례3"],
+  "impactField": "영향 분야들",
+  "whyItWorks": "효과적인 이유예요..."
+}}"""
 
     response = llm.invoke([HumanMessage(content=prompt)])
 
     try:
-        friendly = parse_llm_json(response.content)
-
-        # 메타데이터가 누락되었을 수 있으므로 보존
-        for i, p in enumerate(friendly):
-            if "category" not in p or not p["category"]:
-                p["category"] = state["discipline_key"]
-            if "superCategory" not in p or not p["superCategory"]:
-                p["superCategory"] = info.get("superCategory", "")
-            if "learn_more_links" not in p:
-                p["learn_more_links"] = []
-            if "friendlyExplanation" not in p:
-                p["friendlyExplanation"] = p.get("everydayAnalogy", "")
-            if "simpleSummary" not in p:
-                p["simpleSummary"] = p.get("description", "")
-
-        today_principle = friendly[0] if friendly else state.get("today_principle", {})
-        print(f"  ✓ 친절한 설명 추가 완료: {today_principle.get('title', 'N/A')}")
+        integration = parse_llm_json(response.content)
+        print(f"  ✓ 융합 사례 생성 완료: {integration.get('problemSolved', 'N/A')}")
 
     except (json.JSONDecodeError, KeyError) as e:
-        print(f"  ⚠ 친절한 설명 파싱 실패, 기본값 추가: {e}")
-        friendly = principles
-        for p in friendly:
-            if "friendlyExplanation" not in p:
-                p["friendlyExplanation"] = p.get("everydayAnalogy", "")
-            if "simpleSummary" not in p:
-                p["simpleSummary"] = p.get("description", "")
-        today_principle = friendly[0] if friendly else state.get("today_principle", {})
+        print(f"  ⚠ 융합 사례 파싱 실패: {e}")
+        integration = {
+            "problemSolved": "복잡한 문제 해결",
+            "solution": "이 원리를 응용하여 여러 분야의 문제를 해결할 수 있어요.",
+            "realWorldExamples": ["공학 문제", "산업 최적화", "과학 연구"],
+            "impactField": "공학, 산업, 과학",
+            "whyItWorks": "보편적인 원리를 다양한 맥락에 적용할 수 있기 때문이에요.",
+        }
 
-    return {"friendly_principles": friendly, "today_principle": today_principle}
+    return {"integration": integration}
+
+
+# ─── 최종 통합 노드 ───
+def finalize_node(state: KnowledgeState) -> dict:
+    """3단계 콘텐츠를 하나의 principle 객체로 통합"""
+    print("\n✅ [Finalizer] 최종 원리 통합 중...")
+
+    foundation = state.get("foundation", {})
+    application = state.get("application", {})
+    integration = state.get("integration", {})
+    info = state["discipline_info"]
+
+    # 최종 principle 객체 구성
+    final_principle = {
+        "title": foundation.get("title", f"{info['name']}의 원리"),
+        "category": state["discipline_key"],
+        "superCategory": info.get("superCategory", ""),
+        "foundation": foundation,
+        "application": application,
+        "integration": integration,
+        # 추가 학습 자료 (간단한 예시)
+        "learn_more_links": [
+            {
+                "type": "wikipedia",
+                "title": f"{foundation.get('title', '원리')} - 위키피디아",
+                "url": f"https://ko.wikipedia.org/wiki/{foundation.get('title', '')}",
+            }
+        ],
+    }
+
+    print(f"  ✓ 최종 통합 완료: {final_principle['title']}")
+
+    return {"final_principle": final_principle}
 
 
 # ─── 학문 원리 에이전트 팀 그래프 빌드 ───
 def build_knowledge_team_graph():
-    """학문 원리 생성 에이전트 팀 그래프 (4단계)"""
+    """학문 원리 생성 에이전트 팀 그래프 (3단계 + 최종화)"""
     graph = StateGraph(KnowledgeState)
 
-    graph.add_node("expert", discipline_expert_node)
-    graph.add_node("ai_relevance", ai_relevance_node)
-    graph.add_node("quality_review", quality_reviewer_node)
-    graph.add_node("friendly_explainer", friendly_explainer_node)
+    graph.add_node("foundation", foundation_agent_node)
+    graph.add_node("application", application_agent_node)
+    graph.add_node("integration", integration_agent_node)
+    graph.add_node("finalize", finalize_node)
 
-    graph.add_edge(START, "expert")
-    graph.add_edge("expert", "ai_relevance")
-    graph.add_edge("ai_relevance", "quality_review")
-    graph.add_edge("quality_review", "friendly_explainer")
-    graph.add_edge("friendly_explainer", END)
+    graph.add_edge(START, "foundation")
+    graph.add_edge("foundation", "application")
+    graph.add_edge("application", "integration")
+    graph.add_edge("integration", "finalize")
+    graph.add_edge("finalize", END)
 
     return graph.compile()
 
 
-def run_knowledge_team(discipline_key: str = None, discipline_keys: list[str] = None) -> dict:
-    """학문 원리 에이전트 팀 실행
+def run_knowledge_team(discipline_key: str = None) -> dict:
+    """학문 원리 에이전트 팀 실행 (하루 1개 학문)
 
     Args:
-        discipline_key: 단일 학문 분야 키 (하위 호환용, discipline_keys보다 우선순위 낮음)
-        discipline_keys: 처리할 학문 분야 키 목록. None이면 오늘 학문 + 전후 인접 학문 3개 자동 선택.
+        discipline_key: 학문 분야 키. None이면 오늘의 학문 자동 선택.
 
     Returns:
-        dict: 하위 호환 필드(final_principles, today_principle 등) + 새 필드(disciplines_results, all_principles)
+        dict: discipline_key, discipline_info, final_principle 포함
     """
-    # discipline_keys 결정
-    if discipline_keys is not None:
-        keys_to_process = discipline_keys
-    elif discipline_key is not None:
-        keys_to_process = get_adjacent_discipline_keys(discipline_key)
-    else:
-        today_key = get_today_discipline_key()
-        keys_to_process = get_adjacent_discipline_keys(today_key)
+    # discipline_key 결정
+    if discipline_key is None:
+        discipline_key = get_today_discipline_key()
 
     print("=" * 60)
-    print(f"🚀 학문 원리 에이전트 팀 시작 - {len(keys_to_process)}개 학문 분야 처리")
-    for k in keys_to_process:
-        k_info = get_discipline_info(k)
-        print(f"   • {k_info.get('name', k)} ({k_info.get('superCategory', '')})")
+    print(f"🚀 학문 원리 에이전트 팀 시작 - {discipline_key}")
     print("=" * 60)
+
+    info = get_discipline_info(discipline_key)
+    if not info:
+        print(f"\n⚠ 학문 분야 '{discipline_key}'를 찾을 수 없어요.")
+        return {
+            "discipline_key": discipline_key,
+            "discipline_info": {},
+            "final_principle": {},
+        }
+
+    print(f"\n📘 학문 분야: {info['name']} ({info.get('superCategory', '')})")
+    print(f"   초점 영역: {info['focus']}")
+    print(f"   AI 연결: {info['ai_connection']}")
 
     graph = build_knowledge_team_graph()
 
-    disciplines_results = []
-    all_principles = []
+    initial_state = {
+        "discipline_key": discipline_key,
+        "discipline_info": info,
+        "foundation": {},
+        "application": {},
+        "integration": {},
+        "final_principle": {},
+    }
 
-    for dk in keys_to_process:
-        info = get_discipline_info(dk)
-        if not info:
-            print(f"\n⚠ 학문 분야 '{dk}'를 찾을 수 없어요. 건너뛸게요.")
-            continue
+    try:
+        result = graph.invoke(initial_state)
 
-        print(f"\n{'─' * 40}")
-        print(f"📘 [{info['name']}] 파이프라인 시작")
-        print(f"{'─' * 40}")
+        final_principle = result.get("final_principle", {})
 
-        initial_state = {
-            "discipline_key": dk,
+        print(f"\n{'=' * 60}")
+        print(f"✅ 학문 원리 에이전트 팀 완료")
+        print(f"   원리: {final_principle.get('title', 'N/A')}")
+        print(f"{'=' * 60}")
+
+        return {
+            "discipline_key": discipline_key,
             "discipline_info": info,
-            "raw_principles": [],
-            "enriched_principles": [],
-            "final_principles": [],
-            "friendly_principles": [],
-            "today_principle": {},
+            "final_principle": final_principle,
         }
 
-        try:
-            result = graph.invoke(initial_state)
-
-            friendly = result.get("friendly_principles", [])
-            final = result.get("final_principles", [])
-            # friendly_principles가 있으면 우선 사용, 없으면 final_principles 사용
-            output_principles = friendly if friendly else final
-
-            discipline_result = {
-                "discipline_key": dk,
-                "discipline_info": info,
-                "principles": output_principles,
-                "today_principle": result.get("today_principle", {}),
-            }
-
-            disciplines_results.append(discipline_result)
-            all_principles.extend(output_principles)
-
-            print(f"  ✓ [{info['name']}] 완료: {len(output_principles)}개 원리 생성")
-
-        except Exception as e:
-            print(f"  ✗ [{info['name']}] 파이프라인 실패: {e}")
-            disciplines_results.append({
-                "discipline_key": dk,
-                "discipline_info": info,
-                "principles": [],
-                "today_principle": {},
-                "error": str(e),
-            })
-
-    # 3개 학문 분야 중 가장 좋은 원리를 today_principle로 선택
-    # 기본적으로 오늘의 학문(가운데 키)의 원리를 best로 사용
-    best_principle = {}
-    if disciplines_results:
-        # 가운데(오늘) 학문의 원리를 우선
-        center_idx = len(disciplines_results) // 2
-        center_result = disciplines_results[center_idx]
-        if center_result.get("today_principle"):
-            best_principle = center_result["today_principle"]
-        else:
-            # 가운데가 실패했으면 첫 번째 성공한 결과에서 선택
-            for dr in disciplines_results:
-                if dr.get("today_principle"):
-                    best_principle = dr["today_principle"]
-                    break
-
-    print(f"\n{'=' * 60}")
-    print(f"✅ 학문 원리 에이전트 팀 완료: {len(all_principles)}개 원리 생성 (학문 {len(disciplines_results)}개)")
-    if best_principle:
-        print(f"   오늘의 원리: {best_principle.get('title', 'N/A')}")
-    print(f"{'=' * 60}")
-
-    # 하위 호환 + 새 필드 모두 반환
-    # 하위 호환: discipline_key, discipline_info, final_principles, today_principle
-    center_key = keys_to_process[len(keys_to_process) // 2] if keys_to_process else ""
-    center_info = get_discipline_info(center_key) if center_key else {}
-
-    return {
-        # 하위 호환 필드
-        "discipline_key": center_key,
-        "discipline_info": center_info,
-        "final_principles": all_principles,
-        "today_principle": best_principle,
-        # 새 필드
-        "disciplines_results": disciplines_results,
-        "all_principles": all_principles,
-    }
+    except Exception as e:
+        print(f"\n✗ 파이프라인 실패: {e}")
+        return {
+            "discipline_key": discipline_key,
+            "discipline_info": info,
+            "final_principle": {},
+            "error": str(e),
+        }
