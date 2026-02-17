@@ -42,51 +42,51 @@ const BG = '#F5F7FA';
 const CARD = '#FFFFFF';
 
 const CATEGORY_COLORS: Record<string, string> = {
-  model_research:    '#F43F5E',
-  product_tools:     '#10B981',
+  model_research: '#F43F5E',
+  product_tools: '#10B981',
   industry_business: '#F59E0B',
   // 하위 호환
-  core_tech:           '#F43F5E',
-  dev_tools:           '#10B981',
-  trend_insight:       '#F59E0B',
+  core_tech: '#F43F5E',
+  dev_tools: '#10B981',
+  trend_insight: '#F59E0B',
   models_architecture: '#F43F5E',
-  agentic_reality:     '#F59E0B',
-  opensource_code:     '#10B981',
-  physical_ai:         '#F43F5E',
-  policy_safety:       '#F59E0B',
+  agentic_reality: '#F59E0B',
+  opensource_code: '#10B981',
+  physical_ai: '#F43F5E',
+  policy_safety: '#F59E0B',
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
-  model_research:    '모델/연구',
-  product_tools:     '제품/도구',
+  model_research: '모델/연구',
+  product_tools: '제품/도구',
   industry_business: '산업/비즈니스',
   // 하위 호환
-  core_tech:           '모델/연구',
-  dev_tools:           '제품/도구',
-  trend_insight:       '산업/비즈니스',
+  core_tech: '모델/연구',
+  dev_tools: '제품/도구',
+  trend_insight: '산업/비즈니스',
   models_architecture: '모델/연구',
-  agentic_reality:     '제품/도구',
-  opensource_code:     '제품/도구',
-  physical_ai:         '모델/연구',
-  policy_safety:       '산업/비즈니스',
+  agentic_reality: '제품/도구',
+  opensource_code: '제품/도구',
+  physical_ai: '모델/연구',
+  policy_safety: '산업/비즈니스',
 };
 
 const TABS = [
-  { key: 'model_research',    label: '모델/연구' },
-  { key: 'product_tools',     label: '제품/도구' },
+  { key: 'model_research', label: '모델/연구' },
+  { key: 'product_tools', label: '제품/도구' },
   { key: 'industry_business', label: '산업/비즈니스' },
 ] as const;
 
 // 레거시 카테고리 → 신규 매핑
 const LEGACY: Record<string, NewsCategory> = {
-  core_tech:           'model_research',
-  dev_tools:           'product_tools',
-  trend_insight:       'industry_business',
+  core_tech: 'model_research',
+  dev_tools: 'product_tools',
+  trend_insight: 'industry_business',
   models_architecture: 'model_research',
-  agentic_reality:     'product_tools',
-  opensource_code:     'product_tools',
-  physical_ai:         'model_research',
-  policy_safety:       'industry_business',
+  agentic_reality: 'product_tools',
+  opensource_code: 'product_tools',
+  physical_ai: 'model_research',
+  policy_safety: 'industry_business',
 };
 
 function normCat(cat?: string): NewsCategory {
@@ -108,12 +108,12 @@ function formatDate(str?: string) {
 
 // 카테고리별 그라디언트 색상 (이미지 대체용)
 const CAT_GRADIENTS: Record<string, [string, string]> = {
-  model_research:    ['#1E3A5F', '#0F1F3D'],
-  product_tools:     ['#064E3B', '#022C22'],
+  model_research: ['#1E3A5F', '#0F1F3D'],
+  product_tools: ['#064E3B', '#022C22'],
   industry_business: ['#78350F', '#3D1A05'],
   // 하위 호환
-  core_tech:     ['#1E3A5F', '#0F1F3D'],
-  dev_tools:     ['#064E3B', '#022C22'],
+  core_tech: ['#1E3A5F', '#0F1F3D'],
+  dev_tools: ['#064E3B', '#022C22'],
   trend_insight: ['#78350F', '#3D1A05'],
 };
 
@@ -141,20 +141,28 @@ function HorizontalCard({ article }: { article: HorizontalArticle }) {
     <Pressable
       onPress={() => article.link && Linking.openURL(article.link)}
       style={{
-        width: 220, backgroundColor: CARD, borderRadius: 14, overflow: 'hidden',
-        marginRight: 12, elevation: 2,
-        shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 6,
+        width: 220,
+        borderRadius: 14,
+        borderWidth: 2,
+        borderColor: `${color}40`, // 25% opacity
+        backgroundColor: CARD,
+        marginRight: 12,
+        shadowColor: color,
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 4,
       }}
     >
       {/* 상단 컬러 바 */}
-      <View style={{ height: 4, backgroundColor: color }} />
+      <View style={{ height: 3, backgroundColor: color, borderTopLeftRadius: 12, borderTopRightRadius: 12 }} />
       <View style={{ padding: 12 }}>
         {/* 소스 배지 */}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
           <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: color, alignItems: 'center', justifyContent: 'center' }}>
             <Text style={{ color: '#FFF', fontSize: 9, fontWeight: '800' }}>{article.source.charAt(0)}</Text>
           </View>
-          <Text style={{ fontSize: 11, fontWeight: '700', color: color }}>{article.source}</Text>
+          <Text style={{ fontSize: 11, fontWeight: '700', color }}>{article.source}</Text>
         </View>
         <Text style={{ fontSize: 13, fontWeight: '700', color: '#111827', lineHeight: 19 }} numberOfLines={3}>
           {article.title}
@@ -227,75 +235,88 @@ function HeroCard({ article }: { article: Article }) {
   };
 
   return (
-    <View style={{ marginHorizontal: 16, marginBottom: 20, borderRadius: 18, overflow: 'hidden', elevation: 6, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.18, shadowRadius: 12 }}>
-      {/* 이미지 영역 (그라디언트 배경) */}
-      <Pressable onPress={toggle} style={{ backgroundColor: grad[0], minHeight: 190, padding: 16, justifyContent: 'flex-end' }}>
-        {/* 배경: og:image 또는 그라디언트 */}
-        {article.image_url ? (
-          <>
-            <Image source={{ uri: article.image_url }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} resizeMode="cover" />
-            <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.55)' }} />
-          </>
-        ) : (
-          <>
-            <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: grad[1], opacity: 0.45 }} />
-            <View style={{ position: 'absolute', top: -30, right: -30, width: 150, height: 150, borderRadius: 75, backgroundColor: 'rgba(255,255,255,0.04)' }} />
-            <View style={{ position: 'absolute', top: 20, right: 40, width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(255,255,255,0.06)' }} />
-          </>
-        )}
+    <View style={{ marginHorizontal: 16, marginBottom: 20 }}>
+      {/* Futuristic border effect using shadows */}
+      <View style={{
+        borderRadius: 18,
+        borderWidth: 2,
+        borderColor: '#a78bfa', // Purple
+        backgroundColor: CARD,
+        shadowColor: '#60a5fa', // Blue
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.3,
+        shadowRadius: 12,
+        elevation: 8
+      }}>
+        {/* 이미지 영역 (그라디언트 배경) */}
+        <Pressable onPress={toggle} style={{ backgroundColor: grad[0], minHeight: 190, padding: 16, justifyContent: 'flex-end', borderTopLeftRadius: 16, borderTopRightRadius: 16, overflow: 'hidden' }}>
+          {/* 배경: og:image 또는 그라디언트 */}
+          {article.image_url ? (
+            <>
+              <Image source={{ uri: article.image_url }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} resizeMode="cover" />
+              <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.55)' }} />
+            </>
+          ) : (
+            <>
+              <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: grad[1], opacity: 0.45 }} />
+              <View style={{ position: 'absolute', top: -30, right: -30, width: 150, height: 150, borderRadius: 75, backgroundColor: 'rgba(255,255,255,0.04)' }} />
+              <View style={{ position: 'absolute', top: 20, right: 40, width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(255,255,255,0.06)' }} />
+            </>
+          )}
 
-        {/* HOT 배지 + 날짜 */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-          <View style={{ backgroundColor: PRIMARY, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 }}>
-            <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '800', letterSpacing: 0.5 }}>HOT</Text>
-          </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-            <Calendar size={12} color="rgba(255,255,255,0.7)" />
-            <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12 }}>{formatDate(article.published)}</Text>
-          </View>
-        </View>
-
-        {/* 제목 */}
-        <Text style={{ color: '#FFFFFF', fontSize: 22, fontWeight: '800', lineHeight: 30, marginBottom: 12 }}>
-          {displayTitle(article)}
-        </Text>
-
-        {/* 통계 행 */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
-          <LikeCount itemId={itemId} />
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-            <Clock size={12} color="rgba(255,255,255,0.6)" />
-            <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>5분</Text>
-          </View>
-          <View style={{ marginLeft: 'auto', width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' }}>
-            {expanded ? <ChevronUp size={13} color="#FFFFFF" /> : <ChevronDown size={13} color="#FFFFFF" />}
-          </View>
-        </View>
-      </Pressable>
-
-      {/* 펼침: 요약 + 원문 + ReactionBar */}
-      {expanded && (
-        <View style={{ backgroundColor: CARD, padding: 16 }}>
-          {article.impact_comment && (
-            <View style={{ flexDirection: 'row', gap: 8, backgroundColor: PRIMARY_LIGHT, borderRadius: 10, padding: 10, marginBottom: 10 }}>
-              <Zap size={13} color={PRIMARY} style={{ marginTop: 2 }} />
-              <Text style={{ color: '#BE123C', fontSize: 13, flex: 1, lineHeight: 19 }}>{article.impact_comment}</Text>
+          {/* HOT 배지 + 날짜 */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+            <View style={{ backgroundColor: '#60a5fa', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 }}>
+              <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '800', letterSpacing: 0.5 }}>⭐ HOT</Text>
             </View>
-          )}
-          {(article.summary || article.description) && (
-            <Text style={{ fontSize: 14, color: '#374151', lineHeight: 22, marginBottom: 12 }}>
-              {article.summary ?? article.description}
-            </Text>
-          )}
-          {article.link && (
-            <Pressable onPress={() => Linking.openURL(article.link)} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#111827', borderRadius: 12, paddingVertical: 12, marginBottom: 12 }}>
-              <ExternalLink size={14} color="#FFFFFF" />
-              <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 14 }}>원문 보기</Text>
-            </Pressable>
-          )}
-          <ReactionBar itemType="news" itemId={itemId} shareText={`${displayTitle(article)}\n\n${article.link ?? ''}`} shareTitle={displayTitle(article)} />
-        </View>
-      )}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Calendar size={12} color="rgba(255,255,255,0.7)" />
+              <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12 }}>{formatDate(article.published)}</Text>
+            </View>
+          </View>
+
+          {/* 제목 */}
+          <Text style={{ color: '#FFFFFF', fontSize: 22, fontWeight: '800', lineHeight: 30, marginBottom: 12 }}>
+            {displayTitle(article)}
+          </Text>
+
+          {/* 통계 행 */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+            <LikeCount itemId={itemId} />
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Clock size={12} color="rgba(255,255,255,0.6)" />
+              <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>5분</Text>
+            </View>
+            <View style={{ marginLeft: 'auto', width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' }}>
+              {expanded ? <ChevronUp size={13} color="#FFFFFF" /> : <ChevronDown size={13} color="#FFFFFF" />}
+            </View>
+          </View>
+        </Pressable>
+
+        {/* 펼침: 요약 + 원문 + ReactionBar */}
+        {expanded && (
+          <View style={{ backgroundColor: CARD, padding: 16 }}>
+            {article.impact_comment && (
+              <View style={{ flexDirection: 'row', gap: 8, backgroundColor: PRIMARY_LIGHT, borderRadius: 10, padding: 10, marginBottom: 10 }}>
+                <Zap size={13} color={PRIMARY} style={{ marginTop: 2 }} />
+                <Text style={{ color: '#BE123C', fontSize: 13, flex: 1, lineHeight: 19 }}>{article.impact_comment}</Text>
+              </View>
+            )}
+            {(article.summary || article.description) && (
+              <Text style={{ fontSize: 14, color: '#374151', lineHeight: 22, marginBottom: 12 }}>
+                {article.summary ?? article.description}
+              </Text>
+            )}
+            {article.link && (
+              <Pressable onPress={() => Linking.openURL(article.link)} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#111827', borderRadius: 12, paddingVertical: 12, marginBottom: 12 }}>
+                <ExternalLink size={14} color="#FFFFFF" />
+                <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 14 }}>원문 보기</Text>
+              </Pressable>
+            )}
+            <ReactionBar itemType="news" itemId={itemId} shareText={`${displayTitle(article)}\n\n${article.link ?? ''}`} shareTitle={displayTitle(article)} />
+          </View>
+        )}
+      </View>
     </View>
   );
 }
