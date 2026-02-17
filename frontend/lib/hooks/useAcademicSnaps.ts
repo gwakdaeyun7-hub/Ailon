@@ -22,31 +22,26 @@ export function useAcademicSnaps() {
         setLoading(true);
         setError(null);
 
-        const today = new Date().toISOString().split('T')[0];
+        // 최근 7일 동안 데이터 찾기
+        for (let daysAgo = 0; daysAgo < 7; daysAgo++) {
+          const date = new Date(Date.now() - daysAgo * 86400000)
+            .toISOString()
+            .split('T')[0];
 
-        // Try today's data first
-        const todayRef = doc(db, 'daily_principles', today);
-        const todayDoc = await getDoc(todayRef);
+          const ref = doc(db, 'daily_principles', date);
+          const docSnap = await getDoc(ref);
 
-        if (todayDoc.exists()) {
-          const data = todayDoc.data() as DailyPrinciples;
-          setSnaps(data.principles || []);
-          setDisciplineInfo(data.discipline_info || null);
-          return;
+          if (docSnap.exists()) {
+            const data = docSnap.data() as DailyPrinciples;
+            // New structure: single principle object, wrap in array for backward compatibility
+            setSnaps(data.principle ? [data.principle] : []);
+            setDisciplineInfo(data.discipline_info || null);
+            console.log(`📚 Found academic snaps from ${date} (${daysAgo} days ago)`);
+            return;
+          }
         }
 
-        // Fallback to yesterday
-        const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-        const yesterdayRef = doc(db, 'daily_principles', yesterday);
-        const yesterdayDoc = await getDoc(yesterdayRef);
-
-        if (yesterdayDoc.exists()) {
-          const data = yesterdayDoc.data() as DailyPrinciples;
-          setSnaps(data.principles || []);
-          setDisciplineInfo(data.discipline_info || null);
-          return;
-        }
-
+        console.warn('⚠️ No academic snaps found in the last 7 days');
         setSnaps([]);
       } catch (err) {
         console.error('Error fetching academic snaps:', err);
