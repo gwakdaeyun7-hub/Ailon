@@ -16,7 +16,6 @@ from langchain_core.messages import HumanMessage
 from langgraph.graph import StateGraph, END
 
 from agents.config import get_llm
-from agents.tools import fetch_pain_points
 
 
 class IdeaGraphState(TypedDict):
@@ -118,30 +117,40 @@ JSON 형식으로 응답하세요:
 def ai_problem_scout_node(state: IdeaGraphState) -> dict:
     """
     Step 2: 메커니즘으로 AI 문제 필터링
-    - 웹에서 AI 고충 수집 (기존 도구 재활용)
+    - 기능1에서 수집한 뉴스에서 AI 문제/한계점 추출
     - 메커니즘과 관련된 문제만 필터링
     """
     print("\n[ai_problem_scout_node] AI 문제 탐색 및 필터링 중...")
     
-    # 1. 웹에서 AI 고충 수집
-    pain_points = fetch_pain_points()
-    print(f"  [수집] {len(pain_points)}개 AI 고충 수집 완료")
+    # 1. 기능1에서 수집한 뉴스 활용
+    news_articles = state.get("news_articles", [])
+    if not news_articles:
+        print("  [WARNING] news_articles가 비어있습니다. 빈 결과 반환.")
+        return {"matched_problems": []}
+    
+    print(f"  [수집] 기능1에서 {len(news_articles)}개 뉴스 활용")
     
     # 2. 메커니즘으로 필터링
     core_mechanism = state["core_mechanism"]
     llm = get_llm(temperature=0.7, max_tokens=4096)
     
-    # 상위 20개만 처리
-    top_pains = sorted(pain_points, key=lambda x: x.get("social_score", 0), reverse=True)[:20]
-    pain_text = "\n".join([
-        f"- [{p.get('source', '')}] {p['title']}"
-        for p in top_pains
+    # 상위 30개 뉴스만 처리 (중요도 기준)
+    top_news = sorted(
+        news_articles, 
+        key=lambda x: x.get("importance_score", 0), 
+        reverse=True
+    )[:30]
+    
+    # 뉴스에서 문제/한계점 추출하기 위한 텍스트 구성
+    news_text = "\n".join([
+        f"- [{n.get('source', '')}] {n.get('title', '')}\n  {n.get('description', '')[:200]}"
+        for n in top_news
     ])
     
-    prompt = f"""다음은 웹에서 수집한 AI 관련 고충들입니다.
+    prompt = f"""다음은 최신 AI 뉴스 목록입니다. 이 뉴스들에서 **현재 AI가 해결하지 못하거나 어려움을 겪고 있는 문제/한계점**을 찾아주세요.
 
-## 수집된 고충들
-{pain_text}
+## AI 뉴스
+{news_text}
 
 ## 핵심 메커니즘
 메커니즘: {core_mechanism.get('coreMechanism', '')}
@@ -149,13 +158,15 @@ def ai_problem_scout_node(state: IdeaGraphState) -> dict:
 해결 가능 문제: {', '.join(core_mechanism.get('solvableProblems', []))}
 키워드: {', '.join(core_mechanism.get('analogyKeywords', []))}
 
-**과제**: 위 고충들 중에서 이 메커니즘으로 해결할 수 있는 것 **3개**를 골라주세요.
-각 고충이 메커니즘과 어떻게 연결되는지 설명하세요.
+**과제**: 
+1. 위 뉴스에서 언급된 AI의 문제/한계점/고충을 파악하세요
+2. 그 중에서 이 메커니즘으로 해결할 수 있는 것 **3개**를 골라주세요
+3. 각 문제가 메커니즘과 어떻게 연결되는지 설명하세요
 
 JSON 배열로 응답하세요:
 [
   {{
-    "title": "문제 제목",
+    "title": "AI 문제 제목 (예: LLM의 장기 기억 유지 한계)",
     "source": "출처",
     "relevanceReason": "이 메커니즘으로 왜 해결 가능한지 (100자 이내)",
     "relevanceScore": 0.85,
@@ -173,7 +184,7 @@ JSON 배열로 응답하세요:
         print(f"  [WARNING] ai_problem_scout_node 파싱 실패: {e}")
         matched_problems = [{
             "title": "AI 모델 최적화 문제",
-            "source": "Reddit AI",
+            "source": "기능1 뉴스",
             "relevanceReason": f"{core_mechanism.get('coreMechanism', '')}를 활용하여 해결 가능",
             "relevanceScore": 0.7,
             "urgency": 7,

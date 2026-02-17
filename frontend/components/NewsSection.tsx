@@ -271,7 +271,7 @@ export function NewsSection() {
 
       {/* Daily overview */}
       {dailyOverview && (
-        <div className="mb-8 pb-8 border-b border-border">
+        <div className="mb-8 pb-8 border-b border-gradient">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
             오늘의 AI 트렌드 요약
           </p>
@@ -281,48 +281,17 @@ export function NewsSection() {
         </div>
       )}
 
-      {/* Short-form section (compact cards) */}
-      {shortFormArticles.length > 0 && (
-        <div className="mb-8 pb-8 border-b border-border">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">
-            핵심 뉴스 5선
-          </p>
-          <div className="divide-y divide-border">
-            {shortFormArticles.slice(0, 5).map((article, index) => (
-              <ArticleCard
-                key={`short-${index}`}
-                article={article}
-                index={index}
-                compact
-                onOpenDetail={setSelectedArticle}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Category tabs */}
-      <Tabs value={activeCategory} onValueChange={setActiveCategory}>
-        <TabsList className="mb-6">
-          {Object.entries(CATEGORY_CONFIG).map(([key, { label, icon }]) => (
-            <TabsTrigger key={key} value={key}>
-              <span className="flex items-center gap-1.5">
-                {icon}
-                {label}
-              </span>
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
-
-      {/* Highlight article */}
-      {activeCategory === 'all' && highlight && highlight.title && (
-        <div className="mb-8 pb-8 border-b border-border">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">
-            오늘의 하이라이트
+      {/* 1. HIGHLIGHT NEWS - First */}
+      {highlight && highlight.title && (
+        <div className="mb-8">
+          <p className="text-xs font-semibold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent uppercase tracking-wider mb-4">
+            ⭐ 오늘의 하이라이트
           </p>
           <div
-            className="cursor-pointer group"
+            className="cursor-pointer group p-6 rounded-2xl border-2 border-transparent bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20 hover:from-blue-500/30 hover:via-purple-500/30 hover:to-pink-500/30 transition-all duration-300 relative overflow-hidden"
+            style={{
+              background: 'linear-gradient(white, white) padding-box, linear-gradient(135deg, #60a5fa, #a78bfa, #f472b6) border-box'
+            }}
             onClick={() => setSelectedArticle(highlight)}
           >
             <h3 className="text-xl md:text-2xl font-bold text-foreground leading-snug mb-2 group-hover:opacity-70 transition-opacity">
@@ -337,6 +306,7 @@ export function NewsSection() {
             <Button
               variant="outline"
               size="sm"
+              className="border-blue-500/50 hover:border-blue-500 hover:bg-blue-50 transition-all"
               onClick={(e) => {
                 e.stopPropagation();
                 window.open(highlight.link, '_blank');
@@ -349,37 +319,109 @@ export function NewsSection() {
         </div>
       )}
 
-      {/* Theme tags */}
-      {activeCategory === 'all' && themes.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-6">
-          {themes.map((theme, i) => (
-            <span
-              key={i}
-              className="px-3 py-1 text-xs text-muted-foreground border border-border rounded-full"
+      {/* 2. CATEGORY TABS + NEWS - Second */}
+      <div className="mb-8">
+        <Tabs value={activeCategory} onValueChange={setActiveCategory}>
+          <TabsList className="mb-6 border border-slate-200/80 bg-slate-50/50">
+            {Object.entries(CATEGORY_CONFIG).map(([key, { label, icon }]) => (
+              <TabsTrigger
+                key={key}
+                value={key}
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white"
+              >
+                <span className="flex items-center gap-1.5">
+                  {icon}
+                  {label}
+                </span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+
+        {/* Theme tags */}
+        {activeCategory === 'all' && themes.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-6">
+            {themes.map((theme, i) => (
+              <span
+                key={i}
+                className="px-3 py-1.5 text-xs text-slate-700 border border-slate-300/60 bg-gradient-to-r from-slate-50 to-blue-50 rounded-full hover:border-blue-400 transition-colors"
+              >
+                {theme}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Long-form article list with gradient borders */}
+        <div className="space-y-4">
+          {filteredLongForm.map((article, index) => (
+            <div
+              key={`long-${index}`}
+              className="p-4 rounded-xl border-2 border-transparent hover:shadow-lg transition-all duration-300"
+              style={{
+                background: 'linear-gradient(white, white) padding-box, linear-gradient(135deg, #e0e7ff, #ddd6fe, #fce7f3) border-box'
+              }}
             >
-              {theme}
-            </span>
+              <ArticleCard
+                article={article}
+                index={shortFormArticles.length + index}
+                onOpenDetail={setSelectedArticle}
+              />
+            </div>
           ))}
         </div>
-      )}
 
-      {/* Long-form article list */}
-      <div className="divide-y divide-border">
-        {filteredLongForm.map((article, index) => (
-          <ArticleCard
-            key={`long-${index}`}
-            article={article}
-            index={shortFormArticles.length + index}
-            onOpenDetail={setSelectedArticle}
-          />
-        ))}
+        {filteredLongForm.length === 0 && (
+          <div className="py-8 text-center">
+            <p className="text-sm text-muted-foreground">
+              이 카테고리에 해당하는 기사가 없어요
+            </p>
+          </div>
+        )}
       </div>
 
-      {filteredLongForm.length === 0 && (
-        <div className="py-8 text-center">
-          <p className="text-sm text-muted-foreground">
-            이 카테고리에 해당하는 기사가 없어요
+      {/* 3. HORIZONTAL SCROLL SECTIONS - Third */}
+      {shortFormArticles.length > 0 && (
+        <div className="mb-8">
+          <p className="text-xs font-semibold bg-gradient-to-r from-emerald-600 to-cyan-600 bg-clip-text text-transparent uppercase tracking-wider mb-4">
+            💫 핵심 뉴스 5선
           </p>
+          <div className="overflow-x-auto pb-4 -mx-4 px-4">
+            <div className="flex gap-4 min-w-max">
+              {shortFormArticles.slice(0, 5).map((article, index) => (
+                <div
+                  key={`short-${index}`}
+                  className="w-80 flex-shrink-0 p-4 rounded-xl border-2 border-transparent hover:shadow-lg transition-all duration-300 cursor-pointer"
+                  style={{
+                    background: 'linear-gradient(white, white) padding-box, linear-gradient(135deg, #a7f3d0, #67e8f9, #a5b4fc) border-box'
+                  }}
+                  onClick={() => setSelectedArticle(article)}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    {CATEGORY_CONFIG[(article as any).category]?.icon && (
+                      <span className="text-muted-foreground">
+                        {CATEGORY_CONFIG[(article as any).category].icon}
+                      </span>
+                    )}
+                    {CATEGORY_CONFIG[(article as any).category] && (
+                      <span className="text-xs text-muted-foreground">
+                        {CATEGORY_CONFIG[(article as any).category].label}
+                      </span>
+                    )}
+                  </div>
+                  <h4 className="text-sm font-medium text-foreground line-clamp-2 mb-2">
+                    {article.title}
+                  </h4>
+                  <p className="text-caption text-muted-foreground">
+                    {article.source}
+                  </p>
+                  <div className="flex items-center gap-2 mt-3">
+                    <FeedbackButtons itemType="news" itemId={`news_${index}`} size="sm" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 

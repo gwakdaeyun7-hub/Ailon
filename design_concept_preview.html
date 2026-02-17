@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ailon 디자인 컨셉 비교</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', 'Noto Sans KR', sans-serif;
+    background: #0a0a0a;
+    color: #fafafa;
+    min-height: 100vh;
+  }
+
+  /* ─── Header ─── */
+  .page-header {
+    text-align: center;
+    padding: 60px 20px 40px;
+  }
+  .page-header h1 {
+    font-size: 42px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #06B6D4, #A78BFA, #F59E0B);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 12px;
+    letter-spacing: -1px;
+  }
+  .page-header p {
+    color: #94A3B8;
+    font-size: 16px;
+    line-height: 1.6;
+  }
+
+  /* ─── Concept Selector ─── */
+  .concept-selector {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    padding: 20px;
+    flex-wrap: wrap;
+  }
+  .concept-btn {
+    padding: 14px 28px;
+    border: 2px solid #334155;
+    border-radius: 16px;
+    background: rgba(30,41,59,0.5);
+    color: #CBD5E1;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 600;
+    font-family: inherit;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+  }
+  .concept-btn:hover { border-color: #64748B; transform: translateY(-2px); }
+  .concept-btn.active-synapse { border-color: #06B6D4; color: #06B6D4; background: rgba(6,182,212,0.1); box-shadow: 0 0 20px rgba(6,182,212,0.2); }
+  .concept-btn.active-prism { border-color: #7C3AED; color: #7C3AED; background: rgba(124,58,237,0.1); box-shadow: 0 0 20px rgba(124,58,237,0.2); }
+  .concept-btn.active-aurora { border-color: #34D399; color: #34D399; background: rgba(52,211,153,0.1); box-shadow: 0 0 20px rgba(52,211,153,0.2); }
+
+  /* ─── Phone Container ─── */
+  .phone-container {
+    display: flex;
+    justify-content: center;
+    padding: 40px 20px 60px;
+  }
+  .phone-frame {
+    width: 390px;
+    height: 844px;
+    border-radius: 48px;
+    overflow: hidden;
+    position: relative;
+    border: 3px solid #334155;
+    box-shadow: 0 25px 80px rgba(0,0,0,0.5);
+    transition: border-color 0.5s ease, box-shadow 0.5s ease;
+  }
+  .phone-screen {
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    position: relative;
+    transition: background 0.5s ease;
+    scrollbar-width: none;
+  }
+  .phone-screen::-webkit-scrollbar { display: none; }
+
+  /* ─── Concept Info ─── */
+  .concept-info {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 0 20px 60px;
+  }
+  .concept-info h2 {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    transition: color 0.3s;
+  }
+  .concept-info p {
+    color: #94A3B8;
+    font-size: 15px;
+    line-height: 1.8;
+    margin-bottom: 24px;
+  }
+  .color-palette {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+  }
+  .color-swatch {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    position: relative;
+    cursor: pointer;
+    transition: transform 0.2s;
+    border: 2px solid rgba(255,255,255,0.1);
+  }
+  .color-swatch:hover { transform: scale(1.15); }
+  .color-swatch .tooltip {
+    display: none;
+    position: absolute;
+    bottom: -32px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1E293B;
+    color: #E2E8F0;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  .color-swatch:hover .tooltip { display: block; }
+  .tags { display: flex; gap: 8px; flex-wrap: wrap; }
+  .tag {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.05);
+    color: #94A3B8;
+  }
+
+  /* ═══════════════════════════════════════ */
+  /* SYNAPSE THEME */
+  /* ═══════════════════════════════════════ */
+  .synapse .phone-frame { border-color: rgba(6,182,212,0.3); box-shadow: 0 25px 80px rgba(6,182,212,0.1); }
+  .synapse .phone-screen { background: #0F172A; }
+
+  .synapse .app-header {
+    padding: 60px 24px 20px;
+    background: linear-gradient(180deg, #1E1B4B 0%, #0F172A 100%);
+  }
+  .synapse .app-logo {
+    font-size: 28px;
+    font-weight: 800;
+    color: #06B6D4;
+    letter-spacing: -1px;
+  }
+  .synapse .app-date {
+    color: #64748B;
+    font-size: 13px;
+    margin-top: 4px;
+  }
+  .synapse .greeting {
+    font-size: 20px;
+    font-weight: 600;
+    color: #E2E8F0;
+    margin-top: 16px;
+    line-height: 1.4;
+  }
+  .synapse .greeting span { color: #F59E0B; }
+
+  .synapse .section-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #E2E8F0;
+    padding: 24px 24px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .synapse .section-line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, #06B6D4 0%, transparent 100%);
+  }
+
+  .synapse .news-card {
+    margin: 8px 24px;
+    padding: 16px;
+    background: rgba(30,27,75,0.4);
+    border: 1px solid rgba(6,182,212,0.15);
+    border-radius: 16px;
+    position: relative;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+  }
+  .synapse .news-card:hover {
+    border-color: rgba(6,182,212,0.4);
+    box-shadow: 0 0 20px rgba(6,182,212,0.1);
+    transform: translateY(-2px);
+  }
+  .synapse .news-card::before {
+    content: '';
+    position: absolute;
+    left: -1px;
+    top: 12px;
+    bottom: 12px;
+    width: 3px;
+    background: #06B6D4;
+    border-radius: 2px;
+  }
+  .synapse .card-source {
+    font-size: 11px;
+    font-weight: 600;
+    color: #06B6D4;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+  .synapse .card-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #E2E8F0;
+    line-height: 1.45;
+    margin-bottom: 8px;
+  }
+  .synapse .card-desc {
+    font-size: 13px;
+    color: #94A3B8;
+    line-height: 1.5;
+  }
+  .synapse .card-meta {
+    display: flex;
+    gap: 12px;
+    margin-top: 10px;
+    font-size: 11px;
+    color: #64748B;
+  }
+  .synapse .card-meta .score { color: #F59E0B; font-weight: 600; }
+
+  /* Synapse connection lines */
+  .synapse .neural-connector {
+    height: 24px;
+    display: flex;
+    justify-content: center;
+    position: relative;
+  }
+  .synapse .neural-connector::before {
+    content: '';
+    width: 2px;
+    height: 100%;
+    background: linear-gradient(180deg, #06B6D4 0%, rgba(6,182,212,0.2) 100%);
+  }
+  .synapse .neural-connector .dot {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #06B6D4;
+    box-shadow: 0 0 8px #06B6D4;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    50% { opacity: 0.5; transform: translate(-50%, -50%) scale(1.5); }
+  }
+
+  /* Synapse idea card */
+  .synapse .idea-card {
+    margin: 8px 24px;
+    padding: 20px;
+    background: linear-gradient(135deg, rgba(30,27,75,0.6), rgba(6,182,212,0.08));
+    border: 1px solid rgba(245,158,11,0.2);
+    border-radius: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .synapse .idea-card::after {
+    content: '💡';
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    font-size: 60px;
+    opacity: 0.08;
+  }
+  .synapse .idea-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    background: rgba(245,158,11,0.15);
+    border: 1px solid rgba(245,158,11,0.3);
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #F59E0B;
+    margin-bottom: 10px;
+  }
+  .synapse .idea-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: #FAFAFA;
+    line-height: 1.4;
+    margin-bottom: 8px;
+  }
+  .synapse .idea-desc {
+    font-size: 13px;
+    color: #CBD5E1;
+    line-height: 1.6;
+  }
+  .synapse .idea-scores {
+    display: flex;
+    gap: 16px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+  .synapse .idea-scores .score-item {
+    text-align: center;
+    flex: 1;
+  }
+  .synapse .idea-scores .score-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: #06B6D4;
+  }
+  .synapse .idea-scores .score-label {
+    font-size: 10px;
+    color: #64748B;
+    margin-top: 2px;
+  }
+
+  /* ═══════════════════════════════════════ */
+  /* PRISM THEME */
+  /* ═══════════════════════════════════════ */
+  .prism .phone-frame { border-color: rgba(124,58,237,0.3); box-shadow: 0 25px 80px rgba(124,58,237,0.1); }
+  .prism .phone-screen { background: #18181B; }
+
+  .prism .app-header {
+    padding: 60px 24px 20px;
+    background: #18181B;
+  }
+  .prism .app-logo {
+    font-size: 28px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #7C3AED, #06B6D4, #10B981);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -1px;
+  }
+  .prism .app-date { color: #71717A; font-size: 13px; margin-top: 4px; }
+  .prism .greeting {
+    font-size: 20px;
+    font-weight: 600;
+    color: #FAFAFA;
+    margin-top: 16px;
+    line-height: 1.4;
+  }
+  .prism .greeting span {
+    background: linear-gradient(135deg, #7C3AED, #06B6D4);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .prism .section-title {
+    font-size: 16px;
+    font-weight: 700;
+    padding: 24px 24px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .prism .section-title.news-section { color: #A78BFA; }
+  .prism .section-title.knowledge-section { color: #34D399; }
+  .prism .section-title.idea-section { color: #22D3EE; }
+  .prism .section-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+  }
+  .prism .section-icon.news { background: rgba(124,58,237,0.15); }
+  .prism .section-icon.knowledge { background: rgba(16,185,129,0.15); }
+  .prism .section-icon.idea { background: rgba(6,182,212,0.15); }
+
+  .prism .news-card {
+    margin: 6px 24px;
+    padding: 14px 16px;
+    background: #27272A;
+    border-radius: 14px;
+    border-left: 3px solid #7C3AED;
+    transition: all 0.2s ease;
+  }
+  .prism .news-card:hover { background: #2E2E32; transform: translateX(4px); }
+  .prism .card-source {
+    font-size: 11px;
+    font-weight: 600;
+    color: #A78BFA;
+    margin-bottom: 4px;
+  }
+  .prism .card-title { font-size: 14px; font-weight: 600; color: #FAFAFA; line-height: 1.4; }
+  .prism .card-meta { display: flex; gap: 10px; margin-top: 8px; font-size: 11px; color: #71717A; }
+
+  .prism .knowledge-card {
+    margin: 6px 24px;
+    padding: 16px;
+    background: #27272A;
+    border-radius: 14px;
+    border-left: 3px solid #10B981;
+  }
+  .prism .knowledge-card .k-discipline {
+    font-size: 11px;
+    font-weight: 600;
+    color: #34D399;
+    margin-bottom: 6px;
+  }
+  .prism .knowledge-card .k-title { font-size: 15px; font-weight: 600; color: #FAFAFA; margin-bottom: 6px; }
+  .prism .knowledge-card .k-desc { font-size: 13px; color: #A1A1AA; line-height: 1.5; }
+
+  .prism .idea-card {
+    margin: 6px 24px;
+    padding: 18px;
+    background: linear-gradient(135deg, #27272A, rgba(6,182,212,0.05));
+    border: 1px solid rgba(6,182,212,0.2);
+    border-radius: 16px;
+  }
+  .prism .idea-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    background: rgba(6,182,212,0.12);
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #22D3EE;
+    margin-bottom: 8px;
+  }
+  .prism .idea-title { font-size: 16px; font-weight: 700; color: #FAFAFA; margin-bottom: 6px; }
+  .prism .idea-desc { font-size: 13px; color: #A1A1AA; line-height: 1.6; }
+  .prism .idea-scores {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .prism .idea-scores .score-pill {
+    flex: 1;
+    text-align: center;
+    padding: 8px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 10px;
+  }
+  .prism .idea-scores .score-value { font-size: 18px; font-weight: 700; color: #22D3EE; }
+  .prism .idea-scores .score-label { font-size: 10px; color: #71717A; margin-top: 2px; }
+
+  /* ═══════════════════════════════════════ */
+  /* AURORA THEME */
+  /* ═══════════════════════════════════════ */
+  .aurora .phone-frame { border-color: rgba(52,211,153,0.2); box-shadow: 0 25px 80px rgba(52,211,153,0.08); }
+  .aurora .phone-screen {
+    background: #020617;
+    position: relative;
+  }
+  .aurora .phone-screen::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 300px;
+    background: radial-gradient(ellipse at 30% 0%, rgba(34,211,238,0.12) 0%, transparent 60%),
+                radial-gradient(ellipse at 70% 0%, rgba(167,139,250,0.1) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 100px, rgba(52,211,153,0.08) 0%, transparent 50%);
+    pointer-events: none;
+    animation: aurora-shift 8s ease-in-out infinite;
+  }
+  @keyframes aurora-shift {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+  }
+
+  .aurora .app-header {
+    padding: 60px 24px 20px;
+    position: relative;
+    z-index: 1;
+  }
+  .aurora .app-logo {
+    font-size: 28px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #22D3EE, #A78BFA, #34D399);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -1px;
+  }
+  .aurora .app-date { color: #475569; font-size: 13px; margin-top: 4px; }
+  .aurora .greeting {
+    font-size: 20px;
+    font-weight: 600;
+    color: #F8FAFC;
+    margin-top: 16px;
+    line-height: 1.4;
+  }
+  .aurora .greeting span { color: #34D399; }
+
+  .aurora .section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    padding: 28px 24px 12px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .aurora .news-card {
+    margin: 6px 24px;
+    padding: 16px 18px;
+    background: rgba(15,23,42,0.6);
+    border: 1px solid rgba(52,211,153,0.08);
+    border-radius: 18px;
+    backdrop-filter: blur(20px);
+    position: relative;
+    z-index: 1;
+    transition: all 0.3s ease;
+  }
+  .aurora .news-card:hover {
+    border-color: rgba(52,211,153,0.2);
+    background: rgba(15,23,42,0.8);
+    box-shadow: 0 8px 30px rgba(52,211,153,0.06);
+  }
+  .aurora .card-source { font-size: 11px; font-weight: 500; color: #34D399; margin-bottom: 6px; }
+  .aurora .card-title { font-size: 15px; font-weight: 600; color: #F1F5F9; line-height: 1.45; margin-bottom: 6px; }
+  .aurora .card-desc { font-size: 13px; color: #64748B; line-height: 1.5; }
+
+  .aurora .idea-card {
+    margin: 8px 24px;
+    padding: 20px;
+    background: linear-gradient(135deg, rgba(15,23,42,0.8), rgba(52,211,153,0.04));
+    border: 1px solid rgba(167,139,250,0.15);
+    border-radius: 22px;
+    backdrop-filter: blur(20px);
+    position: relative;
+    z-index: 1;
+    overflow: hidden;
+  }
+  .aurora .idea-card::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #22D3EE, #A78BFA, #34D399);
+    border-radius: 22px 22px 0 0;
+  }
+  .aurora .idea-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    background: linear-gradient(135deg, rgba(34,211,238,0.1), rgba(167,139,250,0.1));
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #A78BFA;
+    margin-bottom: 10px;
+  }
+  .aurora .idea-title { font-size: 17px; font-weight: 700; color: #F8FAFC; line-height: 1.4; margin-bottom: 8px; }
+  .aurora .idea-desc { font-size: 13px; color: #94A3B8; line-height: 1.6; }
+  .aurora .idea-scores {
+    display: flex;
+    gap: 12px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255,255,255,0.04);
+  }
+  .aurora .idea-scores .score-item { text-align: center; flex: 1; }
+  .aurora .idea-scores .score-value {
+    font-size: 20px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #22D3EE, #34D399);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .aurora .idea-scores .score-label { font-size: 10px; color: #475569; margin-top: 2px; }
+
+  /* ─── Bottom Nav (shared) ─── */
+  .bottom-nav {
+    position: sticky;
+    bottom: 0;
+    display: flex;
+    justify-content: space-around;
+    padding: 10px 0 30px;
+    backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(255,255,255,0.05);
+    z-index: 10;
+  }
+  .synapse .bottom-nav { background: rgba(15,23,42,0.9); }
+  .prism .bottom-nav { background: rgba(24,24,27,0.95); }
+  .aurora .bottom-nav { background: rgba(2,6,23,0.9); }
+  .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    color: #64748B;
+    cursor: pointer;
+  }
+  .nav-item.active { color: #06B6D4; }
+  .synapse .nav-item.active { color: #06B6D4; }
+  .prism .nav-item.active { color: #7C3AED; }
+  .aurora .nav-item.active { color: #34D399; }
+  .nav-icon { font-size: 20px; }
+
+  /* ─── Section Divider ─── */
+  .section-divider {
+    height: 1px;
+    margin: 16px 24px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+  }
+
+  /* ─── Visibility ─── */
+  .concept-view { display: none; }
+  .concept-view.active { display: block; }
+
+  /* ─── Responsive ─── */
+  @media (max-width: 600px) {
+    .phone-frame { width: 100%; height: 90vh; border-radius: 0; border: none; }
+    .page-header { padding: 30px 20px 20px; }
+    .page-header h1 { font-size: 30px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ─── Page Header ─── -->
+<div class="page-header">
+  <h1>Ailon Design Concept</h1>
+  <p>AI 융합 학습 플랫폼의 3가지 디자인 방향 제안</p>
+</div>
+
+<!-- ─── Concept Selector ─── -->
+<div class="concept-selector">
+  <button class="concept-btn active-synapse" onclick="showConcept('synapse')">🧠 Synapse</button>
+  <button class="concept-btn" onclick="showConcept('prism')">🔮 Prism</button>
+  <button class="concept-btn" onclick="showConcept('aurora')">🌌 Aurora</button>
+</div>
+
+<!-- ─── Phone Container ─── -->
+<div class="phone-container">
+
+  <!-- ═══ SYNAPSE ═══ -->
+  <div class="concept-view active" id="synapse-view">
+    <div class="phone-frame synapse">
+      <div class="phone-screen">
+        <div class="app-header">
+          <div class="app-logo">Ailon</div>
+          <div class="app-date">2026년 2월 17일 월요일</div>
+          <div class="greeting">오늘의 <span>AI 시냅스</span>가<br>연결을 기다리고 있어요</div>
+        </div>
+
+        <div class="section-title">📰 AI 뉴스 <div class="section-line"></div></div>
+
+        <div class="news-card">
+          <div class="card-source">arXiv · 모델/연구</div>
+          <div class="card-title">GPT-5 Turbo: Multi-Modal 추론 능력 40% 향상</div>
+          <div class="card-desc">새로운 어텐션 메커니즘으로 이미지+텍스트 동시 처리 성능 비약적 개선</div>
+          <div class="card-meta">
+            <span>🔥 중요도 <span class="score">95</span></span>
+            <span>⏰ 3시간 전</span>
+          </div>
+        </div>
+
+        <div class="neural-connector"><div class="dot"></div></div>
+
+        <div class="news-card">
+          <div class="card-source">GitHub · 오픈소스</div>
+          <div class="card-title">LangGraph v2.0: 에이전트 워크플로우 완전 재설계</div>
+          <div class="card-desc">상태 머신 기반 멀티 에이전트 오케스트레이션이 10배 간결해짐</div>
+          <div class="card-meta">
+            <span>⭐ 2,847</span>
+            <span>⏰ 5시간 전</span>
+          </div>
+        </div>
+
+        <div class="section-divider"></div>
+
+        <div class="section-title">📚 오늘의 원리 <div class="section-line"></div></div>
+
+        <div class="news-card" style="border-left: 3px solid #F59E0B;">
+          <div class="card-source" style="color: #F59E0B;">⚛️ 물리학 · 최적화 이론</div>
+          <div class="card-title">시뮬레이티드 어닐링: 물리학이 최적화 문제를 푸는 법</div>
+          <div class="card-desc">금속 냉각처럼 시스템의 온도를 서서히 낮추면 최적 상태에 도달해요</div>
+        </div>
+
+        <div class="neural-connector"><div class="dot"></div></div>
+
+        <div class="section-title">💡 AI × 물리학 <div class="section-line"></div></div>
+
+        <div class="idea-card">
+          <div class="idea-badge">🧠 시냅스 연결 · AI × 물리학</div>
+          <div class="idea-title">SA-AutoML: 시뮬레이티드 어닐링 기반 하이퍼파라미터 최적화</div>
+          <div class="idea-desc">LLM 학습 비용의 핵심인 하이퍼파라미터 튜닝을 물리학의 어닐링 원리로 해결해요. Grid Search 대비 72시간→8시간으로 단축 가능!</div>
+          <div class="idea-scores">
+            <div class="score-item">
+              <div class="score-value">8</div>
+              <div class="score-label">실현가능성</div>
+            </div>
+            <div class="score-item">
+              <div class="score-value">7</div>
+              <div class="score-label">참신성</div>
+            </div>
+            <div class="score-item">
+              <div class="score-value">9</div>
+              <div class="score-label">임팩트</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="height: 20px;"></div>
+
+        <div class="bottom-nav">
+          <div class="nav-item active"><div class="nav-icon">🏠</div> 홈</div>
+          <div class="nav-item"><div class="nav-icon">📰</div> 뉴스</div>
+          <div class="nav-item"><div class="nav-icon">📚</div> 학문</div>
+          <div class="nav-item"><div class="nav-icon">💡</div> 아이디어</div>
+          <div class="nav-item"><div class="nav-icon">👤</div> 마이</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ PRISM ═══ -->
+  <div class="concept-view" id="prism-view">
+    <div class="phone-frame prism">
+      <div class="phone-screen">
+        <div class="app-header">
+          <div class="app-logo">Ailon</div>
+          <div class="app-date">2026년 2월 17일 월요일</div>
+          <div class="greeting">3가지 빛으로<br><span>오늘의 AI를</span> 읽어보세요</div>
+        </div>
+
+        <div class="section-title news-section">
+          <div class="section-icon news">📰</div> AI 뉴스
+        </div>
+
+        <div class="news-card">
+          <div class="card-source">arXiv · 모델/연구</div>
+          <div class="card-title">GPT-5 Turbo: Multi-Modal 추론 능력 40% 향상</div>
+          <div class="card-meta"><span>🔥 95</span><span>3시간 전</span></div>
+        </div>
+        <div class="news-card">
+          <div class="card-source">GitHub · 오픈소스</div>
+          <div class="card-title">LangGraph v2.0: 에이전트 워크플로우 완전 재설계</div>
+          <div class="card-meta"><span>⭐ 2,847</span><span>5시간 전</span></div>
+        </div>
+
+        <div class="section-title knowledge-section">
+          <div class="section-icon knowledge">📚</div> 학문 원리
+        </div>
+
+        <div class="knowledge-card">
+          <div class="k-discipline">⚛️ 물리학 · 최적화 이론</div>
+          <div class="k-title">시뮬레이티드 어닐링</div>
+          <div class="k-desc">금속을 천천히 냉각하면 원자들이 안정된 구조로 정렬되듯, 복잡한 문제의 최적해를 찾을 수 있어요.</div>
+        </div>
+
+        <div class="section-title idea-section">
+          <div class="section-icon idea">💡</div> 융합 아이디어
+        </div>
+
+        <div class="idea-card">
+          <div class="idea-badge">AI × 물리학</div>
+          <div class="idea-title">SA-AutoML: 어닐링 기반 하이퍼파라미터 최적화</div>
+          <div class="idea-desc">Grid Search 대비 9배 빠른 하이퍼파라미터 탐색을 물리학 원리로 실현해요.</div>
+          <div class="idea-scores">
+            <div class="score-pill">
+              <div class="score-value">8</div>
+              <div class="score-label">실현</div>
+            </div>
+            <div class="score-pill">
+              <div class="score-value">7</div>
+              <div class="score-label">참신</div>
+            </div>
+            <div class="score-pill">
+              <div class="score-value">9</div>
+              <div class="score-label">임팩트</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="height: 20px;"></div>
+
+        <div class="bottom-nav">
+          <div class="nav-item active"><div class="nav-icon">🏠</div> 홈</div>
+          <div class="nav-item"><div class="nav-icon">📰</div> 뉴스</div>
+          <div class="nav-item"><div class="nav-icon">📚</div> 학문</div>
+          <div class="nav-item"><div class="nav-icon">💡</div> 아이디어</div>
+          <div class="nav-item"><div class="nav-icon">👤</div> 마이</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ AURORA ═══ -->
+  <div class="concept-view" id="aurora-view">
+    <div class="phone-frame aurora">
+      <div class="phone-screen">
+        <div class="app-header">
+          <div class="app-logo">Ailon</div>
+          <div class="app-date">2026년 2월 17일 월요일</div>
+          <div class="greeting">학문과 AI가 만나<br><span>오로라</span>처럼 빛나는 아이디어</div>
+        </div>
+
+        <div class="section-title">LATEST AI NEWS</div>
+
+        <div class="news-card">
+          <div class="card-source">arXiv · 모델/연구</div>
+          <div class="card-title">GPT-5 Turbo: Multi-Modal 추론 능력 40% 향상</div>
+          <div class="card-desc">새로운 어텐션 메커니즘으로 이미지+텍스트 동시 처리 성능 대폭 개선</div>
+        </div>
+
+        <div class="news-card">
+          <div class="card-source">GitHub · 오픈소스</div>
+          <div class="card-title">LangGraph v2.0: 에이전트 워크플로우 재설계</div>
+          <div class="card-desc">상태 머신 기반 멀티 에이전트 오케스트레이션 간결화</div>
+        </div>
+
+        <div class="section-title">TODAY'S PRINCIPLE</div>
+
+        <div class="news-card" style="border-color: rgba(167,139,250,0.2);">
+          <div class="card-source" style="color: #A78BFA;">⚛️ 물리학 · 최적화 이론</div>
+          <div class="card-title">시뮬레이티드 어닐링: 물리학이 최적화 문제를 푸는 법</div>
+          <div class="card-desc">천천히 냉각하면 최적 구조에 도달하듯, AI도 점진적 탐색으로 최적해를 찾을 수 있어요</div>
+        </div>
+
+        <div class="section-title">SYNERGY IDEA</div>
+
+        <div class="idea-card">
+          <div class="idea-badge">🌌 AI × 물리학</div>
+          <div class="idea-title">SA-AutoML: 시뮬레이티드 어닐링 기반 하이퍼파라미터 최적화</div>
+          <div class="idea-desc">LLM 학습 비용의 핵심인 하이퍼파라미터 튜닝에 물리학의 어닐링 원리를 적용해요. 그리드 서치 대비 9배 빠른 탐색이 가능해요.</div>
+          <div class="idea-scores">
+            <div class="score-item">
+              <div class="score-value">8</div>
+              <div class="score-label">실현가능성</div>
+            </div>
+            <div class="score-item">
+              <div class="score-value">7</div>
+              <div class="score-label">참신성</div>
+            </div>
+            <div class="score-item">
+              <div class="score-value">9</div>
+              <div class="score-label">임팩트</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="height: 20px;"></div>
+
+        <div class="bottom-nav">
+          <div class="nav-item active"><div class="nav-icon">🏠</div> 홈</div>
+          <div class="nav-item"><div class="nav-icon">📰</div> 뉴스</div>
+          <div class="nav-item"><div class="nav-icon">📚</div> 학문</div>
+          <div class="nav-item"><div class="nav-icon">💡</div> 아이디어</div>
+          <div class="nav-item"><div class="nav-icon">👤</div> 마이</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ─── Concept Info ─── -->
+<div class="concept-info" id="concept-info">
+  <!-- Filled by JS -->
+</div>
+
+<script>
+const concepts = {
+  synapse: {
+    title: '🧠 Synapse (시냅스)',
+    emoji: '🧠',
+    quote: '"서로 다른 뉴런이 시냅스에서 만나 신호를 전달하듯, 서로 다른 학문이 Ailon에서 만나 아이디어가 탄생한다"',
+    description: '뉴런과 시냅스의 연결에서 영감을 받은 디자인. 카드 사이 네온 라인이 지식의 연결을 시각적으로 보여줍니다. Deep Indigo 배경 위에 Electric Cyan 포인트로 지적이고 미래지향적 느낌을 줍니다.',
+    colors: [
+      { hex: '#1E1B4B', name: 'Deep Indigo' },
+      { hex: '#0F172A', name: 'Dark Slate' },
+      { hex: '#06B6D4', name: 'Electric Cyan' },
+      { hex: '#F59E0B', name: 'Warm Amber' },
+      { hex: '#E2E8F0', name: 'Silver White' },
+    ],
+    tags: ['미래지향적', '테크', '프리미엄', '연결', '글라스모피즘'],
+    activeClass: 'active-synapse',
+    titleColor: '#06B6D4',
+  },
+  prism: {
+    title: '🔮 Prism (프리즘)',
+    emoji: '🔮',
+    quote: '"프리즘이 빛을 스펙트럼으로 분리하듯, Ailon은 AI 세계를 이해하기 쉬운 조각으로 나눈다. 그리고 다시 합쳐 새로운 빛을 만든다"',
+    description: '각 기능(뉴스=보라, 학문=에메랄드, 아이디어=시안)에 고유 색상을 부여하여 직관적으로 구분합니다. Obsidian 블랙 메인에 Zinc 서피스로 깔끔하고 기하학적인 디자인입니다.',
+    colors: [
+      { hex: '#18181B', name: 'Obsidian' },
+      { hex: '#27272A', name: 'Zinc-800' },
+      { hex: '#7C3AED', name: 'Violet (뉴스)' },
+      { hex: '#10B981', name: 'Emerald (학문)' },
+      { hex: '#06B6D4', name: 'Cyan (아이디어)' },
+    ],
+    tags: ['과학적', '정교한', '모던', '기하학', '컬러코딩'],
+    activeClass: 'active-prism',
+    titleColor: '#7C3AED',
+  },
+  aurora: {
+    title: '🌌 Aurora (오로라)',
+    emoji: '🌌',
+    quote: '"태양풍과 자기장이 만나 오로라가 생기듯, AI와 다른 학문이 만나 아름다운 아이디어가 탄생한다"',
+    description: '배경의 미세한 오로라 그라데이션이 지식의 융합을 표현합니다. Deep Space 블랙 위로 시안-퍼플-그린 오로라가 유기적으로 흐르며, 몰입감 있는 읽기 경험을 제공합니다.',
+    colors: [
+      { hex: '#020617', name: 'Deep Space' },
+      { hex: '#0F172A', name: 'Night Sky' },
+      { hex: '#22D3EE', name: 'Aurora Cyan' },
+      { hex: '#A78BFA', name: 'Aurora Purple' },
+      { hex: '#34D399', name: 'Aurora Green' },
+    ],
+    tags: ['영감', '몰입', '자연스러움', '오가닉', '경이로움'],
+    activeClass: 'active-aurora',
+    titleColor: '#34D399',
+  },
+};
+
+let currentConcept = 'synapse';
+
+function showConcept(name) {
+  currentConcept = name;
+  const concept = concepts[name];
+
+  // Toggle views
+  document.querySelectorAll('.concept-view').forEach(v => v.classList.remove('active'));
+  document.getElementById(name + '-view').classList.add('active');
+
+  // Toggle buttons
+  document.querySelectorAll('.concept-btn').forEach(btn => {
+    btn.className = 'concept-btn';
+  });
+  event.target.classList.add('concept-btn', concept.activeClass);
+
+  // Update info
+  const info = document.getElementById('concept-info');
+  info.innerHTML = `
+    <h2 style="color:${concept.titleColor}">${concept.title}</h2>
+    <p style="font-style:italic; color:#CBD5E1; margin-bottom:16px">${concept.quote}</p>
+    <p>${concept.description}</p>
+    <h3 style="font-size:14px; color:#94A3B8; margin-bottom:10px; font-weight:600;">색상 팔레트</h3>
+    <div class="color-palette">
+      ${concept.colors.map(c => `
+        <div class="color-swatch" style="background:${c.hex}">
+          <div class="tooltip">${c.name}<br>${c.hex}</div>
+        </div>
+      `).join('')}
+    </div>
+    <h3 style="font-size:14px; color:#94A3B8; margin-bottom:10px; font-weight:600;">디자인 키워드</h3>
+    <div class="tags">
+      ${concept.tags.map(t => `<span class="tag">${t}</span>`).join('')}
+    </div>
+  `;
+}
+
+// Initial render
+showConcept('synapse');
+</script>
+
+</body>
+</html>
