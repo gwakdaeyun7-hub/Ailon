@@ -399,11 +399,19 @@ function NewsListItem({
       {/* 텍스트 영역 */}
       <View style={{ flex: 1 }}>
         <Text
-          style={{ fontSize: 14, fontWeight: '700', color: '#111827', lineHeight: 20, marginBottom: 6 }}
+          style={{ fontSize: 14, fontWeight: '700', color: '#111827', lineHeight: 20, marginBottom: 4 }}
           numberOfLines={2}
         >
           {displayTitle(article)}
         </Text>
+        {(article.impact_comment || article.summary) ? (
+          <Text
+            style={{ fontSize: 12, color: '#6B7280', lineHeight: 17, marginBottom: 5 }}
+            numberOfLines={1}
+          >
+            {article.impact_comment || article.summary?.slice(0, 70)}
+          </Text>
+        ) : null}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <Text style={{ fontSize: 11, color: '#9CA3AF' }}>{formatDate(article.published)}</Text>
           <LikeCount itemId={itemId} />

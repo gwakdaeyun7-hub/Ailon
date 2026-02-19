@@ -4,7 +4,7 @@ beautifulsoup4==4.12.2
 firebase-admin==6.3.0
 python-dotenv==1.0.0
 langchain-core>=0.3.0
-langchain-google-genai>=2.0.0
+langchain-groq>=0.2.0
 pydantic>=2.0.0
 tavily-python>=0.5.0
 arxiv>=2.1.0

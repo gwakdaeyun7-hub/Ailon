@@ -119,9 +119,7 @@ def analyzer_node(state: NewsState) -> dict:
     if not articles:
         return {"analyzed_articles": [], "categories": {}}
 
-    # max_tokens=16384: Gemini 2.5 Flash thinking 토큰이 max_output_tokens를 잠식하므로
-    # 배치 25개 × ~120자 ≈ 3000자 출력에도 thinking 소비분을 충분히 확보
-    llm = get_llm(temperature=0.3, max_tokens=16384)
+    llm = get_llm(temperature=0.3, max_tokens=4096)
 
     # 카테고리 정의 텍스트
     categories_text = "\n".join([
@@ -458,7 +456,7 @@ def summarizer_node(state: NewsState) -> dict:
             "horizontal_sections": state.get("horizontal_sections", {}),
         }
 
-    llm = get_llm(temperature=0.7, max_tokens=8192)
+    llm = get_llm(temperature=0.7, max_tokens=4096)
 
     HOW_TO_GUIDE_HINT = {
         "model_research":    "코드/수식/논문 활용법 예시 포함 (없으면 빈 문자열)",
