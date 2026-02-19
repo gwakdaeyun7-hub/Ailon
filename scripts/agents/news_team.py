@@ -577,10 +577,47 @@ def summarizer_node(state: NewsState) -> dict:
     howto_count = len([a for a in final_articles if a.get("howToGuide")])
     print(f"  [OK] 총 {len(final_articles)}개 요약 완료 | How-to Guide: {howto_count}개")
 
+    # ─── 가로 섹션 기사 한국어 제목/설명 번역 ───
+    hs = state.get("horizontal_sections", {})
+    # (sec_key, article_dict) 쌍 목록 (dict 참조이므로 수정 시 hs도 업데이트됨)
+    all_h = [(sk, a) for sk, arts in hs.items() for a in (arts or [])]
+    if all_h:
+        h_text = "".join(
+            f"\n[{j+1}] 제목: {a['title']}\n     설명: {a.get('description', '')[:200]}\n"
+            for j, (_, a) in enumerate(all_h[:15])
+        )
+        h_prompt = f"""다음 {min(len(all_h), 15)}개의 AI 뉴스 기사를 한국어로 번역해주세요.
+
+- display_title: 독자가 클릭하고 싶게 만드는 한국어 제목 (30자 이내)
+- description: 핵심 내용을 한국어로 설명 (100자 이내)
+
+반드시 아래 형식으로 출력하세요 (마크다운 없이 순수 JSON):
+[{{"index": 1, "display_title": "...", "description": "..."}}]
+
+{h_text}"""
+        try:
+            h_resp = llm.invoke([HumanMessage(content=h_prompt)])
+            h_results = parse_llm_json(h_resp.content)
+            if isinstance(h_results, dict):
+                h_results = next((v for v in h_results.values() if isinstance(v, list)), [])
+            if isinstance(h_results, list):
+                for r in h_results:
+                    if not isinstance(r, dict):
+                        continue
+                    idx = r.get("index", 1) - 1
+                    if 0 <= idx < len(all_h):
+                        _, art = all_h[idx]
+                        art["display_title"] = r.get("display_title", "")
+                        if r.get("description"):
+                            art["description"] = r["description"]
+            print(f"  [OK] 가로 섹션 {min(len(all_h), 15)}개 한국어 번역 완료")
+        except Exception as e:
+            print(f"  [WARNING] 가로 섹션 번역 실패: {e}")
+
     return {
         "final_articles": final_articles,
         "daily_overview": daily_overview,
-        "horizontal_sections": state.get("horizontal_sections", {}),
+        "horizontal_sections": hs,
     }
 
 

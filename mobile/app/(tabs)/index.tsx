@@ -142,12 +142,75 @@ function SectionHeader({ title, color = PRIMARY }: { title: string; color?: stri
   );
 }
 
-// ─── 가로 스크롤 카드 ─────────────────────────────────────────────────────────
-function HorizontalCard({ article }: { article: HorizontalArticle }) {
+// ─── 가로 스크롤 상세 모달 ────────────────────────────────────────────────────
+function HorizontalDetailModal({
+  article, visible, onClose,
+}: { article: HorizontalArticle | null; visible: boolean; onClose: () => void }) {
+  if (!article) return null;
   const color = article.brand_color ?? PRIMARY;
+  const title = article.display_title || article.title;
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: CARD }} edges={['top']}>
+        {/* 헤더 */}
+        <View style={{
+          flexDirection: 'row', alignItems: 'center',
+          paddingHorizontal: 16, paddingVertical: 12,
+          borderBottomWidth: 1, borderBottomColor: '#F3F4F6',
+        }}>
+          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: color }} />
+            <Text style={{ fontSize: 13, fontWeight: '700', color }}>{article.source}</Text>
+          </View>
+          <Pressable
+            onPress={onClose}
+            style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <X size={16} color="#6B7280" />
+          </Pressable>
+        </View>
+
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, flexGrow: 1 }}>
+          {/* 제목 */}
+          <Text style={{ fontSize: 20, fontWeight: '800', color: '#111827', lineHeight: 30, marginBottom: 16 }}>
+            {title}
+          </Text>
+
+          {/* 요약/설명 */}
+          {article.description ? (
+            <Text style={{ fontSize: 15, color: '#374151', lineHeight: 25, marginBottom: 24 }}>
+              {article.description}
+            </Text>
+          ) : null}
+
+          {/* 원문 보기 버튼 (하단) */}
+          {article.link ? (
+            <Pressable
+              onPress={() => Linking.openURL(article.link)}
+              style={({ pressed }) => ({
+                flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+                backgroundColor: pressed ? '#1F2937' : '#111827',
+                borderRadius: 14, paddingVertical: 14, marginTop: 'auto' as any,
+              })}
+            >
+              <ExternalLink size={16} color="#FFFFFF" />
+              <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 15 }}>원문 보기</Text>
+            </Pressable>
+          ) : null}
+        </ScrollView>
+      </SafeAreaView>
+    </Modal>
+  );
+}
+
+// ─── 가로 스크롤 카드 ─────────────────────────────────────────────────────────
+function HorizontalCard({ article, onPress }: { article: HorizontalArticle; onPress: () => void }) {
+  const color = article.brand_color ?? PRIMARY;
+  const title = article.display_title || article.title;
   return (
     <Pressable
-      onPress={() => article.link && Linking.openURL(article.link)}
+      onPress={onPress}
       style={{
         width: 210,
         borderRadius: 14,
@@ -171,7 +234,7 @@ function HorizontalCard({ article }: { article: HorizontalArticle }) {
           <Text style={{ fontSize: 11, fontWeight: '700', color }}>{article.source}</Text>
         </View>
         <Text style={{ fontSize: 13, fontWeight: '700', color: '#111827', lineHeight: 19 }} numberOfLines={3}>
-          {article.title}
+          {title}
         </Text>
       </View>
     </Pressable>
@@ -179,18 +242,21 @@ function HorizontalCard({ article }: { article: HorizontalArticle }) {
 }
 
 function HorizontalSection({
-  title, articles, color = PRIMARY, showAll = false, onShowAll,
+  title, articles, color = PRIMARY, showAll = false, onShowAll, limit = 5, onCardPress,
 }: {
-  title: string; articles: HorizontalArticle[]; color?: string; showAll?: boolean; onShowAll?: () => void;
+  title: string; articles: HorizontalArticle[]; color?: string; showAll?: boolean;
+  onShowAll?: () => void; limit?: number; onCardPress?: (a: HorizontalArticle) => void;
 }) {
   if (!articles || articles.length === 0) return null;
-  const visible = showAll ? articles : articles.slice(0, 5);
+  const visible = showAll ? articles : articles.slice(0, limit);
   return (
     <View style={{ marginBottom: 20 }}>
       <SectionHeader title={title} color={color} />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 4 }}>
-        {visible.map((a, i) => <HorizontalCard key={`${a.source}-${i}`} article={a} />)}
-        {!showAll && articles.length > 5 && onShowAll && (
+        {visible.map((a, i) => (
+          <HorizontalCard key={`${a.source}-${i}`} article={a} onPress={() => onCardPress?.(a)} />
+        ))}
+        {!showAll && articles.length > limit && onShowAll && (
           <Pressable onPress={onShowAll} style={{ width: 80, justifyContent: 'center', alignItems: 'center' }}>
             <View style={{ borderRadius: 20, borderWidth: 1.5, borderColor: color, paddingHorizontal: 12, paddingVertical: 8 }}>
               <Text style={{ color, fontSize: 12, fontWeight: '700' }}>더보기</Text>
@@ -424,6 +490,65 @@ function NewsListItem({
   );
 }
 
+// ─── 공식 발표 세로 행 (3개) ─────────────────────────────────────────────────
+function OfficialAnnouncementSection({
+  articles, onCardPress,
+}: { articles: HorizontalArticle[]; onCardPress: (a: HorizontalArticle) => void }) {
+  if (!articles || articles.length === 0) return null;
+  const visible = articles.slice(0, 3);
+  return (
+    <View style={{ marginBottom: 20 }}>
+      <SectionHeader title="💫 공식 발표" color="#7C3AED" />
+      <View style={{ marginHorizontal: 16, gap: 10 }}>
+        {visible.map((a, i) => {
+          const color = a.brand_color ?? '#7C3AED';
+          const title = a.display_title || a.title;
+          return (
+            <Pressable
+              key={`official-${i}`}
+              onPress={() => onCardPress(a)}
+              style={({ pressed }) => ({
+                backgroundColor: CARD,
+                borderRadius: 14,
+                borderWidth: 1.5,
+                borderColor: `${color}30`,
+                padding: 14,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 12,
+                shadowColor: color,
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 6,
+                elevation: 2,
+                opacity: pressed ? 0.9 : 1,
+              })}
+            >
+              {/* 소스 아바타 */}
+              <View style={{
+                width: 40, height: 40, borderRadius: 20,
+                backgroundColor: `${color}15`,
+                borderWidth: 1.5, borderColor: `${color}40`,
+                alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              }}>
+                <Text style={{ color, fontSize: 14, fontWeight: '800' }}>{a.source.charAt(0)}</Text>
+              </View>
+              {/* 텍스트 */}
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 11, fontWeight: '700', color, marginBottom: 2 }}>{a.source}</Text>
+                <Text style={{ fontSize: 14, fontWeight: '700', color: '#111827', lineHeight: 20 }} numberOfLines={2}>
+                  {title}
+                </Text>
+              </View>
+              <ChevronRight size={15} color="#D1D5DB" />
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
 // ─── 메인 화면 ────────────────────────────────────────────────────────────────
 export default function NewsScreen() {
   const [refreshing, setRefreshing] = useState(false);
@@ -431,6 +556,8 @@ export default function NewsScreen() {
   const [showAllHs, setShowAllHs] = useState<Record<string, boolean>>({});
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [detailVisible, setDetailVisible] = useState(false);
+  const [selectedHArticle, setSelectedHArticle] = useState<HorizontalArticle | null>(null);
+  const [hDetailVisible, setHDetailVisible] = useState(false);
 
   const { newsCategory, setNewsCategory, openDrawer, setActiveTab } = useDrawer();
 
@@ -452,6 +579,7 @@ export default function NewsScreen() {
   };
 
   const closeDetail = () => setDetailVisible(false);
+  const openHDetail = (article: HorizontalArticle) => { setSelectedHArticle(article); setHDetailVisible(true); };
 
   // 카테고리별 기사 분류
   const articlesByCategory: Record<string, Article[]> = { model_research: [], product_tools: [], industry_business: [] };
@@ -575,13 +703,10 @@ export default function NewsScreen() {
               })()}
             </View>
 
-            {/* ── 3. 가로 스크롤 섹션 ── */}
-            <HorizontalSection
-              title="💫 공식 발표"
+            {/* ── 3. 공식 발표 세로 + 가로 스크롤 섹션 ── */}
+            <OfficialAnnouncementSection
               articles={hs.official_announcements ?? []}
-              color="#7C3AED"
-              showAll={showAllHs['official'] ?? false}
-              onShowAll={() => setShowAllHs(prev => ({ ...prev, official: true }))}
+              onCardPress={openHDetail}
             />
             <HorizontalSection
               title="🇰🇷 한국 AI"
@@ -589,6 +714,7 @@ export default function NewsScreen() {
               color="#E53935"
               showAll={showAllHs['korean'] ?? false}
               onShowAll={() => setShowAllHs(prev => ({ ...prev, korean: true }))}
+              onCardPress={openHDetail}
             />
             <HorizontalSection
               title="🟠 GeekNews"
@@ -596,6 +722,7 @@ export default function NewsScreen() {
               color="#FF6B35"
               showAll={showAllHs['geeknews'] ?? false}
               onShowAll={() => setShowAllHs(prev => ({ ...prev, geeknews: true }))}
+              onCardPress={openHDetail}
             />
             <HorizontalSection
               title="📚 큐레이션"
@@ -603,6 +730,7 @@ export default function NewsScreen() {
               color="#0EA5E9"
               showAll={showAllHs['curation'] ?? false}
               onShowAll={() => setShowAllHs(prev => ({ ...prev, curation: true }))}
+              onCardPress={openHDetail}
             />
 
             <View style={{ height: 20 }} />
@@ -612,6 +740,8 @@ export default function NewsScreen() {
 
       {/* ── 뉴스 상세 모달 ── */}
       <NewsDetailModal article={selectedArticle} visible={detailVisible} onClose={closeDetail} />
+      {/* ── 가로 스크롤 카드 상세 모달 ── */}
+      <HorizontalDetailModal article={selectedHArticle} visible={hDetailVisible} onClose={() => setHDetailVisible(false)} />
     </SafeAreaView>
   );
 }

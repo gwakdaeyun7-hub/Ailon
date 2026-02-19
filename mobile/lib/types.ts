@@ -81,6 +81,7 @@ export interface Article {
 // 가로 스크롤 섹션 아이템 (공식 발표 / 한국 AI / 큐레이션)
 export interface HorizontalArticle {
   title: string;
+  display_title?: string;  // 한국어 제목 (없으면 title 사용)
   description: string;
   link: string;
   published: string;
