@@ -45,6 +45,29 @@ SOURCE_RELIABILITY = {
 }
 
 
+def _parse_date(date_str: str):
+    """RSS/API 날짜 문자열 → datetime (파싱 실패 시 None)"""
+    if not date_str:
+        return None
+    try:
+        from email.utils import parsedate_to_datetime
+        return parsedate_to_datetime(date_str).replace(tzinfo=None)
+    except Exception:
+        pass
+    try:
+        return datetime.fromisoformat(date_str.replace('Z', '+00:00')).replace(tzinfo=None)
+    except Exception:
+        return None
+
+
+def _within_days(date_str: str, days: int) -> bool:
+    """날짜가 최근 N일 이내인지 확인 (파싱 실패 시 True로 통과)"""
+    dt = _parse_date(date_str)
+    if dt is None:
+        return True
+    return (datetime.now() - dt).days <= days
+
+
 def is_ai_related(title: str, description: str) -> bool:
     """뉴스가 AI 관련인지 확인"""
     text = (title + " " + description).lower()
@@ -195,6 +218,9 @@ def _fetch_huggingface_papers() -> list[dict]:
             title = paper_data.get("title", "")
             if not title:
                 continue
+            # HuggingFace Papers: 3일 이내 (오늘의 논문이므로 짧게)
+            if not _within_days(paper.get("publishedAt", ""), 3):
+                continue
 
             abstract = paper_data.get("summary", "")[:500]
             arxiv_id = paper_data.get("id", "")
@@ -336,12 +362,14 @@ def tool_industry_news() -> list[dict]:
     print("  [Tool C: Industry] VentureBeat AI + TechCrunch AI 수집 중...")
     articles = []
 
-    # C-1: VentureBeat AI RSS
+    # C-1: VentureBeat AI RSS (14일 이내 — 뉴스 사이트, 구성 주기 일정)
     try:
         feed = feedparser.parse("https://venturebeat.com/category/ai/feed/")
-        for entry in feed.entries[:15]:
+        for entry in feed.entries[:20]:
             title = entry.get("title", "")
             if not title:
+                continue
+            if not _within_days(entry.get("published", ""), 14):
                 continue
             articles.append({
                 "title": title,
@@ -357,12 +385,14 @@ def tool_industry_news() -> list[dict]:
     except Exception as e:
         print(f"    [WARNING] VentureBeat AI feed failed: {e}")
 
-    # C-2: TechCrunch AI RSS
+    # C-2: TechCrunch AI RSS (14일 이내 — 뉴스 사이트, 구성 주기 일정)
     try:
         feed = feedparser.parse("https://techcrunch.com/tag/artificial-intelligence/feed/")
         for entry in feed.entries[:15]:
             title = entry.get("title", "")
             if not title:
+                continue
+            if not _within_days(entry.get("published", ""), 14):
                 continue
             articles.append({
                 "title": title,
@@ -472,6 +502,9 @@ def tool_discovery() -> list[dict]:
                 title = entry.get("title", "")
                 if not title or title in seen_titles:
                     continue
+                # Reddit hot posts: 7일 이내 (핫 피드는 빠르게 교체됨)
+                if not _within_days(entry.get("published", ""), 7):
+                    continue
                 description = (entry.get("summary", "") or "")[:400]
                 if not is_ai_related(title, description):
                     continue
@@ -508,6 +541,9 @@ def tool_discovery() -> list[dict]:
             for hit in resp.json().get("hits", []):
                 title = hit.get("title", "")
                 if not title or not is_ai_related(title, ""):
+                    continue
+                # Hacker News: 7일 이내 (포인트 기반이지만 오래된 글도 포함될 수 있음)
+                if not _within_days(hit.get("created_at", ""), 7):
                     continue
                 points = hit.get("points", 0)
                 obj_id = hit.get("objectID", "")
@@ -599,6 +635,9 @@ def _fetch_official_blogs() -> list[dict]:
                 title = entry.get("title", "")
                 if not title:
                     continue
+                # 공식 블로그: 30일 이내 (중요 발표는 오래 기억될 가치 있음)
+                if not _within_days(entry.get("published", ""), 30):
+                    continue
                 articles.append({
                     "title": title,
                     "description": (entry.get("summary", "") or "")[:300],
@@ -623,6 +662,9 @@ def _fetch_korean_ai() -> list[dict]:
             title = entry.get("title", "")
             if not title:
                 continue
+            # AI타임스: 14일 이내 (주간 뉴스 사이트)
+            if not _within_days(entry.get("published", ""), 14):
+                continue
             articles.append({
                 "title": title,
                 "description": (entry.get("summary", "") or "")[:300],
@@ -646,6 +688,9 @@ def _fetch_geeknews() -> list[dict]:
         for entry in feed.entries[:50]:
             title = entry.get("title", "")
             if not title:
+                continue
+            # GeekNews: 14일 이내 (한국 IT 뉴스 애그리게이터, 업데이트 주기 일정)
+            if not _within_days(entry.get("published", ""), 14):
                 continue
             description = (entry.get("summary", "") or "")[:300]
             if not is_ai_related(title, description):
@@ -673,6 +718,9 @@ def _fetch_tldr_ai() -> list[dict]:
         for entry in feed.entries[:10]:
             title = entry.get("title", "")
             if not title:
+                continue
+            # TLDR AI: 7일 이내 (일간 뉴스레터, 최신성이 핵심)
+            if not _within_days(entry.get("published", ""), 7):
                 continue
             articles.append({
                 "title": title,

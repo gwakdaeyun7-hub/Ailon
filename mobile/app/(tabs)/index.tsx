@@ -432,14 +432,13 @@ export default function NewsScreen() {
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [detailVisible, setDetailVisible] = useState(false);
 
-  const { selectedDates, newsCategory, setNewsCategory, openDrawer, setActiveTab } = useDrawer();
-  const selectedDate = selectedDates.news;
+  const { newsCategory, setNewsCategory, openDrawer, setActiveTab } = useDrawer();
 
   useFocusEffect(useCallback(() => {
     setActiveTab('news');
   }, [setActiveTab]));
 
-  const { newsData, loading, error, refresh } = useNews(selectedDate);
+  const { newsData, loading, error, refresh } = useNews();
 
   const handleRefresh = async () => {
     setRefreshing(true);

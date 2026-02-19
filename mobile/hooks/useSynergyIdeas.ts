@@ -1,6 +1,6 @@
 /**
  * 시너지 아이디어 데이터 Hook - Firestore synergy_ideas 컬렉션
- * targetDate: 특정 날짜 지정 가능 (히스토리 기능)
+ * 오늘 데이터 우선, 없으면 최근 7일 fallback
  */
 
 import { useEffect, useState } from 'react';
@@ -8,14 +8,14 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { DailySynergyIdeas, SynergyIdea } from '@/lib/types';
 
-export function useSynergyIdeas(targetDate?: string) {
+export function useSynergyIdeas() {
   const [ideasData, setIdeasData] = useState<DailySynergyIdeas | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchIdeas();
-  }, [targetDate]);
+  }, []);
 
   const fetchIdeas = async () => {
     try {
@@ -23,32 +23,22 @@ export function useSynergyIdeas(targetDate?: string) {
       setError(null);
       setIdeasData(null);
 
-      if (targetDate) {
-        const docRef = doc(db, 'synergy_ideas', targetDate);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setIdeasData(docSnap.data() as DailySynergyIdeas);
-        } else {
-          setError('해당 날짜의 데이터가 없어요.');
-        }
-      } else {
-        const today = new Date().toISOString().split('T')[0];
-        const docRef = doc(db, 'synergy_ideas', today);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setIdeasData(docSnap.data() as DailySynergyIdeas);
-        } else {
-          for (let i = 1; i <= 7; i++) {
-            const d = new Date();
-            d.setDate(d.getDate() - i);
-            const dateStr = d.toISOString().split('T')[0];
-            const prevRef = doc(db, 'synergy_ideas', dateStr);
-            const prevSnap = await getDoc(prevRef);
-            if (prevSnap.exists()) {
-              setIdeasData(prevSnap.data() as DailySynergyIdeas);
-              break;
-            }
-          }
+      const today = new Date().toISOString().split('T')[0];
+      const docSnap = await getDoc(doc(db, 'synergy_ideas', today));
+      if (docSnap.exists()) {
+        setIdeasData(docSnap.data() as DailySynergyIdeas);
+        return;
+      }
+
+      // 오늘 데이터 없으면 최근 7일 fallback
+      for (let i = 1; i <= 7; i++) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const dateStr = d.toISOString().split('T')[0];
+        const prevSnap = await getDoc(doc(db, 'synergy_ideas', dateStr));
+        if (prevSnap.exists()) {
+          setIdeasData(prevSnap.data() as DailySynergyIdeas);
+          return;
         }
       }
     } catch (err) {

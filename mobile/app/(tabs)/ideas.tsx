@@ -6,7 +6,7 @@
  * - TOP 아이디어 배너, 로드맵 아코디언, 점수바, ReactionBar
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -18,15 +18,13 @@ import {
   TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from '@react-navigation/native';
 import {
   ChevronDown, ChevronUp, Share2, Lightbulb, Target,
-  Map, TrendingUp, Rocket, RefreshCw, Search, X, Menu,
+  Map, TrendingUp, Rocket, RefreshCw, Search, X,
 } from 'lucide-react-native';
 import { useSynergyIdeas } from '@/hooks/useSynergyIdeas';
 import { useAuth } from '@/hooks/useAuth';
 import { useBookmarks } from '@/hooks/useBookmarks';
-import { useDrawer } from '@/context/DrawerContext';
 import { BookmarkButton } from '@/components/shared/BookmarkButton';
 import { IdeaCardSkeleton } from '@/components/shared/LoadingSkeleton';
 import { ReactionBar } from '@/components/shared/ReactionBar';
@@ -329,14 +327,7 @@ export default function IdeasScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
-  const { selectedDates, openDrawer, setActiveTab } = useDrawer();
-  const selectedDate = selectedDates.ideas;
-
-  useFocusEffect(useCallback(() => {
-    setActiveTab('ideas');
-  }, [setActiveTab]));
-
-  const { ideasData, ideas, loading, error, refresh } = useSynergyIdeas(selectedDate);
+  const { ideasData, ideas, loading, error, refresh } = useSynergyIdeas();
   const { user } = useAuth();
   const { isBookmarked, toggleBookmark } = useBookmarks(user?.uid ?? null);
 
@@ -364,11 +355,6 @@ export default function IdeasScreen() {
     subtitle: idea.problem_addressed,
   });
 
-  // 선택된 날짜 표시
-  const dateLabel = selectedDate
-    ? new Date(selectedDate).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })
-    : '오늘';
-
   return (
     <SafeAreaView className="flex-1 bg-background">
       {/* Header */}
@@ -377,24 +363,15 @@ export default function IdeasScreen() {
           <View>
             <Text className="text-text text-2xl font-bold">시너지 랩</Text>
             <Text className="text-text-muted text-sm mt-1">
-              {ideasData?.date ? `${ideasData.date} · ` : `${dateLabel} · `}AI x 학문 융합 아이디어
+              {ideasData?.date ? `${ideasData.date} · ` : '오늘 · '}AI x 학문 융합 아이디어
             </Text>
           </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Pressable
-              onPress={() => { setShowSearch((s) => !s); setSearchQuery(''); }}
-              style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: showSearch ? '#FFEBEE' : '#FAFAFA', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: showSearch ? '#FFCDD2' : '#F0F0F0' }}
-            >
-              <Search size={18} color={showSearch ? '#E53935' : '#757575'} />
-            </Pressable>
-            {/* Hamburger → SideDrawer */}
-            <Pressable
-              onPress={openDrawer}
-              style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#FAFAFA', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#F0F0F0' }}
-            >
-              <Menu size={20} color="#757575" />
-            </Pressable>
-          </View>
+          <Pressable
+            onPress={() => { setShowSearch((s) => !s); setSearchQuery(''); }}
+            style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: showSearch ? '#FFEBEE' : '#FAFAFA', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: showSearch ? '#FFCDD2' : '#F0F0F0' }}
+          >
+            <Search size={18} color={showSearch ? '#E53935' : '#757575'} />
+          </Pressable>
         </View>
         <View style={{ width: 40, height: 3, backgroundColor: '#E53935', borderRadius: 2, marginTop: 12 }} />
       </View>

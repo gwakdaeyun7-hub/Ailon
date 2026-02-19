@@ -3,7 +3,7 @@
  * Foundation (기본 원리) → Application (응용) → Integration (융합 사례)
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -13,13 +13,11 @@ import {
   Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from '@react-navigation/native';
 import {
-  CheckCircle, ExternalLink, Sparkles, RefreshCw, Menu,
+  CheckCircle, ExternalLink, Sparkles, RefreshCw,
   Lightbulb, Zap, Target
 } from 'lucide-react-native';
 import { usePrinciples } from '@/hooks/usePrinciples';
-import { useDrawer } from '@/context/DrawerContext';
 import type { Principle, LearnMoreLink } from '@/lib/types';
 
 const BG = '#FFFFFF';
@@ -422,26 +420,13 @@ function ThreeStageCard({ principle }: { principle: Principle }) {
 export default function SnapsScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
-  const { selectedDates, openDrawer, setActiveTab } = useDrawer();
-  const selectedDate = selectedDates.snaps;
-
-  useFocusEffect(
-    useCallback(() => {
-      setActiveTab('snaps');
-    }, [setActiveTab])
-  );
-
-  const { principlesData, principle, loading, error, refresh } = usePrinciples(selectedDate);
+  const { principlesData, principle, loading, error, refresh } = usePrinciples();
 
   const handleRefresh = async () => {
     setRefreshing(true);
     await refresh();
     setRefreshing(false);
   };
-
-  const dateLabel = selectedDate
-    ? new Date(selectedDate).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })
-    : '오늘';
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: BG }} edges={['top']}>
@@ -454,28 +439,11 @@ export default function SnapsScreen() {
           backgroundColor: BG,
         }}
       >
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <View>
-            <Text style={{ fontSize: 24, fontWeight: '700', color: '#212121' }}>학문 스낵</Text>
-            <Text style={{ fontSize: 14, color: '#757575', marginTop: 4 }}>
-              {principlesData?.date ?? dateLabel} · 3단계 학습
-            </Text>
-          </View>
-          <Pressable
-            onPress={openDrawer}
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              backgroundColor: '#FAFAFA',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderWidth: 1,
-              borderColor: '#F0F0F0',
-            }}
-          >
-            <Menu size={20} color="#757575" />
-          </Pressable>
+        <View>
+          <Text style={{ fontSize: 24, fontWeight: '700', color: '#212121' }}>학문 스낵</Text>
+          <Text style={{ fontSize: 14, color: '#757575', marginTop: 4 }}>
+            {principlesData?.date ?? '오늘'} · 3단계 학습
+          </Text>
         </View>
         <View
           style={{

@@ -10,13 +10,8 @@ interface DrawerContextValue {
   closeDrawer: () => void;
   translateX: Animated.Value;
   overlayOpacity: Animated.Value;
-  /** 현재 포커스된 탭 (드로어 콘텐츠 결정) */
   activeTab: TabKey;
   setActiveTab: (tab: TabKey) => void;
-  /** 탭별 선택 날짜 */
-  selectedDates: Record<TabKey, string | undefined>;
-  setTabDate: (tab: TabKey, date: string | undefined) => void;
-  /** 뉴스 탭 선택 카테고리 (context로 관리하여 드로어와 동기화) */
   newsCategory: NewsCategory;
   setNewsCategory: (cat: NewsCategory) => void;
 }
@@ -33,12 +28,6 @@ export function DrawerProvider({ children }: { children: React.ReactNode }) {
 
   const [activeTab, setActiveTab] = useState<TabKey>('news');
   const [newsCategory, setNewsCategory] = useState<NewsCategory>('model_research');
-
-  const [selectedDates, setSelectedDates] = useState<Record<TabKey, string | undefined>>({
-    news: undefined,
-    snaps: undefined,
-    ideas: undefined,
-  });
 
   const openDrawer = useCallback(() => {
     setIsOpen(true);
@@ -71,16 +60,11 @@ export function DrawerProvider({ children }: { children: React.ReactNode }) {
     ]).start(() => setIsOpen(false));
   }, [translateX, overlayOpacity]);
 
-  const setTabDate = useCallback((tab: TabKey, date: string | undefined) => {
-    setSelectedDates((prev) => ({ ...prev, [tab]: date }));
-  }, []);
-
   return (
     <DrawerContext.Provider
       value={{
         isOpen, openDrawer, closeDrawer, translateX, overlayOpacity,
         activeTab, setActiveTab,
-        selectedDates, setTabDate,
         newsCategory, setNewsCategory,
       }}
     >
