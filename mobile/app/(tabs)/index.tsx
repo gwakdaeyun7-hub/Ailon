@@ -10,7 +10,7 @@
  * 상세 모달: 요약 + 원문링크 + 좋아요/싫어요 + 공유 + 댓글
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -22,6 +22,8 @@ import {
   Platform,
   Image,
   Modal,
+  Animated,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -38,9 +40,9 @@ import { NewsCardSkeleton } from '@/components/shared/LoadingSkeleton';
 import type { Article, NewsCategory, HorizontalArticle } from '@/lib/types';
 
 // ─── 색상 / 상수 ───────────────────────────────────────────────────────────────
-const PRIMARY = '#F43F5E';
-const PRIMARY_LIGHT = '#FFF1F2';
-const BG = '#F5F7FA';
+const PRIMARY = '#000000';
+const PRIMARY_LIGHT = '#F3F4F6';
+const BG = '#F9FAFB';
 const CARD = '#FFFFFF';
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -133,10 +135,10 @@ function LikeCount({ itemId }: { itemId: string }) {
 }
 
 // ─── 섹션 헤더 ────────────────────────────────────────────────────────────────
-function SectionHeader({ title, color = PRIMARY }: { title: string; color?: string }) {
+function SectionHeader({ title, color }: { title: string; color?: string }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, marginBottom: 12 }}>
-      <View style={{ width: 4, height: 22, backgroundColor: color, borderRadius: 2 }} />
+      <View style={{ width: 6, height: 20, backgroundColor: '#000000', borderRadius: 2 }} />
       <Text style={{ fontSize: 18, fontWeight: '800', color: '#111827' }}>{title}</Text>
     </View>
   );
@@ -208,34 +210,50 @@ function HorizontalDetailModal({
 function HorizontalCard({ article, onPress }: { article: HorizontalArticle; onPress: () => void }) {
   const color = article.brand_color ?? PRIMARY;
   const title = article.display_title || article.title;
+  const grad = CAT_GRADIENTS[article.source] ?? ['#6B7280', '#374151'];
+
   return (
     <Pressable
       onPress={onPress}
-      style={{
-        width: 210,
-        borderRadius: 14,
-        borderWidth: 2,
-        borderColor: `${color}40`,
+      style={({ pressed }) => ({
+        width: 240,
+        borderRadius: 16,
         backgroundColor: CARD,
         marginRight: 12,
-        shadowColor: color,
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.18,
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
         shadowRadius: 8,
-        elevation: 4,
-      }}
+        elevation: 2,
+        borderWidth: 1,
+        borderColor: '#F3F4F6',
+        overflow: 'hidden',
+        opacity: pressed ? 0.95 : 1,
+      })}
     >
-      <View style={{ height: 3, backgroundColor: color, borderTopLeftRadius: 12, borderTopRightRadius: 12 }} />
+      {/* 이미지 상단 */}
+      <View style={{ height: 128, backgroundColor: grad[0], overflow: 'hidden' }}>
+        {article.image_url ? (
+          <Image source={{ uri: article.image_url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+        ) : (
+          <View style={{ width: '100%', height: '100%', backgroundColor: grad[1], opacity: 0.6 }} />
+        )}
+      </View>
+
+      {/* 컨텐츠 */}
       <View style={{ padding: 12 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-          <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: color, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ color: '#FFF', fontSize: 9, fontWeight: '800' }}>{article.source.charAt(0)}</Text>
-          </View>
-          <Text style={{ fontSize: 11, fontWeight: '700', color }}>{article.source}</Text>
-        </View>
-        <Text style={{ fontSize: 13, fontWeight: '700', color: '#111827', lineHeight: 19 }} numberOfLines={3}>
+        <Text style={{ fontSize: 12, fontWeight: '700', color: '#111827', lineHeight: 17, marginBottom: 8 }} numberOfLines={2}>
           {title}
         </Text>
+
+        {/* 하단: 좋아요 + 날짜 */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'space-between' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <ThumbsUp size={12} color="#9CA3AF" />
+            <Text style={{ fontSize: 10, color: '#9CA3AF' }}>0</Text>
+          </View>
+          <Text style={{ fontSize: 9, color: '#D1D5DB' }}>{formatDate(article.published)}</Text>
+        </View>
       </View>
     </Pressable>
   );
@@ -268,7 +286,7 @@ function HorizontalSection({
   );
 }
 
-// ─── 뉴스 상세 모달 ───────────────────────────────────────────────────────────
+// ─── 뉴스 상세 모달 (바텀 시트 스타일) ───────────────────────────────────────────
 function NewsDetailModal({
   article, visible, onClose,
 }: { article: Article | null; visible: boolean; onClose: () => void }) {
@@ -280,91 +298,135 @@ function NewsDetailModal({
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={{ flex: 1, backgroundColor: CARD }} edges={['top']}>
-        {/* ── 헤더 ── */}
-        <View style={{
-          flexDirection: 'row', alignItems: 'center', gap: 10,
-          paddingHorizontal: 16, paddingVertical: 12,
-          borderBottomWidth: 1, borderBottomColor: '#F3F4F6',
-        }}>
-          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <View style={{ backgroundColor: `${cc}15`, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, borderWidth: 1, borderColor: `${cc}30` }}>
-              <Text style={{ color: cc, fontSize: 12, fontWeight: '700' }}>{catLabel(article.category)}</Text>
-            </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <Calendar size={12} color="#9CA3AF" />
-              <Text style={{ fontSize: 12, color: '#9CA3AF' }}>{formatDate(article.published)}</Text>
-            </View>
-          </View>
-          <Pressable
-            onPress={onClose}
-            style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center' }}
-          >
-            <X size={16} color="#6B7280" />
-          </Pressable>
-        </View>
+        <ScrollView showsVerticalScrollIndicator={false}>
+          {/* ── 이미지 헤더 (상단 240px) ── */}
+          <View style={{ height: 240, backgroundColor: grad[0], overflow: 'hidden', position: 'relative' }}>
+            {article.image_url ? (
+              <>
+                <Image source={{ uri: article.image_url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.3)' }} />
+              </>
+            ) : (
+              <View style={{ width: '100%', height: '100%', backgroundColor: grad[1], opacity: 0.6 }} />
+            )}
 
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20 }}>
-          {/* ── 제목 ── */}
-          <Text style={{ fontSize: 22, fontWeight: '800', color: '#111827', lineHeight: 32, marginBottom: 16 }}>
-            {displayTitle(article)}
-          </Text>
+            {/* 닫기 버튼 (우상단) */}
+            <Pressable
+              onPress={onClose}
+              style={{
+                position: 'absolute',
+                top: 12,
+                right: 12,
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor: 'rgba(0,0,0,0.5)',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 10,
+              }}
+            >
+              <X size={20} color="#FFFFFF" />
+            </Pressable>
 
-          {/* ── impact_comment ── */}
-          {article.impact_comment ? (
-            <View style={{ flexDirection: 'row', gap: 8, backgroundColor: PRIMARY_LIGHT, borderRadius: 12, padding: 12, marginBottom: 16 }}>
-              <Zap size={14} color={PRIMARY} style={{ marginTop: 2 }} />
-              <Text style={{ color: '#BE123C', fontSize: 14, flex: 1, lineHeight: 20, fontWeight: '500' }}>
-                {article.impact_comment}
+            {/* 제목 오버레이 (하단) */}
+            <View style={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              paddingHorizontal: 16,
+              paddingVertical: 16,
+              backgroundColor: 'rgba(0,0,0,0.3)',
+            }}>
+              <Text style={{ fontSize: 20, fontWeight: '800', color: '#FFFFFF', lineHeight: 28 }}>
+                {displayTitle(article)}
               </Text>
             </View>
-          ) : null}
-
-          {/* ── 요약 ── */}
-          {(article.summary || article.description) ? (
-            <Text style={{ fontSize: 15, color: '#374151', lineHeight: 25, marginBottom: 20 }}>
-              {article.summary ?? article.description}
-            </Text>
-          ) : null}
-
-          {/* ── 출처 / 읽기 시간 ── */}
-          <View style={{
-            flexDirection: 'row', alignItems: 'center', gap: 6,
-            paddingBottom: 16, marginBottom: 16,
-            borderBottomWidth: 1, borderBottomColor: '#F3F4F6',
-          }}>
-            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: cc }} />
-            <Text style={{ fontSize: 13, color: '#6B7280', flex: 1 }}>{article.source}</Text>
-            {article.reading_time && article.reading_time > 0 ? (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <Clock size={12} color="#9CA3AF" />
-                <Text style={{ fontSize: 12, color: '#9CA3AF' }}>{article.reading_time}분 읽기</Text>
-              </View>
-            ) : null}
           </View>
 
-          {/* ── 원문 보기 버튼 ── */}
-          {article.link ? (
-            <Pressable
-              onPress={() => Linking.openURL(article.link)}
-              style={({ pressed }) => ({
-                flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-                backgroundColor: pressed ? '#1F2937' : '#111827',
-                borderRadius: 14, paddingVertical: 14, marginBottom: 20,
-              })}
-            >
-              <ExternalLink size={16} color="#FFFFFF" />
-              <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 15 }}>원문 보기</Text>
-            </Pressable>
-          ) : null}
+          {/* ── 본문 콘텐츠 ── */}
+          <View style={{ padding: 20 }}>
+            {/* 카테고리 + 날짜 */}
+            <View style={{
+              flexDirection: 'row', alignItems: 'center', gap: 8,
+              paddingBottom: 16, marginBottom: 16,
+              borderBottomWidth: 1, borderBottomColor: '#F3F4F6',
+            }}>
+              <View style={{ backgroundColor: `${cc}15`, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, borderWidth: 1, borderColor: `${cc}30` }}>
+                <Text style={{ color: cc, fontSize: 12, fontWeight: '700' }}>{catLabel(article.category)}</Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Calendar size={12} color="#9CA3AF" />
+                <Text style={{ fontSize: 12, color: '#9CA3AF' }}>{formatDate(article.published)}</Text>
+              </View>
+              <View style={{ marginLeft: 'auto', flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Clock size={12} color="#9CA3AF" />
+                <Text style={{ fontSize: 12, color: '#9CA3AF' }}>
+                  {article.reading_time && article.reading_time > 0 ? `${article.reading_time}분 읽기` : ''}
+                </Text>
+              </View>
+            </View>
 
-          {/* ── 반응 바: 좋아요 + 댓글 + 공유 ── */}
+            {/* impact_comment */}
+            {article.impact_comment ? (
+              <View style={{ flexDirection: 'row', gap: 8, backgroundColor: PRIMARY_LIGHT, borderRadius: 12, padding: 12, marginBottom: 16 }}>
+                <Zap size={14} color="#000000" style={{ marginTop: 2, flexShrink: 0 }} />
+                <Text style={{ color: '#374151', fontSize: 14, flex: 1, lineHeight: 20, fontWeight: '500' }}>
+                  {article.impact_comment}
+                </Text>
+              </View>
+            ) : null}
+
+            {/* 요약 */}
+            {(article.summary || article.description) ? (
+              <Text style={{ fontSize: 15, color: '#374151', lineHeight: 25, marginBottom: 20 }}>
+                {article.summary ?? article.description}
+              </Text>
+            ) : null}
+
+            {/* 출처 */}
+            <View style={{
+              flexDirection: 'row', alignItems: 'center', gap: 6,
+              paddingBottom: 16, marginBottom: 16,
+              borderBottomWidth: 1, borderBottomColor: '#F3F4F6',
+            }}>
+              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: cc }} />
+              <Text style={{ fontSize: 13, color: '#6B7280' }}>{article.source}</Text>
+            </View>
+
+            {/* 원문 보기 버튼 */}
+            {article.link ? (
+              <Pressable
+                onPress={() => Linking.openURL(article.link)}
+                style={({ pressed }) => ({
+                  flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  backgroundColor: pressed ? '#1F2937' : '#111827',
+                  borderRadius: 14, paddingVertical: 14, marginBottom: 20,
+                })}
+              >
+                <ExternalLink size={16} color="#FFFFFF" />
+                <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 15 }}>원문 보기</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        </ScrollView>
+
+        {/* ── 하단 고정 바: 반응 ── */}
+        <View style={{
+          borderTopWidth: 1,
+          borderTopColor: '#F3F4F6',
+          backgroundColor: CARD,
+          paddingHorizontal: 20,
+          paddingVertical: 12,
+        }}>
           <ReactionBar
             itemType="news"
             itemId={itemId}
             shareText={`${displayTitle(article)}\n\n${article.link ?? ''}`}
             shareTitle={displayTitle(article)}
           />
-        </ScrollView>
+        </View>
       </SafeAreaView>
     </Modal>
   );
@@ -374,6 +436,9 @@ function NewsDetailModal({
 function HeroCard({ article, onPress }: { article: Article; onPress: () => void }) {
   const grad = CAT_GRADIENTS[normCat(article.category)] ?? ['#1E3A5F', '#0F1F3D'];
   const itemId = article.link ?? article.title;
+  const screenWidth = Dimensions.get('window').width;
+  const cardWidth = screenWidth - 32;
+  const cardHeight = Math.round(cardWidth * 3 / 4);
 
   return (
     <View style={{ marginHorizontal: 16, marginBottom: 20 }}>
@@ -381,24 +446,22 @@ function HeroCard({ article, onPress }: { article: Article; onPress: () => void 
         onPress={onPress}
         style={({ pressed }) => ({
           borderRadius: 18,
-          borderWidth: 2,
-          borderColor: '#a78bfa',
           backgroundColor: CARD,
-          shadowColor: '#60a5fa',
-          shadowOffset: { width: 0, height: 6 },
-          shadowOpacity: pressed ? 0.15 : 0.3,
-          shadowRadius: 12,
-          elevation: 8,
+          shadowColor: '#000000',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.1,
+          shadowRadius: 10,
+          elevation: 4,
           opacity: pressed ? 0.95 : 1,
           overflow: 'hidden',
         })}
       >
         {/* 이미지 / 그라디언트 배경 */}
-        <View style={{ backgroundColor: grad[0], minHeight: 180, padding: 16, justifyContent: 'flex-end' }}>
+        <View style={{ backgroundColor: grad[0], height: cardHeight, padding: 16, justifyContent: 'flex-end' }}>
           {article.image_url ? (
             <>
               <Image source={{ uri: article.image_url }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} resizeMode="cover" />
-              <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.55)' }} />
+              <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)' }} />
             </>
           ) : (
             <>
@@ -410,8 +473,8 @@ function HeroCard({ article, onPress }: { article: Article; onPress: () => void 
 
           {/* HOT 배지 + 날짜 */}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-            <View style={{ backgroundColor: '#60a5fa', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 }}>
-              <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '800' }}>⭐ HOT</Text>
+            <View style={{ backgroundColor: '#FFFFFF', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 }}>
+              <Text style={{ color: '#000000', fontSize: 11, fontWeight: '800' }}>⭐ HOT</Text>
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
               <Calendar size={12} color="rgba(255,255,255,0.7)" />
@@ -438,7 +501,7 @@ function HeroCard({ article, onPress }: { article: Article; onPress: () => void 
   );
 }
 
-// ─── 뉴스 목록 아이템 (인라인 썸네일: 이미지 + 제목 + 날짜 + 좋아요) ────────────────────
+// ─── 뉴스 목록 아이템 (인라인 썸네일: 텍스트 + 썸네일 오른쪽) ────────────────────
 function NewsListItem({
   article, isLast, onPress,
 }: { article: Article; isLast: boolean; onPress: () => void }) {
@@ -452,22 +515,37 @@ function NewsListItem({
       style={({ pressed }) => ({
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 12,
+        paddingVertical: 14,
         paddingHorizontal: 16,
         gap: 12,
         borderBottomWidth: isLast ? 0 : 1,
         borderBottomColor: '#F3F4F6',
         backgroundColor: pressed ? '#FAFAFA' : CARD,
+        minHeight: 112,
       })}
     >
       {/* 카테고리 컬러 바 */}
-      <View style={{ width: 3, height: 60, borderRadius: 2, backgroundColor: cc, flexShrink: 0 }} />
+      <View style={{ width: 2, height: '100%', backgroundColor: cc, flexShrink: 0 }} />
 
-      {/* 썸네일 이미지 */}
+      {/* 텍스트 영역 */}
+      <View style={{ flex: 1 }}>
+        <Text
+          style={{ fontSize: 14, fontWeight: '700', color: '#111827', lineHeight: 20, marginBottom: 8 }}
+          numberOfLines={2}
+        >
+          {displayTitle(article)}
+        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Text style={{ fontSize: 11, color: '#9CA3AF' }}>{formatDate(article.published)}</Text>
+          <LikeCount itemId={itemId} />
+        </View>
+      </View>
+
+      {/* 썸네일 이미지 오른쪽 */}
       <View style={{
-        width: 60,
-        height: 60,
-        borderRadius: 8,
+        width: 88,
+        height: 88,
+        borderRadius: 12,
         backgroundColor: grad[0],
         overflow: 'hidden',
         flexShrink: 0,
@@ -485,23 +563,6 @@ function NewsListItem({
           }} />
         )}
       </View>
-
-      {/* 텍스트 영역 */}
-      <View style={{ flex: 1 }}>
-        <Text
-          style={{ fontSize: 13, fontWeight: '700', color: '#111827', lineHeight: 18, marginBottom: 4 }}
-          numberOfLines={2}
-        >
-          {displayTitle(article)}
-        </Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Text style={{ fontSize: 10, color: '#9CA3AF' }}>{formatDate(article.published)}</Text>
-          <LikeCount itemId={itemId} />
-        </View>
-      </View>
-
-      {/* 화살표 */}
-      <ChevronRight size={15} color="#D1D5DB" />
     </Pressable>
   );
 }
@@ -513,71 +574,155 @@ const COMPANY_COLORS: Record<string, string> = {
   DeepMind: '#1D4ED8',
 };
 
-// ─── 공식 발표: 회사별 컨테이너 ───────────────────────────────────────────────
+const COMPANY_TABS = [
+  { key: 'OpenAI', label: 'OpenAI' },
+  { key: 'Anthropic', label: 'Anthropic' },
+  { key: 'DeepMind', label: 'DeepMind' },
+] as const;
+
+// ─── 공식 발표: 회사별 탭 + 가로 스크롤 ───────────────────────────────────────────────
 function OfficialAnnouncementSection({
   officialGrouped, onCardPress,
 }: { officialGrouped: Record<string, HorizontalArticle[]>; onCardPress: (a: HorizontalArticle) => void }) {
   if (!officialGrouped || Object.keys(officialGrouped).length === 0) return null;
 
+  const [selectedCompany, setSelectedCompany] = React.useState('OpenAI');
+  const articles = officialGrouped[selectedCompany] ?? [];
+
   return (
     <View style={{ marginBottom: 20 }}>
-      <SectionHeader title="💫 공식 발표" color="#7C3AED" />
-      <View style={{ marginHorizontal: 16, gap: 14 }}>
-        {Object.entries(officialGrouped).map(([company, articles]) => {
-          const color = COMPANY_COLORS[company] ?? '#7C3AED';
-          if (!articles || articles.length === 0) return null;
+      <SectionHeader title="💫 공식 발표" />
+
+      {/* 회사 탭 선택기 */}
+      <View style={{
+        marginHorizontal: 16,
+        marginBottom: 12,
+        backgroundColor: CARD,
+        borderRadius: 12,
+        padding: 6,
+        flexDirection: 'row',
+        gap: 6,
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 1,
+      }}>
+        {COMPANY_TABS.map(tab => {
+          const isActive = selectedCompany === tab.key;
           return (
-            <View key={company} style={{
-              backgroundColor: CARD,
-              borderRadius: 16,
-              borderWidth: 1.5,
-              borderColor: `${color}30`,
-              overflow: 'hidden',
-              shadowColor: color,
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.1,
-              shadowRadius: 6,
-              elevation: 2,
-            }}>
-              {/* 회사 헤더 */}
-              <View style={{
-                flexDirection: 'row', alignItems: 'center', gap: 8,
-                paddingHorizontal: 14, paddingVertical: 10,
-                backgroundColor: `${color}10`,
-                borderBottomWidth: 1, borderBottomColor: `${color}20`,
+            <Pressable
+              key={tab.key}
+              onPress={() => setSelectedCompany(tab.key)}
+              style={{
+                flex: 1,
+                alignItems: 'center',
+                paddingVertical: 8,
+                borderRadius: 10,
+                backgroundColor: isActive ? '#000000' : 'transparent',
+              }}
+            >
+              <Text style={{
+                fontSize: 12,
+                fontWeight: '700',
+                color: isActive ? '#FFFFFF' : '#6B7280',
               }}>
-                <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: color, alignItems: 'center', justifyContent: 'center' }}>
-                  <Text style={{ color: '#FFF', fontSize: 12, fontWeight: '800' }}>{company.charAt(0)}</Text>
-                </View>
-                <Text style={{ fontSize: 14, fontWeight: '800', color }}>{company}</Text>
-              </View>
-              {/* 기사 목록 */}
-              {articles.map((a, i) => {
-                const title = a.display_title || a.title;
-                return (
-                  <Pressable
-                    key={`${company}-${i}`}
-                    onPress={() => onCardPress(a)}
-                    style={({ pressed }) => ({
-                      padding: 14,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: 10,
-                      borderTopWidth: i === 0 ? 0 : 1,
-                      borderTopColor: '#F3F4F6',
-                      opacity: pressed ? 0.85 : 1,
-                    })}
-                  >
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 14, fontWeight: '600', color: '#111827', lineHeight: 20 }} numberOfLines={2}>
-                        {title}
-                      </Text>
-                    </View>
-                    <ChevronRight size={14} color="#D1D5DB" />
-                  </Pressable>
-                );
-              })}
-            </View>
+                {tab.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      {/* 선택된 회사의 가로 스크롤 카드 */}
+      {articles.length > 0 ? (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 4 }}
+        >
+          {articles.map((a, i) => (
+            <HorizontalCard key={`${selectedCompany}-${i}`} article={a} onPress={() => onCardPress(a)} />
+          ))}
+        </ScrollView>
+      ) : (
+        <View style={{ alignItems: 'center', paddingVertical: 20, marginHorizontal: 16 }}>
+          <Text style={{ color: '#D1D5DB', fontSize: 14 }}>이 회사의 공식 발표가 없어요</Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+// ─── 카테고리 탭 섹션 (슬라이딩 애니메이션) ──────────────────────────────────────
+function CategoryTabsSection({
+  tabs, selectedTab, onSelectTab,
+}: { tabs: typeof TABS; selectedTab: NewsCategory; onSelectTab: (tab: NewsCategory) => void }) {
+  const [tabWidths, setTabWidths] = React.useState<Record<string, number>>({});
+  const animValue = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const selectedIndex = tabs.findIndex(t => t.key === selectedTab);
+    let totalOffset = 8; // 시작 패딩
+    for (let i = 0; i < selectedIndex; i++) {
+      totalOffset += (tabWidths[tabs[i].key] || 80) + 6; // 탭 너비 + gap
+    }
+    Animated.timing(animValue, {
+      toValue: totalOffset,
+      duration: 250,
+      useNativeDriver: true,
+    }).start();
+  }, [selectedTab, tabWidths, tabs, animValue]);
+
+  return (
+    <View style={{
+      marginHorizontal: 16,
+      marginBottom: 12,
+      backgroundColor: CARD,
+      borderRadius: 14,
+      paddingVertical: 8,
+      paddingHorizontal: 8,
+      shadowColor: '#000000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 4,
+      elevation: 1,
+    }}>
+      {/* 슬라이딩 배경 */}
+      <View style={{ position: 'absolute', top: 8, left: 8, right: 8, height: 40, pointerEvents: 'none' }}>
+        <Animated.View style={{
+          position: 'absolute',
+          height: '100%',
+          backgroundColor: '#000000',
+          borderRadius: 10,
+          transform: [{ translateX: animValue }],
+          width: tabWidths[selectedTab] || 80,
+        }} />
+      </View>
+
+      {/* 탭 버튼들 */}
+      <View style={{ flexDirection: 'row', gap: 6 }}>
+        {tabs.map(tab => {
+          const isActive = selectedTab === tab.key;
+          return (
+            <Pressable
+              key={tab.key}
+              onPress={() => onSelectTab(tab.key)}
+              onLayout={(e) => {
+                if (tabWidths[tab.key] !== e.nativeEvent.layout.width) {
+                  setTabWidths(prev => ({ ...prev, [tab.key]: e.nativeEvent.layout.width }));
+                }
+              }}
+              style={{ flex: 1, alignItems: 'center', paddingVertical: 10, zIndex: 1 }}
+            >
+              <Text style={{
+                fontSize: 13,
+                fontWeight: '700',
+                color: isActive ? '#FFFFFF' : '#6B7280',
+              }}>
+                {tab.label}
+              </Text>
+            </Pressable>
           );
         })}
       </View>
@@ -645,6 +790,9 @@ export default function NewsScreen() {
           <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '800' }}>A</Text>
         </View>
         <Text style={{ flex: 1, fontSize: 18, fontWeight: '800', color: '#111827' }}>AI News</Text>
+        <Pressable style={{ width: 38, height: 38, alignItems: 'center', justifyContent: 'center' }}>
+          <Search size={22} color="#374151" />
+        </Pressable>
         <Pressable onPress={openDrawer} style={{ width: 38, height: 38, alignItems: 'center', justifyContent: 'center' }}>
           <Menu size={22} color="#374151" />
         </Pressable>
@@ -652,7 +800,7 @@ export default function NewsScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={PRIMARY} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#6B7280" />}
       >
         {loading ? (
           <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
@@ -682,37 +830,24 @@ export default function NewsScreen() {
             ) : null}
 
             {/* ── 2. 카테고리 탭 + 뉴스 목록 ── */}
+            <CategoryTabsSection
+              tabs={TABS}
+              selectedTab={newsCategory}
+              onSelectTab={setNewsCategory}
+            />
             <View style={{
               marginHorizontal: 16,
               backgroundColor: CARD,
               borderRadius: 18,
-              borderWidth: 2,
-              borderColor: '#e0e7ff',
               overflow: 'hidden',
-              shadowColor: '#a78bfa',
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.15,
-              shadowRadius: 10,
-              elevation: 6,
+              shadowColor: '#000000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.08,
+              shadowRadius: 8,
+              elevation: 2,
               marginBottom: 20,
             }}>
-              {/* 탭 */}
-              <View style={{ flexDirection: 'row', padding: 8, gap: 6, borderBottomWidth: 1, borderBottomColor: '#F3F4F6', backgroundColor: '#fafafa' }}>
-                {TABS.map(tab => {
-                  const isActive = newsCategory === tab.key;
-                  return (
-                    <Pressable
-                      key={tab.key}
-                      onPress={() => setNewsCategory(tab.key)}
-                      style={{ flex: 1, alignItems: 'center', paddingVertical: 9, borderRadius: 12, backgroundColor: isActive ? '#60a5fa' : 'transparent' }}
-                    >
-                      <Text style={{ fontSize: 13, fontWeight: '700', color: isActive ? '#FFFFFF' : '#6B7280' }}>
-                        {tab.label}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
+              {/* 탭 콘텐츠 */}
 
               {/* 뉴스 목록 */}
               {mainArticles.length === 0 && moreArticles.length === 0 ? (

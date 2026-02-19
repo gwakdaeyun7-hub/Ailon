@@ -90,6 +90,7 @@ export interface HorizontalArticle {
   source_type: string;
   section: string;
   brand_color?: string;
+  image_url?: string;  // 썸네일 이미지 URL
 }
 
 export interface DailyNews {
