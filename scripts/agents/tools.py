@@ -19,8 +19,9 @@ import requests
 from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
 
-# AI 관련 키워드
+# AI 관련 키워드 (영문 + 한국어)
 AI_KEYWORDS = [
+    # 영문
     "ai", "artificial intelligence", "machine learning", "deep learning",
     "neural network", "llm", "gpt", "chatgpt", "claude", "gemini",
     "computer vision", "nlp", "natural language", "automation",
@@ -28,6 +29,10 @@ AI_KEYWORDS = [
     "transformer", "diffusion model", "reinforcement learning",
     "agent", "agentic", "multimodal", "rag", "fine-tuning",
     "open source", "hugging face", "langchain", "langgraph",
+    # 한국어
+    "인공지능", "머신러닝", "딥러닝", "생성형", "언어모델",
+    "챗봇", "자연어", "강화학습", "신경망", "거대언어모델",
+    "멀티모달", "에이전트", "파인튜닝", "임베딩", "프롬프트",
 ]
 
 # 소스 신뢰도 점수 (0-10)
@@ -637,8 +642,8 @@ def _fetch_geeknews() -> list[dict]:
     """GeekNews RSS — 전체 IT 뉴스 중 AI 관련 항목만 필터링"""
     articles = []
     try:
-        feed = feedparser.parse("https://news.hada.io/rss")
-        for entry in feed.entries[:20]:
+        feed = feedparser.parse("https://news.hada.io/rss/news", agent="Mozilla/5.0")
+        for entry in feed.entries[:50]:
             title = entry.get("title", "")
             if not title:
                 continue
