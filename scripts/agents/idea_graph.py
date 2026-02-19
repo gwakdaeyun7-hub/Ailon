@@ -238,7 +238,7 @@ def cross_pollinator_node(state: IdeaGraphState) -> dict:
 **과제**: 각 문제에 대해 1개씩 총 {len(matched_problems)}개 AI 융합 아이디어를 생성해주세요.
 기능 2의 융합 사례처럼, 이 원리가 어떻게 AI 문제를 해결하는지 구체적으로 연결하세요.
 
-JSON 배열로 응답하세요:
+OUTPUT ONLY VALID JSON ARRAY (no markdown, no explanation):
 [
   {{
     "concept_name": "아이디어 이름",
@@ -302,8 +302,8 @@ def blueprint_architect_node(state: IdeaGraphState) -> dict:
     Step 4: 기술 로드맵 + 시장 분석 + 평가
     """
     print("\n[blueprint_architect_node] 로드맵 및 시장분석 중...")
-    
-    llm = get_llm(temperature=0.7, max_tokens=4096)
+
+    llm = get_llm(temperature=0.7, max_tokens=8192)
     ideas_text = json.dumps(state["raw_ideas"], ensure_ascii=False, indent=2)
     
     prompt = f"""다음 AI 융합 아이디어들에 기술 로드맵, 시장 분석, 평가를 추가해주세요.
@@ -345,7 +345,7 @@ def blueprint_architect_node(state: IdeaGraphState) -> dict:
 4. **challenges**: ["도전과제 1", "도전과제 2"]
 5. **improvements**: ["개선 제안 1", "개선 제안 2"]
 
-OUTPUT ONLY VALID JSON ARRAY (no markdown, no explanation):"""
+OUTPUT ONLY VALID JSON ARRAY (no markdown, no explanation, strict format):"""
     
     try:
         result = llm.invoke([HumanMessage(content=prompt)])

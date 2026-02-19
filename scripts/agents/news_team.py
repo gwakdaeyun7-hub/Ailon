@@ -121,7 +121,7 @@ def analyzer_node(state: NewsState) -> dict:
     if not articles:
         return {"analyzed_articles": [], "categories": {}}
 
-    llm = get_llm(temperature=0.3, max_tokens=4096)
+    llm = get_llm(temperature=0.3, max_tokens=8192)
 
     # 카테고리 정의 텍스트
     categories_text = "\n".join([

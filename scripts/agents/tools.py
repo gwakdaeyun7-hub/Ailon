@@ -624,7 +624,7 @@ def fetch_all_sources() -> list[dict]:
 # ═══════════════════════════════════════════════════════════════
 
 def _fetch_official_blogs() -> list[dict]:
-    """OpenAI / Anthropic / DeepMind 공식 블로그 RSS"""
+    """OpenAI / Anthropic / DeepMind 공식 블로그 RSS + og:image 추출"""
     FEEDS = [
         ("https://openai.com/blog/rss.xml",        "OpenAI",    "#10B981"),
         ("https://www.anthropic.com/rss.xml",       "Anthropic", "#7C3AED"),
@@ -638,18 +638,37 @@ def _fetch_official_blogs() -> list[dict]:
                 title = entry.get("title", "")
                 if not title:
                     continue
-                # 공식 블로그: 30일 이내 (중요 발표는 오래 기억될 가치 있음)
+                # 공식 블로그: 30일 이내
                 if not _within_days(entry.get("published", ""), 30):
                     continue
+
+                link = entry.get("link", "")
+                # og:image 추출 시도
+                image_url = ""
+                if link:
+                    try:
+                        import requests as _req
+                        from bs4 import BeautifulSoup as _BS
+                        headers = {"User-Agent": "Mozilla/5.0"}
+                        resp = _req.get(link, headers=headers, timeout=5)
+                        if resp.status_code == 200:
+                            soup = _BS(resp.content, "html.parser")
+                            og_image = soup.find("meta", property="og:image")
+                            if og_image and og_image.get("content"):
+                                image_url = og_image.get("content")
+                    except:
+                        pass
+
                 articles.append({
                     "title": title,
                     "description": (entry.get("summary", "") or "")[:300],
-                    "link": entry.get("link", ""),
+                    "link": link,
                     "published": entry.get("published", datetime.now().isoformat()),
                     "source": source_name,
                     "source_type": "official_blog",
                     "section": "official_announcements",
                     "brand_color": color,
+                    "image_url": image_url,
                 })
         except Exception as e:
             print(f"    [WARNING] {source_name} blog RSS failed: {e}")
