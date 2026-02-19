@@ -687,15 +687,33 @@ def _fetch_korean_ai() -> list[dict]:
             # AI타임스: 14일 이내 (주간 뉴스 사이트)
             if not _within_days(entry.get("published", ""), 14):
                 continue
+            link = entry.get("link", "")
+            # og:image 추출 시도
+            image_url = ""
+            if link:
+                try:
+                    import requests as _req
+                    from bs4 import BeautifulSoup as _BS
+                    headers = {"User-Agent": "Mozilla/5.0"}
+                    resp = _req.get(link, headers=headers, timeout=5)
+                    if resp.status_code == 200:
+                        soup = _BS(resp.content, "html.parser")
+                        og_image = soup.find("meta", property="og:image")
+                        if og_image and og_image.get("content"):
+                            image_url = og_image.get("content")
+                except:
+                    pass
+
             articles.append({
                 "title": title,
                 "description": (entry.get("summary", "") or "")[:300],
-                "link": entry.get("link", ""),
+                "link": link,
                 "published": entry.get("published", datetime.now().isoformat()),
                 "source": "AI타임스",
                 "source_type": "korean_news",
                 "section": "korean_ai",
                 "brand_color": "#E53935",
+                "image_url": image_url,
             })
     except Exception as e:
         print(f"    [WARNING] AI타임스 RSS failed: {e}")
@@ -717,15 +735,34 @@ def _fetch_geeknews() -> list[dict]:
             description = (entry.get("summary", "") or "")[:300]
             if not is_ai_related(title, description):
                 continue
+
+            link = entry.get("link", "")
+            # og:image 추출 시도
+            image_url = ""
+            if link:
+                try:
+                    import requests as _req
+                    from bs4 import BeautifulSoup as _BS
+                    headers = {"User-Agent": "Mozilla/5.0"}
+                    resp = _req.get(link, headers=headers, timeout=5)
+                    if resp.status_code == 200:
+                        soup = _BS(resp.content, "html.parser")
+                        og_image = soup.find("meta", property="og:image")
+                        if og_image and og_image.get("content"):
+                            image_url = og_image.get("content")
+                except:
+                    pass
+
             articles.append({
                 "title": title,
                 "description": description,
-                "link": entry.get("link", ""),
+                "link": link,
                 "published": entry.get("published", datetime.now().isoformat()),
                 "source": "GeekNews",
                 "source_type": "korean_news",
                 "section": "geeknews",
                 "brand_color": "#FF6B35",
+                "image_url": image_url,
             })
     except Exception as e:
         print(f"    [WARNING] GeekNews RSS failed: {e}")
@@ -744,15 +781,34 @@ def _fetch_tldr_ai() -> list[dict]:
             # TLDR AI: 7일 이내 (일간 뉴스레터, 최신성이 핵심)
             if not _within_days(entry.get("published", ""), 7):
                 continue
+
+            link = entry.get("link", "")
+            # og:image 추출 시도
+            image_url = ""
+            if link:
+                try:
+                    import requests as _req
+                    from bs4 import BeautifulSoup as _BS
+                    headers = {"User-Agent": "Mozilla/5.0"}
+                    resp = _req.get(link, headers=headers, timeout=5)
+                    if resp.status_code == 200:
+                        soup = _BS(resp.content, "html.parser")
+                        og_image = soup.find("meta", property="og:image")
+                        if og_image and og_image.get("content"):
+                            image_url = og_image.get("content")
+                except:
+                    pass
+
             articles.append({
                 "title": title,
                 "description": (entry.get("summary", "") or "")[:300],
-                "link": entry.get("link", ""),
+                "link": link,
                 "published": entry.get("published", datetime.now().isoformat()),
                 "source": "TLDR AI",
                 "source_type": "curation",
                 "section": "curation",
                 "brand_color": "#0EA5E9",
+                "image_url": image_url,
             })
     except Exception as e:
         print(f"    [WARNING] TLDR AI RSS failed: {e}")
