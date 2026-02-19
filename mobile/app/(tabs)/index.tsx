@@ -295,10 +295,89 @@ function HorizontalSection({
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 4 }}
       >
         {articles.slice(0, 10).map((a, i) => (
-          <HorizontalCard key={`${a.source}-${i}`} article={a} onPress={() => onCardPress?.(a)} />
+          <HorizontalCard
+            key={`${a.source}-${i}`}
+            article={a}
+            onPress={() => onCardPress?.(a)}
+          />
         ))}
       </ScrollView>
     </View>
+  );
+}
+
+// ─── 가로 스크롤 상세 모달 ───────────────────────────────────────────────────
+function HorizontalDetailModal({
+  article, visible, onClose,
+}: { article: HorizontalArticle | null; visible: boolean; onClose: () => void }) {
+  if (!article) return null;
+  const title = article.display_title || article.title;
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: CARD }} edges={['top']}>
+        {/* 헤더 */}
+        <View style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          paddingHorizontal: 16,
+          paddingVertical: 12,
+          borderBottomWidth: 1,
+          borderBottomColor: BORDER,
+        }}>
+          <Text style={{ flex: 1, fontSize: 14, fontWeight: '700', color: TEXT_SECONDARY }}>
+            {article.source}
+          </Text>
+          <Pressable
+            onPress={onClose}
+            style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: BORDER, alignItems: 'center', justifyContent: 'center' }}
+          >
+            <X size={16} color={TEXT_SECONDARY} />
+          </Pressable>
+        </View>
+
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, flexGrow: 1 }}>
+          {/* 이미지 */}
+          {article.image_url && (
+            <View style={{ height: 200, borderRadius: 12, overflow: 'hidden', marginBottom: 16 }}>
+              <Image source={{ uri: article.image_url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+            </View>
+          )}
+
+          {/* 제목 */}
+          <Text style={{ fontSize: 18, fontWeight: '800', color: TEXT_PRIMARY, lineHeight: 26, marginBottom: 12 }}>
+            {title}
+          </Text>
+
+          {/* 설명 */}
+          {article.description && (
+            <Text style={{ fontSize: 14, color: TEXT_SECONDARY, lineHeight: 22, marginBottom: 20 }}>
+              {article.description}
+            </Text>
+          )}
+
+          {/* 원문 보기 */}
+          {article.link && (
+            <Pressable
+              onPress={() => Linking.openURL(article.link)}
+              style={({ pressed }) => ({
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                backgroundColor: pressed ? '#1F2937' : TEXT_PRIMARY,
+                borderRadius: 12,
+                paddingVertical: 14,
+                marginTop: 'auto' as any,
+              })}
+            >
+              <ExternalLink size={16} color="#FFFFFF" />
+              <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 15 }}>원문 보기</Text>
+            </Pressable>
+          )}
+        </ScrollView>
+      </SafeAreaView>
+    </Modal>
   );
 }
 
@@ -308,6 +387,8 @@ export default function NewsScreen() {
   const [selectedCategory, setSelectedCategory] = useState<NewsCategory>('model_research');
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [detailVisible, setDetailVisible] = useState(false);
+  const [selectedHArticle, setSelectedHArticle] = useState<HorizontalArticle | null>(null);
+  const [hDetailVisible, setHDetailVisible] = useState(false);
 
   const { openDrawer, setActiveTab } = useDrawer();
   const { newsData, loading, error, refresh } = useNews();
@@ -425,22 +506,22 @@ export default function NewsScreen() {
                 ? Object.values(hs.official_announcements as Record<string, HorizontalArticle[]>).flat()
                 : []
             }
-            onCardPress={() => {}}
+            onCardPress={(a) => { setSelectedHArticle(a); setHDetailVisible(true); }}
           />
           <HorizontalSection
             title="🇰🇷 한국 AI"
             articles={hs.korean_ai ?? []}
-            onCardPress={() => {}}
+            onCardPress={(a) => { setSelectedHArticle(a); setHDetailVisible(true); }}
           />
           <HorizontalSection
             title="🟠 GeekNews"
             articles={hs.geeknews ?? []}
-            onCardPress={() => {}}
+            onCardPress={(a) => { setSelectedHArticle(a); setHDetailVisible(true); }}
           />
           <HorizontalSection
             title="📚 큐레이션"
             articles={hs.curation ?? []}
-            onCardPress={() => {}}
+            onCardPress={(a) => { setSelectedHArticle(a); setHDetailVisible(true); }}
           />
         </View>
 
@@ -452,6 +533,13 @@ export default function NewsScreen() {
         article={selectedArticle}
         visible={detailVisible}
         onClose={() => setDetailVisible(false)}
+      />
+
+      {/* ─── 가로 스크롤 상세 모달 ─── */}
+      <HorizontalDetailModal
+        article={selectedHArticle}
+        visible={hDetailVisible}
+        onClose={() => setHDetailVisible(false)}
       />
     </SafeAreaView>
   );
