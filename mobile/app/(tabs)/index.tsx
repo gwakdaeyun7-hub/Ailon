@@ -1,11 +1,13 @@
 /**
- * AI 트렌드 뉴스 화면 — Figma 디자인 기반
+ * AI 트렌드 뉴스 화면
  * 구조:
  *   1. 헤더: "A" 로고 + AI News + 검색 + 햄버거
- *   2. "오늘의 하이라이트" 섹션 — 히어로 카드 (그라디언트 배경)
- *   3. 가로 스크롤 섹션: 공식 발표 / 한국 AI / 큐레이션
- *   4. 카테고리 탭 (모델/연구 | 제품/도구 | 산업/비즈니스)
- *   5. 뉴스 카드 목록 (오른쪽 썸네일, 아코디언 → 요약 + 원문링크 + ReactionBar)
+ *   2. "오늘의 하이라이트" — 히어로 카드 (탭 → 상세 모달)
+ *   3. 카테고리 탭 (모델/연구 | 제품/도구 | 산업/비즈니스)
+ *   4. 뉴스 목록: 제목 + 날짜 + 좋아요/싫어요 수 (탭 → 상세 모달)
+ *   5. 가로 스크롤 섹션: 공식 발표 / 한국 AI / GeekNews / 큐레이션
+ *
+ * 상세 모달: 요약 + 원문링크 + 좋아요/싫어요 + 공유 + 댓글
  */
 
 import React, { useState, useCallback } from 'react';
@@ -16,17 +18,17 @@ import {
   Pressable,
   RefreshControl,
   Linking,
-  LayoutAnimation,
   StatusBar,
   Platform,
   Image,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import {
-  Search, Menu, ChevronDown, ChevronUp,
+  Search, Menu, ChevronDown, ChevronRight,
   ThumbsUp, ThumbsDown, Clock, Calendar,
-  ExternalLink, RefreshCw, Zap,
+  ExternalLink, RefreshCw, Zap, X,
 } from 'lucide-react-native';
 import { useNews } from '@/hooks/useNews';
 import { useDrawer } from '@/context/DrawerContext';
@@ -36,8 +38,8 @@ import { NewsCardSkeleton } from '@/components/shared/LoadingSkeleton';
 import type { Article, NewsCategory, HorizontalArticle } from '@/lib/types';
 
 // ─── 색상 / 상수 ───────────────────────────────────────────────────────────────
-const PRIMARY = '#F43F5E';      // rose-500
-const PRIMARY_LIGHT = '#FFF1F2'; // rose-50
+const PRIMARY = '#F43F5E';
+const PRIMARY_LIGHT = '#FFF1F2';
 const BG = '#F5F7FA';
 const CARD = '#FFFFFF';
 
@@ -45,7 +47,6 @@ const CATEGORY_COLORS: Record<string, string> = {
   model_research: '#F43F5E',
   product_tools: '#10B981',
   industry_business: '#F59E0B',
-  // 하위 호환
   core_tech: '#F43F5E',
   dev_tools: '#10B981',
   trend_insight: '#F59E0B',
@@ -60,7 +61,6 @@ const CATEGORY_LABELS: Record<string, string> = {
   model_research: '모델/연구',
   product_tools: '제품/도구',
   industry_business: '산업/비즈니스',
-  // 하위 호환
   core_tech: '모델/연구',
   dev_tools: '제품/도구',
   trend_insight: '산업/비즈니스',
@@ -77,7 +77,6 @@ const TABS = [
   { key: 'industry_business', label: '산업/비즈니스' },
 ] as const;
 
-// 레거시 카테고리 → 신규 매핑
 const LEGACY: Record<string, NewsCategory> = {
   core_tech: 'model_research',
   dev_tools: 'product_tools',
@@ -97,67 +96,74 @@ function normCat(cat?: string): NewsCategory {
 
 function catColor(cat?: string) { return CATEGORY_COLORS[normCat(cat)] ?? PRIMARY; }
 function catLabel(cat?: string) { return CATEGORY_LABELS[normCat(cat)] ?? '기타'; }
-
 function displayTitle(a: Article) { return a.display_title || a.title; }
 
 function formatDate(str?: string) {
   if (!str) return '';
-  try { return new Date(str).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\. /g, '. '); }
-  catch { return str.slice(0, 10); }
+  try {
+    return new Date(str).toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' }).replace(/\. /g, '/').replace('.', '');
+  } catch { return str.slice(5, 10); }
 }
 
-// 카테고리별 그라디언트 색상 (이미지 대체용)
+// 카테고리별 그라디언트 (이미지 없을 때)
 const CAT_GRADIENTS: Record<string, [string, string]> = {
   model_research: ['#1E3A5F', '#0F1F3D'],
   product_tools: ['#064E3B', '#022C22'],
   industry_business: ['#78350F', '#3D1A05'],
-  // 하위 호환
   core_tech: ['#1E3A5F', '#0F1F3D'],
   dev_tools: ['#064E3B', '#022C22'],
   trend_insight: ['#78350F', '#3D1A05'],
 };
 
-// ─── 좋아요/싫어요 카운트 표시 (읽기 전용) ────────────────────────────────────
+// ─── 좋아요/싫어요 카운트 (읽기 전용) ──────────────────────────────────────────
 function LikeCount({ itemId }: { itemId: string }) {
   const { likes, dislikes } = useReactions('news', itemId);
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-        <ThumbsUp size={13} color="#9CA3AF" />
-        <Text style={{ fontSize: 12, color: '#6B7280', fontWeight: '500' }}>{likes}</Text>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+        <ThumbsUp size={12} color="#9CA3AF" />
+        <Text style={{ fontSize: 11, color: '#9CA3AF', fontWeight: '500' }}>{likes}</Text>
       </View>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-        <ThumbsDown size={13} color="#9CA3AF" />
-        <Text style={{ fontSize: 12, color: '#6B7280', fontWeight: '500' }}>{dislikes}</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+        <ThumbsDown size={12} color="#9CA3AF" />
+        <Text style={{ fontSize: 11, color: '#9CA3AF', fontWeight: '500' }}>{dislikes}</Text>
       </View>
     </View>
   );
 }
 
-// ─── 가로 스크롤 카드 (공식 발표 / 한국 AI / 큐레이션) ──────────────────────
+// ─── 섹션 헤더 ────────────────────────────────────────────────────────────────
+function SectionHeader({ title, color = PRIMARY }: { title: string; color?: string }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, marginBottom: 12 }}>
+      <View style={{ width: 4, height: 22, backgroundColor: color, borderRadius: 2 }} />
+      <Text style={{ fontSize: 18, fontWeight: '800', color: '#111827' }}>{title}</Text>
+    </View>
+  );
+}
+
+// ─── 가로 스크롤 카드 ─────────────────────────────────────────────────────────
 function HorizontalCard({ article }: { article: HorizontalArticle }) {
   const color = article.brand_color ?? PRIMARY;
   return (
     <Pressable
       onPress={() => article.link && Linking.openURL(article.link)}
       style={{
-        width: 220,
+        width: 210,
         borderRadius: 14,
         borderWidth: 2,
-        borderColor: `${color}40`, // 25% opacity
+        borderColor: `${color}40`,
         backgroundColor: CARD,
         marginRight: 12,
         shadowColor: color,
         shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.2,
+        shadowOpacity: 0.18,
         shadowRadius: 8,
         elevation: 4,
       }}
     >
-      {/* 상단 컬러 바 */}
       <View style={{ height: 3, backgroundColor: color, borderTopLeftRadius: 12, borderTopRightRadius: 12 }} />
       <View style={{ padding: 12 }}>
-        {/* 소스 배지 */}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
           <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: color, alignItems: 'center', justifyContent: 'center' }}>
             <Text style={{ color: '#FFF', fontSize: 9, fontWeight: '800' }}>{article.source.charAt(0)}</Text>
@@ -173,36 +179,19 @@ function HorizontalCard({ article }: { article: HorizontalArticle }) {
 }
 
 function HorizontalSection({
-  title,
-  articles,
-  color = PRIMARY,
-  showAll = false,
-  onShowAll,
+  title, articles, color = PRIMARY, showAll = false, onShowAll,
 }: {
-  title: string;
-  articles: HorizontalArticle[];
-  color?: string;
-  showAll?: boolean;
-  onShowAll?: () => void;
+  title: string; articles: HorizontalArticle[]; color?: string; showAll?: boolean; onShowAll?: () => void;
 }) {
   if (!articles || articles.length === 0) return null;
   const visible = showAll ? articles : articles.slice(0, 5);
   return (
     <View style={{ marginBottom: 20 }}>
       <SectionHeader title={title} color={color} />
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 4 }}
-      >
-        {visible.map((a, i) => (
-          <HorizontalCard key={`${a.source}-${i}`} article={a} />
-        ))}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 4 }}>
+        {visible.map((a, i) => <HorizontalCard key={`${a.source}-${i}`} article={a} />)}
         {!showAll && articles.length > 5 && onShowAll && (
-          <Pressable
-            onPress={onShowAll}
-            style={{ width: 80, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 8 }}
-          >
+          <Pressable onPress={onShowAll} style={{ width: 80, justifyContent: 'center', alignItems: 'center' }}>
             <View style={{ borderRadius: 20, borderWidth: 1.5, borderColor: color, paddingHorizontal: 12, paddingVertical: 8 }}>
               <Text style={{ color, fontSize: 12, fontWeight: '700' }}>더보기</Text>
             </View>
@@ -213,44 +202,133 @@ function HorizontalSection({
   );
 }
 
-// ─── 섹션 헤더 (컬러 왼쪽 바) ────────────────────────────────────────────────
-function SectionHeader({ title, color = PRIMARY }: { title: string; color?: string }) {
+// ─── 뉴스 상세 모달 ───────────────────────────────────────────────────────────
+function NewsDetailModal({
+  article, visible, onClose,
+}: { article: Article | null; visible: boolean; onClose: () => void }) {
+  if (!article) return null;
+  const itemId = article.link ?? article.title;
+  const cc = catColor(article.category);
+  const grad = CAT_GRADIENTS[normCat(article.category)] ?? ['#1E3A5F', '#0F1F3D'];
+
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, marginBottom: 12 }}>
-      <View style={{ width: 4, height: 22, backgroundColor: color, borderRadius: 2 }} />
-      <Text style={{ fontSize: 18, fontWeight: '800', color: '#111827' }}>{title}</Text>
-    </View>
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: CARD }} edges={['top']}>
+        {/* ── 헤더 ── */}
+        <View style={{
+          flexDirection: 'row', alignItems: 'center', gap: 10,
+          paddingHorizontal: 16, paddingVertical: 12,
+          borderBottomWidth: 1, borderBottomColor: '#F3F4F6',
+        }}>
+          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <View style={{ backgroundColor: `${cc}15`, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, borderWidth: 1, borderColor: `${cc}30` }}>
+              <Text style={{ color: cc, fontSize: 12, fontWeight: '700' }}>{catLabel(article.category)}</Text>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Calendar size={12} color="#9CA3AF" />
+              <Text style={{ fontSize: 12, color: '#9CA3AF' }}>{formatDate(article.published)}</Text>
+            </View>
+          </View>
+          <Pressable
+            onPress={onClose}
+            style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <X size={16} color="#6B7280" />
+          </Pressable>
+        </View>
+
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20 }}>
+          {/* ── 제목 ── */}
+          <Text style={{ fontSize: 22, fontWeight: '800', color: '#111827', lineHeight: 32, marginBottom: 16 }}>
+            {displayTitle(article)}
+          </Text>
+
+          {/* ── impact_comment ── */}
+          {article.impact_comment ? (
+            <View style={{ flexDirection: 'row', gap: 8, backgroundColor: PRIMARY_LIGHT, borderRadius: 12, padding: 12, marginBottom: 16 }}>
+              <Zap size={14} color={PRIMARY} style={{ marginTop: 2 }} />
+              <Text style={{ color: '#BE123C', fontSize: 14, flex: 1, lineHeight: 20, fontWeight: '500' }}>
+                {article.impact_comment}
+              </Text>
+            </View>
+          ) : null}
+
+          {/* ── 요약 ── */}
+          {(article.summary || article.description) ? (
+            <Text style={{ fontSize: 15, color: '#374151', lineHeight: 25, marginBottom: 20 }}>
+              {article.summary ?? article.description}
+            </Text>
+          ) : null}
+
+          {/* ── 출처 / 읽기 시간 ── */}
+          <View style={{
+            flexDirection: 'row', alignItems: 'center', gap: 6,
+            paddingBottom: 16, marginBottom: 16,
+            borderBottomWidth: 1, borderBottomColor: '#F3F4F6',
+          }}>
+            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: cc }} />
+            <Text style={{ fontSize: 13, color: '#6B7280', flex: 1 }}>{article.source}</Text>
+            {article.reading_time && article.reading_time > 0 ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Clock size={12} color="#9CA3AF" />
+                <Text style={{ fontSize: 12, color: '#9CA3AF' }}>{article.reading_time}분 읽기</Text>
+              </View>
+            ) : null}
+          </View>
+
+          {/* ── 원문 보기 버튼 ── */}
+          {article.link ? (
+            <Pressable
+              onPress={() => Linking.openURL(article.link)}
+              style={({ pressed }) => ({
+                flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+                backgroundColor: pressed ? '#1F2937' : '#111827',
+                borderRadius: 14, paddingVertical: 14, marginBottom: 20,
+              })}
+            >
+              <ExternalLink size={16} color="#FFFFFF" />
+              <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 15 }}>원문 보기</Text>
+            </Pressable>
+          ) : null}
+
+          {/* ── 반응 바: 좋아요 + 댓글 + 공유 ── */}
+          <ReactionBar
+            itemType="news"
+            itemId={itemId}
+            shareText={`${displayTitle(article)}\n\n${article.link ?? ''}`}
+            shareTitle={displayTitle(article)}
+          />
+        </ScrollView>
+      </SafeAreaView>
+    </Modal>
   );
 }
 
-// ─── 히어로 하이라이트 카드 ───────────────────────────────────────────────────
-function HeroCard({ article }: { article: Article }) {
-  const [expanded, setExpanded] = useState(false);
+// ─── 히어로 하이라이트 카드 (탭 → 상세 모달) ─────────────────────────────────
+function HeroCard({ article, onPress }: { article: Article; onPress: () => void }) {
   const grad = CAT_GRADIENTS[normCat(article.category)] ?? ['#1E3A5F', '#0F1F3D'];
   const itemId = article.link ?? article.title;
 
-  const toggle = () => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setExpanded(p => !p);
-  };
-
   return (
     <View style={{ marginHorizontal: 16, marginBottom: 20 }}>
-      {/* Futuristic border effect using shadows */}
-      <View style={{
-        borderRadius: 18,
-        borderWidth: 2,
-        borderColor: '#a78bfa', // Purple
-        backgroundColor: CARD,
-        shadowColor: '#60a5fa', // Blue
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.3,
-        shadowRadius: 12,
-        elevation: 8
-      }}>
-        {/* 이미지 영역 (그라디언트 배경) */}
-        <Pressable onPress={toggle} style={{ backgroundColor: grad[0], minHeight: 190, padding: 16, justifyContent: 'flex-end', borderTopLeftRadius: 16, borderTopRightRadius: 16, overflow: 'hidden' }}>
-          {/* 배경: og:image 또는 그라디언트 */}
+      <Pressable
+        onPress={onPress}
+        style={({ pressed }) => ({
+          borderRadius: 18,
+          borderWidth: 2,
+          borderColor: '#a78bfa',
+          backgroundColor: CARD,
+          shadowColor: '#60a5fa',
+          shadowOffset: { width: 0, height: 6 },
+          shadowOpacity: pressed ? 0.15 : 0.3,
+          shadowRadius: 12,
+          elevation: 8,
+          opacity: pressed ? 0.95 : 1,
+          overflow: 'hidden',
+        })}
+      >
+        {/* 이미지 / 그라디언트 배경 */}
+        <View style={{ backgroundColor: grad[0], minHeight: 180, padding: 16, justifyContent: 'flex-end' }}>
           {article.image_url ? (
             <>
               <Image source={{ uri: article.image_url }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} resizeMode="cover" />
@@ -267,7 +345,7 @@ function HeroCard({ article }: { article: Article }) {
           {/* HOT 배지 + 날짜 */}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 }}>
             <View style={{ backgroundColor: '#60a5fa', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 }}>
-              <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '800', letterSpacing: 0.5 }}>⭐ HOT</Text>
+              <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '800' }}>⭐ HOT</Text>
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
               <Calendar size={12} color="rgba(255,255,255,0.7)" />
@@ -276,140 +354,75 @@ function HeroCard({ article }: { article: Article }) {
           </View>
 
           {/* 제목 */}
-          <Text style={{ color: '#FFFFFF', fontSize: 22, fontWeight: '800', lineHeight: 30, marginBottom: 12 }}>
+          <Text style={{ color: '#FFFFFF', fontSize: 21, fontWeight: '800', lineHeight: 29, marginBottom: 12 }}>
             {displayTitle(article)}
           </Text>
 
-          {/* 통계 행 */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+          {/* 하단: 소스 + 좋아요 */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>{article.source}</Text>
             <LikeCount itemId={itemId} />
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <Clock size={12} color="rgba(255,255,255,0.6)" />
-              <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>5분</Text>
-            </View>
-            <View style={{ marginLeft: 'auto', width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' }}>
-              {expanded ? <ChevronUp size={13} color="#FFFFFF" /> : <ChevronDown size={13} color="#FFFFFF" />}
+            <View style={{ marginLeft: 'auto' }}>
+              <ChevronRight size={16} color="rgba(255,255,255,0.6)" />
             </View>
           </View>
-        </Pressable>
-
-        {/* 펼침: 요약 + 원문 + ReactionBar */}
-        {expanded && (
-          <View style={{ backgroundColor: CARD, padding: 16 }}>
-            {article.impact_comment && (
-              <View style={{ flexDirection: 'row', gap: 8, backgroundColor: PRIMARY_LIGHT, borderRadius: 10, padding: 10, marginBottom: 10 }}>
-                <Zap size={13} color={PRIMARY} style={{ marginTop: 2 }} />
-                <Text style={{ color: '#BE123C', fontSize: 13, flex: 1, lineHeight: 19 }}>{article.impact_comment}</Text>
-              </View>
-            )}
-            {(article.summary || article.description) && (
-              <Text style={{ fontSize: 14, color: '#374151', lineHeight: 22, marginBottom: 12 }}>
-                {article.summary ?? article.description}
-              </Text>
-            )}
-            {article.link && (
-              <Pressable onPress={() => Linking.openURL(article.link)} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#111827', borderRadius: 12, paddingVertical: 12, marginBottom: 12 }}>
-                <ExternalLink size={14} color="#FFFFFF" />
-                <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 14 }}>원문 보기</Text>
-              </Pressable>
-            )}
-            <ReactionBar itemType="news" itemId={itemId} shareText={`${displayTitle(article)}\n\n${article.link ?? ''}`} shareTitle={displayTitle(article)} />
-          </View>
-        )}
-      </View>
+        </View>
+      </Pressable>
     </View>
   );
 }
 
-// ─── 뉴스 카드 (오른쪽 썸네일) ──────────────────────────────────────────────
-function NewsCard({ article, isLast }: { article: Article; isLast: boolean }) {
-  const [expanded, setExpanded] = useState(false);
+// ─── 뉴스 목록 아이템 (간결: 제목 + 날짜 + 좋아요/싫어요) ────────────────────
+function NewsListItem({
+  article, isLast, onPress,
+}: { article: Article; isLast: boolean; onPress: () => void }) {
   const cc = catColor(article.category);
-  const cl = catLabel(article.category);
   const itemId = article.link ?? article.title;
 
-  const toggle = () => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setExpanded(p => !p);
-  };
-
-  // 썸네일 박스 (이미지 없을 경우 카테고리별 색상 박스)
-  const thumbColor = cc;
-
   return (
-    <View style={{ borderBottomWidth: isLast ? 0 : 1, borderBottomColor: '#F3F4F6' }}>
-      <Pressable onPress={toggle} style={{ flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 14, paddingHorizontal: 16, gap: 12 }}>
-        {/* 왼쪽: 텍스트 */}
-        <View style={{ flex: 1 }}>
-          {/* 카테고리 배지 + 날짜 */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-            <View style={{ backgroundColor: PRIMARY_LIGHT, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1, borderColor: `${PRIMARY}30` }}>
-              <Text style={{ color: PRIMARY, fontSize: 11, fontWeight: '700' }}>{cl}</Text>
-            </View>
-            <Text style={{ fontSize: 12, color: '#9CA3AF' }}>· {formatDate(article.published)}</Text>
-          </View>
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => ({
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 13,
+        paddingHorizontal: 16,
+        gap: 12,
+        borderBottomWidth: isLast ? 0 : 1,
+        borderBottomColor: '#F3F4F6',
+        backgroundColor: pressed ? '#FAFAFA' : CARD,
+      })}
+    >
+      {/* 카테고리 컬러 바 */}
+      <View style={{ width: 3, height: 42, borderRadius: 2, backgroundColor: cc, flexShrink: 0 }} />
 
-          {/* 제목 */}
-          <Text style={{ fontSize: 15, fontWeight: '700', color: '#111827', lineHeight: 22, marginBottom: 8 }} numberOfLines={expanded ? undefined : 2}>
-            {displayTitle(article)}
-          </Text>
-
-          {/* 좋아요/싫어요 */}
+      {/* 텍스트 영역 */}
+      <View style={{ flex: 1 }}>
+        <Text
+          style={{ fontSize: 14, fontWeight: '700', color: '#111827', lineHeight: 20, marginBottom: 6 }}
+          numberOfLines={2}
+        >
+          {displayTitle(article)}
+        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <Text style={{ fontSize: 11, color: '#9CA3AF' }}>{formatDate(article.published)}</Text>
           <LikeCount itemId={itemId} />
         </View>
+      </View>
 
-        {/* 오른쪽: 썸네일 */}
-        <View style={{ width: 80, height: 80, borderRadius: 10, backgroundColor: thumbColor, overflow: 'hidden', flexShrink: 0 }}>
-          {article.image_url ? (
-            <Image source={{ uri: article.image_url }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} resizeMode="cover" />
-          ) : (
-            <>
-              <View style={{ position: 'absolute', top: -10, right: -10, width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(255,255,255,0.12)' }} />
-              <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}>
-                <Text style={{ color: '#FFFFFF', fontSize: 22, fontWeight: '800', opacity: 0.6 }}>{cl.charAt(0)}</Text>
-              </View>
-            </>
-          )}
-          {/* 펼침 인디케이터 */}
-          <View style={{ position: 'absolute', bottom: 4, right: 4, width: 18, height: 18, borderRadius: 9, backgroundColor: 'rgba(0,0,0,0.3)', alignItems: 'center', justifyContent: 'center' }}>
-            {expanded ? <ChevronUp size={10} color="#FFFFFF" /> : <ChevronDown size={10} color="#FFFFFF" />}
-          </View>
-        </View>
-      </Pressable>
-
-      {/* 펼침: impact + 요약 + 원문 + ReactionBar */}
-      {expanded && (
-        <View style={{ paddingHorizontal: 16, paddingBottom: 14 }}>
-          {article.impact_comment && (
-            <View style={{ flexDirection: 'row', gap: 8, backgroundColor: PRIMARY_LIGHT, borderRadius: 10, padding: 10, marginBottom: 10 }}>
-              <Zap size={11} color={PRIMARY} style={{ marginTop: 2 }} />
-              <Text style={{ color: '#BE123C', fontSize: 12, flex: 1, lineHeight: 18 }}>{article.impact_comment}</Text>
-            </View>
-          )}
-          {(article.summary || article.description) && (
-            <Text style={{ fontSize: 13, color: '#6B7280', lineHeight: 20, marginBottom: 10 }}>
-              {article.summary ?? article.description}
-            </Text>
-          )}
-          {article.link && (
-            <Pressable onPress={() => Linking.openURL(article.link)} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#F9FAFB', borderRadius: 10, paddingVertical: 9, paddingHorizontal: 12, marginBottom: 10, borderWidth: 1, borderColor: '#E5E7EB' }}>
-              <ExternalLink size={13} color={cc} />
-              <Text style={{ color: cc, fontSize: 13, fontWeight: '600' }}>원문 보기</Text>
-            </Pressable>
-          )}
-          <ReactionBar itemType="news" itemId={itemId} shareText={`${displayTitle(article)}\n\n${article.link ?? ''}`} shareTitle={displayTitle(article)} />
-        </View>
-      )}
-    </View>
+      {/* 화살표 */}
+      <ChevronRight size={15} color="#D1D5DB" />
+    </Pressable>
   );
 }
 
 // ─── 메인 화면 ────────────────────────────────────────────────────────────────
 export default function NewsScreen() {
   const [refreshing, setRefreshing] = useState(false);
-  const [showSearch, setShowSearch] = useState(false);
   const [showAllMap, setShowAllMap] = useState<Record<string, boolean>>({});
   const [showAllHs, setShowAllHs] = useState<Record<string, boolean>>({});
+  const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
+  const [detailVisible, setDetailVisible] = useState(false);
 
   const { selectedDates, newsCategory, setNewsCategory, openDrawer, setActiveTab } = useDrawer();
   const selectedDate = selectedDates.news;
@@ -426,44 +439,35 @@ export default function NewsScreen() {
     setRefreshing(false);
   };
 
-  // 카테고리 + 레거시 매핑 병합
+  const openDetail = (article: Article) => {
+    setSelectedArticle(article);
+    setDetailVisible(true);
+  };
+
+  const closeDetail = () => setDetailVisible(false);
+
+  // 카테고리별 기사 분류
   const articlesByCategory: Record<string, Article[]> = { model_research: [], product_tools: [], industry_business: [] };
   (newsData?.articles ?? []).forEach(a => {
     const k = normCat(a.category);
     if (articlesByCategory[k]) articlesByCategory[k].push(a);
   });
 
-  // 가로 스크롤 섹션 데이터
   const hs = newsData?.horizontal_sections ?? {};
-
   const highlightTitle = newsData?.highlight?.title;
   const categoryArticles = (articlesByCategory[newsCategory] ?? []).filter(a => a.title !== highlightTitle);
-
-  const dateLabel = selectedDate
-    ? new Date(selectedDate).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })
-    : '오늘';
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: BG }} edges={['top']}>
       <StatusBar barStyle="dark-content" backgroundColor={BG} />
 
-      {/* ── 헤더 ─────────────────────────────────────────────────────────── */}
+      {/* ── 헤더 ── */}
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: BG }}>
-        {/* 앱 로고 */}
         <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: PRIMARY, alignItems: 'center', justifyContent: 'center', marginRight: 10 }}>
           <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '800' }}>A</Text>
         </View>
         <Text style={{ flex: 1, fontSize: 18, fontWeight: '800', color: '#111827' }}>AI News</Text>
-        <Pressable
-          onPress={() => setShowSearch(s => !s)}
-          style={{ width: 38, height: 38, alignItems: 'center', justifyContent: 'center', marginRight: 4 }}
-        >
-          <Search size={20} color="#374151" />
-        </Pressable>
-        <Pressable
-          onPress={openDrawer}
-          style={{ width: 38, height: 38, alignItems: 'center', justifyContent: 'center' }}
-        >
+        <Pressable onPress={openDrawer} style={{ width: 38, height: 38, alignItems: 'center', justifyContent: 'center' }}>
           <Menu size={22} color="#374151" />
         </Pressable>
       </View>
@@ -474,9 +478,7 @@ export default function NewsScreen() {
       >
         {loading ? (
           <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
-            <NewsCardSkeleton />
-            <NewsCardSkeleton />
-            <NewsCardSkeleton />
+            <NewsCardSkeleton /><NewsCardSkeleton /><NewsCardSkeleton />
           </View>
         ) : error ? (
           <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 80, paddingHorizontal: 32 }}>
@@ -491,17 +493,17 @@ export default function NewsScreen() {
           </View>
         ) : (
           <>
-            {/* ── 1. 오늘의 하이라이트 (FIRST) ──────────────────────────────────────── */}
-            {newsData?.highlight && (
+            {/* ── 1. 오늘의 하이라이트 ── */}
+            {newsData?.highlight ? (
               <View style={{ marginBottom: 8 }}>
                 <View style={{ paddingTop: 8, paddingBottom: 10 }}>
                   <SectionHeader title="⭐ 오늘의 하이라이트" color="#60a5fa" />
                 </View>
-                <HeroCard article={newsData.highlight} />
+                <HeroCard article={newsData.highlight} onPress={() => openDetail(newsData.highlight!)} />
               </View>
-            )}
+            ) : null}
 
-            {/* ── 2. 카테고리 탭 + 기사 목록 (SECOND) ───────────────────────────────── */}
+            {/* ── 2. 카테고리 탭 + 뉴스 목록 ── */}
             <View style={{
               marginHorizontal: 16,
               backgroundColor: CARD,
@@ -514,7 +516,7 @@ export default function NewsScreen() {
               shadowOpacity: 0.15,
               shadowRadius: 10,
               elevation: 6,
-              marginBottom: 20
+              marginBottom: 20,
             }}>
               {/* 탭 */}
               <View style={{ flexDirection: 'row', padding: 8, gap: 6, borderBottomWidth: 1, borderBottomColor: '#F3F4F6', backgroundColor: '#fafafa' }}>
@@ -524,11 +526,7 @@ export default function NewsScreen() {
                     <Pressable
                       key={tab.key}
                       onPress={() => setNewsCategory(tab.key)}
-                      style={{
-                        flex: 1, alignItems: 'center', paddingVertical: 9,
-                        borderRadius: 12,
-                        backgroundColor: isActive ? '#60a5fa' : 'transparent',
-                      }}
+                      style={{ flex: 1, alignItems: 'center', paddingVertical: 9, borderRadius: 12, backgroundColor: isActive ? '#60a5fa' : 'transparent' }}
                     >
                       <Text style={{ fontSize: 13, fontWeight: '700', color: isActive ? '#FFFFFF' : '#6B7280' }}>
                         {tab.label}
@@ -538,7 +536,7 @@ export default function NewsScreen() {
                 })}
               </View>
 
-              {/* 기사 목록 */}
+              {/* 뉴스 목록 */}
               {categoryArticles.length === 0 ? (
                 <View style={{ alignItems: 'center', paddingVertical: 40 }}>
                   <Text style={{ color: '#D1D5DB', fontSize: 14 }}>이 카테고리엔 아직 기사가 없어요</Text>
@@ -549,10 +547,11 @@ export default function NewsScreen() {
                 return (
                   <>
                     {visible.map((article, i) => (
-                      <NewsCard
+                      <NewsListItem
                         key={`${article.title}-${i}`}
                         article={article}
                         isLast={i === visible.length - 1 && (showAll || categoryArticles.length <= 5)}
+                        onPress={() => openDetail(article)}
                       />
                     ))}
                     {!showAll && categoryArticles.length > 5 && (
@@ -569,7 +568,7 @@ export default function NewsScreen() {
               })()}
             </View>
 
-            {/* ── 3. 가로 스크롤 섹션 (THIRD) ────────────────────────────────────── */}
+            {/* ── 3. 가로 스크롤 섹션 ── */}
             <HorizontalSection
               title="💫 공식 발표"
               articles={hs.official_announcements ?? []}
@@ -585,6 +584,13 @@ export default function NewsScreen() {
               onShowAll={() => setShowAllHs(prev => ({ ...prev, korean: true }))}
             />
             <HorizontalSection
+              title="🟠 GeekNews"
+              articles={hs.geeknews ?? []}
+              color="#FF6B35"
+              showAll={showAllHs['geeknews'] ?? false}
+              onShowAll={() => setShowAllHs(prev => ({ ...prev, geeknews: true }))}
+            />
+            <HorizontalSection
               title="📚 큐레이션"
               articles={hs.curation ?? []}
               color="#0EA5E9"
@@ -596,6 +602,9 @@ export default function NewsScreen() {
           </>
         )}
       </ScrollView>
+
+      {/* ── 뉴스 상세 모달 ── */}
+      <NewsDetailModal article={selectedArticle} visible={detailVisible} onClose={closeDetail} />
     </SafeAreaView>
   );
 }

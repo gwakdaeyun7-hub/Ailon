@@ -610,35 +610,53 @@ def _fetch_official_blogs() -> list[dict]:
 
 
 def _fetch_korean_ai() -> list[dict]:
-    """AI타임스 + GeekNews RSS"""
-    SOURCES = [
-        ("https://www.aitimes.com/rss/allArticle.xml", "AI타임스",  "#E53935", 15, False),
-        ("https://news.hada.io/rss",                   "GeekNews",  "#FF6B35", 10, True),
-    ]
+    """AI타임스 RSS — 한국 AI 전문 미디어"""
     articles = []
-    for feed_url, source_name, color, limit, ai_filter in SOURCES:
-        try:
-            feed = feedparser.parse(feed_url)
-            for entry in feed.entries[:limit]:
-                title = entry.get("title", "")
-                if not title:
-                    continue
-                description = (entry.get("summary", "") or "")[:300]
-                # GeekNews는 전체 IT 뉴스이므로 AI 관련 항목만 필터링
-                if ai_filter and not is_ai_related(title, description):
-                    continue
-                articles.append({
-                    "title": title,
-                    "description": description,
-                    "link": entry.get("link", ""),
-                    "published": entry.get("published", datetime.now().isoformat()),
-                    "source": source_name,
-                    "source_type": "korean_news",
-                    "section": "korean_ai",
-                    "brand_color": color,
-                })
-        except Exception as e:
-            print(f"    [WARNING] {source_name} RSS failed: {e}")
+    try:
+        feed = feedparser.parse("https://www.aitimes.com/rss/allArticle.xml")
+        for entry in feed.entries[:15]:
+            title = entry.get("title", "")
+            if not title:
+                continue
+            articles.append({
+                "title": title,
+                "description": (entry.get("summary", "") or "")[:300],
+                "link": entry.get("link", ""),
+                "published": entry.get("published", datetime.now().isoformat()),
+                "source": "AI타임스",
+                "source_type": "korean_news",
+                "section": "korean_ai",
+                "brand_color": "#E53935",
+            })
+    except Exception as e:
+        print(f"    [WARNING] AI타임스 RSS failed: {e}")
+    return articles
+
+
+def _fetch_geeknews() -> list[dict]:
+    """GeekNews RSS — 전체 IT 뉴스 중 AI 관련 항목만 필터링"""
+    articles = []
+    try:
+        feed = feedparser.parse("https://news.hada.io/rss")
+        for entry in feed.entries[:20]:
+            title = entry.get("title", "")
+            if not title:
+                continue
+            description = (entry.get("summary", "") or "")[:300]
+            if not is_ai_related(title, description):
+                continue
+            articles.append({
+                "title": title,
+                "description": description,
+                "link": entry.get("link", ""),
+                "published": entry.get("published", datetime.now().isoformat()),
+                "source": "GeekNews",
+                "source_type": "korean_news",
+                "section": "geeknews",
+                "brand_color": "#FF6B35",
+            })
+    except Exception as e:
+        print(f"    [WARNING] GeekNews RSS failed: {e}")
     return articles
 
 
@@ -668,21 +686,23 @@ def _fetch_tldr_ai() -> list[dict]:
 
 def fetch_horizontal_sources() -> dict[str, list[dict]]:
     """
-    가로 스크롤 섹션 3개 수집
-    반환: {"official_announcements": [...], "korean_ai": [...], "curation": [...]}
+    가로 스크롤 섹션 4개 수집
+    반환: {"official_announcements": [...], "korean_ai": [...], "geeknews": [...], "curation": [...]}
     """
     print("\n  ╔═══ 가로 스크롤 섹션 수집 ═══╗")
 
     official = _fetch_official_blogs()
     korean   = _fetch_korean_ai()
+    geeknews = _fetch_geeknews()
     curation = _fetch_tldr_ai()
 
-    print(f"    공식 발표: {len(official)}개 | 한국 AI: {len(korean)}개 | 큐레이션: {len(curation)}개")
+    print(f"    공식 발표: {len(official)}개 | 한국 AI: {len(korean)}개 | GeekNews: {len(geeknews)}개 | 큐레이션: {len(curation)}개")
     print("  ╚══════════════════════════════╝")
 
     return {
         "official_announcements": official,
         "korean_ai": korean,
+        "geeknews": geeknews,
         "curation": curation,
     }
 

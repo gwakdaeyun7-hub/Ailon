@@ -28,12 +28,12 @@ from agents.tools import fetch_all_sources, fetch_horizontal_sources
 class NewsState(TypedDict):
     raw_articles: list[dict]
     analyzed_articles: list[dict]
-    curated_articles: list[dict]
+    ranked_categories: dict    # RankerAgent 출력: 카테고리별 TOP 10 기사
     final_articles: list[dict]
     daily_overview: str
     highlight: dict
     themes: list[str]
-    categories: dict           # 카테고리별 분류 결과
+    categories: dict           # AnalyzerAgent 출력: 카테고리별 전체 기사
     horizontal_sections: dict  # 가로 스크롤 섹션 (공식 발표 / 한국 AI / 큐레이션)
 
 
@@ -47,16 +47,52 @@ _SOURCE_TIER: dict[str, int] = {
 
 # ─── JSON 파싱 유틸리티 ───
 def parse_llm_json(text: str):
-    """LLM 응답에서 JSON을 파싱하는 유틸리티"""
+    """LLM 응답에서 JSON을 파싱하는 유틸리티 (마크다운·산문·잘린 JSON 대응)"""
+    import re
     text = text.strip()
-    if text.startswith("```"):
-        text = text.split("\n", 1)[1] if "\n" in text else text[3:]
-    if text.endswith("```"):
-        text = text[:-3]
+
+    # ── 마크다운 코드 블록 제거 ──
+    text = re.sub(r'^```(?:json)?\s*\n?', '', text)
+    text = re.sub(r'\n?```\s*$', '', text)
     text = text.strip()
     if text.startswith("json"):
         text = text[4:].strip()
-    return json.loads(text)
+
+    # ── 직접 파싱 ──
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+
+    # ── JSON 배열/객체 위치 탐색 (앞뒤 산문 무시, 중괄호 균형 추적) ──
+    for start_char, end_char in [('[', ']'), ('{', '}')]:
+        start_idx = text.find(start_char)
+        if start_idx == -1:
+            continue
+        depth = 0
+        in_string = False
+        escape_next = False
+        for i, ch in enumerate(text[start_idx:], start=start_idx):
+            if escape_next:
+                escape_next = False
+                continue
+            if ch == '\\' and in_string:
+                escape_next = True
+                continue
+            if ch == '"':
+                in_string = not in_string
+            if not in_string:
+                if ch == start_char:
+                    depth += 1
+                elif ch == end_char:
+                    depth -= 1
+                    if depth == 0:
+                        try:
+                            return json.loads(text[start_idx:i + 1])
+                        except json.JSONDecodeError:
+                            break
+
+    raise json.JSONDecodeError("No valid JSON found in LLM response", text, 0)
 
 
 # ─── Agent 1: CollectorAgent ───
@@ -83,16 +119,18 @@ def analyzer_node(state: NewsState) -> dict:
     if not articles:
         return {"analyzed_articles": [], "categories": {}}
 
-    llm = get_llm(temperature=0.3, max_tokens=8192)
+    # max_tokens=16384: Gemini 2.5 Flash thinking 토큰이 max_output_tokens를 잠식하므로
+    # 배치 25개 × ~120자 ≈ 3000자 출력에도 thinking 소비분을 충분히 확보
+    llm = get_llm(temperature=0.3, max_tokens=16384)
 
     # 카테고리 정의 텍스트
     categories_text = "\n".join([
         f"- {key}: {name}" for key, name in NEWS_CATEGORIES.items()
     ])
 
-    # 배치로 분석 (한 번에 50개씩)
+    # 배치로 분석 (한 번에 25개씩 - 안정성 및 JSON 파싱 성공률 향상)
     all_scored_articles = []
-    batch_size = 50
+    batch_size = 25
 
     for batch_start in range(0, min(len(articles), 250), batch_size):
         batch = articles[batch_start:batch_start + batch_size]
@@ -126,7 +164,11 @@ def analyzer_node(state: NewsState) -> dict:
    - timeliness:    오늘 기준 정보 신선도 (AI는 1주일 전도 구식일 수 있음, 최신일수록 높게)
    - accessibility: 한국 AI 실무자가 배경지식 없이 이해·활용 가능한가
 
-반드시 JSON 배열로만 응답하세요. 다른 텍스트 없이 JSON만 출력하세요:
+반드시 아래 형식을 지키십시오:
+- 모든 키와 문자열 값은 반드시 "큰따옴표(double quotes)"를 사용하세요. (작은따옴표 금지)
+- 마지막 항목 뒤에 콤마(,)를 붙이지 마세요.
+- Markdown 코드 블록(```json) 없이 순수 JSON 텍스트만 출력하세요.
+
 [{{"index": 0, "category": "model_research", "relevance": 8, "novelty": 7, "practicality": 6, "timeliness": 9, "accessibility": 7}}, ...]
 
 기사 목록:
@@ -322,7 +364,8 @@ def ranker_node(state: NewsState) -> dict:
     highlight: dict = {}
     if highlight_candidates:
         candidates_text = "\n".join([
-            f"[{i}] [{a.get('category_name', '')}] {a['title'][:90]}\n"
+            f"[{i}] [{a.get('category_name', '')}] {a['title'][:90]}"
+            f"{'  [📷이미지]' if a.get('source_type', '') in _IMAGE_FRIENDLY_SOURCES else ''}\n"
             f"     출처:{a.get('source','')} | rank:{a.get('rank_score',0)} "
             f"| 관련성:{a.get('relevance',0)} 실용성:{a.get('practicality',0)} "
             f"시의성:{a.get('timeliness',0)} 접근성:{a.get('accessibility',0)}"
@@ -342,10 +385,14 @@ def ranker_node(state: NewsState) -> dict:
 
 ## 선정 규칙
 - 5개 점수 합산 → 최고점 기사 선정
-- 동점 시 우선순위: 파급력 > 실용성 > 흥미도
+- 동점 시 우선순위: 파급력 > 실용성 > 흥미도 > [📷이미지] 소스 우선
+- [📷이미지] 표시 기사는 앱 하이라이트 카드에 실제 이미지가 표시되어 독자 체감이 높음
 - "오늘 이 뉴스를 놓치면 안 된다"는 기사, 단순 점수 1위가 아닌 편집 판단 허용
 
-반드시 JSON으로만 응답:
+반드시 아래 형식을 지키십시오:
+- 모든 키와 문자열 값은 반드시 "큰따옴표(double quotes)"를 사용하세요.
+- Markdown 코드 블록(```json) 없이 순수 JSON 텍스트만 출력하세요.
+
 {{"index": 0, "scores": {{"impact": 5, "urgency": 4, "utility": 4, "novelty": 3, "appeal": 5}}, "total": 21, "reason": "선정 이유 (50자 이내)"}}"""
 
         try:
@@ -447,7 +494,10 @@ def summarizer_node(state: NewsState) -> dict:
 - impact_comment: 한 줄 임팩트 코멘트 (40자 이내, 예: "개발자 필수 — 오늘부터 바로 써보세요")
 - howToGuide: 각 기사의 'howToGuide 기준'에 맞게 작성 (없으면 빈 문자열 "")
 
-반드시 JSON 배열로만 응답하세요:
+반드시 아래 형식을 지키십시오:
+- 모든 키와 문자열 값은 반드시 "큰따옴표(double quotes)"를 사용하세요.
+- Markdown 코드 블록(```json) 없이 순수 JSON 텍스트만 출력하세요.
+
 [{{"index": 1, "display_title": "...", "summary": "...", "impact_comment": "...", "howToGuide": "..."}}]
 
 {batch_text}"""
@@ -524,8 +574,14 @@ def summarizer_node(state: NewsState) -> dict:
 
 
 # ─── Agent 5: EnricherAgent (신규) ───
-_SKIP_IMG_TYPES = {"arxiv", "reddit"}
-_SKIP_IMG_URLS  = ("arxiv.org", "reddit.com", "youtu.be", "youtube.com")
+# og:image 추출 스킵 소스 (이미지가 의미 없거나 없는 소스)
+# arxiv: PDF/논문 로고만, reddit: 썸네일 없음, huggingface: 대부분 HF 로고
+_SKIP_IMG_TYPES = {"arxiv", "reddit", "huggingface"}
+_SKIP_IMG_URLS  = ("arxiv.org", "reddit.com", "youtu.be", "youtube.com", "huggingface.co")
+
+# 이미지 추출 가능 소스 (하이라이트 선정 시 우선 고려)
+# venturebeat/techcrunch: 기사 썸네일, tavily/hackernews: 원문 og:image, github: repo 소셜 카드
+_IMAGE_FRIENDLY_SOURCES = {"venturebeat", "techcrunch", "tavily", "hackernews", "official_blog", "github"}
 
 
 def _try_og_image(url: str, source_type: str) -> str:

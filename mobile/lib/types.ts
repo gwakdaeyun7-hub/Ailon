@@ -101,6 +101,7 @@ export interface DailyNews {
   horizontal_sections?: {
     official_announcements?: HorizontalArticle[];
     korean_ai?: HorizontalArticle[];
+    geeknews?: HorizontalArticle[];
     curation?: HorizontalArticle[];
   };
   agent_metadata?: {
