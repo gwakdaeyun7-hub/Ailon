@@ -163,7 +163,7 @@ def ai_problem_scout_node(state: IdeaGraphState) -> dict:
 2. 그 중에서 이 메커니즘으로 해결할 수 있는 것 **3개**를 골라주세요
 3. 각 문제가 메커니즘과 어떻게 연결되는지 설명하세요
 
-JSON 배열로 응답하세요:
+OUTPUT ONLY VALID JSON ARRAY (no markdown, no explanation):
 [
   {{
     "title": "AI 문제 제목 (예: LLM의 장기 기억 유지 한계)",
@@ -345,7 +345,7 @@ def blueprint_architect_node(state: IdeaGraphState) -> dict:
 4. **challenges**: ["도전과제 1", "도전과제 2"]
 5. **improvements**: ["개선 제안 1", "개선 제안 2"]
 
-기존 모든 필드를 유지하고 새 필드를 추가한 JSON 배열로 응답하세요."""
+OUTPUT ONLY VALID JSON ARRAY (no markdown, no explanation):"""
     
     try:
         result = llm.invoke([HumanMessage(content=prompt)])

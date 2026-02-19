@@ -316,7 +316,7 @@ def ranker_node(state: NewsState) -> dict:
     """
     print("\n[RankerAgent] 카테고리별 이미지(main 6) + 비이미지(more 5) 선별 + 하이라이트 선정 중...")
 
-    llm = get_llm(temperature=0.3, max_tokens=512)
+    llm = get_llm(temperature=0.3, max_tokens=1024)
     categories = state.get("categories", {})
     analyzed = state["analyzed_articles"]
 
@@ -422,11 +422,8 @@ def ranker_node(state: NewsState) -> dict:
 - 동점 시 우선순위: 파급력 > 실용성 > 흥미도
 - "오늘 이 뉴스를 놓치면 안 된다"는 기사, 단순 점수 1위가 아닌 편집 판단 허용
 
-반드시 아래 형식을 지키십시오:
-- 모든 키와 문자열 값은 반드시 "큰따옴표(double quotes)"를 사용하세요.
-- Markdown 코드 블록(```json) 없이 순수 JSON 텍스트만 출력하세요.
-
-{{"index": 0, "scores": {{"impact": 5, "urgency": 4, "utility": 4, "novelty": 3, "appeal": 5}}, "total": 21, "reason": "선정 이유 (50자 이내)"}}"""
+OUTPUT ONLY VALID JSON (no markdown, no explanation):
+{{"index": 0, "scores": {{"impact": 5, "urgency": 4, "utility": 4, "novelty": 3, "appeal": 5}}, "total": 21, "reason": "선정 이유"}}"""
 
         try:
             response = llm.invoke([HumanMessage(content=prompt)])
