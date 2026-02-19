@@ -132,7 +132,7 @@ def analyzer_node(state: NewsState) -> dict:
     all_scored_articles = []
     batch_size = 25
 
-    for batch_start in range(0, min(len(articles), 250), batch_size):
+    for batch_start in range(0, len(articles), batch_size):
         batch = articles[batch_start:batch_start + batch_size]
 
         articles_text = ""
@@ -351,9 +351,9 @@ def ranker_node(state: NewsState) -> dict:
         image_pool = [a for a in cat_articles if a.get("source_type") in _IMAGE_FRIENDLY_SOURCES]
         other_pool = [a for a in cat_articles if a.get("source_type") not in _IMAGE_FRIENDLY_SOURCES]
 
-        # 이미지 소스 TOP 6 (main)
+        # 이미지 소스 TOP 7 (main)
         top_image = []
-        for a in _diversify_articles(image_pool, max_count=6, max_per_source=2):
+        for a in _diversify_articles(image_pool, max_count=7, max_per_source=2):
             if a["title"] not in used_titles:
                 ac = a.copy()
                 ac["category"] = cat_key
@@ -361,9 +361,9 @@ def ranker_node(state: NewsState) -> dict:
                 top_image.append(ac)
                 used_titles.add(ac["title"])
 
-        # 비이미지 소스 TOP 5 (more)
+        # 비이미지 소스 TOP 4 (more)
         top_more = []
-        for a in _diversify_articles(other_pool, max_count=5, max_per_source=2):
+        for a in _diversify_articles(other_pool, max_count=4, max_per_source=2):
             if a["title"] not in used_titles:
                 ac = a.copy()
                 ac["category"] = cat_key
