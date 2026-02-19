@@ -164,11 +164,7 @@ def analyzer_node(state: NewsState) -> dict:
    - timeliness:    오늘 기준 정보 신선도 (AI는 1주일 전도 구식일 수 있음, 최신일수록 높게)
    - accessibility: 한국 AI 실무자가 배경지식 없이 이해·활용 가능한가
 
-반드시 아래 형식을 지키십시오:
-- 모든 키와 문자열 값은 반드시 "큰따옴표(double quotes)"를 사용하세요. (작은따옴표 금지)
-- 마지막 항목 뒤에 콤마(,)를 붙이지 마세요.
-- Markdown 코드 블록(```json) 없이 순수 JSON 텍스트만 출력하세요.
-
+OUTPUT ONLY VALID JSON ARRAY (no markdown, no explanation):
 [{{"index": 0, "category": "model_research", "relevance": 8, "novelty": 7, "practicality": 6, "timeliness": 9, "accessibility": 7}}, ...]
 
 기사 목록:

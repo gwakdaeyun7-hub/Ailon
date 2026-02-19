@@ -545,8 +545,8 @@ def tool_discovery() -> list[dict]:
                 title = hit.get("title", "")
                 if not title or not is_ai_related(title, ""):
                     continue
-                # Hacker News: 7일 이내 (포인트 기반이지만 오래된 글도 포함될 수 있음)
-                if not _within_days(hit.get("created_at", ""), 7):
+                # Hacker News: 14일 이내 (포인트 기반이지만 오래된 글도 포함될 수 있음)
+                if not _within_days(hit.get("created_at", ""), 14):
                     continue
                 points = hit.get("points", 0)
                 obj_id = hit.get("objectID", "")
