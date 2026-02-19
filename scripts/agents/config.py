@@ -171,7 +171,7 @@ def get_llm(temperature: float = 0.7, max_tokens: int = 2048):
         sys.exit(1)
 
     return ChatGoogleGenerativeAI(
-        model="gemini-2.5-flash",
+        model="gemini-2.5-flash-lite",
         temperature=temperature,
         max_output_tokens=max_tokens,
         google_api_key=api_key,
@@ -179,7 +179,7 @@ def get_llm(temperature: float = 0.7, max_tokens: int = 2048):
 
 
 def get_crewai_llm(temperature: float = 0.7, max_tokens: int = 4096):
-    """CrewAI LLM 인스턴스 생성 (Gemini 2.5 Flash)"""
+    """CrewAI LLM 인스턴스 생성 (Gemini 2.5 Flash-Lite)"""
     try:
         from crewai import LLM
     except ImportError:
@@ -192,7 +192,7 @@ def get_crewai_llm(temperature: float = 0.7, max_tokens: int = 4096):
         sys.exit(1)
 
     return LLM(
-        model="gemini/gemini-2.5-flash",
+        model="gemini/gemini-2.5-flash-lite",
         temperature=temperature,
         max_tokens=max_tokens,
         api_key=api_key,
