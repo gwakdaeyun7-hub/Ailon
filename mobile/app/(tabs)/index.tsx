@@ -709,8 +709,9 @@ function CategoryTabsSection({
               key={tab.key}
               onPress={() => onSelectTab(tab.key)}
               onLayout={(e) => {
-                if (tabWidths[tab.key] !== e.nativeEvent.layout.width) {
-                  setTabWidths(prev => ({ ...prev, [tab.key]: e.nativeEvent.layout.width }));
+                const width = e?.nativeEvent?.layout?.width;
+                if (width && tabWidths[tab.key] !== width) {
+                  setTabWidths(prev => ({ ...prev, [tab.key]: width }));
                 }
               }}
               style={{ flex: 1, alignItems: 'center', paddingVertical: 10, zIndex: 1 }}
