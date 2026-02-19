@@ -175,8 +175,15 @@ def analyzer_node(state: NewsState) -> dict:
         try:
             response = llm.invoke([HumanMessage(content=prompt)])
             scores = parse_llm_json(response.content)
+            # llama 등 일부 모델이 dict로 감싸거나 문자열 섞어 반환할 수 있음
+            if isinstance(scores, dict):
+                scores = next((v for v in scores.values() if isinstance(v, list)), [])
+            if not isinstance(scores, list):
+                scores = []
 
             for score_item in scores:
+                if not isinstance(score_item, dict):
+                    continue
                 idx = score_item.get("index", 0)
                 if idx < len(batch):
                     article = batch[idx].copy()
@@ -214,7 +221,7 @@ def analyzer_node(state: NewsState) -> dict:
                     )
                     all_scored_articles.append(article)
 
-        except (json.JSONDecodeError, KeyError) as e:
+        except (json.JSONDecodeError, KeyError, AttributeError, TypeError) as e:
             print(f"  [WARNING] 배치 {batch_start} 분석 파싱 실패 (폴백: 키워드 분류): {e}")
             for a in batch:
                 article = a.copy()
@@ -503,14 +510,20 @@ def summarizer_node(state: NewsState) -> dict:
         try:
             response = llm.invoke([HumanMessage(content=prompt)])
             summaries = parse_llm_json(response.content)
+            if isinstance(summaries, dict):
+                summaries = next((v for v in summaries.values() if isinstance(v, list)), [])
+            if not isinstance(summaries, list):
+                summaries = []
             for s in summaries:
+                if not isinstance(s, dict):
+                    continue
                 idx = s.get("index", 1) - 1
                 if 0 <= idx < len(batch):
                     batch[idx]["display_title"] = s.get("display_title", "")
                     batch[idx]["summary"] = s.get("summary", batch[idx]["description"][:300])
                     batch[idx]["impact_comment"] = s.get("impact_comment", "")
                     batch[idx]["howToGuide"] = s.get("howToGuide", "")
-        except (json.JSONDecodeError, KeyError) as e:
+        except (json.JSONDecodeError, KeyError, AttributeError, TypeError) as e:
             print(f"  [WARNING] 배치 {batch_start} 요약 파싱 실패: {e}")
             for a in batch:
                 a.setdefault("display_title", "")
