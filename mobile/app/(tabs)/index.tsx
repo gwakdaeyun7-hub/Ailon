@@ -58,23 +58,23 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
-  model_research: '모델/연구',
-  product_tools: '제품/도구',
-  industry_business: '산업/비즈니스',
-  core_tech: '모델/연구',
-  dev_tools: '제품/도구',
-  trend_insight: '산업/비즈니스',
-  models_architecture: '모델/연구',
-  agentic_reality: '제품/도구',
-  opensource_code: '제품/도구',
-  physical_ai: '모델/연구',
-  policy_safety: '산업/비즈니스',
+  model_research: '모음/논문',
+  product_tools: '개발/도구',
+  industry_business: '트렌드',
+  core_tech: '모음/논문',
+  dev_tools: '개발/도구',
+  trend_insight: '트렌드',
+  models_architecture: '모음/논문',
+  agentic_reality: '개발/도구',
+  opensource_code: '개발/도구',
+  physical_ai: '모음/논문',
+  policy_safety: '트렌드',
 };
 
 const TABS = [
-  { key: 'model_research', label: '모델/연구' },
-  { key: 'product_tools', label: '제품/도구' },
-  { key: 'industry_business', label: '산업/비즈니스' },
+  { key: 'model_research', label: '모음/논문' },
+  { key: 'product_tools', label: '개발/도구' },
+  { key: 'industry_business', label: '트렌드' },
 ] as const;
 
 const LEGACY: Record<string, NewsCategory> = {
@@ -438,12 +438,13 @@ function HeroCard({ article, onPress }: { article: Article; onPress: () => void 
   );
 }
 
-// ─── 뉴스 목록 아이템 (간결: 제목 + 날짜 + 좋아요/싫어요) ────────────────────
+// ─── 뉴스 목록 아이템 (인라인 썸네일: 이미지 + 제목 + 날짜 + 좋아요) ────────────────────
 function NewsListItem({
   article, isLast, onPress,
 }: { article: Article; isLast: boolean; onPress: () => void }) {
   const cc = catColor(article.category);
   const itemId = article.link ?? article.title;
+  const grad = CAT_GRADIENTS[normCat(article.category)] ?? ['#1E3A5F', '#0F1F3D'];
 
   return (
     <Pressable
@@ -451,7 +452,7 @@ function NewsListItem({
       style={({ pressed }) => ({
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 13,
+        paddingVertical: 12,
         paddingHorizontal: 16,
         gap: 12,
         borderBottomWidth: isLast ? 0 : 1,
@@ -460,26 +461,41 @@ function NewsListItem({
       })}
     >
       {/* 카테고리 컬러 바 */}
-      <View style={{ width: 3, height: 42, borderRadius: 2, backgroundColor: cc, flexShrink: 0 }} />
+      <View style={{ width: 3, height: 60, borderRadius: 2, backgroundColor: cc, flexShrink: 0 }} />
+
+      {/* 썸네일 이미지 */}
+      <View style={{
+        width: 60,
+        height: 60,
+        borderRadius: 8,
+        backgroundColor: grad[0],
+        overflow: 'hidden',
+        flexShrink: 0,
+      }}>
+        {article.image_url ? (
+          <>
+            <Image source={{ uri: article.image_url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+          </>
+        ) : (
+          <View style={{
+            width: '100%',
+            height: '100%',
+            backgroundColor: grad[1],
+            opacity: 0.6,
+          }} />
+        )}
+      </View>
 
       {/* 텍스트 영역 */}
       <View style={{ flex: 1 }}>
         <Text
-          style={{ fontSize: 14, fontWeight: '700', color: '#111827', lineHeight: 20, marginBottom: 4 }}
+          style={{ fontSize: 13, fontWeight: '700', color: '#111827', lineHeight: 18, marginBottom: 4 }}
           numberOfLines={2}
         >
           {displayTitle(article)}
         </Text>
-        {(article.impact_comment || article.summary) ? (
-          <Text
-            style={{ fontSize: 12, color: '#6B7280', lineHeight: 17, marginBottom: 5 }}
-            numberOfLines={1}
-          >
-            {article.impact_comment || article.summary?.slice(0, 70)}
-          </Text>
-        ) : null}
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <Text style={{ fontSize: 11, color: '#9CA3AF' }}>{formatDate(article.published)}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Text style={{ fontSize: 10, color: '#9CA3AF' }}>{formatDate(article.published)}</Text>
           <LikeCount itemId={itemId} />
         </View>
       </View>
@@ -655,11 +671,11 @@ export default function NewsScreen() {
           </View>
         ) : (
           <>
-            {/* ── 1. 오늘의 하이라이트 ── */}
+            {/* ── 1. 온몸의 하이라이트 ── */}
             {newsData?.highlight ? (
               <View style={{ marginBottom: 8 }}>
                 <View style={{ paddingTop: 8, paddingBottom: 10 }}>
-                  <SectionHeader title="⭐ 오늘의 하이라이트" color="#60a5fa" />
+                  <SectionHeader title="온몸의 하이라이트" color="#60a5fa" />
                 </View>
                 <HeroCard article={newsData.highlight} onPress={() => openDetail(newsData.highlight!)} />
               </View>
