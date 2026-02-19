@@ -7,13 +7,14 @@
 import { useEffect, useState } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { DailyNews, Article } from '@/lib/types';
+import type { DailyNews, Article, HorizontalArticle } from '@/lib/types';
 
 export function useNews() {
   const [news, setNews] = useState<Article[]>([]);
   const [dailyOverview, setDailyOverview] = useState<string>('');
   const [highlight, setHighlight] = useState<Article | null>(null);
   const [themes, setThemes] = useState<string[]>([]);
+  const [horizontalSections, setHorizontalSections] = useState<DailyNews['horizontal_sections']>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -46,6 +47,7 @@ export function useNews() {
           setDailyOverview(data.daily_overview || '');
           setHighlight(data.highlight || null);
           setThemes(data.themes || []);
+          setHorizontalSections(data.horizontal_sections || {});
         } else {
           console.warn('⚠️ No news data found in the last 7 days');
           setNews([]);
@@ -61,5 +63,5 @@ export function useNews() {
     fetchNews();
   }, []);
 
-  return { news, dailyOverview, highlight, themes, loading, error };
+  return { news, dailyOverview, highlight, themes, horizontalSections, loading, error };
 }

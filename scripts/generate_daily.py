@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 일일 전체 파이프라인 - 3개 에이전트 팀 순차 실행
 1. 뉴스 에이전트 팀 → daily_news 컬렉션
@@ -40,6 +41,16 @@ def save_news_to_firestore(result: dict):
     db = get_firestore_client()
     today = datetime.now().strftime("%Y-%m-%d")
 
+    # official_announcements를 회사(source)별로 그룹화
+    hs = result.get("horizontal_sections", {})
+    official_flat = hs.get("official_announcements", [])
+    if isinstance(official_flat, list):
+        official_grouped: dict = {}
+        for article in official_flat:
+            src = article.get("source", "Unknown")
+            official_grouped.setdefault(src, []).append(article)
+        hs = {**hs, "official_announcements": official_grouped}
+
     doc_ref = db.collection("daily_news").document(today)
     doc_data = {
         "date": today,
@@ -49,7 +60,7 @@ def save_news_to_firestore(result: dict):
         "highlight": result.get("highlight", {}),
         "themes": result.get("themes", []),
         "categories": result.get("categories", {}),
-        "horizontal_sections": result.get("horizontal_sections", {}),
+        "horizontal_sections": hs,
         "agent_metadata": {
             "collected_count": len(result.get("raw_articles", [])),
             "analyzed_count": len(result.get("analyzed_articles", [])),

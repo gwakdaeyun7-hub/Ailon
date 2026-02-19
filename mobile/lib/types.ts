@@ -76,6 +76,7 @@ export interface Article {
   social_score?: number;
   image_url?: string;
   reading_time?: number;
+  is_main?: boolean;  // true=이미지 소스(상단 표시), false=더보기 노출
 }
 
 // 가로 스크롤 섹션 아이템 (공식 발표 / 한국 AI / 큐레이션)
@@ -100,7 +101,7 @@ export interface DailyNews {
   themes?: string[];
   categories?: Record<string, Article[]>;
   horizontal_sections?: {
-    official_announcements?: HorizontalArticle[];
+    official_announcements?: Record<string, HorizontalArticle[]>;  // 회사별 그룹: {OpenAI: [...], Anthropic: [...], ...}
     korean_ai?: HorizontalArticle[];
     geeknews?: HorizontalArticle[];
     curation?: HorizontalArticle[];

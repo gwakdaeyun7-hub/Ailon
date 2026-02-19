@@ -46,16 +46,36 @@ export interface HowToGuide {
 
 export interface Article {
   title: string;
+  display_title?: string;
   description: string;
   link: string;
   published: string;
   source: string;
+  source_type?: string;
   summary: string;
+  impact_comment?: string;
   theme?: string;
   category?: NewsCategory;
+  category_name?: string;
   type?: 'short' | 'long';
   howToGuide?: HowToGuide;
   importance_score?: number;
+  social_score?: number;
+  image_url?: string;
+  reading_time?: number;
+  is_main?: boolean;
+}
+
+export interface HorizontalArticle {
+  title: string;
+  display_title?: string;
+  description: string;
+  link: string;
+  published: string;
+  source: string;
+  source_type: string;
+  section: string;
+  brand_color?: string;
 }
 
 export interface DailyNews {
@@ -65,6 +85,12 @@ export interface DailyNews {
   daily_overview?: string;
   highlight?: Article;
   themes?: string[];
+  horizontal_sections?: {
+    official_announcements?: Record<string, HorizontalArticle[]>;  // 회사별 그룹
+    korean_ai?: HorizontalArticle[];
+    geeknews?: HorizontalArticle[];
+    curation?: HorizontalArticle[];
+  };
   agent_metadata?: {
     collected_count: number;
     analyzed_count: number;

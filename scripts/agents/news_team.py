@@ -28,7 +28,9 @@ from agents.tools import fetch_all_sources, fetch_horizontal_sources
 class NewsState(TypedDict):
     raw_articles: list[dict]
     analyzed_articles: list[dict]
-    ranked_categories: dict    # RankerAgent 출력: 카테고리별 TOP 10 기사
+    ranked_categories: dict    # RankerAgent 출력: 카테고리별 전체 (main+more)
+    ranked_main: dict          # 카테고리별 이미지 소스 기사 (최대 6개, 하이라이트 제거 후 최대 5개)
+    ranked_more: dict          # 카테고리별 비이미지 기사 (최대 5개)
     final_articles: list[dict]
     daily_overview: str
     highlight: dict
@@ -307,20 +309,23 @@ def _diversify_articles(articles: list[dict], max_count: int = 10, max_per_sourc
 # ─── Agent 3: RankerAgent (CuratorAgent 대체) ───
 def ranker_node(state: NewsState) -> dict:
     """
-    카테고리별 TOP 10 선별 (5개 기본 표시 + 더보기 5개)
-    - 알고리즘: rank_score 정렬 + 출처 다양성 확보 (출처당 최대 2개)
-    - LLM 1회: 전체 하이라이트 1개 선정 (9개 후보 중 파급력/실용성 기준)
+    카테고리별 이미지 소스 최대 6개(main) + 비이미지 최대 5개(more) 선별
+    - main: _IMAGE_FRIENDLY_SOURCES 기사 (하이라이트 제거 후 최대 5개 표시)
+    - more: 나머지 기사 (더보기 버튼으로 노출)
+    - LLM 1회: 이미지 후보 중 하이라이트 1개 선정
     """
-    print("\n[RankerAgent] 카테고리별 TOP 10 선별 + 하이라이트 선정 중...")
+    print("\n[RankerAgent] 카테고리별 이미지(main 6) + 비이미지(more 5) 선별 + 하이라이트 선정 중...")
 
     llm = get_llm(temperature=0.3, max_tokens=512)
     categories = state.get("categories", {})
     analyzed = state["analyzed_articles"]
 
     if not analyzed:
-        return {"ranked_categories": {}, "highlight": {}, "themes": []}
+        return {"ranked_categories": {}, "ranked_main": {}, "ranked_more": {}, "highlight": {}, "themes": []}
 
     ranked_categories: dict[str, list[dict]] = {}
+    ranked_main: dict[str, list[dict]] = {}
+    ranked_more: dict[str, list[dict]] = {}
     used_titles: set[str] = set()
     themes = []
 
@@ -346,39 +351,63 @@ def ranker_node(state: NewsState) -> dict:
         if not cat_articles:
             cat_articles = [a for a in analyzed if a["title"] not in used_titles]
 
-        # 다양성 확보: rank_score 정렬 + 출처당 최대 2개 → TOP 11 (하이라이트 분리 후 10개 확보용)
-        top11 = []
-        for a in _diversify_articles(cat_articles, max_count=11, max_per_source=2):
+        # 이미지 소스와 비이미지 소스 분리
+        image_pool = [a for a in cat_articles if a.get("source_type") in _IMAGE_FRIENDLY_SOURCES]
+        other_pool = [a for a in cat_articles if a.get("source_type") not in _IMAGE_FRIENDLY_SOURCES]
+
+        # 이미지 소스 TOP 6 (main)
+        top_image = []
+        for a in _diversify_articles(image_pool, max_count=6, max_per_source=2):
             if a["title"] not in used_titles:
                 ac = a.copy()
                 ac["category"] = cat_key
                 ac["category_name"] = cat_name
-                top11.append(ac)
+                top_image.append(ac)
                 used_titles.add(ac["title"])
 
-        ranked_categories[cat_key] = top11
-        if top11:
-            themes.append(cat_name)
-        print(f"  [OK] {cat_name}: {len(top11)}개 선별")
+        # 비이미지 소스 TOP 5 (more)
+        top_more = []
+        for a in _diversify_articles(other_pool, max_count=5, max_per_source=2):
+            if a["title"] not in used_titles:
+                ac = a.copy()
+                ac["category"] = cat_key
+                ac["category_name"] = cat_name
+                top_more.append(ac)
+                used_titles.add(ac["title"])
 
-    # ─── 하이라이트 선정 (LLM) — 각 카테고리 상위 3개 = 최대 9개 후보 ───
+        ranked_main[cat_key] = top_image
+        ranked_more[cat_key] = top_more
+        ranked_categories[cat_key] = top_image + top_more
+
+        if top_image or top_more:
+            themes.append(cat_name)
+        print(f"  [OK] {cat_name}: 이미지 {len(top_image)}개(main) + 비이미지 {len(top_more)}개(more)")
+
+    # ─── 하이라이트 선정 (LLM) — ranked_main에서 카테고리별 상위 3개 = 최대 9개 후보 ───
+    # ranked_main은 이미 이미지 소스만 포함하므로 별도 필터 불필요
     highlight_candidates = []
-    for articles in ranked_categories.values():
-        highlight_candidates.extend(articles[:3])
+    for arts in ranked_main.values():
+        highlight_candidates.extend(arts[:3])
+    # 이미지 후보가 없으면 전체 ranked_categories에서 폴백
+    llm_pool = highlight_candidates if highlight_candidates else [
+        a for arts in ranked_categories.values() for a in arts[:3]
+    ]
 
     highlight: dict = {}
-    if highlight_candidates:
+    if llm_pool:
+        llm_candidates = llm_pool
+        print(f"  [하이라이트 후보] 이미지 소스 기사 {len(llm_candidates)}개")
+
         candidates_text = "\n".join([
-            f"[{i}] [{a.get('category_name', '')}] {a['title'][:90]}"
-            f"{'  [📷이미지]' if a.get('source_type', '') in _IMAGE_FRIENDLY_SOURCES else ''}\n"
+            f"[{i}] [{a.get('category_name', '')}] {a['title'][:90]}\n"
             f"     출처:{a.get('source','')} | rank:{a.get('rank_score',0)} "
             f"| 관련성:{a.get('relevance',0)} 실용성:{a.get('practicality',0)} "
             f"시의성:{a.get('timeliness',0)} 접근성:{a.get('accessibility',0)}"
-            for i, a in enumerate(highlight_candidates)
+            for i, a in enumerate(llm_candidates)
         ])
         prompt = f"""당신은 AI 뉴스 편집장입니다. 오늘의 하이라이트 기사 1개를 선정하세요.
 
-## 후보 기사 ({len(highlight_candidates)}개)
+## 후보 기사 ({len(llm_candidates)}개)
 {candidates_text}
 
 ## 평가 기준 (각 항목 1~5점)
@@ -390,8 +419,7 @@ def ranker_node(state: NewsState) -> dict:
 
 ## 선정 규칙
 - 5개 점수 합산 → 최고점 기사 선정
-- 동점 시 우선순위: 파급력 > 실용성 > 흥미도 > [📷이미지] 소스 우선
-- [📷이미지] 표시 기사는 앱 하이라이트 카드에 실제 이미지가 표시되어 독자 체감이 높음
+- 동점 시 우선순위: 파급력 > 실용성 > 흥미도
 - "오늘 이 뉴스를 놓치면 안 된다"는 기사, 단순 점수 1위가 아닌 편집 판단 허용
 
 반드시 아래 형식을 지키십시오:
@@ -404,34 +432,34 @@ def ranker_node(state: NewsState) -> dict:
             response = llm.invoke([HumanMessage(content=prompt)])
             result_json = parse_llm_json(response.content)
             idx = result_json.get("index", 0)
-            if 0 <= idx < len(highlight_candidates):
-                highlight = highlight_candidates[idx].copy()
+            if 0 <= idx < len(llm_candidates):
+                highlight = llm_candidates[idx].copy()
                 highlight["highlight_reason"] = result_json.get("reason", "")
                 highlight["highlight_scores"] = result_json.get("scores", {})
             else:
-                highlight = max(highlight_candidates, key=lambda x: x.get("rank_score", 0))
+                highlight = max(llm_candidates, key=lambda x: x.get("rank_score", 0))
         except Exception as e:
             print(f"  [WARNING] 하이라이트 LLM 선정 실패 (폴백: rank_score): {e}")
-            highlight = max(highlight_candidates, key=lambda x: x.get("rank_score", 0))
+            highlight = max(llm_candidates, key=lambda x: x.get("rank_score", 0))
 
-    # ─── 하이라이트 분리 후 카테고리 정리 → 각 카테고리 정확히 10개 ───
-    # 하이라이트가 속한 카테고리: 해당 기사 제거 (11개 → 10개)
-    # 하이라이트가 없는 카테고리: 최하위 1개 제거 (11개 → 10개)
+    # ─── 하이라이트 제거: ranked_main에서만 제거 (ranked_more는 유지) ───
     if highlight:
         highlight_title = highlight.get("title", "")
+        for cat_key in list(ranked_main.keys()):
+            ranked_main[cat_key] = [a for a in ranked_main[cat_key] if a["title"] != highlight_title]
+        # ranked_categories도 동기화
         for cat_key in list(ranked_categories.keys()):
-            arts = ranked_categories[cat_key]
-            if any(a["title"] == highlight_title for a in arts):
-                ranked_categories[cat_key] = [a for a in arts if a["title"] != highlight_title]
-            else:
-                ranked_categories[cat_key] = arts[:10]
+            ranked_categories[cat_key] = [a for a in ranked_categories[cat_key] if a["title"] != highlight_title]
 
-    total = sum(len(v) for v in ranked_categories.values())
-    print(f"  [OK] 총 {total}개 선별 (하이라이트 1개 + 카테고리당 10개)")
+    main_total = sum(len(v) for v in ranked_main.values())
+    more_total = sum(len(v) for v in ranked_more.values())
+    print(f"  [OK] 총 {main_total + more_total}개 선별 (main {main_total}개 + more {more_total}개, 하이라이트 1개 별도)")
     print(f"  [OK] 하이라이트: {highlight.get('title', 'N/A')[:60]}")
 
     return {
         "ranked_categories": ranked_categories,
+        "ranked_main": ranked_main,
+        "ranked_more": ranked_more,
         "highlight": highlight,
         "themes": themes,
     }
@@ -445,16 +473,35 @@ def summarizer_node(state: NewsState) -> dict:
     """
     print("\n[SummarizerAgent] 한국어 요약 및 How-to Guide 생성 중...")
 
-    ranked_categories = state.get("ranked_categories", {})
+    ranked_main = state.get("ranked_main", {})
+    ranked_more = state.get("ranked_more", {})
 
-    # ranked_categories 평탄화 (카테고리 순서 유지, 중복 제거)
+    # ranked_main (is_main=True) + ranked_more (is_main=False) 순서로 평탄화
     seen_titles: set[str] = set()
     articles: list[dict] = []
-    for cat_arts in ranked_categories.values():
+    for cat_arts in ranked_main.values():
         for a in cat_arts:
             if a["title"] not in seen_titles:
-                articles.append(a)
+                ac = a.copy()
+                ac["is_main"] = True
+                articles.append(ac)
                 seen_titles.add(a["title"])
+    for cat_arts in ranked_more.values():
+        for a in cat_arts:
+            if a["title"] not in seen_titles:
+                ac = a.copy()
+                ac["is_main"] = False
+                articles.append(ac)
+                seen_titles.add(a["title"])
+    # 폴백: ranked_main/more 둘 다 비어 있으면 ranked_categories에서 읽기
+    if not articles:
+        for cat_arts in state.get("ranked_categories", {}).values():
+            for a in cat_arts:
+                if a["title"] not in seen_titles:
+                    ac = a.copy()
+                    ac["is_main"] = True
+                    articles.append(ac)
+                    seen_titles.add(a["title"])
 
     if not articles:
         return {
@@ -570,6 +617,7 @@ def summarizer_node(state: NewsState) -> dict:
         "importance_score": a.get("importance_score", 0),
         "social_score":    a.get("social_score", 0),
         "theme":           a.get("category_name", ""),
+        "is_main":         a.get("is_main", True),   # True=이미지 소스(상단 표시), False=더보기
         "image_url":       "",   # EnricherAgent에서 채움
         "reading_time":    0,    # EnricherAgent에서 채움
     } for a in articles]
@@ -742,6 +790,8 @@ def run_news_team() -> dict:
         "raw_articles":      [],
         "analyzed_articles": [],
         "ranked_categories": {},
+        "ranked_main":       {},
+        "ranked_more":       {},
         "final_articles":    [],
         "daily_overview":    "",
         "highlight":         {},

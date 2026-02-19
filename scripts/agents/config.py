@@ -9,7 +9,7 @@ import sys
 import json
 import firebase_admin
 from firebase_admin import credentials, firestore
-from langchain_groq import ChatGroq
+from langchain_google_genai import ChatGoogleGenerativeAI
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -164,35 +164,35 @@ for super_cat, disciplines in DISCIPLINES.items():
 
 
 def get_llm(temperature: float = 0.7, max_tokens: int = 2048):
-    """LangChain Groq LLM 인스턴스 생성 (llama-3.3-70b-versatile, 1000 RPD free)"""
-    api_key = os.getenv("GROQ_API_KEY")
+    """LangChain Google Gemini LLM 인스턴스 생성 (gemini-2.5-flash)"""
+    api_key = os.getenv("GOOGLE_API_KEY")
     if not api_key:
-        print("[ERROR] GROQ_API_KEY not found")
+        print("[ERROR] GOOGLE_API_KEY not found")
         sys.exit(1)
 
-    return ChatGroq(
-        model="llama-3.3-70b-versatile",
+    return ChatGoogleGenerativeAI(
+        model="gemini-2.5-flash",
         temperature=temperature,
         max_tokens=max_tokens,
-        groq_api_key=api_key,
+        google_api_key=api_key,
     )
 
 
 def get_crewai_llm(temperature: float = 0.7, max_tokens: int = 4096):
-    """CrewAI LLM 인스턴스 생성 (Groq llama-3.3-70b-versatile)"""
+    """CrewAI LLM 인스턴스 생성 (Google Gemini gemini-2.5-flash)"""
     try:
         from crewai import LLM
     except ImportError:
         print("[ERROR] crewai not installed. Run: pip install crewai>=0.80.0")
         sys.exit(1)
 
-    api_key = os.getenv("GROQ_API_KEY")
+    api_key = os.getenv("GOOGLE_API_KEY")
     if not api_key:
-        print("[ERROR] GROQ_API_KEY not found")
+        print("[ERROR] GOOGLE_API_KEY not found")
         sys.exit(1)
 
     return LLM(
-        model="groq/llama-3.3-70b-versatile",
+        model="gemini-2.5-flash",
         temperature=temperature,
         max_tokens=max_tokens,
         api_key=api_key,
