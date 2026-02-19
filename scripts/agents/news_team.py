@@ -332,7 +332,7 @@ def ranker_node(state: NewsState) -> dict:
     FALLBACK_SOURCES = {
         "model_research":    ["arxiv", "huggingface"],
         "product_tools":     ["github"],
-        "industry_business": ["venturebeat", "techcrunch"],
+        "industry_business": ["techcrunch", "zdnet"],
     }
 
     for cat_key, cat_name in NEWS_CATEGORIES.items():
@@ -673,8 +673,8 @@ _SKIP_IMG_TYPES = {"arxiv", "reddit", "huggingface"}
 _SKIP_IMG_URLS  = ("arxiv.org", "reddit.com", "youtu.be", "youtube.com", "huggingface.co")
 
 # 이미지 추출 가능 소스 (하이라이트 선정 시 우선 고려)
-# venturebeat/techcrunch: 기사 썸네일, tavily/hackernews: 원문 og:image, github: repo 소셜 카드
-_IMAGE_FRIENDLY_SOURCES = {"venturebeat", "techcrunch", "tavily", "hackernews", "official_blog", "github"}
+# techcrunch: 기사 썸네일, tavily/hackernews: 원문 og:image, github: repo 소셜 카드, zdnet: 기사 이미지, official_blog: 블로그 이미지
+_IMAGE_FRIENDLY_SOURCES = {"techcrunch", "tavily", "hackernews", "official_blog", "github", "zdnet"}
 
 
 def _try_og_image(url: str, source_type: str) -> str:

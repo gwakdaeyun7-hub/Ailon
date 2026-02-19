@@ -356,18 +356,21 @@ def tool_developer() -> list[dict]:
 def tool_industry_news() -> list[dict]:
     """
     [Tool C] 산업/비즈니스 전문 미디어 수집
-    - VentureBeat AI: VC 투자, 기업 동향
     - TechCrunch AI: 제품 출시, 인수합병
+    - ZDNET KOREA: 한국 AI 뉴스, 기업 동향 (이미지 포함)
     """
-    print("  [Tool C: Industry] VentureBeat AI + TechCrunch AI 수집 중...")
+    print("  [Tool C: Industry] TechCrunch AI + ZDNET KOREA 수집 중...")
     articles = []
 
-    # C-1: VentureBeat AI RSS (14일 이내 — 뉴스 사이트, 구성 주기 일정)
+    # C-1: ZDNET KOREA FeedBurner RSS (AI 관련 필터)
     try:
-        feed = feedparser.parse("https://venturebeat.com/category/ai/feed/")
-        for entry in feed.entries[:20]:
+        feed = feedparser.parse("https://feeds.feedburner.com/zdkorea")
+        for entry in feed.entries[:30]:
             title = entry.get("title", "")
             if not title:
+                continue
+            # AI 관련 기사만 필터링
+            if not is_ai_related(title, entry.get("summary", "")):
                 continue
             if not _within_days(entry.get("published", ""), 14):
                 continue
@@ -376,14 +379,14 @@ def tool_industry_news() -> list[dict]:
                 "description": (entry.get("summary", "") or "")[:500],
                 "link": entry.get("link", ""),
                 "published": entry.get("published", datetime.now().isoformat()),
-                "source": "VentureBeat AI",
-                "source_type": "venturebeat",
+                "source": "ZDNET KOREA",
+                "source_type": "zdnet",
                 "tool": "industry_news",
-                "social_score": 30,
-                "importance_score": calculate_importance_score("default", social_score=30),
+                "social_score": 25,
+                "importance_score": calculate_importance_score("default", social_score=25),
             })
     except Exception as e:
-        print(f"    [WARNING] VentureBeat AI feed failed: {e}")
+        print(f"    [WARNING] ZDNET KOREA feed failed: {e}")
 
     # C-2: TechCrunch AI RSS (14일 이내 — 뉴스 사이트, 구성 주기 일정)
     try:
