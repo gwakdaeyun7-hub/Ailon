@@ -538,6 +538,16 @@ def idea_verifier_node(state: IdeaGraphState) -> dict:
     return {"final_ideas": top_ideas}
 
 
+# ─── 조건부 라우팅 ───
+def _route_after_scout(state: IdeaGraphState) -> str:
+    """problem_scout 후: 매칭된 문제가 없으면 cross_pollinator 스킵"""
+    problems = state.get("matched_problems", [])
+    if not problems:
+        print("  [라우팅] 매칭 문제 0개 → cross_pollinator 스킵, 직접 blueprint로 이동")
+        return "blueprint_architect"
+    return "cross_pollinator"
+
+
 # ─── 그래프 구성 ───
 _idea_graph_v2 = StateGraph(IdeaGraphState)
 _idea_graph_v2.add_node("mechanism_extractor", mechanism_extractor_node)
@@ -548,7 +558,13 @@ _idea_graph_v2.add_node("idea_verifier", idea_verifier_node)
 
 _idea_graph_v2.set_entry_point("mechanism_extractor")
 _idea_graph_v2.add_edge("mechanism_extractor", "ai_problem_scout")
-_idea_graph_v2.add_edge("ai_problem_scout", "cross_pollinator")
+
+# 조건부 분기: 매칭 문제가 없으면 cross_pollinator 스킵
+_idea_graph_v2.add_conditional_edges("ai_problem_scout", _route_after_scout, {
+    "cross_pollinator": "cross_pollinator",
+    "blueprint_architect": "blueprint_architect",
+})
+
 _idea_graph_v2.add_edge("cross_pollinator", "blueprint_architect")
 _idea_graph_v2.add_edge("blueprint_architect", "idea_verifier")
 _idea_graph_v2.add_edge("idea_verifier", END)

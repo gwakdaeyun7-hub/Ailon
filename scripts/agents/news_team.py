@@ -35,6 +35,7 @@ class NewsGraphState(TypedDict):
     sources: dict[str, list[dict]]
     translated: bool
     scored_candidates: list[dict]            # scorer 출력: _total_score, _topic_tag 포함
+    scorer_retry_count: int                  # scorer 재시도 횟수
     category_pool: list[dict]                # ranker 출력: 하이라이트 제외 후보
     highlights: list[dict]
     categorized_articles: dict[str, list[dict]]
@@ -400,62 +401,69 @@ def _score_batch_with_retry(batch: list[dict], offset: int) -> list[dict]:
 
 
 def scorer_node(state: NewsGraphState) -> dict:
-    """CATEGORY_SOURCES 전체 기사에 대해 4차원 점수 부여 (배치 분할, 0-10점 × 가중치)"""
-    sources = state["sources"]
+    """CATEGORY_SOURCES 기사 4차원 점수 부여 (재시도 루프 지원)"""
+    retry_count = state.get("scorer_retry_count", 0)
 
-    candidates: list[dict] = []
-    for key in CATEGORY_SOURCES:
-        for a in sources.get(key, []):
-            candidates.append(a)
+    if retry_count == 0:
+        # 첫 실행: candidates 구축 + 최신성 점수
+        candidates: list[dict] = []
+        for key in CATEGORY_SOURCES:
+            for a in state["sources"].get(key, []):
+                candidates.append(a)
 
-    if not candidates:
-        print("  [스코어링] 평가 대상 없음")
-        return {"scored_candidates": []}
+        if not candidates:
+            print("  [스코어링] 평가 대상 없음")
+            return {"scored_candidates": [], "scorer_retry_count": 1}
 
-    # 1단계: 최신성 점수 (Python, 발행일 기반)
-    today_count = 0
-    for c in candidates:
-        recency = _compute_recency_score(c)
-        c["_score_recency"] = recency
-        c["_is_today"] = _is_today(c)
-        if c["_is_today"]:
-            today_count += 1
+        today_count = 0
+        for c in candidates:
+            c["_score_recency"] = _compute_recency_score(c)
+            c["_is_today"] = _is_today(c)
+            if c["_is_today"]:
+                today_count += 1
+        print(f"  [스코어링] {len(candidates)}개 기사 평가 중... (당일 {today_count}개)")
+    else:
+        # 재시도: 기존 candidates에서 미평가 기사만 재시도
+        candidates = state.get("scored_candidates", [])
+        for c in candidates:
+            if not c.get("_llm_scored"):
+                c.pop("_total_score", None)
+        unscored_count = len([c for c in candidates if not c.get("_llm_scored")])
+        print(f"  [스코어링 재시도 {retry_count}/2] {unscored_count}개 미평가 기사 재시도 (배치 축소)")
 
-    print(f"  [스코어링] {len(candidates)}개 기사 평가 중... (당일 {today_count}개)")
+    # 미평가 기사만 추출 (인덱스 매핑 보존)
+    unscored_indices = [i for i, c in enumerate(candidates) if not c.get("_llm_scored")]
+    unscored = [candidates[i] for i in unscored_indices]
 
-    # 2단계: 임팩트/신선도/영향성 LLM 배치 평가
-    batches = [
-        candidates[i:i + SCORER_BATCH_SIZE]
-        for i in range(0, len(candidates), SCORER_BATCH_SIZE)
-    ]
+    if unscored:
+        batch_size = SCORER_BATCH_SIZE if retry_count == 0 else max(2, SCORER_BATCH_SIZE // 2)
+        batches = [unscored[i:i + batch_size] for i in range(0, len(unscored), batch_size)]
 
-    total_scored = 0
-    for batch_idx, batch in enumerate(batches):
-        offset = batch_idx * SCORER_BATCH_SIZE
-        scores = _score_batch_with_retry(batch, offset)
+        for batch_idx, batch in enumerate(batches):
+            offset = batch_idx * batch_size
+            scores = _score_batch_with_retry(batch, offset)
 
-        for s in scores:
-            idx = s["_global_idx"]
-            if 0 <= idx < len(candidates):
-                impact = min(10, max(0, s.get("impact", 5)))
-                fresh = min(10, max(0, s.get("freshness", 5)))
-                breadth = min(10, max(0, s.get("breadth", 5)))
-                recency = candidates[idx]["_score_recency"]
-                candidates[idx]["_score_impact"] = impact
-                candidates[idx]["_score_freshness"] = fresh
-                candidates[idx]["_score_breadth"] = breadth
-                candidates[idx]["_topic_tag"] = s.get("topic_tag", "")
-                candidates[idx]["_llm_category"] = s.get("category", "")
-                candidates[idx]["_total_score"] = (
-                    recency * W_RECENCY + impact * W_IMPACT
-                    + fresh * W_FRESHNESS + breadth * W_BREADTH
-                )
+            for s in scores:
+                local_idx = s["_global_idx"]
+                if 0 <= local_idx < len(unscored):
+                    gi = unscored_indices[local_idx]
+                    impact = min(10, max(0, s.get("impact", 5)))
+                    fresh = min(10, max(0, s.get("freshness", 5)))
+                    breadth = min(10, max(0, s.get("breadth", 5)))
+                    recency = candidates[gi]["_score_recency"]
+                    candidates[gi]["_score_impact"] = impact
+                    candidates[gi]["_score_freshness"] = fresh
+                    candidates[gi]["_score_breadth"] = breadth
+                    candidates[gi]["_topic_tag"] = s.get("topic_tag", "")
+                    candidates[gi]["_llm_category"] = s.get("category", "")
+                    candidates[gi]["_total_score"] = (
+                        recency * W_RECENCY + impact * W_IMPACT
+                        + fresh * W_FRESHNESS + breadth * W_BREADTH
+                    )
+                    candidates[gi]["_llm_scored"] = True
 
-        batch_scored = len([c for c in batch if "_total_score" in c])
-        total_scored += batch_scored
-        print(f"    배치 {batch_idx+1}/{len(batches)}: {batch_scored}/{len(batch)}개 평가")
-
-    print(f"  [스코어링] 총 {total_scored}/{len(candidates)}개 평가 완료")
+            batch_scored = len([c for c in batch if c.get("_llm_scored")])
+            print(f"    배치 {batch_idx+1}/{len(batches)}: {batch_scored}/{len(batch)}개 평가")
 
     # 폴백: 미평가 기사에 기본 점수
     for c in candidates:
@@ -468,7 +476,10 @@ def scorer_node(state: NewsGraphState) -> dict:
             c["_llm_category"] = ""
             c["_total_score"] = recency * W_RECENCY + 5 * W_IMPACT + 5 * W_FRESHNESS + 5 * W_BREADTH
 
-    return {"scored_candidates": candidates}
+    llm_count = len([c for c in candidates if c.get("_llm_scored")])
+    print(f"  [스코어링] LLM 평가: {llm_count}/{len(candidates)}개")
+
+    return {"scored_candidates": candidates, "scorer_retry_count": retry_count + 1}
 
 
 # ─── Node 4: ranker (LLM 기반 하이라이트 선정, 당일 기사 우선) ───
@@ -771,6 +782,34 @@ def assembler_node(state: NewsGraphState) -> dict:
     }
 
 
+# ─── 조건부 라우팅 ───
+def _route_after_collector(state: NewsGraphState) -> str:
+    """collector 후: 기사가 없으면 assembler로 직행"""
+    total = sum(len(v) for v in state.get("sources", {}).values())
+    if total == 0:
+        print("  [라우팅] 수집된 기사 없음 → assembler 직행")
+        return "assembler"
+    return "translator"
+
+
+def _route_after_scorer(state: NewsGraphState) -> str:
+    """scorer 후: LLM 커버리지 < 50%이고 재시도 < 2이면 scorer로 복귀 (재시도 루프)"""
+    candidates = state.get("scored_candidates", [])
+    retry_count = state.get("scorer_retry_count", 0)
+
+    if not candidates:
+        return "ranker"
+
+    llm_scored = len([c for c in candidates if c.get("_llm_scored")])
+    coverage = llm_scored / len(candidates)
+
+    if coverage < 0.5 and retry_count < 2:
+        print(f"  [라우팅] 스코어 커버리지 {llm_scored}/{len(candidates)} ({coverage:.0%}) < 50% → scorer 재시도")
+        return "scorer"
+
+    return "ranker"
+
+
 # ─── 그래프 구성 ───
 def _build_graph():
     graph = StateGraph(NewsGraphState)
@@ -782,9 +821,21 @@ def _build_graph():
     graph.add_node("assembler", assembler_node)
 
     graph.set_entry_point("collector")
-    graph.add_edge("collector", "translator")
+
+    # 조건부 분기: 기사 없으면 assembler 직행
+    graph.add_conditional_edges("collector", _route_after_collector, {
+        "translator": "translator",
+        "assembler": "assembler",
+    })
+
     graph.add_edge("translator", "scorer")
-    graph.add_edge("scorer", "ranker")
+
+    # 재시도 루프: 스코어 커버리지 부족 시 scorer로 복귀
+    graph.add_conditional_edges("scorer", _route_after_scorer, {
+        "scorer": "scorer",
+        "ranker": "ranker",
+    })
+
     graph.add_edge("ranker", "classifier")
     graph.add_edge("classifier", "assembler")
     graph.add_edge("assembler", END)
@@ -810,6 +861,7 @@ def run_news_pipeline() -> dict:
         "sources": {},
         "translated": False,
         "scored_candidates": [],
+        "scorer_retry_count": 0,
         "category_pool": [],
         "highlights": [],
         "categorized_articles": {},

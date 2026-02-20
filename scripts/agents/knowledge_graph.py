@@ -30,6 +30,7 @@ class KnowledgeGraphState(TypedDict):
     foundation_principle: dict
     verification_result: dict
     final_principle: dict
+    retry_count: int
 
 
 def parse_llm_json(text: str):
@@ -371,24 +372,50 @@ def final_assembly_node(state: KnowledgeGraphState) -> dict:
     return {"final_principle": final_principle}
 
 
+# ─── 조건부 라우팅 ───
+def _route_after_verification(state: KnowledgeGraphState) -> str:
+    """verification 후: 검증 실패 + 재시도 여유 → integration으로 재생성"""
+    verification = state.get("verification_result", {})
+    retry_count = state.get("retry_count", 0)
+
+    if not verification.get("verified") and retry_count < 1:
+        print(f"  [라우팅] 검증 실패 → integration 재생성 (재시도 {retry_count + 1}/1)")
+        return "integration"
+
+    return "final_assembly"
+
+
+def integration_node_with_retry(state: KnowledgeGraphState) -> dict:
+    """integration_node 래퍼: retry_count 증가"""
+    result = integration_node(state)
+    result["retry_count"] = state.get("retry_count", 0) + 1
+    return result
+
+
 # ─── 그래프 구성 ───
 def _build_knowledge_graph_v2():
-    """역방향 파이프라인 그래프 구성"""
+    """역방향 파이프라인 + 검증 실패 시 재생성 루프"""
     g = StateGraph(KnowledgeGraphState)
-    
-    g.add_node("integration", integration_node)
+
+    g.add_node("integration", integration_node_with_retry)
     g.add_node("application", application_node)
     g.add_node("foundation", foundation_node)
     g.add_node("verification", verification_node)
     g.add_node("final_assembly", final_assembly_node)
-    
+
     g.set_entry_point("integration")
     g.add_edge("integration", "application")
     g.add_edge("application", "foundation")
     g.add_edge("foundation", "verification")
-    g.add_edge("verification", "final_assembly")
+
+    # 재시도 루프: 검증 실패 시 integration으로 복귀
+    g.add_conditional_edges("verification", _route_after_verification, {
+        "integration": "integration",
+        "final_assembly": "final_assembly",
+    })
+
     g.add_edge("final_assembly", END)
-    
+
     return g.compile()
 
 
@@ -433,6 +460,7 @@ def run_knowledge_graph(discipline_key: str = None) -> dict:
             "foundation_principle": {},
             "verification_result": {},
             "final_principle": {},
+            "retry_count": 0,
         }
         
         final_state = _knowledge_app_v2.invoke(initial)
