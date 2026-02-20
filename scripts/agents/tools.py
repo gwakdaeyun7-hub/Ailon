@@ -1,7 +1,7 @@
 """
-뉴스 수집 도구 — 11개 소스 RSS/스크래핑 기반 수집
+뉴스 수집 도구 — 12개 소스 RSS/스크래핑 기반 수집
 
-[Tier 1] 영어 AI 전문 뉴스 — Wired AI / The Verge AI / TechCrunch AI / MIT Tech Review
+[Tier 1] 영어 AI 전문 뉴스 — Wired AI / The Verge AI / TechCrunch AI / MIT Tech Review / VentureBeat
 [Tier 2] AI 기업 공식 블로그 — Google DeepMind / NVIDIA / HuggingFace
 [Tier 3] 한국 소스 — AI타임스 / GeekNews / ZDNet AI 에디터 / 요즘IT AI
 """
@@ -50,6 +50,15 @@ SOURCES = [
         "key": "mit_tech_review",
         "name": "MIT Tech Review",
         "rss_url": "https://www.technologyreview.com/topic/artificial-intelligence/feed",
+        "max_items": 20,
+        "days": 7,
+        "lang": "en",
+        "ai_filter": True,
+    },
+    {
+        "key": "venturebeat",
+        "name": "VentureBeat",
+        "rss_url": "https://venturebeat.com/feed/",
         "max_items": 20,
         "days": 7,
         "lang": "en",
@@ -146,12 +155,12 @@ _PLAIN_KEYWORDS = [
 
 # ─── 소스별 역할 분류 ─────────────────────────────────────────────────────
 # 하이라이트 후보 소스 (Tier 1: 에디토리얼 영어 매체)
-HIGHLIGHT_SOURCES = {"wired_ai", "the_verge_ai", "techcrunch_ai", "mit_tech_review"}
+HIGHLIGHT_SOURCES = {"wired_ai", "the_verge_ai", "techcrunch_ai", "mit_tech_review", "venturebeat"}
 
 # 카테고리 분류 대상 소스 (Tier 1 + Tier 2 기업 블로그)
 CATEGORY_SOURCES = {
     "wired_ai", "the_verge_ai", "techcrunch_ai", "mit_tech_review",
-    "deepmind_blog", "nvidia_blog", "huggingface_blog",
+    "venturebeat", "deepmind_blog", "nvidia_blog", "huggingface_blog",
 }
 
 # 소스별 섹션 (한국 소스)
