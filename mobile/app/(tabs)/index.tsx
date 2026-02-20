@@ -14,8 +14,8 @@ import {
   RefreshControl,
   Linking,
   StatusBar,
-  Image,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import {
@@ -165,9 +165,11 @@ function HighlightScrollCard({
     >
       {article.image_url ? (
         <Image
-          source={{ uri: article.image_url }}
+          source={article.image_url}
           style={{ width: cardWidth, height: 150 }}
-          resizeMode="cover"
+          contentFit="cover"
+          transition={200}
+          recyclingKey={article.link}
         />
       ) : (
         <View style={{ width: cardWidth, height: 150, backgroundColor: BORDER, alignItems: 'center', justifyContent: 'center' }}>
@@ -320,9 +322,11 @@ function HScrollCard({
     >
       {article.image_url ? (
         <Image
-          source={{ uri: article.image_url }}
+          source={article.image_url}
           style={{ width: CARD_WIDTH, height: 120 }}
-          resizeMode="cover"
+          contentFit="cover"
+          transition={200}
+          recyclingKey={article.link}
         />
       ) : (
         <View style={{ width: CARD_WIDTH, height: 120, backgroundColor: BORDER, alignItems: 'center', justifyContent: 'center' }}>
