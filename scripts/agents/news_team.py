@@ -265,8 +265,64 @@ W_IMPACT = 3
 W_FRESHNESS = 2
 W_BREADTH = 1
 
+SCORER_BATCH_SIZE = 20
+
+_SCORER_PROMPT_TEMPLATE = """You are a JSON-only AI news scorer. Output ONLY a valid JSON array, no markdown, no explanation.
+
+Score each article on 3 dimensions (0-10 integer):
+
+1. impact: How important is this to the AI field?
+   10=Paradigm shift, 8=Very significant, 6=Important, 4=Moderate, 2=Minor, 0=Irrelevant
+
+2. freshness: How novel is the information?
+   10=World-first exclusive, 8=Breaking news, 6=Fresh angle, 4=Known+new details, 2=Rehash, 0=Stale
+
+3. breadth: How wide is the scope of influence?
+   10=Reshapes entire industry, 8=Multiple segments, 6=One segment, 4=Specific community, 2=Niche, 0=Negligible
+
+Also provide:
+- topic_tag: short English tag (e.g. "openai-gpt5")
+- category: "model_research" or "product_tools" or "industry_business"
+
+Articles:
+{article_text}
+
+Output exactly {count} items:
+[{{"i":0,"impact":8,"freshness":7,"breadth":6,"topic_tag":"tag","category":"model_research"}}]"""
+
+
+def _score_batch(batch: list[dict], offset: int) -> list[dict]:
+    """단일 배치 스코어링. 반환: [{i, impact, freshness, breadth, topic_tag, category}, ...]"""
+    article_text = ""
+    for i, a in enumerate(batch):
+        title = a.get("display_title") or a.get("title", "")
+        desc = a.get("description", "")[:120]
+        article_text += f"\n[{i}] {title} | {desc}"
+
+    prompt = _SCORER_PROMPT_TEMPLATE.format(article_text=article_text, count=len(batch))
+
+    try:
+        llm = get_llm(temperature=0.1, max_tokens=2048)
+        content = _llm_invoke_with_retry(llm, prompt, max_retries=2)
+        scores = _parse_llm_json(content)
+        if not isinstance(scores, list):
+            scores = next((v for v in scores.values() if isinstance(v, list)), [])
+        # 인덱스를 글로벌 offset으로 변환
+        for s in scores:
+            if isinstance(s, dict):
+                raw_idx = s.get("i", s.get("index", -1))
+                try:
+                    s["_global_idx"] = offset + int(raw_idx)
+                except (ValueError, TypeError):
+                    pass
+        return [s for s in scores if isinstance(s, dict) and "_global_idx" in s]
+    except Exception as e:
+        print(f"    [WARNING] 스코어 배치 실패 (offset={offset}): {type(e).__name__}: {e}")
+        return []
+
+
 def scorer_node(state: NewsGraphState) -> dict:
-    """CATEGORY_SOURCES 전체 기사에 대해 4차원 점수 부여 (0-10점 × 가중치)"""
+    """CATEGORY_SOURCES 전체 기사에 대해 4차원 점수 부여 (배치 분할, 0-10점 × 가중치)"""
     sources = state["sources"]
 
     candidates: list[dict] = []
@@ -287,72 +343,21 @@ def scorer_node(state: NewsGraphState) -> dict:
         if c["_is_today"]:
             today_count += 1
 
-    print(f"  [스코어링] {len(candidates)}개 기사 평가 중... (당일 기사: {today_count}개)")
+    print(f"  [스코어링] {len(candidates)}개 기사 평가 중... (당일 {today_count}개)")
 
-    # 2단계: 임팩트/신선도/영향성 (LLM, 0-10점)
-    article_text = ""
-    for i, a in enumerate(candidates):
-        title = a.get("display_title") or a.get("title", "")
-        desc = a.get("description", "")[:150]
-        article_text += f"\n[{i}] {title} | {desc}"
+    # 2단계: 임팩트/신선도/영향성 LLM 배치 평가
+    batches = [
+        candidates[i:i + SCORER_BATCH_SIZE]
+        for i in range(0, len(candidates), SCORER_BATCH_SIZE)
+    ]
 
-    prompt = f"""You are a JSON-only AI news scorer. Output ONLY a valid JSON array, no markdown, no explanation.
-
-Score each article on 3 dimensions (0-10 integer):
-
-1. impact (임팩트): How important is this to the AI field?
-   10 = Paradigm shift (new frontier model, major breakthrough)
-   8 = Very significant (notable model/product launch, major policy)
-   6 = Important (meaningful update, substantial research)
-   4 = Moderate (incremental improvement, niche but solid)
-   2 = Minor (routine announcement, small update)
-   0 = Irrelevant to AI
-
-2. freshness (신선도): How novel is the information?
-   10 = World-first exclusive, never reported before
-   8 = Breaking news, very early coverage
-   6 = Fresh angle on recent development
-   4 = Known topic with new details
-   2 = Rehash or follow-up of old news
-   0 = Stale, no new information
-
-3. breadth (영향성): How wide is the scope of influence?
-   10 = Reshapes entire AI industry
-   8 = Affects multiple major AI segments
-   6 = Affects one major segment (NLP, CV, robotics, etc.)
-   4 = Affects specific developer/researcher community
-   2 = Niche audience only
-   0 = Negligible scope
-
-Also provide:
-- topic_tag: short English tag for deduplication (e.g. "openai-gpt5", "eu-ai-act")
-- category: one of "model_research", "product_tools", "industry_business"
-  model_research = new models, papers, benchmarks, architecture, training methods
-  product_tools = product launches, tools, APIs, frameworks, developer tools
-  industry_business = funding, regulation, market, strategy, partnerships
-
-Articles:
-{article_text}
-
-Output exactly {len(candidates)} items:
-[{{"i":0,"impact":8,"freshness":7,"breadth":6,"topic_tag":"example-tag","category":"model_research"}}]"""
-
-    try:
-        llm = get_llm(temperature=0.1, max_tokens=4096)
-        content = _llm_invoke_with_retry(llm, prompt, max_retries=2)
-        scores = _parse_llm_json(content)
-
-        if not isinstance(scores, list):
-            scores = next((v for v in scores.values() if isinstance(v, list)), [])
+    total_scored = 0
+    for batch_idx, batch in enumerate(batches):
+        offset = batch_idx * SCORER_BATCH_SIZE
+        scores = _score_batch(batch, offset)
 
         for s in scores:
-            if not isinstance(s, dict):
-                continue
-            raw_idx = s.get("i", s.get("index", -1))
-            try:
-                idx = int(raw_idx)
-            except (ValueError, TypeError):
-                continue
+            idx = s["_global_idx"]
             if 0 <= idx < len(candidates):
                 impact = min(10, max(0, s.get("impact", 5)))
                 fresh = min(10, max(0, s.get("freshness", 5)))
@@ -364,20 +369,15 @@ Output exactly {len(candidates)} items:
                 candidates[idx]["_topic_tag"] = s.get("topic_tag", "")
                 candidates[idx]["_llm_category"] = s.get("category", "")
                 candidates[idx]["_total_score"] = (
-                    recency * W_RECENCY
-                    + impact * W_IMPACT
-                    + fresh * W_FRESHNESS
-                    + breadth * W_BREADTH
+                    recency * W_RECENCY + impact * W_IMPACT
+                    + fresh * W_FRESHNESS + breadth * W_BREADTH
                 )
 
-        scored = len([c for c in candidates if "_total_score" in c])
-        if scored == 0 and scores:
-            sample = scores[0] if isinstance(scores, list) else scores
-            print(f"  [DEBUG] 스코어 샘플: {str(sample)[:200]}")
-        print(f"  [스코어링] {scored}/{len(candidates)}개 평가 완료")
+        batch_scored = len([c for c in batch if "_total_score" in c])
+        total_scored += batch_scored
+        print(f"    배치 {batch_idx+1}/{len(batches)}: {batch_scored}/{len(batch)}개 평가")
 
-    except Exception as e:
-        print(f"  [WARNING] 스코어링 실패, 기본값 사용: {type(e).__name__}: {e}")
+    print(f"  [스코어링] 총 {total_scored}/{len(candidates)}개 평가 완료")
 
     # 폴백: 미평가 기사에 기본 점수
     for c in candidates:
