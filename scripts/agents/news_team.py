@@ -43,6 +43,15 @@ class NewsState(TypedDict):
 # 텍스트 전용 소스 (이미지 없는 소스 → text_only_articles로 분리)
 _TEXT_ONLY_SOURCES = {"arxiv", "reddit", "huggingface", "curation"}
 
+# ─── 한국어 감지 ───
+def _is_korean(text: str) -> bool:
+    """텍스트에 한글이 포함되어 있으면 True (간단한 휴리스틱)"""
+    if not text:
+        return False
+    korean_count = sum(1 for ch in text if '\uac00' <= ch <= '\ud7a3' or '\u3131' <= ch <= '\u3163')
+    return korean_count >= 2
+
+
 # 출처 신뢰도 티어 (rank_score 계산용)
 _SOURCE_TIER: dict[str, int] = {
     "arxiv": 9, "huggingface": 9, "official_blog": 9,
@@ -605,6 +614,93 @@ def summarizer_node(state: NewsState) -> dict:
         print(f"  [WARNING] 일일 개요 생성 실패: {e}")
         daily_overview = f"오늘의 AI 뉴스: {themes} 분야에서 주요 업데이트가 있었습니다."
 
+    # ─── 하이라이트 번역 ───
+    hl = state.get("highlight", {})
+    if hl and hl.get("title") and not _is_korean(hl.get("display_title", "")):
+        if _is_korean(hl["title"]):
+            hl["display_title"] = hl["title"]
+        else:
+            try:
+                hl_prompt = f"""다음 영어 AI 뉴스 제목을 한국어로 번역해주세요.
+
+제목: {hl['title']}
+설명: {hl.get('description', '')[:200]}
+
+OUTPUT ONLY VALID JSON:
+{{"display_title": "한국어 제목 (30자 이내)", "summary": "한국어 요약 (150-200자)"}}"""
+                hl_resp = llm.invoke([HumanMessage(content=hl_prompt)])
+                hl_result = parse_llm_json(hl_resp.content)
+                if isinstance(hl_result, dict):
+                    hl["display_title"] = hl_result.get("display_title", hl["title"])
+                    if hl_result.get("summary"):
+                        hl["summary"] = hl_result["summary"]
+                print(f"  [OK] 하이라이트 한국어 번역 완료")
+            except Exception as e:
+                print(f"  [WARNING] 하이라이트 번역 실패: {e}")
+                hl["display_title"] = hl["title"]
+
+    # ─── 미번역 기사 안전망: display_title이 없거나 영어인 기사 일괄 번역 ───
+    all_to_check = articles + text_only_articles
+    untranslated = []
+    for a in all_to_check:
+        dt = a.get("display_title", "")
+        # display_title이 비어있거나 한국어가 아닌 경우
+        if not dt or not _is_korean(dt):
+            # 이미 한국어 제목이면 그대로 사용
+            if _is_korean(a.get("title", "")):
+                a["display_title"] = a["title"]
+                if not a.get("summary") or not _is_korean(a.get("summary", "")):
+                    a["summary"] = a.get("description", "")[:300]
+            else:
+                untranslated.append(a)
+
+    if untranslated:
+        print(f"  [번역 안전망] 미번역 기사 {len(untranslated)}개 발견, 일괄 번역 중...")
+        for tr_start in range(0, len(untranslated), 10):
+            tr_batch = untranslated[tr_start:tr_start + 10]
+            tr_text = ""
+            for i, a in enumerate(tr_batch):
+                tr_text += (
+                    f"\n[{i+1}] 제목: {a['title']}\n"
+                    f"     설명: {a.get('description', '')[:200]}\n"
+                )
+            tr_prompt = f"""다음 {len(tr_batch)}개의 영어 AI 뉴스를 한국어로 번역해주세요.
+
+## 규칙
+- 이미 한국어인 기사는 그대로 유지
+- 영어 기사만 한국어로 번역
+- display_title: 한국어 제목 (30자 이내, 클릭 유도)
+- summary: 한국어 요약 (150-200자)
+
+OUTPUT ONLY VALID JSON ARRAY:
+[{{"index": 1, "display_title": "...", "summary": "..."}}]
+
+{tr_text}"""
+            try:
+                tr_resp = llm.invoke([HumanMessage(content=tr_prompt)])
+                tr_results = parse_llm_json(tr_resp.content)
+                if isinstance(tr_results, dict):
+                    tr_results = next((v for v in tr_results.values() if isinstance(v, list)), [])
+                if isinstance(tr_results, list):
+                    for r in tr_results:
+                        if not isinstance(r, dict):
+                            continue
+                        idx = r.get("index", 1) - 1
+                        if 0 <= idx < len(tr_batch):
+                            if r.get("display_title"):
+                                tr_batch[idx]["display_title"] = r["display_title"]
+                            if r.get("summary"):
+                                tr_batch[idx]["summary"] = r["summary"]
+                print(f"    [OK] {len(tr_batch)}개 번역 완료")
+            except Exception as e:
+                print(f"    [WARNING] 번역 안전망 실패: {e}")
+                # 최소한 원문 title을 display_title에 복사
+                for a in tr_batch:
+                    if not a.get("display_title"):
+                        a["display_title"] = a["title"]
+                    if not a.get("summary"):
+                        a["summary"] = a.get("description", "")[:300]
+
     # ─── 최종 기사 정리 (image_url, reading_time은 EnricherAgent에서 채움) ───
     final_articles = [{
         "title":           a["title"],
@@ -665,6 +761,16 @@ def summarizer_node(state: NewsState) -> dict:
             print(f"  [OK] 가로 섹션 {min(len(all_h), 15)}개 한국어 번역 완료")
         except Exception as e:
             print(f"  [WARNING] 가로 섹션 번역 실패: {e}")
+
+    # 가로 섹션 미번역 안전망: display_title 없으면 한국어 title 복사 또는 title 유지
+    for _, art in all_h:
+        dt = art.get("display_title", "")
+        if not dt or not _is_korean(dt):
+            if _is_korean(art.get("title", "")):
+                art["display_title"] = art["title"]
+            # 영어인 경우 display_title이 빈 채로 남으면 title 복사 (프론트에서 fallback)
+            elif not dt:
+                art["display_title"] = art["title"]
 
     # ─── text_only_articles 최종 정리 ───
     final_text_only = [{
