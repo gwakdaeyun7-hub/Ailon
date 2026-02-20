@@ -10,7 +10,7 @@
 import json
 from langchain_core.messages import HumanMessage
 from agents.config import get_llm
-from agents.tools import SOURCES, fetch_all_sources, enrich_images
+from agents.tools import SOURCES, fetch_all_sources, enrich_images, filter_imageless
 
 
 # ─── 한국어 감지 ───
@@ -147,28 +147,41 @@ def run_news_pipeline() -> dict:
     # 1. 수집
     sources = fetch_all_sources()
 
-    # 2. 이미지 보강
+    # 2. 이미지 보강 (text_only 제외)
     enrich_images(sources)
 
-    # 3. 번역
+    # 3. 이미지 없는 기사 제거 (text_only 소스 제외)
+    filter_imageless(sources)
+
+    # 4. 번역
     translate_articles(sources)
 
-    # 4. 결과 정리
-    source_order = [s["key"] for s in SOURCES]
+    # 5. text_only / image 소스 분리
+    text_only_keys = {s["key"] for s in SOURCES if s.get("text_only")}
+    image_sources: dict[str, list[dict]] = {}
+    text_only_sources: dict[str, list[dict]] = {}
+    for key, articles in sources.items():
+        if key in text_only_keys:
+            text_only_sources[key] = articles
+        else:
+            image_sources[key] = articles
+
+    source_order = [s["key"] for s in SOURCES if not s.get("text_only")]
+    text_only_order = [s["key"] for s in SOURCES if s.get("text_only")]
     total = sum(len(v) for v in sources.values())
-    img_count = sum(
-        1 for arts in sources.values() for a in arts if a.get("image_url")
-    )
 
     print(f"\n[DONE] 뉴스 수집 파이프라인 완료")
-    print(f"  총 기사: {total}개 | 이미지: {img_count}개")
+    print(f"  이미지 소스: {sum(len(v) for v in image_sources.values())}개")
+    print(f"  텍스트 소스: {sum(len(v) for v in text_only_sources.values())}개")
     for s in SOURCES:
         arts = sources.get(s["key"], [])
-        imgs = len([a for a in arts if a.get("image_url")])
-        print(f"  {s['name']}: {len(arts)}개 (이미지 {imgs}개)")
+        tag = "(텍스트)" if s.get("text_only") else ""
+        print(f"  {s['name']}: {len(arts)}개 {tag}")
 
     return {
-        "sources": sources,
+        "sources": image_sources,
+        "text_only_sources": text_only_sources,
         "source_order": source_order,
+        "text_only_order": text_only_order,
         "total_count": total,
     }

@@ -32,33 +32,38 @@ def save_news_to_firestore(result: dict):
     db = get_firestore_client()
     today = datetime.now().strftime("%Y-%m-%d")
 
-    # 소스별 기사를 플랫 리스트로 변환
-    sources = result.get("sources", {})
-    all_articles = []
-    for source_key, articles in sources.items():
-        for a in articles:
-            all_articles.append({
-                "title": a.get("title", ""),
-                "display_title": a.get("display_title", ""),
-                "description": a.get("description", ""),
-                "summary": a.get("summary", ""),
-                "link": a.get("link", ""),
-                "published": a.get("published", ""),
-                "source": a.get("source", ""),
-                "source_key": a.get("source_key", source_key),
-                "image_url": a.get("image_url", ""),
-            })
+    def _flatten(src_dict):
+        items = []
+        for source_key, articles in src_dict.items():
+            for a in articles:
+                items.append({
+                    "title": a.get("title", ""),
+                    "display_title": a.get("display_title", ""),
+                    "description": a.get("description", ""),
+                    "summary": a.get("summary", ""),
+                    "link": a.get("link", ""),
+                    "published": a.get("published", ""),
+                    "source": a.get("source", ""),
+                    "source_key": a.get("source_key", source_key),
+                    "image_url": a.get("image_url", ""),
+                })
+        return items
+
+    image_articles = _flatten(result.get("sources", {}))
+    text_only_articles = _flatten(result.get("text_only_sources", {}))
 
     doc_ref = db.collection("daily_news").document(today)
     doc_data = {
         "date": today,
-        "articles": all_articles,
+        "articles": image_articles,
+        "text_only_articles": text_only_articles,
         "source_order": result.get("source_order", []),
-        "total_count": result.get("total_count", len(all_articles)),
+        "text_only_order": result.get("text_only_order", []),
+        "total_count": result.get("total_count", 0),
         "updated_at": firestore.SERVER_TIMESTAMP,
     }
     doc_ref.set(doc_data)
-    print(f"  💾 뉴스 {len(all_articles)}개 저장 완료 ({len(sources)}개 소스)")
+    print(f"  💾 뉴스 저장 완료: 이미지 {len(image_articles)}개 + 텍스트 {len(text_only_articles)}개")
 
 
 def save_principles_to_firestore(result: dict):

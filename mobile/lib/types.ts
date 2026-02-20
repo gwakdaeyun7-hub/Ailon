@@ -20,8 +20,10 @@ export interface Article {
 
 export interface DailyNews {
   date: string;
-  articles: Article[];
+  articles: Article[];              // 이미지 있는 소스 기사
+  text_only_articles?: Article[];   // 이미지 없는 소스 기사 (OpenAI, InfoQ)
   source_order?: string[];
+  text_only_order?: string[];
   total_count?: number;
   updated_at: any;
 }

@@ -30,16 +30,52 @@ class IdeaGraphState(TypedDict):
 
 
 def parse_llm_json(text: str):
-    """LLM JSON 응답 파싱"""
+    """LLM 응답에서 JSON을 파싱하는 유틸리티 (마크다운·산문·잘린 JSON 대응)"""
+    import re
     text = text.strip()
-    if text.startswith("```"):
-        text = text.split("\n", 1)[1] if "\n" in text else text[3:]
-    if text.endswith("```"):
-        text = text[:-3]
+
+    # ── 마크다운 코드 블록 제거 ──
+    text = re.sub(r'^```(?:json)?\s*\n?', '', text)
+    text = re.sub(r'\n?```\s*$', '', text)
     text = text.strip()
     if text.startswith("json"):
         text = text[4:].strip()
-    return json.loads(text)
+
+    # ── 직접 파싱 ──
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+
+    # ── JSON 배열/객체 위치 탐색 (앞뒤 산문 무시, 중괄호 균형 추적) ──
+    for start_char, end_char in [('[', ']'), ('{', '}')]:
+        start_idx = text.find(start_char)
+        if start_idx == -1:
+            continue
+        depth = 0
+        in_string = False
+        escape_next = False
+        for i, ch in enumerate(text[start_idx:], start=start_idx):
+            if escape_next:
+                escape_next = False
+                continue
+            if ch == '\\' and in_string:
+                escape_next = True
+                continue
+            if ch == '"':
+                in_string = not in_string
+            if not in_string:
+                if ch == start_char:
+                    depth += 1
+                elif ch == end_char:
+                    depth -= 1
+                    if depth == 0:
+                        try:
+                            return json.loads(text[start_idx:i + 1])
+                        except json.JSONDecodeError:
+                            break
+
+    raise json.JSONDecodeError("No valid JSON found in LLM response", text, 0)
 
 
 # ─── Node 1: mechanism_extractor ───
@@ -163,6 +199,8 @@ def ai_problem_scout_node(state: IdeaGraphState) -> dict:
 2. 그 중에서 이 메커니즘으로 해결할 수 있는 것 **3개**를 골라주세요
 3. 각 문제가 메커니즘과 어떻게 연결되는지 설명하세요
 
+반드시 JSON 배열만 출력하세요. 마크다운이나 설명을 포함하지 마세요.
+
 OUTPUT ONLY VALID JSON ARRAY (no markdown, no explanation):
 [
   {{
@@ -181,7 +219,7 @@ OUTPUT ONLY VALID JSON ARRAY (no markdown, no explanation):
         # 최대 3개
         matched_problems = matched_problems[:3]
     except Exception as e:
-        print(f"  [WARNING] ai_problem_scout_node 파싱 실패: {e}")
+        print(f"  [INFO] ai_problem_scout_node 파싱 실패 (폴백 사용): {e}")
         matched_problems = [{
             "title": "AI 모델 최적화 문제",
             "source": "기능1 뉴스",

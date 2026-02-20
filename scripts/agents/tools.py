@@ -67,18 +67,20 @@ SOURCES = [
         "key": "infoq_ai",
         "name": "InfoQ AI/ML",
         "rss_url": "https://feed.infoq.com/ai-ml-data-eng/",
-        "max_items": 10,
+        "max_items": 5,
         "days": 14,
         "lang": "en",
+        "text_only": True,  # 이미지 수집 불안정 → 하단 텍스트 섹션
     },
     # Tier 2: AI 기업 공식 블로그
     {
         "key": "openai_blog",
         "name": "OpenAI",
         "rss_url": "https://openai.com/blog/rss.xml",
-        "max_items": 10,
+        "max_items": 5,
         "days": 30,
         "lang": "en",
+        "text_only": True,  # 이미지 수집 불안정 → 하단 텍스트 섹션
     },
     {
         "key": "deepmind_blog",
@@ -251,6 +253,7 @@ def fetch_source(source_config: dict) -> list[dict]:
     days = source_config.get("days", 7)
     lang = source_config.get("lang", "en")
     ai_filter = source_config.get("ai_filter", False)
+    text_only = source_config.get("text_only", False)
     rss_image_field = source_config.get("rss_image_field", "")
 
     articles = []
@@ -358,3 +361,20 @@ def enrich_images(sources: dict[str, list[dict]]) -> None:
                 pass
 
     print(f"  [이미지] {found}/{len(tasks)}개 추가 확보")
+
+
+def filter_imageless(sources: dict[str, list[dict]]) -> None:
+    """
+    text_only가 아닌 소스에서 image_url이 없는 기사를 제거 (in-place)
+    제거 후에도 최소 10개 유지되도록 상위 10개만 남김
+    """
+    text_only_keys = {s["key"] for s in SOURCES if s.get("text_only")}
+    removed = 0
+    for key, articles in sources.items():
+        if key in text_only_keys:
+            continue
+        before = len(articles)
+        sources[key] = [a for a in articles if a.get("image_url")][:10]
+        removed += before - len(sources[key])
+    if removed > 0:
+        print(f"  [필터] 이미지 없는 기사 {removed}개 제거")
