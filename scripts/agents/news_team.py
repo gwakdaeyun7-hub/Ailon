@@ -473,7 +473,7 @@ HIGHLIGHT_COUNT = 3
 
 
 def ranker_node(state: NewsGraphState) -> dict:
-    """당일 우선 + 점수순 Top 3 하이라이트 (미번역 기사 차단)"""
+    """최근 기사 우선 + 점수순 Top 3 하이라이트 (미번역 기사 차단)"""
     candidates = state.get("scored_candidates", [])
     if not candidates:
         return {"highlights": [], "category_pool": []}
@@ -481,17 +481,14 @@ def ranker_node(state: NewsGraphState) -> dict:
     highlight_pool = [c for c in candidates if c.get("source_key", "") in HIGHLIGHT_SOURCES]
     non_highlight = [c for c in candidates if c.get("source_key", "") not in HIGHLIGHT_SOURCES]
 
-    today_pool = sorted(
-        [c for c in highlight_pool if c.get("_is_today")],
-        key=lambda c: c.get("_total_score", 0), reverse=True,
+    # 발행일 최신순 → 동일 날짜 내 점수순
+    ordered_pool = sorted(
+        highlight_pool,
+        key=lambda c: (c.get("published", ""), c.get("_total_score", 0)),
+        reverse=True,
     )
-    older_pool = sorted(
-        [c for c in highlight_pool if not c.get("_is_today")],
-        key=lambda c: c.get("_total_score", 0), reverse=True,
-    )
-    ordered_pool = today_pool + older_pool
 
-    print(f"  [랭킹] 후보 {len(ordered_pool)}개 (당일 {len(today_pool)}개)")
+    print(f"  [랭킹] 후보 {len(ordered_pool)}개")
 
     selected: list[dict] = []
     used_tags: set[str] = set()
@@ -527,8 +524,7 @@ def ranker_node(state: NewsGraphState) -> dict:
 
     for rank, c in enumerate(selected):
         title = (c.get("display_title") or c.get("title", ""))[:40]
-        today_flag = "당일" if c.get("_is_today") else "이전"
-        print(f"    {rank+1}. [{c.get('_total_score', 0)}점/{today_flag}] {title}")
+        print(f"    {rank+1}. [{c.get('_total_score', 0)}점] {title}")
 
     selected_set = set(id(c) for c in selected)
     remaining = [c for c in ordered_pool if id(c) not in selected_set]
@@ -539,7 +535,7 @@ def ranker_node(state: NewsGraphState) -> dict:
 # ─── Node 5: classifier (카테고리 분류 + Top 10 선정) ───
 VALID_CATEGORIES = {"model_research", "product_tools", "industry_business"}
 CATEGORY_TOP_N = 10
-CATEGORY_TODAY_MIN = 3
+CATEGORY_RECENT_MIN = 3
 MAX_PER_SOURCE_CATEGORY = 3
 
 
@@ -608,16 +604,14 @@ Output exactly {len(articles)} items:
 
 
 def _select_top_n(articles: list[dict], n: int, max_per_source: int,
-                  today_min: int = 0, require_image: bool = True) -> list[dict]:
-    """Top N 선정 (당일 보장 + 점수순 + 소스 상한 + 썸네일 우선)"""
-    # 이미지 있는 기사 우선, 없는 기사는 후순위
+                  recent_min: int = 0, require_image: bool = True) -> list[dict]:
+    """Top N 선정 (최근 기사 보장 + 점수순 + 소스 상한 + 썸네일 우선)"""
     with_img = [a for a in articles if a.get("image_url")]
     without_img = [a for a in articles if not a.get("image_url")]
 
-    today_pool = sorted([a for a in with_img if a.get("_is_today")],
-                        key=lambda a: a.get("_total_score", 0), reverse=True)
-    older_pool = sorted([a for a in with_img if not a.get("_is_today")],
-                        key=lambda a: a.get("_total_score", 0), reverse=True)
+    # 발행일 내림차순 (가장 최근이 앞)
+    by_recency = sorted(with_img, key=lambda a: a.get("published", ""), reverse=True)
+    by_score = sorted(with_img, key=lambda a: a.get("_total_score", 0), reverse=True)
 
     selected: list[dict] = []
     source_count: dict[str, int] = {}
@@ -638,15 +632,14 @@ def _select_top_n(articles: list[dict], n: int, max_per_source: int,
             used_links.add(link)
         return True
 
-    # 당일 기사 우선 배치
-    for a in today_pool:
-        if sum(1 for s in selected if s.get("_is_today")) >= today_min:
+    # 가장 최근 기사 recent_min개 우선 배치
+    for a in by_recency:
+        if len(selected) >= recent_min:
             break
         _try_add(a)
 
-    # 이미지 있는 기사로 채움
-    all_with_img = sorted(with_img, key=lambda a: a.get("_total_score", 0), reverse=True)
-    for a in all_with_img:
+    # 점수순으로 나머지 채움
+    for a in by_score:
         if len(selected) >= n:
             break
         _try_add(a)
@@ -699,10 +692,9 @@ def classifier_node(state: NewsGraphState) -> dict:
         total = len(categorized[cat])
         categorized[cat] = _select_top_n(
             categorized[cat], CATEGORY_TOP_N, MAX_PER_SOURCE_CATEGORY,
-            today_min=CATEGORY_TODAY_MIN, require_image=not is_retry,
+            recent_min=CATEGORY_RECENT_MIN, require_image=not is_retry,
         )
-        today_count = sum(1 for a in categorized[cat] if a.get("_is_today"))
-        print(f"    {cat}: {total}개 → Top {len(categorized[cat])}개 (당일 {today_count}개)")
+        print(f"    {cat}: {total}개 → Top {len(categorized[cat])}개")
 
     return {"categorized_articles": categorized, "category_order": category_order}
 
