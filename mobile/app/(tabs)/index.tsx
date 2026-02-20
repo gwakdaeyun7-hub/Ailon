@@ -49,7 +49,7 @@ const SOURCE_COLORS: Record<string, string> = {
   zdnet_korea: '#D32F2F',
   hankyung_it: '#003876',
   ainews_kr: '#1E88E5',
-  digitaltoday: '#00897B',
+  zdnet_ai_editor: '#D32F2F',
 };
 
 const SOURCE_NAMES: Record<string, string> = {
@@ -65,7 +65,7 @@ const SOURCE_NAMES: Record<string, string> = {
   zdnet_korea: 'ZDNet Korea',
   hankyung_it: '한국경제 IT',
   ainews_kr: '인공지능신문',
-  digitaltoday: '디지털투데이',
+  zdnet_ai_editor: 'ZDNet AI 에디터',
 };
 
 const CATEGORY_NAMES: Record<string, string> = {
@@ -81,7 +81,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 const DEFAULT_CATEGORY_ORDER = ['model_research', 'product_tools', 'industry_business'];
-const DEFAULT_SOURCE_ORDER = ['aitimes', 'geeknews', 'zdnet_korea', 'hankyung_it', 'ainews_kr', 'digitaltoday'];
+const DEFAULT_SOURCE_ORDER = ['aitimes', 'geeknews', 'zdnet_korea', 'hankyung_it', 'ainews_kr', 'zdnet_ai_editor'];
 
 // ─── 헬퍼 ───────────────────────────────────────────────────────────────
 function formatDate(str?: string) {

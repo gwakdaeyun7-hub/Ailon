@@ -134,13 +134,12 @@ SOURCES = [
         "ai_filter": True,
     },
     {
-        "key": "digitaltoday",
-        "name": "디지털투데이",
-        "rss_url": "https://www.digitaltoday.co.kr/rss/allArticle.xml",
+        "key": "zdnet_ai_editor",
+        "name": "ZDNet AI 에디터",
+        "scrape_url": "https://zdnet.co.kr/reporter/?lstcode=media",
         "max_items": 20,
         "days": 7,
         "lang": "ko",
-        "ai_filter": True,
     },
 ]
 
@@ -182,7 +181,7 @@ CATEGORY_SOURCES = {
 # 소스별 섹션 (한국 소스)
 SOURCE_SECTION_SOURCES = {
     "aitimes", "geeknews", "zdnet_korea", "hankyung_it",
-    "ainews_kr", "digitaltoday",
+    "ainews_kr", "zdnet_ai_editor",
 }
 
 assert CATEGORY_SOURCES.isdisjoint(SOURCE_SECTION_SOURCES), \
@@ -288,9 +287,92 @@ def extract_og_image(url: str) -> str:
         return ""
 
 
+# ─── HTML 스크래핑 수집 ──────────────────────────────────────────────────
+def _fetch_scrape_source(source_config: dict) -> list[dict]:
+    """HTML 페이지 스크래핑으로 기사 수집 (ZDNet AI 에디터 등)"""
+    from bs4 import BeautifulSoup
+
+    key = source_config["key"]
+    name = source_config["name"]
+    url = source_config["scrape_url"]
+    max_items = source_config.get("max_items", 20)
+    days = source_config.get("days", 7)
+    lang = source_config.get("lang", "ko")
+
+    articles = []
+    try:
+        headers = {"User-Agent": "Mozilla/5.0 (compatible; AilonBot/1.0)"}
+        resp = requests.get(url, headers=headers, timeout=10)
+        if resp.status_code != 200:
+            print(f"  [WARNING] {name} 스크래핑 실패: HTTP {resp.status_code}")
+            return []
+
+        soup = BeautifulSoup(resp.text, "html.parser")
+        for h3 in soup.find_all("h3"):
+            if len(articles) >= max_items:
+                break
+            a_tag = h3.find_parent("a")
+            if not a_tag or not a_tag.get("href"):
+                continue
+
+            title = h3.get_text(strip=True)
+            if not title:
+                continue
+
+            href = a_tag["href"]
+            link = href if href.startswith("http") else "https://zdnet.co.kr" + href
+
+            # 날짜 추출: <span>2026.02.19 PM 08:20</span>
+            published = ""
+            parent = a_tag.find_parent()
+            if parent:
+                spans = parent.find_all("span")
+                for span in spans:
+                    txt = span.get_text(strip=True)
+                    if re.match(r'\d{4}\.\d{2}\.\d{2}', txt):
+                        published = txt
+                        break
+
+            if published and not _within_days_ymd(published, days):
+                continue
+
+            articles.append({
+                "title": title,
+                "display_title": "",
+                "description": "",
+                "summary": "",
+                "link": link,
+                "published": published or datetime.now().isoformat(),
+                "source": name,
+                "source_key": key,
+                "lang": lang,
+                "image_url": "",
+            })
+
+    except Exception as e:
+        print(f"  [WARNING] {name} 스크래핑 실패: {e}")
+
+    return articles
+
+
+def _within_days_ymd(date_str: str, days: int) -> bool:
+    """'2026.02.19 PM 08:20' 형식 날짜가 days일 이내인지 확인"""
+    match = re.match(r'(\d{4})\.(\d{2})\.(\d{2})', date_str)
+    if not match:
+        return True
+    try:
+        dt = datetime(int(match.group(1)), int(match.group(2)), int(match.group(3)))
+        return (datetime.now() - dt).days <= days
+    except Exception:
+        return True
+
+
 # ─── RSS 수집 ────────────────────────────────────────────────────────────
 def fetch_source(source_config: dict) -> list[dict]:
-    """단일 소스에서 RSS 기사 수집"""
+    """단일 소스에서 기사 수집 (RSS 또는 HTML 스크래핑)"""
+    if source_config.get("scrape_url"):
+        return _fetch_scrape_source(source_config)
+
     key = source_config["key"]
     name = source_config["name"]
     rss_url = source_config["rss_url"]
