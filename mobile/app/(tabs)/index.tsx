@@ -46,7 +46,6 @@ const SOURCE_COLORS: Record<string, string> = {
   huggingface_blog: '#FFD21E',
   aitimes: '#E53935',
   geeknews: '#FF6B35',
-  ainews_kr: '#1E88E5',
   zdnet_ai_editor: '#D32F2F',
   yozm_ai: '#6366F1',
 };
@@ -61,7 +60,6 @@ const SOURCE_NAMES: Record<string, string> = {
   huggingface_blog: 'Hugging Face',
   aitimes: 'AI타임스',
   geeknews: 'GeekNews',
-  ainews_kr: '인공지능신문',
   zdnet_ai_editor: 'ZDNet AI 에디터',
   yozm_ai: '요즘IT AI',
 };
@@ -79,7 +77,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 const DEFAULT_CATEGORY_ORDER = ['model_research', 'product_tools', 'industry_business'];
-const DEFAULT_SOURCE_ORDER = ['aitimes', 'geeknews', 'ainews_kr', 'zdnet_ai_editor', 'yozm_ai'];
+const DEFAULT_SOURCE_ORDER = ['aitimes', 'geeknews', 'zdnet_ai_editor', 'yozm_ai'];
 
 // ─── 헬퍼 ───────────────────────────────────────────────────────────────
 function formatDate(str?: string) {

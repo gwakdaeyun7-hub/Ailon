@@ -1,9 +1,9 @@
 """
-뉴스 수집 도구 — 12개 소스 RSS/스크래핑 기반 수집
+뉴스 수집 도구 — 11개 소스 RSS/스크래핑 기반 수집
 
 [Tier 1] 영어 AI 전문 뉴스 — Wired AI / The Verge AI / TechCrunch AI / MIT Tech Review
 [Tier 2] AI 기업 공식 블로그 — Google DeepMind / NVIDIA / HuggingFace
-[Tier 3] 한국 소스 — AI타임스 / GeekNews / 인공지능신문 / ZDNet AI 에디터 / 요즘IT AI
+[Tier 3] 한국 소스 — AI타임스 / GeekNews / ZDNet AI 에디터 / 요즘IT AI
 """
 
 import os
@@ -51,7 +51,7 @@ SOURCES = [
         "name": "MIT Tech Review",
         "rss_url": "https://www.technologyreview.com/topic/artificial-intelligence/feed",
         "max_items": 20,
-        "days": 14,
+        "days": 7,
         "lang": "en",
         "ai_filter": True,
     },
@@ -61,7 +61,7 @@ SOURCES = [
         "name": "Google DeepMind",
         "rss_url": "https://deepmind.google/blog/rss.xml",
         "max_items": 20,
-        "days": 30,
+        "days": 7,
         "lang": "en",
         "rss_image_field": "media_thumbnail",
     },
@@ -70,16 +70,16 @@ SOURCES = [
         "name": "NVIDIA AI",
         "rss_url": "https://blogs.nvidia.com/feed/",
         "max_items": 20,
-        "days": 14,
+        "days": 7,
         "lang": "en",
-        "ai_filter": True,  # AI 관련 기사만 필터링
+        "ai_filter": True,
     },
     {
         "key": "huggingface_blog",
         "name": "Hugging Face",
         "rss_url": "https://huggingface.co/blog/feed.xml",
         "max_items": 20,
-        "days": 30,
+        "days": 7,
         "lang": "en",
     },
     # Tier 3: 한국 소스
@@ -90,21 +90,11 @@ SOURCES = [
         "max_items": 20,
         "days": 7,
         "lang": "ko",
-        "ai_filter": True,
     },
     {
         "key": "geeknews",
         "name": "GeekNews",
         "rss_url": "https://news.hada.io/rss/news",
-        "max_items": 20,
-        "days": 7,
-        "lang": "ko",
-        "ai_filter": True,
-    },
-    {
-        "key": "ainews_kr",
-        "name": "인공지능신문",
-        "rss_url": "https://www.aitimes.kr/rss/allArticle.xml",
         "max_items": 20,
         "days": 7,
         "lang": "ko",
@@ -166,7 +156,7 @@ CATEGORY_SOURCES = {
 
 # 소스별 섹션 (한국 소스)
 SOURCE_SECTION_SOURCES = {
-    "aitimes", "geeknews", "ainews_kr", "zdnet_ai_editor", "yozm_ai",
+    "aitimes", "geeknews", "zdnet_ai_editor", "yozm_ai",
 }
 
 assert CATEGORY_SOURCES.isdisjoint(SOURCE_SECTION_SOURCES), \
