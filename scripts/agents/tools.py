@@ -30,6 +30,7 @@ SOURCES = [
         "days": 7,
         "lang": "en",
         "rss_image_field": "media_thumbnail",  # RSS에 media:thumbnail 포함
+        "ai_filter": True,
     },
     {
         "key": "the_verge_ai",
@@ -39,6 +40,7 @@ SOURCES = [
         "days": 7,
         "lang": "en",
         "rss_image_field": "content_image",  # RSS content에 <img> 포함
+        "ai_filter": True,
     },
     {
         "key": "techcrunch_ai",
@@ -47,6 +49,7 @@ SOURCES = [
         "max_items": 20,
         "days": 7,
         "lang": "en",
+        "ai_filter": True,
     },
     {
         "key": "mit_tech_review",
@@ -55,6 +58,7 @@ SOURCES = [
         "max_items": 20,
         "days": 14,
         "lang": "en",
+        "ai_filter": True,
     },
     # Tier 2: AI 기업 공식 블로그
     {
@@ -91,6 +95,7 @@ SOURCES = [
         "max_items": 20,
         "days": 7,
         "lang": "ko",
+        "ai_filter": True,
     },
     {
         "key": "geeknews",
@@ -141,11 +146,24 @@ SOURCES = [
 
 # AI 키워드 (ai_filter=True인 소스에서 사용)
 _AI_KEYWORDS = [
+    # Core AI terms (English)
     "ai", "artificial intelligence", "machine learning", "deep learning",
     "llm", "gpt", "chatgpt", "claude", "gemini", "neural", "transformer",
     "agent", "agentic", "multimodal", "generative", "diffusion",
+    "nlp", "natural language", "computer vision", "robotics", "autonomous",
+    "chatbot", "foundation model", "large language model",
+    # AI-adjacent: companies, products, techniques
+    "openai", "anthropic", "deepmind", "hugging face", "huggingface",
+    "midjourney", "stable diffusion", "copilot", "sora", "dall-e",
+    "nvidia", "tensor", "gpu", "tpu", "fine-tun", "rag", "embedding",
+    "reinforcement learning", "supervised learning", "unsupervised",
+    "prompt engineer", "synthetic data", "ai chip", "ai regulation",
+    "ai safety", "ai ethics", "ai governance", "ai startup",
+    # Korean equivalents
     "인공지능", "머신러닝", "딥러닝", "생성형", "언어모델", "챗봇",
-    "에이전트", "파인튜닝", "임베딩", "프롬프트",
+    "에이전트", "파인튜닝", "임베딩", "프롬프트", "신경망", "자율주행",
+    "컴퓨터 비전", "자연어 처리", "강화학습", "초거대", "sllm",
+    "ai 반도체", "ai 규제", "ai 윤리", "ai 스타트업", "로봇",
 ]
 
 # ─── 소스별 역할 분류 ─────────────────────────────────────────────────────
@@ -275,6 +293,7 @@ def fetch_source(source_config: dict) -> list[dict]:
     rss_image_field = source_config.get("rss_image_field", "")
 
     articles = []
+    filtered_out = 0
     try:
         feed = feedparser.parse(rss_url, agent="Mozilla/5.0")
         for entry in feed.entries:
@@ -293,6 +312,7 @@ def fetch_source(source_config: dict) -> list[dict]:
             description = re.sub(r'<[^>]+>', '', description)[:500]
 
             if ai_filter and not _is_ai_related(title, description):
+                filtered_out += 1
                 continue
 
             link = entry.get("link", "")
@@ -313,6 +333,9 @@ def fetch_source(source_config: dict) -> list[dict]:
 
     except Exception as e:
         print(f"  [WARNING] {name} RSS 수집 실패: {e}")
+
+    if filtered_out > 0:
+        print(f"  [{name}] AI 필터: {filtered_out}개 비AI 기사 제거")
 
     return articles
 
