@@ -265,7 +265,7 @@ W_IMPACT = 3
 W_FRESHNESS = 2
 W_BREADTH = 1
 
-SCORER_BATCH_SIZE = 20
+SCORER_BATCH_SIZE = 8
 
 _SCORER_PROMPT_TEMPLATE = """You are a JSON-only AI news scorer. Output ONLY a valid JSON array, no markdown, no explanation.
 

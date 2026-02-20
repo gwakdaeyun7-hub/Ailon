@@ -131,7 +131,10 @@ function SourceBadge({ sourceKey }: { sourceKey?: string }) {
 }
 
 // ─── Section 1: 하이라이트 ──────────────────────────────────────────────
-function HeroCard({ article }: { article: Article }) {
+const HIGHLIGHT_CARD_WIDTH = 280;
+const HIGHLIGHT_CARD_HEIGHT = 260;
+
+function HighlightScrollCard({ article, isFirst }: { article: Article; isFirst?: boolean }) {
   const { trackView } = useArticleViews(article.link);
 
   const handlePress = async () => {
@@ -139,12 +142,15 @@ function HeroCard({ article }: { article: Article }) {
     if (article.link) Linking.openURL(article.link);
   };
 
+  const cardWidth = isFirst ? 300 : HIGHLIGHT_CARD_WIDTH;
+
   return (
     <Pressable
       onPress={handlePress}
       style={({ pressed }) => ({
-        marginHorizontal: 16,
-        marginBottom: 12,
+        width: cardWidth,
+        height: HIGHLIGHT_CARD_HEIGHT,
+        marginRight: 12,
         backgroundColor: CARD,
         borderRadius: 14,
         overflow: 'hidden',
@@ -156,77 +162,27 @@ function HeroCard({ article }: { article: Article }) {
       {article.image_url ? (
         <Image
           source={{ uri: article.image_url }}
-          style={{ width: '100%', height: 200 }}
-          resizeMode="cover"
-        />
-      ) : null}
-      <View style={{ padding: 14 }}>
-        <SourceBadge sourceKey={article.source_key} />
-        <Text
-          style={{ fontSize: 16, fontWeight: '800', color: TEXT_PRIMARY, lineHeight: 22, marginTop: 6 }}
-          numberOfLines={3}
-        >
-          {getTitle(article)}
-        </Text>
-        {article.summary ? (
-          <Text style={{ fontSize: 12, color: TEXT_SECONDARY, lineHeight: 17, marginTop: 6 }} numberOfLines={2}>
-            {article.summary}
-          </Text>
-        ) : null}
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
-          <Text style={{ fontSize: 10, color: TEXT_LIGHT }}>{formatDate(article.published)}</Text>
-          <ArticleStats articleLink={article.link} />
-        </View>
-      </View>
-    </Pressable>
-  );
-}
-
-function SmallHighlightCard({ article }: { article: Article }) {
-  const { trackView } = useArticleViews(article.link);
-
-  const handlePress = async () => {
-    await trackView();
-    if (article.link) Linking.openURL(article.link);
-  };
-
-  return (
-    <Pressable
-      onPress={handlePress}
-      style={({ pressed }) => ({
-        flex: 1,
-        height: SMALL_CARD_HEIGHT,
-        backgroundColor: CARD,
-        borderRadius: 12,
-        overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: BORDER,
-        opacity: pressed ? 0.92 : 1,
-      })}
-    >
-      {article.image_url ? (
-        <Image
-          source={{ uri: article.image_url }}
-          style={{ width: '100%', height: 90 }}
+          style={{ width: cardWidth, height: 150 }}
           resizeMode="cover"
         />
       ) : (
-        <View style={{ width: '100%', height: 90, backgroundColor: BORDER, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ fontSize: 24, color: TEXT_LIGHT }}>📰</Text>
+        <View style={{ width: cardWidth, height: 150, backgroundColor: BORDER, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ fontSize: 28, color: TEXT_LIGHT }}>📰</Text>
         </View>
       )}
-      <View style={{ padding: 8, flex: 1, justifyContent: 'space-between' }}>
+      <View style={{ padding: 12, flex: 1, justifyContent: 'space-between' }}>
         <View>
           <SourceBadge sourceKey={article.source_key} />
           <Text
-            style={{ fontSize: 11, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 15, marginTop: 4 }}
+            style={{ fontSize: 13, fontWeight: '800', color: TEXT_PRIMARY, lineHeight: 18, marginTop: 4 }}
             numberOfLines={2}
+            ellipsizeMode="tail"
           >
             {getTitle(article)}
           </Text>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Text style={{ fontSize: 9, color: TEXT_LIGHT }}>{formatDate(article.published)}</Text>
+          <Text style={{ fontSize: 10, color: TEXT_LIGHT }}>{formatDate(article.published)}</Text>
           <ArticleStats articleLink={article.link} />
         </View>
       </View>
@@ -237,9 +193,6 @@ function SmallHighlightCard({ article }: { article: Article }) {
 function HighlightSection({ highlights }: { highlights: Article[] }) {
   if (!highlights || highlights.length === 0) return null;
 
-  const hero = highlights[0];
-  const sub = highlights.slice(1, 3);
-
   return (
     <View style={{ paddingTop: 8, paddingBottom: 16, backgroundColor: '#F0F4FF' }}>
       {/* 섹션 헤더 */}
@@ -248,18 +201,16 @@ function HighlightSection({ highlights }: { highlights: Article[] }) {
         <Text style={{ fontSize: 11, color: TEXT_LIGHT, marginLeft: 8 }}>Top {highlights.length}</Text>
       </View>
 
-      {/* Hero 카드 */}
-      <HeroCard article={hero} />
-
-      {/* 하단 2카드 */}
-      {sub.length > 0 && (
-        <View style={{ flexDirection: 'row', gap: 10, paddingHorizontal: 16 }}>
-          {sub.map((a, i) => (
-            <SmallHighlightCard key={`hl-${i}`} article={a} />
-          ))}
-          {sub.length === 1 && <View style={{ flex: 1 }} />}
-        </View>
-      )}
+      {/* 가로 스크롤 하이라이트 카드 */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 4 }}
+      >
+        {highlights.map((a, i) => (
+          <HighlightScrollCard key={`hl-${i}`} article={a} isFirst={i === 0} />
+        ))}
+      </ScrollView>
     </View>
   );
 }
@@ -267,7 +218,6 @@ function HighlightSection({ highlights }: { highlights: Article[] }) {
 // ─── 가로 스크롤 카드 (통일 디자인) ──────────────────────────────────────
 const CARD_WIDTH = 200;
 const HCARD_HEIGHT = 220;
-const SMALL_CARD_HEIGHT = 172;
 
 function HScrollCard({ article, showSourceBadge }: { article: Article; showSourceBadge?: boolean }) {
   const { trackView } = useArticleViews(article.link);
@@ -309,6 +259,7 @@ function HScrollCard({ article, showSourceBadge }: { article: Article; showSourc
           <Text
             style={{ fontSize: 12, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 17, marginTop: showSourceBadge ? 4 : 0 }}
             numberOfLines={2}
+            ellipsizeMode="tail"
           >
             {getTitle(article)}
           </Text>
