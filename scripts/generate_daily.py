@@ -36,9 +36,9 @@ def save_news_to_firestore(result: dict):
         return [
             {
                 "title": a.get("title", ""),
-                "display_title": a.get("display_title", ""),
+                "display_title": a.get("display_title", "") or a.get("title", ""),
                 "description": a.get("description", ""),
-                "summary": a.get("summary", ""),
+                "summary": a.get("summary", "") or a.get("description", "")[:300],
                 "link": a.get("link", ""),
                 "published": a.get("published", ""),
                 "source": a.get("source", ""),

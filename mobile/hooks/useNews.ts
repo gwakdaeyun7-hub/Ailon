@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { DailyNews } from '@/lib/types';
 
@@ -23,6 +23,7 @@ export function useNews() {
       setError(null);
       setNewsData(null);
 
+      // 오늘 날짜로 먼저 시도 (가장 빠른 경로)
       const today = new Date().toISOString().split('T')[0];
       const docRef = doc(db, 'daily_news', today);
       const docSnap = await getDoc(docRef);
@@ -31,16 +32,15 @@ export function useNews() {
         return;
       }
 
-      // 오늘 데이터 없으면 최근 7일 fallback
-      for (let i = 1; i <= 7; i++) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        const dateStr = d.toISOString().split('T')[0];
-        const prevSnap = await getDoc(doc(db, 'daily_news', dateStr));
-        if (prevSnap.exists()) {
-          setNewsData(prevSnap.data() as DailyNews);
-          return;
-        }
+      // 오늘 데이터 없으면 단일 쿼리로 최신 문서 1개 가져오기
+      const fallbackQuery = query(
+        collection(db, 'daily_news'),
+        orderBy('date', 'desc'),
+        limit(1)
+      );
+      const snapshot = await getDocs(fallbackQuery);
+      if (!snapshot.empty) {
+        setNewsData(snapshot.docs[0].data() as DailyNews);
       }
     } catch (err) {
       setError('뉴스를 불러오는 데 실패했어요.');

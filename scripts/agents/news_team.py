@@ -13,6 +13,7 @@ collector → translator → scorer → ranker → classifier → assembler
 
 import json
 import re
+import time
 from typing import TypedDict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from langchain_core.messages import HumanMessage
@@ -81,30 +82,48 @@ def _parse_llm_json(text: str):
     raise json.JSONDecodeError("No valid JSON found", text, 0)
 
 
+def _llm_invoke_with_retry(llm, prompt: str, max_retries: int = 2) -> str:
+    """LLM 호출 + 재시도 (지수 백오프). 반환: response.content 문자열"""
+    last_err = None
+    for attempt in range(max_retries + 1):
+        try:
+            response = llm.invoke([HumanMessage(content=prompt)])
+            return response.content
+        except Exception as e:
+            last_err = e
+            if attempt < max_retries:
+                wait = 2 ** attempt
+                print(f"    [RETRY] LLM 호출 실패 ({e}), {wait}초 후 재시도...")
+                time.sleep(wait)
+    raise last_err
+
+
 # ─── 번역 (병렬 배치) ───
-def _translate_batch(batch: list[dict], batch_idx: int, llm) -> list[dict] | None:
-    """단일 배치 번역 (ThreadPoolExecutor용)"""
+def _translate_batch(batch: list[dict], batch_idx: int) -> list[dict] | None:
+    """단일 배치 번역 (ThreadPoolExecutor용, 스레드별 LLM 생성)"""
     batch_text = ""
     for i, a in enumerate(batch):
         batch_text += (
             f"\n[{i+1}] 제목: {a['title']}\n"
-            f"     설명: {a['description'][:150]}\n"
+            f"     설명: {a['description'][:200]}\n"
         )
 
-    prompt = f"""다음 {len(batch)}개의 영어 AI 뉴스를 한국어로 번역해주세요.
+    prompt = f"""You are a JSON-only translator. Output ONLY a valid JSON array, no markdown, no explanation.
 
-## 규칙
-- display_title: 한국어 제목 (30자 이내, 핵심을 전달하되 클릭 유도)
-- summary: 한국어 요약 (100-200자)
+Translate {len(batch)} English AI news items to Korean.
+- display_title: Korean title (max 30 chars, convey the key point)
+- summary: Korean summary (100-200 chars)
 
-OUTPUT ONLY VALID JSON ARRAY (no markdown):
-[{{"index": 1, "display_title": "...", "summary": "..."}}]
+Return exactly {len(batch)} items with index starting from 1:
+[{{"index":1,"display_title":"...","summary":"..."}}]
 
+Articles:
 {batch_text}"""
 
     try:
-        response = llm.invoke([HumanMessage(content=prompt)])
-        results = _parse_llm_json(response.content)
+        llm = get_llm(temperature=0.3, max_tokens=3072)
+        content = _llm_invoke_with_retry(llm, prompt, max_retries=2)
+        results = _parse_llm_json(content)
         if isinstance(results, dict):
             results = next((v for v in results.values() if isinstance(v, list)), [])
         if isinstance(results, list):
@@ -130,14 +149,13 @@ def translate_articles(sources: dict[str, list[dict]]) -> None:
         return
 
     print(f"  [번역] 영어 기사 {len(to_translate)}개 한국어 번역 중...")
-    llm = get_llm(temperature=0.3, max_tokens=3072)
 
     batch_size = 15
     batches = [to_translate[i:i + batch_size] for i in range(0, len(to_translate), batch_size)]
 
     with ThreadPoolExecutor(max_workers=3) as executor:
         futures = {
-            executor.submit(_translate_batch, batch, idx, llm): (batch, idx)
+            executor.submit(_translate_batch, batch, idx): (batch, idx)
             for idx, batch in enumerate(batches)
         }
         for future in as_completed(futures):
@@ -199,28 +217,27 @@ def scorer_node(state: NewsGraphState) -> dict:
     article_text = ""
     for i, a in enumerate(candidates):
         title = a.get("display_title") or a.get("title", "")
-        desc = a.get("description", "")[:80]
+        desc = a.get("description", "")[:150]
         article_text += f"\n[{i}] {title} | {desc}"
 
-    prompt = f"""다음 AI 뉴스 기사들을 각각 평가해주세요.
+    prompt = f"""You are a JSON-only AI news scorer. Output ONLY a valid JSON array, no markdown, no explanation.
 
-## 평가 기준 (각 1-5점)
-- impact: AI 분야에 얼마나 중요한 뉴스인가? (5=판도를 바꾸는 발표, 1=사소한 업데이트)
-- freshness: 새로운 정보인가? (5=최초 보도/발표, 1=이미 알려진 내용 반복)
-- breadth: 영향 범위가 넓은가? (5=업계 전체, 1=특정 니치)
-- topic_tag: 주제를 짧은 영어 태그로 (예: "openai-gpt5", "eu-regulation", "llama-release")
+Score each article on 3 dimensions (1-5 integer):
+- impact: importance to AI field (5=paradigm shift, 1=minor update)
+- freshness: novelty (5=first report, 1=rehash)
+- breadth: scope of influence (5=whole industry, 1=niche)
+- topic_tag: short English tag (e.g. "openai-gpt5", "eu-regulation")
 
-## 기사 목록
+Articles:
 {article_text}
 
-## OUTPUT (JSON array only, no markdown):
-[{{"i": 0, "impact": 4, "freshness": 5, "breadth": 3, "topic_tag": "example-tag"}}]
-"""
+Output exactly {len(candidates)} items:
+[{{"i":0,"impact":4,"freshness":5,"breadth":3,"topic_tag":"example-tag"}}]"""
 
     try:
         llm = get_llm(temperature=0.1, max_tokens=2048)
-        response = llm.invoke([HumanMessage(content=prompt)])
-        scores = _parse_llm_json(response.content)
+        content = _llm_invoke_with_retry(llm, prompt, max_retries=2)
+        scores = _parse_llm_json(content)
 
         if not isinstance(scores, list):
             scores = next((v for v in scores.values() if isinstance(v, list)), [])
@@ -341,21 +358,26 @@ def _llm_classify_batch(articles: list[dict], categorized: dict[str, list[dict]]
     article_text = ""
     for i, a in enumerate(articles):
         title = a.get("display_title") or a.get("title", "")
-        article_text += f"\n[{i}] {title}"
+        desc = a.get("description", "")[:100]
+        article_text += f"\n[{i}] {title} | {desc}"
 
-    prompt = f"""다음 AI 뉴스를 3개 카테고리 중 하나로 분류하세요:
-- model_research: 모델, 연구, 논문, 벤치마크
-- product_tools: 제품, 도구, 출시, API, 프레임워크
-- industry_business: 투자, 규제, 시장, 기업 전략
+    prompt = f"""You are a JSON-only classifier. Output ONLY a valid JSON array, no markdown.
 
+Classify each AI news article into exactly one category:
+- model_research: models, research, papers, benchmarks, training, architecture
+- product_tools: products, tools, launches, APIs, frameworks, developer tools
+- industry_business: funding, regulation, market, corporate strategy, partnerships
+
+Articles:
 {article_text}
 
-OUTPUT (JSON only): [{{"i": 0, "cat": "model_research"}}]"""
+Output exactly {len(articles)} items:
+[{{"i":0,"cat":"model_research"}}]"""
 
     try:
         llm = get_llm(temperature=0.1, max_tokens=1024)
-        response = llm.invoke([HumanMessage(content=prompt)])
-        results = _parse_llm_json(response.content)
+        content = _llm_invoke_with_retry(llm, prompt, max_retries=1)
+        results = _parse_llm_json(content)
         if not isinstance(results, list):
             results = next((v for v in results.values() if isinstance(v, list)), [])
         classified = set()
