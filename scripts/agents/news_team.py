@@ -321,6 +321,23 @@ def _score_batch(batch: list[dict], offset: int) -> list[dict]:
         return []
 
 
+def _score_batch_with_retry(batch: list[dict], offset: int) -> list[dict]:
+    """배치 스코어링 + 실패 시 반으로 나눠 재시도"""
+    scores = _score_batch(batch, offset)
+    if scores:
+        return scores
+
+    # 실패 시 반으로 분할하여 재시도
+    if len(batch) <= 2:
+        return []
+
+    mid = len(batch) // 2
+    print(f"    [RETRY] 배치 분할 재시도: {len(batch)}개 → {mid} + {len(batch) - mid}")
+    first_half = _score_batch(batch[:mid], offset)
+    second_half = _score_batch(batch[mid:], offset + mid)
+    return first_half + second_half
+
+
 def scorer_node(state: NewsGraphState) -> dict:
     """CATEGORY_SOURCES 전체 기사에 대해 4차원 점수 부여 (배치 분할, 0-10점 × 가중치)"""
     sources = state["sources"]
@@ -354,7 +371,7 @@ def scorer_node(state: NewsGraphState) -> dict:
     total_scored = 0
     for batch_idx, batch in enumerate(batches):
         offset = batch_idx * SCORER_BATCH_SIZE
-        scores = _score_batch(batch, offset)
+        scores = _score_batch_with_retry(batch, offset)
 
         for s in scores:
             idx = s["_global_idx"]
@@ -395,10 +412,9 @@ def scorer_node(state: NewsGraphState) -> dict:
 
 # ─── Node 4: ranker (LLM 기반 하이라이트 선정, 당일 기사 우선) ───
 HIGHLIGHT_COUNT = 3
-HIGHLIGHT_CANDIDATE_POOL = 12
 
 def ranker_node(state: NewsGraphState) -> dict:
-    """당일 기사 중 LLM이 Top 3 하이라이트를 직접 선정"""
+    """당일 기사 우선 + 점수순 + 토픽/소스 다양성으로 Top 3 하이라이트 선정 (결정론적)"""
     candidates = state.get("scored_candidates", [])
     if not candidates:
         return {"highlights": [], "category_pool": []}
@@ -417,99 +433,53 @@ def ranker_node(state: NewsGraphState) -> dict:
         key=lambda c: c.get("_total_score", 0), reverse=True,
     )
 
-    # 당일 기사 우선으로 후보 풀 구성
     ordered_pool = today_pool + older_pool
-    top_candidates = ordered_pool[:HIGHLIGHT_CANDIDATE_POOL]
-    the_rest = ordered_pool[HIGHLIGHT_CANDIDATE_POOL:]
 
-    today_in_pool = sum(1 for c in top_candidates if c.get("_is_today"))
-    print(f"  [랭킹] 후보 {len(top_candidates)}개 (당일 {today_in_pool}개)")
+    today_count = len(today_pool)
+    print(f"  [랭킹] 후보 {len(ordered_pool)}개 (당일 {today_count}개)")
 
-    # LLM에게 최종 3개 선정 요청
-    article_text = ""
-    for i, c in enumerate(top_candidates):
-        title = c.get("display_title") or c.get("title", "")
-        desc = c.get("summary") or c.get("description", "")[:150]
+    # 결정론적 선정: 점수순 + 토픽 다양성 + 소스 상한 2개
+    selected: list[dict] = []
+    used_tags: set[str] = set()
+    source_count: dict[str, int] = {}
+
+    for c in ordered_pool:
+        if len(selected) >= HIGHLIGHT_COUNT:
+            break
         src = c.get("source_key", "")
-        score = c.get("_total_score", 0)
         tag = c.get("_topic_tag", "")
-        is_today = "TODAY" if c.get("_is_today") else "OLD"
-        article_text += f"\n[{i}] ({is_today}, score={score}, tag={tag}, src={src}) {title} | {desc}"
 
-    prompt = f"""You are an AI news editor. Pick the 3 BEST articles for today's highlights.
+        # 소스 상한 (같은 소스 최대 2개)
+        if source_count.get(src, 0) >= 2:
+            continue
+        # 토픽 다양성 (같은 태그 방지, 태그가 있는 경우에만)
+        if tag and tag in used_tags:
+            continue
 
-CRITICAL RULES:
-1. STRONGLY PREFER articles marked "TODAY". Only pick "OLD" articles if no suitable TODAY articles remain.
-2. AI RELEVANCE: Must be directly about AI/ML. Reject general tech, politics, entertainment.
-3. IMPACT: Choose paradigm-shifting or significant news over minor updates.
-4. TOPIC DIVERSITY: Each pick must cover a DIFFERENT topic. No two articles about the same subject.
-5. SOURCE DIVERSITY: Prefer picks from different sources. Max 2 from the same source.
+        selected.append(c)
+        source_count[src] = source_count.get(src, 0) + 1
+        if tag:
+            used_tags.add(tag)
 
-The FIRST pick becomes the Hero card — choose the single most impactful AI story of the day.
-
-Candidates:
-{article_text}
-
-Output ONLY a valid JSON array with exactly 3 items. No markdown, no explanation.
-[{{"pick":0,"reason":"10-word reason"}}]
-
-pick = the candidate index number [0-{len(top_candidates)-1}]"""
-
-    selected_indices: list[int] = []
-    try:
-        llm = get_llm(temperature=0.2, max_tokens=512)
-        content = _llm_invoke_with_retry(llm, prompt, max_retries=2)
-        picks = _parse_llm_json(content)
-        if not isinstance(picks, list):
-            picks = next((v for v in picks.values() if isinstance(v, list)), [])
-
-        for p in picks:
-            if not isinstance(p, dict):
-                continue
-            raw_idx = p.get("pick", p.get("i", p.get("index", -1)))
-            try:
-                idx = int(raw_idx)
-            except (ValueError, TypeError):
-                continue
-            if 0 <= idx < len(top_candidates) and idx not in selected_indices:
-                selected_indices.append(idx)
-            if len(selected_indices) >= HIGHLIGHT_COUNT:
+    # 부족하면 나머지에서 채움
+    if len(selected) < HIGHLIGHT_COUNT:
+        for c in ordered_pool:
+            if len(selected) >= HIGHLIGHT_COUNT:
                 break
+            if c not in selected:
+                selected.append(c)
 
-        print(f"  [랭킹] LLM이 {len(selected_indices)}개 하이라이트 선정")
-        for rank, idx in enumerate(selected_indices):
-            reason = ""
-            for p in picks:
-                if isinstance(p, dict):
-                    raw = p.get("pick", p.get("i", p.get("index", -1)))
-                    try:
-                        if int(raw) == idx:
-                            reason = p.get("reason", "")
-                            break
-                    except (ValueError, TypeError):
-                        pass
-            c = top_candidates[idx]
-            title = (c.get("display_title") or c.get("title", ""))[:40]
-            today_flag = "당일" if c.get("_is_today") else "이전"
-            print(f"    {rank+1}. [{c.get('_total_score', 0)}점/{today_flag}] {title} — {reason}")
+    for rank, c in enumerate(selected):
+        title = (c.get("display_title") or c.get("title", ""))[:40]
+        today_flag = "당일" if c.get("_is_today") else "이전"
+        print(f"    {rank+1}. [{c.get('_total_score', 0)}점/{today_flag}] {title}")
 
-    except Exception as e:
-        print(f"  [WARNING] LLM 랭킹 실패, 점수순 폴백: {type(e).__name__}: {e}")
-
-    # 폴백: 당일 기사 우선으로 보충
-    if len(selected_indices) < HIGHLIGHT_COUNT:
-        for i in range(len(top_candidates)):
-            if len(selected_indices) >= HIGHLIGHT_COUNT:
-                break
-            if i not in selected_indices:
-                selected_indices.append(i)
-
-    selected = [top_candidates[i] for i in selected_indices]
-    remaining_hl = [c for i, c in enumerate(top_candidates) if i not in selected_indices]
+    selected_set = set(id(c) for c in selected)
+    remaining = [c for c in ordered_pool if id(c) not in selected_set]
 
     return {
         "highlights": selected,
-        "category_pool": remaining_hl + the_rest + non_highlight,
+        "category_pool": remaining + non_highlight,
     }
 
 

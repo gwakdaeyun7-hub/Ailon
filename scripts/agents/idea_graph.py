@@ -170,10 +170,10 @@ def ai_problem_scout_node(state: IdeaGraphState) -> dict:
     core_mechanism = state["core_mechanism"]
     llm = get_llm(temperature=0.7, max_tokens=4096)
     
-    # 상위 30개 뉴스만 처리 (중요도 기준)
+    # 상위 30개 뉴스만 처리 (스코어링 점수 기준, 없으면 0)
     top_news = sorted(
-        news_articles, 
-        key=lambda x: x.get("importance_score", 0), 
+        news_articles,
+        key=lambda x: x.get("_total_score", 0),
         reverse=True
     )[:30]
     
@@ -223,18 +223,26 @@ OUTPUT ONLY VALID JSON ARRAY (no markdown, no explanation):
             )
         if not isinstance(matched_problems, list):
             matched_problems = []
+        # dict만 유지
+        matched_problems = [p for p in matched_problems if isinstance(p, dict)]
         # 최대 3개
         matched_problems = matched_problems[:3]
     except Exception as e:
         print(f"  [INFO] ai_problem_scout_node 파싱 실패 (폴백 사용): {e}")
-        matched_problems = [{
-            "title": "AI 모델 최적화 문제",
-            "source": "기능1 뉴스",
-            "relevanceReason": f"{core_mechanism.get('coreMechanism', '')}를 활용하여 해결 가능",
-            "relevanceScore": 0.7,
-            "urgency": 7,
-            "market_size": "크다",
-        }]
+        matched_problems = []
+
+    # 폴백: LLM이 빈 결과를 반환한 경우, 상위 뉴스에서 문제를 자동 생성
+    if not matched_problems and top_news:
+        print("  [INFO] LLM이 빈 결과 반환, 상위 뉴스 기반 폴백 문제 생성")
+        for n in top_news[:3]:
+            matched_problems.append({
+                "title": n.get("display_title") or n.get("title", "AI 문제"),
+                "source": n.get("source", "뉴스"),
+                "relevanceReason": f"{core_mechanism.get('coreMechanism', '')}를 활용하여 해결 가능",
+                "relevanceScore": 0.7,
+                "urgency": 7,
+                "market_size": "크다",
+            })
     
     print(f"  [OK] {len(matched_problems)}개 관련 문제 필터링 완료")
     for p in matched_problems:
