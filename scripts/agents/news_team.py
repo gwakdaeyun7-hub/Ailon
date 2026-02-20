@@ -175,7 +175,12 @@ def _summarize_batch(batch: list[dict], batch_idx: int, translate: bool = True) 
 
     if translate:
         task_desc = f"Translate and summarize {len(batch)} English AI news items to Korean."
-        title_rule = "display_title: Korean title (max 30 chars, convey the key point)"
+        title_rule = (
+            "display_title: 한국 뉴스 헤드라인 스타일 제목 (max 30 chars)\n"
+            "  - 직역 금지. 한국 언론이 실제로 쓸 법한 자연스러운 제목으로 의역\n"
+            "  - 예: 'Google Releases New AI Model' → '구글, 새 AI 모델 전격 공개'\n"
+            "  - 쉼표·말줄임표·능동형 서술어 등 한국 뉴스 제목 관행 따르기"
+        )
     else:
         task_desc = f"Summarize {len(batch)} Korean AI news items."
         title_rule = "display_title: Keep original Korean title as-is (max 30 chars, trim if needed)"
