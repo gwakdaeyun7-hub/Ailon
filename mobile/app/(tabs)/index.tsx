@@ -465,10 +465,137 @@ function HorizontalDetailModal({
   );
 }
 
+// ─── 공식 발표 세로 리스트 ───────────────────────────────────────────────────
+function OfficialAnnouncementsList({
+  articles, onPress,
+}: { articles: HorizontalArticle[]; onPress: (a: HorizontalArticle) => void }) {
+  const [showMore, setShowMore] = useState(false);
+  if (!articles || articles.length === 0) return null;
+
+  const sorted = [...articles].sort((a, b) =>
+    new Date(b.published || 0).getTime() - new Date(a.published || 0).getTime()
+  );
+  const first5 = sorted.slice(0, 5);
+  const more5 = sorted.slice(5, 10);
+  const visible = showMore ? [...first5, ...more5] : first5;
+
+  return (
+    <View style={{ marginBottom: 20 }}>
+      <Text style={{ fontSize: 16, fontWeight: '800', color: TEXT_PRIMARY, paddingHorizontal: 16, marginBottom: 12 }}>
+        {'💫 공식 발표'}
+      </Text>
+      {visible.map((a, i) => {
+        const title = a.display_title || a.title;
+        const brandColor = a.brand_color;
+        return (
+          <Pressable
+            key={`official-${i}`}
+            onPress={() => onPress(a)}
+            style={({ pressed }) => ({
+              flexDirection: 'row',
+              alignItems: 'center',
+              marginHorizontal: 16,
+              marginBottom: 8,
+              backgroundColor: CARD,
+              borderRadius: 10,
+              borderWidth: 1,
+              borderColor: BORDER,
+              overflow: 'hidden',
+              opacity: pressed ? 0.95 : 1,
+            })}
+          >
+            {/* 좌측 컬러 바 */}
+            <View style={{ width: 4, alignSelf: 'stretch', backgroundColor: brandColor || '#6B7280' }} />
+            {/* 썸네일 (이미지 있을 때) */}
+            {a.image_url ? (
+              <Image source={{ uri: a.image_url }} style={{ width: 48, height: 48, margin: 10, borderRadius: 6 }} resizeMode="cover" />
+            ) : null}
+            {/* 제목 + 소스 */}
+            <View style={{ flex: 1, paddingVertical: 12, paddingHorizontal: a.image_url ? 4 : 12, paddingRight: 12 }}>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: TEXT_PRIMARY, lineHeight: 18 }} numberOfLines={2}>
+                {title}
+              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                <Text style={{ fontSize: 10, color: brandColor || TEXT_LIGHT, fontWeight: '600' }}>{a.source}</Text>
+                <Text style={{ fontSize: 10, color: TEXT_LIGHT }}>{formatDate(a.published)}</Text>
+              </View>
+            </View>
+            <ChevronRight size={14} color={TEXT_LIGHT} style={{ marginRight: 12 }} />
+          </Pressable>
+        );
+      })}
+      {more5.length > 0 && !showMore && (
+        <Pressable
+          onPress={() => setShowMore(true)}
+          style={{
+            marginHorizontal: 16,
+            marginTop: 4,
+            paddingVertical: 10,
+            borderRadius: 8,
+            backgroundColor: BORDER,
+            alignItems: 'center',
+          }}
+        >
+          <Text style={{ fontSize: 12, fontWeight: '700', color: TEXT_SECONDARY }}>
+            더보기 {more5.length}개
+          </Text>
+        </Pressable>
+      )}
+    </View>
+  );
+}
+
+// ─── 텍스트 뉴스 섹션 (논문/커뮤니티) ───────────────────────────────────────
+function TextNewsSection({
+  articles, onPress,
+}: { articles: Article[]; onPress: (a: Article) => void }) {
+  if (!articles || articles.length === 0) return null;
+
+  return (
+    <View style={{ marginBottom: 20 }}>
+      <Text style={{ fontSize: 16, fontWeight: '800', color: TEXT_PRIMARY, paddingHorizontal: 16, marginBottom: 12 }}>
+        {'📄 최신 논문/커뮤니티'}
+      </Text>
+      {articles.slice(0, 5).map((a, i) => (
+        <Pressable
+          key={`text-news-${i}`}
+          onPress={() => onPress(a)}
+          style={({ pressed }) => ({
+            flexDirection: 'row',
+            alignItems: 'center',
+            marginHorizontal: 16,
+            marginBottom: 8,
+            backgroundColor: CARD,
+            borderRadius: 10,
+            borderWidth: 1,
+            borderColor: BORDER,
+            paddingVertical: 12,
+            paddingHorizontal: 14,
+            opacity: pressed ? 0.95 : 1,
+          })}
+        >
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: TEXT_PRIMARY, lineHeight: 18 }} numberOfLines={2}>
+              {a.display_title || a.title}
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
+              <Text style={{ fontSize: 10, color: TEXT_LIGHT }}>{formatDate(a.published)}</Text>
+              <Text style={{ fontSize: 10, color: TEXT_LIGHT }}>·</Text>
+              <Text style={{ fontSize: 10, color: TEXT_LIGHT }}>{a.source}</Text>
+            </View>
+          </View>
+          <ChevronRight size={14} color={TEXT_LIGHT} />
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
 // ─── 메인 화면 ────────────────────────────────────────────────────────────
 export default function NewsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<NewsCategory>('model_research');
+  const [showMore, setShowMore] = useState(false);
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [detailVisible, setDetailVisible] = useState(false);
   const [selectedHArticle, setSelectedHArticle] = useState<HorizontalArticle | null>(null);
@@ -494,11 +621,13 @@ export default function NewsScreen() {
     setDetailVisible(true);
   };
 
-  // 카테고리별 뉴스 필터링 (날짜내림차순, 최대10개)
+  // 카테고리별 뉴스 필터링 (날짜내림차순, 최대10개) → 5+더보기5
   const filteredNews = (newsData?.articles ?? [])
     .filter(a => a.category === selectedCategory)
     .sort((a, b) => new Date(b.published || 0).getTime() - new Date(a.published || 0).getTime())
     .slice(0, 10);
+  const first5 = filteredNews.slice(0, 5);
+  const more5 = filteredNews.slice(5, 10);
 
   // 하이라이트 기사
   const highlight = newsData?.highlight ?? null;
@@ -541,7 +670,7 @@ export default function NewsScreen() {
           {TABS.map(tab => (
             <Pressable
               key={tab.key}
-              onPress={() => setSelectedCategory(tab.key)}
+              onPress={() => { setSelectedCategory(tab.key); setShowMore(false); }}
               style={{
                 flex: 1,
                 paddingVertical: 10,
@@ -576,15 +705,39 @@ export default function NewsScreen() {
               <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 15 }}>다시 시도</Text>
             </Pressable>
           </View>
-        ) : filteredNews.length === 0 ? (
+        ) : first5.length === 0 ? (
           <View style={{ alignItems: 'center', paddingVertical: 60 }}>
             <Text style={{ color: TEXT_LIGHT, fontSize: 14 }}>아직 뉴스가 없어요</Text>
           </View>
         ) : (
           <>
-            {filteredNews.map((article, i) => (
+            {first5.map((article, i) => (
               <NewsCard
                 key={`news-${i}`}
+                article={article}
+                onPress={() => openDetail(article)}
+              />
+            ))}
+            {more5.length > 0 && !showMore && (
+              <Pressable
+                onPress={() => setShowMore(true)}
+                style={{
+                  marginHorizontal: 16,
+                  marginBottom: 12,
+                  paddingVertical: 12,
+                  borderRadius: 10,
+                  backgroundColor: BORDER,
+                  alignItems: 'center',
+                }}
+              >
+                <Text style={{ fontSize: 13, fontWeight: '700', color: TEXT_SECONDARY }}>
+                  더보기 {more5.length}개
+                </Text>
+              </Pressable>
+            )}
+            {showMore && more5.map((article, i) => (
+              <NewsCard
+                key={`news-more-${i}`}
                 article={article}
                 onPress={() => openDetail(article)}
               />
@@ -592,17 +745,24 @@ export default function NewsScreen() {
           </>
         )}
 
+        {/* ─── 텍스트 뉴스 섹션 (논문/커뮤니티) ─── */}
+        <TextNewsSection
+          articles={newsData?.text_only_articles ?? []}
+          onPress={(a) => openDetail(a)}
+        />
+
+        {/* ─── 공식 발표 (세로 리스트) ─── */}
+        <OfficialAnnouncementsList
+          articles={
+            (hs.official_announcements && !Array.isArray(hs.official_announcements))
+              ? Object.values(hs.official_announcements as Record<string, HorizontalArticle[]>).flat()
+              : []
+          }
+          onPress={(a) => { setSelectedHArticle(a); setHDetailVisible(true); }}
+        />
+
         {/* ─── 가로 스크롤 섹션 ─── */}
         <View style={{ marginVertical: 20 }}>
-          <HorizontalSection
-            title="💫 공식 발표"
-            articles={
-              (hs.official_announcements && !Array.isArray(hs.official_announcements))
-                ? Object.values(hs.official_announcements as Record<string, HorizontalArticle[]>).flat()
-                : []
-            }
-            onCardPress={(a) => { setSelectedHArticle(a); setHDetailVisible(true); }}
-          />
           <HorizontalSection
             title="🇰🇷 한국 AI"
             articles={hs.korean_ai ?? []}

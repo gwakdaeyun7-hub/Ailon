@@ -101,6 +101,7 @@ export interface DailyNews {
   highlight?: Article;
   themes?: string[];
   categories?: Record<string, Article[]>;
+  text_only_articles?: Article[];  // 이미지 없는 소스 기사 (arxiv, reddit 등)
   horizontal_sections?: {
     official_announcements?: Record<string, HorizontalArticle[]>;  // 회사별 그룹: {OpenAI: [...], Anthropic: [...], ...}
     korean_ai?: HorizontalArticle[];

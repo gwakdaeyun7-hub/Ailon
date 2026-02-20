@@ -61,6 +61,7 @@ def save_news_to_firestore(result: dict):
         "themes": result.get("themes", []),
         "categories": result.get("categories", {}),
         "horizontal_sections": hs,
+        "text_only_articles": result.get("text_only_articles", []),
         "agent_metadata": {
             "collected_count": len(result.get("raw_articles", [])),
             "analyzed_count": len(result.get("analyzed_articles", [])),

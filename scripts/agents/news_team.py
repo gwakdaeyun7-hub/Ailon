@@ -37,7 +37,11 @@ class NewsState(TypedDict):
     themes: list[str]
     categories: dict           # AnalyzerAgent 출력: 카테고리별 전체 기사
     horizontal_sections: dict  # 가로 스크롤 섹션 (공식 발표 / 한국 AI / 큐레이션)
+    text_only_articles: list[dict]  # 이미지 없는 소스 기사 (arxiv, reddit 등)
 
+
+# 텍스트 전용 소스 (이미지 없는 소스 → text_only_articles로 분리)
+_TEXT_ONLY_SOURCES = {"arxiv", "reddit", "huggingface", "curation"}
 
 # 출처 신뢰도 티어 (rank_score 계산용)
 _SOURCE_TIER: dict[str, int] = {
@@ -306,7 +310,24 @@ def ranker_node(state: NewsState) -> dict:
     analyzed = state["analyzed_articles"]
 
     if not analyzed:
-        return {"ranked_categories": {}, "ranked_main": {}, "ranked_more": {}, "highlight": {}, "themes": []}
+        return {"ranked_categories": {}, "ranked_main": {}, "ranked_more": {}, "highlight": {}, "themes": [], "text_only_articles": []}
+
+    # ─── 텍스트 전용 소스 분리 ───
+    text_only_all = []
+    image_categories: dict[str, list[dict]] = {}
+    for cat_key, cat_articles in categories.items():
+        img_arts = []
+        for a in cat_articles:
+            if a.get("source_type", "") in _TEXT_ONLY_SOURCES:
+                text_only_all.append(a)
+            else:
+                img_arts.append(a)
+        image_categories[cat_key] = img_arts
+
+    # text_only: published 내림차순, 상위 5개
+    text_only_all.sort(key=lambda x: x.get("published", ""), reverse=True)
+    text_only_articles = text_only_all[:5]
+    print(f"  [OK] 텍스트 전용 소스 분리: {len(text_only_articles)}개 (전체 {len(text_only_all)}개 중)")
 
     ranked_categories: dict[str, list[dict]] = {}
     used_titles: set[str] = set()
@@ -319,7 +340,7 @@ def ranker_node(state: NewsState) -> dict:
     }
 
     for cat_key, cat_name in NEWS_CATEGORIES.items():
-        cat_articles = list(categories.get(cat_key, []))
+        cat_articles = list(image_categories.get(cat_key, []))
 
         # 폴백: 해당 카테고리 기사가 5개 미만이면 소스 타입 기반 보충
         if len(cat_articles) < 5:
@@ -419,6 +440,7 @@ OUTPUT ONLY VALID JSON (no markdown, no explanation):
         "ranked_more": {},
         "highlight": highlight,
         "themes": themes,
+        "text_only_articles": text_only_articles,
     }
 
 
@@ -439,11 +461,18 @@ def summarizer_node(state: NewsState) -> dict:
                 articles.append(a.copy())
                 seen_titles.add(a["title"])
 
-    if not articles:
+    # text_only_articles도 요약 대상에 포함
+    text_only_articles = [a.copy() for a in state.get("text_only_articles", [])]
+    for a in text_only_articles:
+        if a["title"] not in seen_titles:
+            seen_titles.add(a["title"])
+
+    if not articles and not text_only_articles:
         return {
             "final_articles": [],
             "daily_overview": "",
             "horizontal_sections": state.get("horizontal_sections", {}),
+            "text_only_articles": [],
         }
 
     llm = get_llm(temperature=0.7, max_tokens=4096)
@@ -513,6 +542,46 @@ def summarizer_node(state: NewsState) -> dict:
                 a.setdefault("summary", a["description"][:300])
                 a.setdefault("impact_comment", "")
                 a.setdefault("howToGuide", "")
+
+    # ─── text_only_articles 요약 (별도 배치) ───
+    if text_only_articles:
+        t_text = ""
+        for i, a in enumerate(text_only_articles):
+            t_text += (
+                f"\n[기사 {i+1}]\n"
+                f"제목: {a['title']}\n"
+                f"설명: {a['description'][:400]}\n"
+                f"출처: {a.get('source', '')}\n"
+            )
+        t_prompt = f"""다음 {len(text_only_articles)}개의 AI 뉴스를 각각 한국어로 요약해주세요.
+
+## 요구사항
+- display_title: 독자가 클릭하고 싶게 만드는 한국어 제목 (30자 이내)
+- summary: 150-300자 한국어 요약 (핵심 내용 + 시사점)
+
+반드시 아래 형식을 지키십시오:
+[{{"index": 1, "display_title": "...", "summary": "..."}}]
+
+{t_text}"""
+        try:
+            t_resp = llm.invoke([HumanMessage(content=t_prompt)])
+            t_summaries = parse_llm_json(t_resp.content)
+            if isinstance(t_summaries, dict):
+                t_summaries = next((v for v in t_summaries.values() if isinstance(v, list)), [])
+            if isinstance(t_summaries, list):
+                for s in t_summaries:
+                    if not isinstance(s, dict):
+                        continue
+                    idx = s.get("index", 1) - 1
+                    if 0 <= idx < len(text_only_articles):
+                        text_only_articles[idx]["display_title"] = s.get("display_title", "")
+                        text_only_articles[idx]["summary"] = s.get("summary", text_only_articles[idx]["description"][:300])
+            print(f"  [OK] 텍스트 전용 {len(text_only_articles)}개 요약 완료")
+        except Exception as e:
+            print(f"  [WARNING] 텍스트 전용 요약 실패: {e}")
+            for a in text_only_articles:
+                a.setdefault("display_title", "")
+                a.setdefault("summary", a["description"][:300])
 
     # ─── 일일 개요 생성 ───
     themes = ", ".join(state.get("themes", []))
@@ -597,10 +666,26 @@ def summarizer_node(state: NewsState) -> dict:
         except Exception as e:
             print(f"  [WARNING] 가로 섹션 번역 실패: {e}")
 
+    # ─── text_only_articles 최종 정리 ───
+    final_text_only = [{
+        "title":         a["title"],
+        "display_title": a.get("display_title", ""),
+        "description":   a["description"],
+        "link":          a["link"],
+        "published":     a["published"],
+        "source":        a["source"],
+        "source_type":   a.get("source_type", ""),
+        "summary":       a.get("summary", a["description"][:300]),
+        "category":      a.get("category", ""),
+        "category_name": a.get("category_name", ""),
+        "reading_time":  0,
+    } for a in text_only_articles]
+
     return {
         "final_articles": final_articles,
         "daily_overview": daily_overview,
         "horizontal_sections": hs,
+        "text_only_articles": final_text_only,
     }
 
 
@@ -690,7 +775,13 @@ def enricher_node(state: NewsState) -> dict:
     print(f"  [OK] 이미지 {img_count}/{len(final_articles)}개 확보 "
           f"({skip_count}개는 카테고리 그라디언트로 표시)")
 
-    return {"final_articles": final_articles}
+    # text_only_articles: 이미지 추출 스킵, reading_time만 추정
+    text_only = state.get("text_only_articles", [])
+    for a in text_only:
+        text = a.get("summary", "") or a.get("description", "")
+        a["reading_time"] = _estimate_reading_time(text)
+
+    return {"final_articles": final_articles, "text_only_articles": text_only}
 
 
 # ─── 뉴스 에이전트 팀 그래프 빌드 ───
@@ -733,6 +824,7 @@ def run_news_team() -> dict:
         "themes":            [],
         "categories":        {},
         "horizontal_sections": {},
+        "text_only_articles": [],
     }
 
     result = graph.invoke(initial_state)
@@ -747,5 +839,6 @@ def run_news_team() -> dict:
     print(f"  선별:   {sum(len(v) for v in ranked.values())}개 (카테고리당 최대 10개)")
     print(f"  최종:   {len(final)}개 | 이미지: {len([a for a in final if a.get('image_url')])}개")
     print(f"  가로섹션: 공식발표 {len(hs.get('official_announcements', []))}개 | 한국AI {len(hs.get('korean_ai', []))}개 | 큐레이션 {len(hs.get('curation', []))}개")
+    print(f"  텍스트전용: {len(result.get('text_only_articles', []))}개")
 
     return result
