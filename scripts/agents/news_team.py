@@ -651,6 +651,9 @@ def _select_top_n(articles: list[dict], n: int, max_per_source: int, today_min: 
             break
         _try_add(a)
 
+    # 3단계: 선정된 기사를 날짜순(최신 먼저) → 점수순 내림차순 정렬
+    selected.sort(key=lambda a: (a.get("published", ""), a.get("_total_score", 0)), reverse=True)
+
     return selected
 
 
