@@ -261,20 +261,32 @@ function SummaryModal({ article, onClose }: { article: Article | null; onClose: 
           </Pressable>
 
           <ScrollView
-            style={{ paddingHorizontal: 20 }}
             showsVerticalScrollIndicator={false}
             bounces
             contentContainerStyle={{ paddingBottom: 40 }}
           >
+            {/* 썸네일 */}
+            {article.image_url ? (
+              <Image
+                source={article.image_url}
+                style={{ width: '100%', height: 200 }}
+                contentFit="cover"
+                transition={200}
+                recyclingKey={article.link}
+              />
+            ) : null}
+
             {/* 제목 */}
             <Text style={{
-              fontSize: 18, fontWeight: '800', color: TEXT_PRIMARY, lineHeight: 28, marginBottom: 12,
+              fontSize: 18, fontWeight: '800', color: TEXT_PRIMARY, lineHeight: 28,
+              marginBottom: 12, marginTop: article.image_url ? 16 : 0,
+              paddingHorizontal: 20,
             }}>
               {getTitle(article)}
             </Text>
 
             {/* 소스 뱃지 + 날짜 + 조회수 */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16, paddingHorizontal: 20 }}>
               <View style={{
                 backgroundColor: sourceColor + '18',
                 paddingHorizontal: 8, paddingVertical: 3,
@@ -290,17 +302,18 @@ function SummaryModal({ article, onClose }: { article: Article | null; onClose: 
             </View>
 
             {/* 구분선 */}
-            <View style={{ height: 1, backgroundColor: BORDER, marginBottom: 18 }} />
+            <View style={{ height: 1, backgroundColor: BORDER, marginBottom: 18, marginHorizontal: 20 }} />
 
             {/* 요약 본문 */}
             <Text style={{
               fontSize: 15, color: '#374151', lineHeight: 28, letterSpacing: 0.2, marginBottom: 28,
+              paddingHorizontal: 20,
             }}>
               {article.summary || '요약이 아직 없어요.'}
             </Text>
 
             {/* 액션 버튼 */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16, paddingHorizontal: 20 }}>
               {/* 원문 보기 */}
               <Pressable
                 onPress={handleOpenOriginal}
