@@ -5,16 +5,19 @@ collector → translator → scorer → ranker → classifier → assembler
 
 1. collector:   13개 소스 RSS 수집 + og:image 추출 + 이미지 없는 기사 제거
 2. translator:  영어 기사 한국어 번역 (병렬 배치)
-3. scorer:      LLM 4차원 평가 (ai_relevance/impact/freshness/breadth) + 카테고리 태깅
-4. ranker:      LLM이 상위 12개 후보 중 Top 3 하이라이트 직접 선정
+3. scorer:      4차원 평가 (최신성 Python + 임팩트/신선도/영향성 LLM) 0-10점 + 카테고리 태깅
+4. ranker:      LLM이 당일 기사 중 Top 3 하이라이트 직접 선정
 5. classifier:  scorer 카테고리 우선 → 키워드 보조 → 모호한 것만 LLM 분류
-               + 카테고리별 Top 10 선정 (점수순 + 소스 상한 3개)
+               + 카테고리별 Top 10 선정 (당일 3개 보장 + 점수순 + 소스 상한 3개)
 6. assembler:   한국 소스를 소스별로 분리, 최종 결과 조합
+
+점수 체계: recency×4 + impact×3 + freshness×2 + breadth×1 (만점 100)
 """
 
 import json
 import re
 import time
+from datetime import datetime, timezone
 from typing import TypedDict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from langchain_core.messages import HumanMessage
@@ -39,6 +42,62 @@ class NewsGraphState(TypedDict):
     source_articles: dict[str, list[dict]]
     source_order: list[str]
     total_count: int
+
+
+# ─── 날짜 유틸리티 ───
+def _parse_published(published: str) -> datetime | None:
+    """다양한 날짜 형식 파싱"""
+    for fmt in (
+        "%a, %d %b %Y %H:%M:%S %z",   # RSS 표준
+        "%a, %d %b %Y %H:%M:%S %Z",
+        "%Y-%m-%dT%H:%M:%S%z",         # ISO 8601
+        "%Y-%m-%dT%H:%M:%SZ",
+        "%Y-%m-%d %H:%M:%S",
+        "%Y-%m-%d",
+    ):
+        try:
+            dt = datetime.strptime(published.strip(), fmt)
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return dt
+        except (ValueError, AttributeError):
+            continue
+    return None
+
+
+def _compute_recency_score(article: dict) -> int:
+    """발행일 기반 최신성 점수 (0-10). 당일=10, 1일전=7, 2일전=4, 3일+전=1, 날짜없음=3"""
+    pub = article.get("published", "")
+    if not pub:
+        return 3
+    dt = _parse_published(pub)
+    if not dt:
+        return 3
+    now = datetime.now(timezone.utc)
+    hours_ago = (now - dt).total_seconds() / 3600
+    if hours_ago < 0:
+        hours_ago = 0
+    if hours_ago <= 12:
+        return 10
+    if hours_ago <= 24:
+        return 8
+    if hours_ago <= 48:
+        return 5
+    if hours_ago <= 72:
+        return 3
+    return 1
+
+
+def _is_today(article: dict) -> bool:
+    """기사가 당일(UTC 기준 24시간 이내) 발행되었는지 판별"""
+    pub = article.get("published", "")
+    if not pub:
+        return False
+    dt = _parse_published(pub)
+    if not dt:
+        return False
+    now = datetime.now(timezone.utc)
+    return (now - dt).total_seconds() <= 86400  # 24시간
 
 
 # ─── JSON 파싱 유틸리티 ───
@@ -199,9 +258,15 @@ def translator_node(state: NewsGraphState) -> dict:
     return {"translated": True, "sources": state["sources"]}
 
 
-# ─── Node 3: scorer (LLM 4차원 평가) ───
+# ─── Node 3: scorer (4차원 평가: 최신성 Python + 임팩트/신선도/영향성 LLM) ───
+# 총점 = recency×4 + impact×3 + freshness×2 + breadth×1 (만점 100)
+W_RECENCY = 4
+W_IMPACT = 3
+W_FRESHNESS = 2
+W_BREADTH = 1
+
 def scorer_node(state: NewsGraphState) -> dict:
-    """CATEGORY_SOURCES 전체 기사에 대해 ai_relevance/impact/freshness/breadth 점수 부여"""
+    """CATEGORY_SOURCES 전체 기사에 대해 4차원 점수 부여 (0-10점 × 가중치)"""
     sources = state["sources"]
 
     candidates: list[dict] = []
@@ -213,8 +278,18 @@ def scorer_node(state: NewsGraphState) -> dict:
         print("  [스코어링] 평가 대상 없음")
         return {"scored_candidates": []}
 
-    print(f"  [스코어링] {len(candidates)}개 기사 평가 중...")
+    # 1단계: 최신성 점수 (Python, 발행일 기반)
+    today_count = 0
+    for c in candidates:
+        recency = _compute_recency_score(c)
+        c["_score_recency"] = recency
+        c["_is_today"] = _is_today(c)
+        if c["_is_today"]:
+            today_count += 1
 
+    print(f"  [스코어링] {len(candidates)}개 기사 평가 중... (당일 기사: {today_count}개)")
+
+    # 2단계: 임팩트/신선도/영향성 (LLM, 0-10점)
     article_text = ""
     for i, a in enumerate(candidates):
         title = a.get("display_title") or a.get("title", "")
@@ -223,35 +298,31 @@ def scorer_node(state: NewsGraphState) -> dict:
 
     prompt = f"""You are a JSON-only AI news scorer. Output ONLY a valid JSON array, no markdown, no explanation.
 
-Score each article on 4 dimensions (1-5 integer):
+Score each article on 3 dimensions (0-10 integer):
 
-1. ai_relevance: How directly related to AI/ML is this article?
-   5 = Core AI (new model, AI research breakthrough, AI product launch)
-   4 = AI-adjacent (AI chip, AI regulation, AI company funding)
-   3 = Mentions AI but main topic is broader tech
-   2 = Tangentially related (general tech with minor AI mention)
-   1 = Not AI-related (general news, politics, entertainment)
-
-2. impact: Importance to the AI field
-   5 = Paradigm shift (new GPT-level model, major policy change)
-   4 = Significant (notable model release, large funding round)
-   3 = Moderate (incremental update, niche research)
+1. impact (임팩트): How important is this to the AI field?
+   10 = Paradigm shift (new frontier model, major breakthrough)
+   8 = Very significant (notable model/product launch, major policy)
+   6 = Important (meaningful update, substantial research)
+   4 = Moderate (incremental improvement, niche but solid)
    2 = Minor (routine announcement, small update)
-   1 = Trivial (opinion piece, rehashed content)
+   0 = Irrelevant to AI
 
-3. freshness: Novelty of information
-   5 = Breaking news, first report globally
-   4 = New development reported within hours
-   3 = Recent but already covered by multiple outlets
-   2 = Follow-up or analysis of known news
-   1 = Old news or rehash
+2. freshness (신선도): How novel is the information?
+   10 = World-first exclusive, never reported before
+   8 = Breaking news, very early coverage
+   6 = Fresh angle on recent development
+   4 = Known topic with new details
+   2 = Rehash or follow-up of old news
+   0 = Stale, no new information
 
-4. breadth: Scope of influence
-   5 = Affects entire AI industry (OpenAI, Google, regulation)
-   4 = Affects major segment (NLP, computer vision, robotics)
-   3 = Affects specific community (researchers, developers)
-   2 = Affects niche audience
-   1 = Very narrow scope
+3. breadth (영향성): How wide is the scope of influence?
+   10 = Reshapes entire AI industry
+   8 = Affects multiple major AI segments
+   6 = Affects one major segment (NLP, CV, robotics, etc.)
+   4 = Affects specific developer/researcher community
+   2 = Niche audience only
+   0 = Negligible scope
 
 Also provide:
 - topic_tag: short English tag for deduplication (e.g. "openai-gpt5", "eu-ai-act")
@@ -264,7 +335,7 @@ Articles:
 {article_text}
 
 Output exactly {len(candidates)} items:
-[{{"i":0,"ai_relevance":5,"impact":4,"freshness":5,"breadth":3,"topic_tag":"example-tag","category":"model_research"}}]"""
+[{{"i":0,"impact":8,"freshness":7,"breadth":6,"topic_tag":"example-tag","category":"model_research"}}]"""
 
     try:
         llm = get_llm(temperature=0.1, max_tokens=4096)
@@ -283,19 +354,20 @@ Output exactly {len(candidates)} items:
             except (ValueError, TypeError):
                 continue
             if 0 <= idx < len(candidates):
-                ai_rel = s.get("ai_relevance", 3)
-                impact = s.get("impact", 3)
-                fresh = s.get("freshness", 3)
-                breadth = s.get("breadth", 3)
-                candidates[idx]["_score_ai_relevance"] = ai_rel
+                impact = min(10, max(0, s.get("impact", 5)))
+                fresh = min(10, max(0, s.get("freshness", 5)))
+                breadth = min(10, max(0, s.get("breadth", 5)))
+                recency = candidates[idx]["_score_recency"]
                 candidates[idx]["_score_impact"] = impact
                 candidates[idx]["_score_freshness"] = fresh
                 candidates[idx]["_score_breadth"] = breadth
                 candidates[idx]["_topic_tag"] = s.get("topic_tag", "")
                 candidates[idx]["_llm_category"] = s.get("category", "")
-                # ai_relevance 가중치 3x, impact 2x
                 candidates[idx]["_total_score"] = (
-                    ai_rel * 3 + impact * 2 + fresh + breadth
+                    recency * W_RECENCY
+                    + impact * W_IMPACT
+                    + fresh * W_FRESHNESS
+                    + breadth * W_BREADTH
                 )
 
         scored = len([c for c in candidates if "_total_score" in c])
@@ -310,23 +382,23 @@ Output exactly {len(candidates)} items:
     # 폴백: 미평가 기사에 기본 점수
     for c in candidates:
         if "_total_score" not in c:
-            c["_score_ai_relevance"] = 3
-            c["_score_impact"] = 3
-            c["_score_freshness"] = 3
-            c["_score_breadth"] = 3
+            recency = c.get("_score_recency", 3)
+            c["_score_impact"] = 5
+            c["_score_freshness"] = 5
+            c["_score_breadth"] = 5
             c["_topic_tag"] = ""
             c["_llm_category"] = ""
-            c["_total_score"] = 17  # 3*3 + 3*2 + 3 + 3
+            c["_total_score"] = recency * W_RECENCY + 5 * W_IMPACT + 5 * W_FRESHNESS + 5 * W_BREADTH
 
     return {"scored_candidates": candidates}
 
 
-# ─── Node 4: ranker (LLM 기반 하이라이트 선정) ───
+# ─── Node 4: ranker (LLM 기반 하이라이트 선정, 당일 기사 우선) ───
 HIGHLIGHT_COUNT = 3
 HIGHLIGHT_CANDIDATE_POOL = 12
 
 def ranker_node(state: NewsGraphState) -> dict:
-    """LLM이 상위 후보 중 Top 3 하이라이트를 직접 선정"""
+    """당일 기사 중 LLM이 Top 3 하이라이트를 직접 선정"""
     candidates = state.get("scored_candidates", [])
     if not candidates:
         return {"highlights": [], "category_pool": []}
@@ -335,10 +407,23 @@ def ranker_node(state: NewsGraphState) -> dict:
     highlight_pool = [c for c in candidates if c.get("source_key", "") in HIGHLIGHT_SOURCES]
     non_highlight = [c for c in candidates if c.get("source_key", "") not in HIGHLIGHT_SOURCES]
 
-    # 점수순 상위 N개를 LLM 후보로 제공
-    ranked = sorted(highlight_pool, key=lambda c: c.get("_total_score", 0), reverse=True)
-    top_candidates = ranked[:HIGHLIGHT_CANDIDATE_POOL]
-    the_rest = ranked[HIGHLIGHT_CANDIDATE_POOL:]
+    # 당일 기사를 우선, 그 안에서 점수순
+    today_pool = sorted(
+        [c for c in highlight_pool if c.get("_is_today")],
+        key=lambda c: c.get("_total_score", 0), reverse=True,
+    )
+    older_pool = sorted(
+        [c for c in highlight_pool if not c.get("_is_today")],
+        key=lambda c: c.get("_total_score", 0), reverse=True,
+    )
+
+    # 당일 기사 우선으로 후보 풀 구성
+    ordered_pool = today_pool + older_pool
+    top_candidates = ordered_pool[:HIGHLIGHT_CANDIDATE_POOL]
+    the_rest = ordered_pool[HIGHLIGHT_CANDIDATE_POOL:]
+
+    today_in_pool = sum(1 for c in top_candidates if c.get("_is_today"))
+    print(f"  [랭킹] 후보 {len(top_candidates)}개 (당일 {today_in_pool}개)")
 
     # LLM에게 최종 3개 선정 요청
     article_text = ""
@@ -348,18 +433,19 @@ def ranker_node(state: NewsGraphState) -> dict:
         src = c.get("source_key", "")
         score = c.get("_total_score", 0)
         tag = c.get("_topic_tag", "")
-        article_text += f"\n[{i}] (score={score}, tag={tag}, src={src}) {title} | {desc}"
+        is_today = "TODAY" if c.get("_is_today") else "OLD"
+        article_text += f"\n[{i}] ({is_today}, score={score}, tag={tag}, src={src}) {title} | {desc}"
 
     prompt = f"""You are an AI news editor. Pick the 3 BEST articles for today's highlights.
 
-Selection criteria (in order of priority):
-1. AI RELEVANCE: Must be directly about AI/ML. Reject general tech, politics, entertainment.
-2. IMPACT: Choose paradigm-shifting or significant news over minor updates.
-3. TOPIC DIVERSITY: Each pick must cover a DIFFERENT topic. No two articles about the same subject.
-4. SOURCE DIVERSITY: Prefer picks from different sources. Max 2 from the same source.
-5. HEADLINE QUALITY: The title should be compelling and informative for readers.
+CRITICAL RULES:
+1. STRONGLY PREFER articles marked "TODAY". Only pick "OLD" articles if no suitable TODAY articles remain.
+2. AI RELEVANCE: Must be directly about AI/ML. Reject general tech, politics, entertainment.
+3. IMPACT: Choose paradigm-shifting or significant news over minor updates.
+4. TOPIC DIVERSITY: Each pick must cover a DIFFERENT topic. No two articles about the same subject.
+5. SOURCE DIVERSITY: Prefer picks from different sources. Max 2 from the same source.
 
-The FIRST pick (index 0 in your output) becomes the Hero card — choose the single most important AI story of the day.
+The FIRST pick becomes the Hero card — choose the single most impactful AI story of the day.
 
 Candidates:
 {article_text}
@@ -404,12 +490,13 @@ pick = the candidate index number [0-{len(top_candidates)-1}]"""
                         pass
             c = top_candidates[idx]
             title = (c.get("display_title") or c.get("title", ""))[:40]
-            print(f"    {rank+1}. [{c.get('_total_score', 0)}점] {title} — {reason}")
+            today_flag = "당일" if c.get("_is_today") else "이전"
+            print(f"    {rank+1}. [{c.get('_total_score', 0)}점/{today_flag}] {title} — {reason}")
 
     except Exception as e:
         print(f"  [WARNING] LLM 랭킹 실패, 점수순 폴백: {type(e).__name__}: {e}")
 
-    # LLM이 3개 미만 선정했으면 점수순으로 보충
+    # 폴백: 당일 기사 우선으로 보충
     if len(selected_indices) < HIGHLIGHT_COUNT:
         for i in range(len(top_candidates)):
             if len(selected_indices) >= HIGHLIGHT_COUNT:
@@ -517,26 +604,52 @@ Output exactly {len(articles)} items:
 
 
 CATEGORY_TOP_N = 10
+CATEGORY_TODAY_MIN = 3
 MAX_PER_SOURCE_CATEGORY = 3
 
-def _select_top_n(articles: list[dict], n: int, max_per_source: int) -> list[dict]:
-    """점수순 Top N 선정 + 동일 소스 상한. 동점 시 최신순."""
-    sorted_articles = sorted(
-        articles,
-        key=lambda a: (a.get("_total_score", 0), a.get("published", "")),
-        reverse=True,
+def _select_top_n(articles: list[dict], n: int, max_per_source: int, today_min: int = 0) -> list[dict]:
+    """당일 기사 today_min개 보장 + 점수순 Top N + 소스 상한."""
+    # 당일 기사와 이전 기사 분리
+    today = sorted(
+        [a for a in articles if a.get("_is_today")],
+        key=lambda a: a.get("_total_score", 0), reverse=True,
     )
+    older = sorted(
+        [a for a in articles if not a.get("_is_today")],
+        key=lambda a: a.get("_total_score", 0), reverse=True,
+    )
+
     selected: list[dict] = []
     source_count: dict[str, int] = {}
+    used_links: set[str] = set()
 
-    for a in sorted_articles:
+    def _try_add(a: dict) -> bool:
         if len(selected) >= n:
-            break
+            return False
+        link = a.get("link", "")
+        if link in used_links:
+            return False
         src = a.get("source_key", "")
         if source_count.get(src, 0) >= max_per_source:
-            continue
+            return False
         selected.append(a)
         source_count[src] = source_count.get(src, 0) + 1
+        if link:
+            used_links.add(link)
+        return True
+
+    # 1단계: 당일 기사 today_min개 우선 배치
+    for a in today:
+        if sum(1 for s in selected if s.get("_is_today")) >= today_min:
+            break
+        _try_add(a)
+
+    # 2단계: 전체를 점수순으로 나머지 채움 (당일 + 이전 합산)
+    all_sorted = sorted(articles, key=lambda a: a.get("_total_score", 0), reverse=True)
+    for a in all_sorted:
+        if len(selected) >= n:
+            break
+        _try_add(a)
 
     return selected
 
@@ -576,11 +689,15 @@ def classifier_node(state: NewsGraphState) -> dict:
         print(f"  [분류] {len(ambiguous)}개 모호한 기사 LLM 분류 중...")
         _llm_classify_batch(ambiguous, categorized)
 
-    # 카테고리별 Top 10 선정 (점수순 + 소스 상한)
+    # 카테고리별 Top 10 선정 (당일 3개 보장 + 점수순 + 소스 상한)
     for cat in category_order:
         total = len(categorized[cat])
-        categorized[cat] = _select_top_n(categorized[cat], CATEGORY_TOP_N, MAX_PER_SOURCE_CATEGORY)
-        print(f"    {cat}: {total}개 → Top {len(categorized[cat])}개 선정")
+        today_in_cat = sum(1 for a in categorized[cat] if a.get("_is_today"))
+        categorized[cat] = _select_top_n(
+            categorized[cat], CATEGORY_TOP_N, MAX_PER_SOURCE_CATEGORY, today_min=CATEGORY_TODAY_MIN,
+        )
+        selected_today = sum(1 for a in categorized[cat] if a.get("_is_today"))
+        print(f"    {cat}: {total}개 → Top {len(categorized[cat])}개 (당일 {selected_today}/{today_in_cat}개)")
 
     return {
         "categorized_articles": categorized,
