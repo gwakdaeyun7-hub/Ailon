@@ -141,6 +141,15 @@ SOURCES = [
         "days": 7,
         "lang": "ko",
     },
+    {
+        "key": "yozm_ai",
+        "name": "요즘IT AI",
+        "rss_url": "https://yozm.wishket.com/magazine/list/ai/feed/",
+        "max_items": 20,
+        "days": 7,
+        "lang": "ko",
+        "rss_image_field": "content_image",
+    },
 ]
 
 # AI 키워드 — 정규식 단어 경계 매칭 (ai_filter=True인 소스에서 사용)
@@ -181,7 +190,7 @@ CATEGORY_SOURCES = {
 # 소스별 섹션 (한국 소스)
 SOURCE_SECTION_SOURCES = {
     "aitimes", "geeknews", "zdnet_korea", "hankyung_it",
-    "ainews_kr", "zdnet_ai_editor",
+    "ainews_kr", "zdnet_ai_editor", "yozm_ai",
 }
 
 assert CATEGORY_SOURCES.isdisjoint(SOURCE_SECTION_SOURCES), \
