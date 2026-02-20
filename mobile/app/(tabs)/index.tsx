@@ -5,7 +5,7 @@
  * Section 3: 소스별 가로 스크롤 (한국 소스)
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -15,12 +15,13 @@ import {
   Linking,
   StatusBar,
   Modal,
+  Share,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import {
-  Menu, RefreshCw, ThumbsUp, Eye,
+  Menu, RefreshCw, ThumbsUp, Eye, Share2, ExternalLink,
 } from 'lucide-react-native';
 import { useNews } from '@/hooks/useNews';
 import { useDrawer } from '@/context/DrawerContext';
@@ -204,17 +205,37 @@ function HighlightScrollCard({
 }
 
 function SummaryModal({ article, onClose }: { article: Article | null; onClose: () => void }) {
-  const { trackView } = useArticleViews(article?.link ?? '');
+  const { views, trackView } = useArticleViews(article?.link ?? '');
+  const { likes, liked, toggleLike } = useReactions('news', article?.link ?? '');
+  const viewTracked = useRef(false);
+
+  // 모달 열릴 때 뷰수 자동 증가 (1회)
+  useEffect(() => {
+    if (article && !viewTracked.current) {
+      viewTracked.current = true;
+      trackView();
+    }
+    if (!article) {
+      viewTracked.current = false;
+    }
+  }, [article]);
 
   if (!article) return null;
 
-  const handleOpenOriginal = async () => {
-    await trackView();
+  const sourceName = SOURCE_NAMES[article.source_key || ''] || article.source_key || '';
+  const sourceColor = SOURCE_COLORS[article.source_key || ''] || TEXT_SECONDARY;
+
+  const handleOpenOriginal = () => {
     if (article.link) Linking.openURL(article.link);
   };
 
-  const sourceName = SOURCE_NAMES[article.source_key || ''] || article.source_key || '';
-  const sourceColor = SOURCE_COLORS[article.source_key || ''] || TEXT_SECONDARY;
+  const handleShare = async () => {
+    try {
+      await Share.share({
+        message: `${getTitle(article)}\n${article.link}`,
+      });
+    } catch {}
+  };
 
   return (
     <Modal
@@ -223,38 +244,37 @@ function SummaryModal({ article, onClose }: { article: Article | null; onClose: 
       animationType="slide"
       onRequestClose={onClose}
     >
-      <Pressable
-        style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}
-        onPress={onClose}
-      >
-        <Pressable
-          style={{
-            backgroundColor: CARD,
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-            paddingBottom: 40,
-            maxHeight: '80%',
-          }}
-          onPress={() => {}}
-        >
+      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+        {/* 배경 탭으로 닫기 */}
+        <Pressable style={{ flex: 1 }} onPress={onClose} />
+
+        {/* 바텀시트 */}
+        <View style={{
+          backgroundColor: CARD,
+          borderTopLeftRadius: 20,
+          borderTopRightRadius: 20,
+          maxHeight: '85%',
+        }}>
           {/* 드래그 핸들바 */}
-          <View style={{ alignItems: 'center', paddingTop: 12, paddingBottom: 8 }}>
+          <Pressable onPress={onClose} style={{ alignItems: 'center', paddingTop: 12, paddingBottom: 8 }}>
             <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: '#D1D5DB' }} />
-          </View>
+          </Pressable>
 
           <ScrollView
             style={{ paddingHorizontal: 20 }}
             showsVerticalScrollIndicator={false}
+            bounces
+            contentContainerStyle={{ paddingBottom: 40 }}
           >
             {/* 제목 */}
             <Text style={{
-              fontSize: 17, fontWeight: '800', color: TEXT_PRIMARY, lineHeight: 26, marginBottom: 10,
+              fontSize: 18, fontWeight: '800', color: TEXT_PRIMARY, lineHeight: 28, marginBottom: 12,
             }}>
               {getTitle(article)}
             </Text>
 
-            {/* 소스 뱃지 + 날짜 */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+            {/* 소스 뱃지 + 날짜 + 조회수 */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 }}>
               <View style={{
                 backgroundColor: sourceColor + '18',
                 paddingHorizontal: 8, paddingVertical: 3,
@@ -263,33 +283,72 @@ function SummaryModal({ article, onClose }: { article: Article | null; onClose: 
                 <Text style={{ fontSize: 11, fontWeight: '700', color: sourceColor }}>{sourceName}</Text>
               </View>
               <Text style={{ fontSize: 12, color: TEXT_LIGHT }}>{formatDate(article.published)}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                <Eye size={11} color={TEXT_LIGHT} />
+                <Text style={{ fontSize: 10, color: TEXT_LIGHT, fontWeight: '600' }}>{views}</Text>
+              </View>
             </View>
 
             {/* 구분선 */}
-            <View style={{ height: 1, backgroundColor: BORDER, marginBottom: 16 }} />
+            <View style={{ height: 1, backgroundColor: BORDER, marginBottom: 18 }} />
 
             {/* 요약 본문 */}
             <Text style={{
-              fontSize: 15, color: '#374151', lineHeight: 26, marginBottom: 24,
+              fontSize: 15, color: '#374151', lineHeight: 28, letterSpacing: 0.2, marginBottom: 28,
             }}>
               {article.summary || '요약이 아직 없어요.'}
             </Text>
 
-            {/* 하단: 원문 보기 + 카운트 */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            {/* 액션 버튼 */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+              {/* 원문 보기 */}
               <Pressable
                 onPress={handleOpenOriginal}
-                style={{
-                  backgroundColor: '#000', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10,
-                }}
+                style={({ pressed }) => ({
+                  flexDirection: 'row', alignItems: 'center', gap: 6,
+                  backgroundColor: '#000', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10,
+                  opacity: pressed ? 0.8 : 1,
+                })}
               >
-                <Text style={{ color: '#FFF', fontSize: 14, fontWeight: '700' }}>원문 보기</Text>
+                <ExternalLink size={14} color="#FFF" />
+                <Text style={{ color: '#FFF', fontSize: 13, fontWeight: '700' }}>원문 보기</Text>
               </Pressable>
-              <ArticleStats articleLink={article.link} />
+
+              {/* 좋아요 */}
+              <Pressable
+                onPress={toggleLike}
+                style={({ pressed }) => ({
+                  flexDirection: 'row', alignItems: 'center', gap: 5,
+                  backgroundColor: liked ? '#EF4444' + '15' : BORDER,
+                  paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10,
+                  borderWidth: liked ? 1 : 0,
+                  borderColor: '#EF4444' + '40',
+                  opacity: pressed ? 0.8 : 1,
+                })}
+              >
+                <ThumbsUp size={14} color={liked ? '#EF4444' : TEXT_SECONDARY} />
+                <Text style={{ fontSize: 13, fontWeight: '700', color: liked ? '#EF4444' : TEXT_SECONDARY }}>
+                  {likes > 0 ? likes : '좋아요'}
+                </Text>
+              </Pressable>
+
+              {/* 공유 */}
+              <Pressable
+                onPress={handleShare}
+                style={({ pressed }) => ({
+                  flexDirection: 'row', alignItems: 'center', gap: 5,
+                  backgroundColor: BORDER,
+                  paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10,
+                  opacity: pressed ? 0.8 : 1,
+                })}
+              >
+                <Share2 size={14} color={TEXT_SECONDARY} />
+                <Text style={{ fontSize: 13, fontWeight: '700', color: TEXT_SECONDARY }}>공유</Text>
+              </Pressable>
             </View>
           </ScrollView>
-        </Pressable>
-      </Pressable>
+        </View>
+      </View>
     </Modal>
   );
 }
