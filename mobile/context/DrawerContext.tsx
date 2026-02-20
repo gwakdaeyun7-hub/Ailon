@@ -1,7 +1,5 @@
 import React, { createContext, useContext, useRef, useState, useCallback } from 'react';
 import { Animated, Dimensions } from 'react-native';
-import type { NewsCategory } from '@/lib/types';
-
 export type TabKey = 'news' | 'snaps' | 'ideas';
 
 interface DrawerContextValue {
@@ -12,8 +10,6 @@ interface DrawerContextValue {
   overlayOpacity: Animated.Value;
   activeTab: TabKey;
   setActiveTab: (tab: TabKey) => void;
-  newsCategory: NewsCategory;
-  setNewsCategory: (cat: NewsCategory) => void;
 }
 
 const DrawerContext = createContext<DrawerContextValue | null>(null);
@@ -27,7 +23,6 @@ export function DrawerProvider({ children }: { children: React.ReactNode }) {
   const overlayOpacity = useRef(new Animated.Value(0)).current;
 
   const [activeTab, setActiveTab] = useState<TabKey>('news');
-  const [newsCategory, setNewsCategory] = useState<NewsCategory>('model_research');
 
   const openDrawer = useCallback(() => {
     setIsOpen(true);
@@ -65,7 +60,6 @@ export function DrawerProvider({ children }: { children: React.ReactNode }) {
       value={{
         isOpen, openDrawer, closeDrawer, translateX, overlayOpacity,
         activeTab, setActiveTab,
-        newsCategory, setNewsCategory,
       }}
     >
       {children}

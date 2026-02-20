@@ -22,61 +22,43 @@ from agents.config import (
     get_today_discipline_key,
     get_discipline_info,
 )
-from agents.news_team import run_news_team
+from agents.news_team import run_news_pipeline
 from agents.knowledge_graph import run_knowledge_graph as run_knowledge_team
 from agents.idea_graph import run_idea_graph as run_idea_team
 
 
 def save_news_to_firestore(result: dict):
-    """뉴스 결과를 Firestore에 저장
-
-    Saved fields per article:
-        title, description, link, published, source, source_type,
-        summary, category, category_name, type, howToGuide,
-        importance_score, social_score, theme
-    Top-level fields:
-        date, articles, count, daily_overview, highlight,
-        themes, categories, agent_metadata, updated_at
-    """
+    """뉴스 결과를 Firestore에 저장 (소스별 기사 플랫 구조)"""
     db = get_firestore_client()
     today = datetime.now().strftime("%Y-%m-%d")
 
-    # official_announcements를 회사(source)별로 그룹화
-    hs = result.get("horizontal_sections", {})
-    official_flat = hs.get("official_announcements", [])
-    if isinstance(official_flat, list):
-        official_grouped: dict = {}
-        for article in official_flat:
-            src = article.get("source", "Unknown")
-            official_grouped.setdefault(src, []).append(article)
-        hs = {**hs, "official_announcements": official_grouped}
+    # 소스별 기사를 플랫 리스트로 변환
+    sources = result.get("sources", {})
+    all_articles = []
+    for source_key, articles in sources.items():
+        for a in articles:
+            all_articles.append({
+                "title": a.get("title", ""),
+                "display_title": a.get("display_title", ""),
+                "description": a.get("description", ""),
+                "summary": a.get("summary", ""),
+                "link": a.get("link", ""),
+                "published": a.get("published", ""),
+                "source": a.get("source", ""),
+                "source_key": a.get("source_key", source_key),
+                "image_url": a.get("image_url", ""),
+            })
 
     doc_ref = db.collection("daily_news").document(today)
     doc_data = {
         "date": today,
-        "articles": result["final_articles"],
-        "count": len(result["final_articles"]),
-        "daily_overview": result.get("daily_overview", ""),
-        "highlight": result.get("highlight", {}),
-        "themes": result.get("themes", []),
-        "categories": result.get("categories", {}),
-        "horizontal_sections": hs,
-        "text_only_articles": result.get("text_only_articles", []),
-        "agent_metadata": {
-            "collected_count": len(result.get("raw_articles", [])),
-            "analyzed_count": len(result.get("analyzed_articles", [])),
-            "ranked_count": sum(len(v) for v in result.get("ranked_categories", {}).values()),
-            "final_count": len(result["final_articles"]),
-            "run_timestamp": datetime.now().isoformat(),
-        },
+        "articles": all_articles,
+        "source_order": result.get("source_order", []),
+        "total_count": result.get("total_count", len(all_articles)),
         "updated_at": firestore.SERVER_TIMESTAMP,
     }
     doc_ref.set(doc_data)
-    hs = result.get("horizontal_sections", {})
-    print(f"  💾 뉴스 {len(result['final_articles'])}개 저장 완료 "
-          f"(공식발표 {len(hs.get('official_announcements', []))}개 | "
-          f"한국AI {len(hs.get('korean_ai', []))}개 | "
-          f"큐레이션 {len(hs.get('curation', []))}개)")
+    print(f"  💾 뉴스 {len(all_articles)}개 저장 완료 ({len(sources)}개 소스)")
 
 
 def save_principles_to_firestore(result: dict):
@@ -155,7 +137,7 @@ def save_ideas_to_firestore(result: dict, news_result: dict, knowledge_result: d
         "date": today,
         "ideas": ideas,
         "count": len(ideas),
-        "source_news_count": len(news_result.get("final_articles", [])),
+        "source_news_count": len([a for arts in news_result.get("sources", {}).values() for a in arts]),
         "source_discipline": knowledge_result.get("discipline_key", ""),
         "source_principle": knowledge_result.get("today_principle", {}).get("title", ""),
         "agent_metadata": {
@@ -210,7 +192,7 @@ def save_synergy_ideas_to_firestore(result: dict, news_result: dict, knowledge_r
         "date": today,
         "ideas": ideas,
         "count": len(ideas),
-        "source_news_count": len(news_result.get("final_articles", [])),
+        "source_news_count": len([a for arts in news_result.get("sources", {}).values() for a in arts]),
         "source_discipline": knowledge_result.get("discipline_key", ""),
         "source_principle": knowledge_result.get("today_principle", {}).get("title", ""),
         "agent_metadata": {
@@ -268,7 +250,7 @@ def main():
     print("\n" + "─" * 40)
     print("📰 Step 1/3: 뉴스 에이전트 팀")
     print("─" * 40)
-    news_result = run_news_team()
+    news_result = run_news_pipeline()
     save_news_to_firestore(news_result)
 
     # ─── Step 2: 학문 원리 에이전트 팀 (1개 원리) ───
@@ -283,7 +265,7 @@ def main():
     print("💡 Step 3/3: 융합 아이디어 에이전트 팀")
     print("─" * 40)
     idea_result = run_idea_team(
-        news_articles=news_result.get("final_articles", []),
+        news_articles=[a for arts in news_result.get("sources", {}).values() for a in arts],
         today_principle=knowledge_result.get("today_principle", {}),
         discipline_info=knowledge_result.get("discipline_info", {}),
     )
@@ -299,7 +281,7 @@ def main():
     # ─── 완료 리포트 ───
     print("\n" + "=" * 60)
     print("✅ Daily Agent Pipeline 완료!")
-    print(f"   📰 뉴스: {len(news_result.get('raw_articles', []))}개 수집 → {len(news_result.get('final_articles', []))}개 큐레이션")
+    print(f"   📰 뉴스: {news_result.get('total_count', 0)}개 수집 (14개 소스)")
     principle_title = knowledge_result.get("final_principle", {}).get("title", "N/A")
     print(f"   📚 원리: 1개 융합 사례 생성 ({principle_title})")
     print(f"   💡 아이디어: {len(idea_result.get('problems', []))}개 문제 → {len(idea_result.get('final_ideas', []))}개 융합 아이디어")

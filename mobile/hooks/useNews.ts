@@ -6,13 +6,12 @@
 import { useEffect, useState } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { DailyNews, Article, NewsCategory } from '@/lib/types';
+import type { DailyNews } from '@/lib/types';
 
 export function useNews() {
   const [newsData, setNewsData] = useState<DailyNews | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<NewsCategory | 'all'>('all');
 
   useEffect(() => {
     fetchNews();
@@ -51,18 +50,10 @@ export function useNews() {
     }
   };
 
-  const filteredArticles: Article[] = (newsData?.articles ?? []).filter((a) => {
-    if (selectedCategory === 'all') return true;
-    return a.category === selectedCategory;
-  });
-
   return {
     newsData,
-    filteredArticles,
     loading,
     error,
-    selectedCategory,
-    setSelectedCategory,
     refresh: fetchNews,
   };
 }

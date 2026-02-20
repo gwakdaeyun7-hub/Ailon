@@ -3,118 +3,26 @@
  */
 
 // ---------------------------------------------------------------------------
-// News Category (3 최신 카테고리 + 레거시 하위 호환)
-// ---------------------------------------------------------------------------
-
-export type NewsCategoryLatest =
-  | 'model_research'
-  | 'product_tools'
-  | 'industry_business';
-export type NewsCategoryLegacy =
-  | 'core_tech'
-  | 'dev_tools'
-  | 'trend_insight'
-  | 'models_architecture'
-  | 'agentic_reality'
-  | 'opensource_code'
-  | 'physical_ai'
-  | 'policy_safety';
-export type NewsCategory = NewsCategoryLatest | NewsCategoryLegacy;
-
-export const NEWS_CATEGORY_LABELS: Record<string, string> = {
-  // 최신 3 카테고리
-  model_research: '모델/연구',
-  product_tools: '제품/도구',
-  industry_business: '산업/비즈니스',
-  // 구 3 카테고리 (하위 호환)
-  core_tech: '모델/연구',
-  dev_tools: '제품/도구',
-  trend_insight: '산업/비즈니스',
-  // 레거시 5 카테고리
-  models_architecture: '모델/연구',
-  agentic_reality: '제품/도구',
-  opensource_code: '제품/도구',
-  physical_ai: '모델/연구',
-  policy_safety: '산업/비즈니스',
-};
-
-export const NEWS_CATEGORY_COLORS: Record<string, string> = {
-  model_research: '#F43F5E',
-  product_tools: '#10B981',
-  industry_business: '#F59E0B',
-  // 하위 호환
-  core_tech: '#F43F5E',
-  dev_tools: '#10B981',
-  trend_insight: '#F59E0B',
-  models_architecture: '#F43F5E',
-  agentic_reality: '#F59E0B',
-  opensource_code: '#10B981',
-  physical_ai: '#F43F5E',
-  policy_safety: '#F59E0B',
-};
-
-// ---------------------------------------------------------------------------
-// Article & Daily News
+// Article & Daily News (소스별 플랫 구조)
 // ---------------------------------------------------------------------------
 
 export interface Article {
   title: string;
-  display_title?: string;   // SummarizerAgent 생성 독자 친화 제목 (없으면 title 사용)
-  description: string;
+  display_title?: string;   // 한국어 제목 (없으면 title 사용)
+  description?: string;
+  summary?: string;          // 한국어 요약
   link: string;
   published: string;
   source: string;
-  source_type?: string;
-  summary?: string;
-  impact_comment?: string;
-  theme?: string;
-  category?: NewsCategory;
-  category_name?: string;
-  type?: 'short' | 'long';
-  howToGuide?: string;
-  importance_score?: number;
-  social_score?: number;
+  source_key?: string;
   image_url?: string;
-  reading_time?: number;
-  is_main?: boolean;  // true=이미지 소스(상단 표시), false=더보기 노출
-}
-
-// 가로 스크롤 섹션 아이템 (공식 발표 / 한국 AI / 큐레이션)
-export interface HorizontalArticle {
-  title: string;
-  display_title?: string;  // 한국어 제목 (없으면 title 사용)
-  description: string;
-  link: string;
-  published: string;
-  source: string;
-  source_type: string;
-  section: string;
-  brand_color?: string;
-  image_url?: string;  // 썸네일 이미지 URL
 }
 
 export interface DailyNews {
   date: string;
   articles: Article[];
-  count: number;
-  daily_overview?: string;
-  highlight?: Article;
-  themes?: string[];
-  categories?: Record<string, Article[]>;
-  text_only_articles?: Article[];  // 이미지 없는 소스 기사 (arxiv, reddit 등)
-  horizontal_sections?: {
-    official_announcements?: Record<string, HorizontalArticle[]>;  // 회사별 그룹: {OpenAI: [...], Anthropic: [...], ...}
-    korean_ai?: HorizontalArticle[];
-    geeknews?: HorizontalArticle[];
-    curation?: HorizontalArticle[];
-  };
-  agent_metadata?: {
-    collected_count: number;
-    analyzed_count: number;
-    ranked_count: number;
-    final_count: number;
-    run_timestamp: string;
-  };
+  source_order?: string[];
+  total_count?: number;
   updated_at: any;
 }
 
