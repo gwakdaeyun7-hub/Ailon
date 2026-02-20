@@ -195,6 +195,7 @@ function SmallHighlightCard({ article }: { article: Article }) {
       onPress={handlePress}
       style={({ pressed }) => ({
         flex: 1,
+        height: SMALL_CARD_HEIGHT,
         backgroundColor: CARD,
         borderRadius: 12,
         overflow: 'hidden',
@@ -209,16 +210,22 @@ function SmallHighlightCard({ article }: { article: Article }) {
           style={{ width: '100%', height: 90 }}
           resizeMode="cover"
         />
-      ) : null}
-      <View style={{ padding: 8 }}>
-        <SourceBadge sourceKey={article.source_key} />
-        <Text
-          style={{ fontSize: 11, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 15, marginTop: 4 }}
-          numberOfLines={2}
-        >
-          {getTitle(article)}
-        </Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
+      ) : (
+        <View style={{ width: '100%', height: 90, backgroundColor: BORDER, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ fontSize: 24, color: TEXT_LIGHT }}>📰</Text>
+        </View>
+      )}
+      <View style={{ padding: 8, flex: 1, justifyContent: 'space-between' }}>
+        <View>
+          <SourceBadge sourceKey={article.source_key} />
+          <Text
+            style={{ fontSize: 11, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 15, marginTop: 4 }}
+            numberOfLines={2}
+          >
+            {getTitle(article)}
+          </Text>
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <Text style={{ fontSize: 9, color: TEXT_LIGHT }}>{formatDate(article.published)}</Text>
           <ArticleStats articleLink={article.link} />
         </View>
@@ -268,6 +275,8 @@ function HighlightSection({ highlights }: { highlights: Article[] }) {
 
 // ─── 가로 스크롤 카드 (통일 디자인) ──────────────────────────────────────
 const CARD_WIDTH = 200;
+const HCARD_HEIGHT = 220;
+const SMALL_CARD_HEIGHT = 172;
 
 function HScrollCard({ article, showSourceBadge }: { article: Article; showSourceBadge?: boolean }) {
   const { trackView } = useArticleViews(article.link);
@@ -282,6 +291,7 @@ function HScrollCard({ article, showSourceBadge }: { article: Article; showSourc
       onPress={handlePress}
       style={({ pressed }) => ({
         width: CARD_WIDTH,
+        height: HCARD_HEIGHT,
         marginRight: 12,
         backgroundColor: CARD,
         borderRadius: 12,
@@ -297,16 +307,22 @@ function HScrollCard({ article, showSourceBadge }: { article: Article; showSourc
           style={{ width: CARD_WIDTH, height: 120 }}
           resizeMode="cover"
         />
-      ) : null}
-      <View style={{ padding: 10 }}>
-        {showSourceBadge && <SourceBadge sourceKey={article.source_key} />}
-        <Text
-          style={{ fontSize: 12, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 17, marginTop: showSourceBadge ? 4 : 0 }}
-          numberOfLines={2}
-        >
-          {getTitle(article)}
-        </Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
+      ) : (
+        <View style={{ width: CARD_WIDTH, height: 120, backgroundColor: BORDER, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ fontSize: 28, color: TEXT_LIGHT }}>📰</Text>
+        </View>
+      )}
+      <View style={{ padding: 10, flex: 1, justifyContent: 'space-between' }}>
+        <View>
+          {showSourceBadge && <SourceBadge sourceKey={article.source_key} />}
+          <Text
+            style={{ fontSize: 12, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 17, marginTop: showSourceBadge ? 4 : 0 }}
+            numberOfLines={2}
+          >
+            {getTitle(article)}
+          </Text>
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <Text style={{ fontSize: 10, color: TEXT_LIGHT }}>{formatDate(article.published)}</Text>
           <ArticleStats articleLink={article.link} />
         </View>
@@ -355,6 +371,7 @@ function CategorySection({
             onPress={() => setShowMore(true)}
             style={{
               width: 80,
+              height: HCARD_HEIGHT,
               marginRight: 12,
               backgroundColor: BORDER,
               borderRadius: 12,
@@ -412,6 +429,7 @@ function SourceHScrollSection({
             onPress={() => setShowMore(true)}
             style={{
               width: 80,
+              height: HCARD_HEIGHT,
               marginRight: 12,
               backgroundColor: BORDER,
               borderRadius: 12,
