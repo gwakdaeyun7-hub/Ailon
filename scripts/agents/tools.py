@@ -419,3 +419,52 @@ def filter_imageless(sources: dict[str, list[dict]]) -> None:
         removed += before - len(sources[key])
     if removed > 0:
         print(f"  [필터] 이미지 없는 기사 {removed}개 제거")
+
+
+# ─── 본문 스크래핑 ──────────────────────────────────────────────────────
+def scrape_article_body(url: str) -> str:
+    """기사 URL에서 본문 텍스트 추출 (trafilatura)"""
+    if not url:
+        return ""
+    try:
+        import trafilatura
+        downloaded = trafilatura.fetch_url(url)
+        if not downloaded:
+            return ""
+        text = trafilatura.extract(downloaded)
+        if not text:
+            return ""
+        return text[:3000]
+    except Exception:
+        return ""
+
+
+def scrape_bodies(sources: dict[str, list[dict]]) -> None:
+    """모든 기사의 link에서 본문 추출 (병렬, in-place 수정)"""
+    tasks = []
+    for articles in sources.values():
+        for a in articles:
+            tasks.append(a)
+
+    if not tasks:
+        print("  [본문] 스크래핑 대상 없음")
+        return
+
+    print(f"  [본문] {len(tasks)}개 기사에서 본문 스크래핑 중...")
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        futures = {
+            executor.submit(scrape_article_body, a["link"]): a
+            for a in tasks
+        }
+        found = 0
+        for future in as_completed(futures):
+            article = futures[future]
+            try:
+                body = future.result()
+                article["body"] = body
+                if body:
+                    found += 1
+            except Exception:
+                article["body"] = ""
+
+    print(f"  [본문] {found}/{len(tasks)}개 본문 추출 성공")

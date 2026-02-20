@@ -134,12 +134,20 @@ function SourceBadge({ sourceKey }: { sourceKey?: string }) {
 const HIGHLIGHT_CARD_WIDTH = 280;
 const HIGHLIGHT_CARD_HEIGHT = 260;
 
-function HighlightScrollCard({ article, isFirst }: { article: Article; isFirst?: boolean }) {
+function HighlightScrollCard({
+  article, isFirst, isExpanded, onToggle,
+}: {
+  article: Article; isFirst?: boolean; isExpanded?: boolean; onToggle?: () => void;
+}) {
   const { trackView } = useArticleViews(article.link);
 
-  const handlePress = async () => {
-    await trackView();
-    if (article.link) Linking.openURL(article.link);
+  const handlePress = () => {
+    if (onToggle) {
+      onToggle();
+    } else {
+      trackView();
+      if (article.link) Linking.openURL(article.link);
+    }
   };
 
   const cardWidth = isFirst ? 300 : HIGHLIGHT_CARD_WIDTH;
@@ -154,8 +162,8 @@ function HighlightScrollCard({ article, isFirst }: { article: Article; isFirst?:
         backgroundColor: CARD,
         borderRadius: 14,
         overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: BORDER,
+        borderWidth: isExpanded ? 2 : 1,
+        borderColor: isExpanded ? '#3B82F6' : BORDER,
         opacity: pressed ? 0.92 : 1,
       })}
     >
@@ -190,8 +198,58 @@ function HighlightScrollCard({ article, isFirst }: { article: Article; isFirst?:
   );
 }
 
+function ExpandedSummary({ article, onClose }: { article: Article; onClose: () => void }) {
+  const { trackView } = useArticleViews(article.link);
+
+  const handleOpenOriginal = async () => {
+    await trackView();
+    if (article.link) Linking.openURL(article.link);
+  };
+
+  return (
+    <View style={{
+      marginHorizontal: 16, marginTop: 8, marginBottom: 12,
+      backgroundColor: CARD, borderRadius: 12, padding: 16,
+      borderWidth: 1, borderColor: '#3B82F6' + '40',
+    }}>
+      <Text style={{
+        fontSize: 13, fontWeight: '800', color: TEXT_PRIMARY, lineHeight: 20, marginBottom: 10,
+      }}>
+        {getTitle(article)}
+      </Text>
+      <Text style={{
+        fontSize: 13, color: TEXT_SECONDARY, lineHeight: 22,
+      }}>
+        {article.summary || '요약이 아직 없어요.'}
+      </Text>
+      <View style={{ flexDirection: 'row', marginTop: 14, gap: 10 }}>
+        <Pressable
+          onPress={handleOpenOriginal}
+          style={{
+            backgroundColor: '#000', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8,
+          }}
+        >
+          <Text style={{ color: '#FFF', fontSize: 12, fontWeight: '700' }}>원문 보기</Text>
+        </Pressable>
+        <Pressable
+          onPress={onClose}
+          style={{
+            backgroundColor: BORDER, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8,
+          }}
+        >
+          <Text style={{ color: TEXT_SECONDARY, fontSize: 12, fontWeight: '700' }}>접기</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
 function HighlightSection({ highlights }: { highlights: Article[] }) {
+  const [expandedLink, setExpandedLink] = useState<string | null>(null);
+
   if (!highlights || highlights.length === 0) return null;
+
+  const expandedArticle = expandedLink ? highlights.find(a => a.link === expandedLink) : null;
 
   return (
     <View style={{ paddingTop: 8, paddingBottom: 16, backgroundColor: '#F0F4FF' }}>
@@ -208,9 +266,23 @@ function HighlightSection({ highlights }: { highlights: Article[] }) {
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 4 }}
       >
         {highlights.map((a, i) => (
-          <HighlightScrollCard key={`hl-${i}`} article={a} isFirst={i === 0} />
+          <HighlightScrollCard
+            key={`hl-${i}`}
+            article={a}
+            isFirst={i === 0}
+            isExpanded={expandedLink === a.link}
+            onToggle={() => setExpandedLink(prev => prev === a.link ? null : a.link)}
+          />
         ))}
       </ScrollView>
+
+      {/* 펼쳐진 요약 (카드 아래 전체 너비) */}
+      {expandedArticle && (
+        <ExpandedSummary
+          article={expandedArticle}
+          onClose={() => setExpandedLink(null)}
+        />
+      )}
     </View>
   );
 }
@@ -219,12 +291,20 @@ function HighlightSection({ highlights }: { highlights: Article[] }) {
 const CARD_WIDTH = 200;
 const HCARD_HEIGHT = 220;
 
-function HScrollCard({ article, showSourceBadge }: { article: Article; showSourceBadge?: boolean }) {
+function HScrollCard({
+  article, showSourceBadge, isExpanded, onToggle,
+}: {
+  article: Article; showSourceBadge?: boolean; isExpanded?: boolean; onToggle?: () => void;
+}) {
   const { trackView } = useArticleViews(article.link);
 
-  const handlePress = async () => {
-    await trackView();
-    if (article.link) Linking.openURL(article.link);
+  const handlePress = () => {
+    if (onToggle) {
+      onToggle();
+    } else {
+      trackView();
+      if (article.link) Linking.openURL(article.link);
+    }
   };
 
   return (
@@ -237,8 +317,8 @@ function HScrollCard({ article, showSourceBadge }: { article: Article; showSourc
         backgroundColor: CARD,
         borderRadius: 12,
         overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: BORDER,
+        borderWidth: isExpanded ? 2 : 1,
+        borderColor: isExpanded ? '#3B82F6' : BORDER,
         opacity: pressed ? 0.92 : 1,
       })}
     >
@@ -280,6 +360,7 @@ function CategorySection({
   categoryKey: string; articles: Article[];
 }) {
   const [showMore, setShowMore] = useState(false);
+  const [expandedLink, setExpandedLink] = useState<string | null>(null);
 
   if (!articles || articles.length === 0) return null;
 
@@ -288,6 +369,7 @@ function CategorySection({
   const first5 = articles.slice(0, 5);
   const more5 = articles.slice(5, 10);
   const visible = showMore ? [...first5, ...more5] : first5;
+  const expandedArticle = expandedLink ? visible.find(a => a.link === expandedLink) : null;
 
   return (
     <View style={{ marginBottom: 24 }}>
@@ -305,7 +387,13 @@ function CategorySection({
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 4 }}
       >
         {visible.map((a, i) => (
-          <HScrollCard key={`${categoryKey}-${i}`} article={a} showSourceBadge />
+          <HScrollCard
+            key={`${categoryKey}-${i}`}
+            article={a}
+            showSourceBadge
+            isExpanded={expandedLink === a.link}
+            onToggle={() => setExpandedLink(prev => prev === a.link ? null : a.link)}
+          />
         ))}
 
         {more5.length > 0 && !showMore && (
@@ -327,6 +415,13 @@ function CategorySection({
           </Pressable>
         )}
       </ScrollView>
+
+      {expandedArticle && (
+        <ExpandedSummary
+          article={expandedArticle}
+          onClose={() => setExpandedLink(null)}
+        />
+      )}
     </View>
   );
 }
@@ -338,6 +433,7 @@ function SourceHScrollSection({
   sourceKey: string; articles: Article[];
 }) {
   const [showMore, setShowMore] = useState(false);
+  const [expandedLink, setExpandedLink] = useState<string | null>(null);
 
   if (!articles || articles.length === 0) return null;
 
@@ -346,6 +442,7 @@ function SourceHScrollSection({
   const first5 = articles.slice(0, 5);
   const more5 = articles.slice(5, 10);
   const visible = showMore ? [...first5, ...more5] : first5;
+  const expandedArticle = expandedLink ? visible.find(a => a.link === expandedLink) : null;
 
   return (
     <View style={{ marginBottom: 24 }}>
@@ -363,7 +460,12 @@ function SourceHScrollSection({
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 4 }}
       >
         {visible.map((a, i) => (
-          <HScrollCard key={`${sourceKey}-${i}`} article={a} />
+          <HScrollCard
+            key={`${sourceKey}-${i}`}
+            article={a}
+            isExpanded={expandedLink === a.link}
+            onToggle={() => setExpandedLink(prev => prev === a.link ? null : a.link)}
+          />
         ))}
 
         {more5.length > 0 && !showMore && (
@@ -385,6 +487,13 @@ function SourceHScrollSection({
           </Pressable>
         )}
       </ScrollView>
+
+      {expandedArticle && (
+        <ExpandedSummary
+          article={expandedArticle}
+          onClose={() => setExpandedLink(null)}
+        />
+      )}
     </View>
   );
 }

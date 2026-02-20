@@ -25,7 +25,7 @@ from langgraph.graph import StateGraph, END
 from agents.config import get_llm, CATEGORY_KEYWORDS
 from agents.tools import (
     SOURCES,
-    fetch_all_sources, enrich_images, filter_imageless,
+    fetch_all_sources, enrich_images, filter_imageless, scrape_bodies,
     HIGHLIGHT_SOURCES, CATEGORY_SOURCES, SOURCE_SECTION_SOURCES,
 )
 
@@ -159,20 +159,33 @@ def _llm_invoke_with_retry(llm, prompt: str, max_retries: int = 2) -> str:
 
 
 # ─── 번역 (병렬 배치) ───
-def _translate_batch(batch: list[dict], batch_idx: int) -> list[dict] | None:
-    """단일 배치 번역 (ThreadPoolExecutor용, 스레드별 LLM 생성)"""
+def _summarize_batch(batch: list[dict], batch_idx: int, translate: bool = True) -> list[dict] | None:
+    """단일 배치 번역+요약 또는 요약만 (ThreadPoolExecutor용, 스레드별 LLM 생성)"""
     batch_text = ""
     for i, a in enumerate(batch):
+        body = a.get("body", "")
+        content = body[:2500] if body else a.get("description", "")[:500]
         batch_text += (
             f"\n[{i+1}] 제목: {a['title']}\n"
-            f"     설명: {a['description'][:200]}\n"
+            f"    본문: {content}\n"
         )
 
-    prompt = f"""You are a JSON-only translator. Output ONLY a valid JSON array, no markdown, no explanation.
+    if translate:
+        task_desc = f"Translate and summarize {len(batch)} English AI news items to Korean."
+        title_rule = "display_title: Korean title (max 30 chars, convey the key point)"
+    else:
+        task_desc = f"Summarize {len(batch)} Korean AI news items."
+        title_rule = "display_title: Keep original Korean title as-is (max 30 chars, trim if needed)"
 
-Translate {len(batch)} English AI news items to Korean.
-- display_title: Korean title (max 30 chars, convey the key point)
-- summary: Korean summary (100-200 chars)
+    prompt = f"""You are a JSON-only AI news translator and summarizer. Output ONLY a valid JSON array, no markdown, no explanation.
+
+{task_desc}
+- {title_rule}
+- summary: Korean summary (800-1000 chars, 3-min read)
+  - 핵심 내용을 빠짐없이 전달
+  - 기술 용어는 영어 병기 (예: "미세 조정(fine-tuning)")
+  - ~이에요/~해요 체
+  - 문단 구분 없이 한 덩어리로
 
 Return exactly {len(batch)} items with index starting from 1:
 [{{"index":1,"display_title":"...","summary":"..."}}]
@@ -181,7 +194,7 @@ Articles:
 {batch_text}"""
 
     try:
-        llm = get_llm(temperature=0.3, max_tokens=3072)
+        llm = get_llm(temperature=0.3, max_tokens=8192)
         content = _llm_invoke_with_retry(llm, prompt, max_retries=2)
         results = _parse_llm_json(content)
         if isinstance(results, dict):
@@ -189,37 +202,55 @@ Articles:
         if isinstance(results, list):
             return results
     except Exception as e:
-        print(f"    [WARNING] 번역 배치 {batch_idx + 1} 실패: {e}")
+        label = "번역+요약" if translate else "요약"
+        print(f"    [WARNING] {label} 배치 {batch_idx + 1} 실패: {e}")
     return None
 
 
 def translate_articles(sources: dict[str, list[dict]]) -> None:
-    """영어 기사의 title/description을 한국어로 번역 (in-place, 병렬 배치)"""
+    """영어 기사 번역+요약, 한국어 기사 요약 (in-place, 병렬 배치)"""
     to_translate: list[dict] = []
+    to_summarize_ko: list[dict] = []
+
     for articles in sources.values():
         for a in articles:
             if a.get("lang") == "ko":
                 a["display_title"] = a["title"]
-                a["summary"] = a["description"][:300] if a["description"] else ""
+                if a.get("body"):
+                    to_summarize_ko.append(a)
+                else:
+                    a["summary"] = a["description"][:300] if a["description"] else ""
             else:
                 to_translate.append(a)
 
-    if not to_translate:
-        print("  [번역] 영어 기사 없음, 번역 스킵")
+    if not to_translate and not to_summarize_ko:
+        print("  [번역/요약] 대상 기사 없음, 스킵")
         return
 
-    print(f"  [번역] 영어 기사 {len(to_translate)}개 한국어 번역 중...")
+    batch_size = 5
+    all_jobs: list[tuple[list[dict], int, bool]] = []
 
-    batch_size = 15
-    batches = [to_translate[i:i + batch_size] for i in range(0, len(to_translate), batch_size)]
+    # 영어 기사: 번역+요약 배치
+    if to_translate:
+        print(f"  [번역+요약] 영어 기사 {len(to_translate)}개 처리 중...")
+        en_batches = [to_translate[i:i + batch_size] for i in range(0, len(to_translate), batch_size)]
+        for idx, batch in enumerate(en_batches):
+            all_jobs.append((batch, idx, True))
 
-    with ThreadPoolExecutor(max_workers=2) as executor:
+    # 한국어 기사: 요약만 배치
+    if to_summarize_ko:
+        print(f"  [요약] 한국어 기사 {len(to_summarize_ko)}개 처리 중...")
+        ko_batches = [to_summarize_ko[i:i + batch_size] for i in range(0, len(to_summarize_ko), batch_size)]
+        for idx, batch in enumerate(ko_batches):
+            all_jobs.append((batch, idx, False))
+
+    with ThreadPoolExecutor(max_workers=3) as executor:
         futures = {
-            executor.submit(_translate_batch, batch, idx): (batch, idx)
-            for idx, batch in enumerate(batches)
+            executor.submit(_summarize_batch, batch, idx, translate): (batch, idx, translate)
+            for batch, idx, translate in all_jobs
         }
         for future in as_completed(futures):
-            batch, idx = futures[future]
+            batch, idx, translate = futures[future]
             results = future.result()
             if results and isinstance(results, list):
                 for r in results:
@@ -231,23 +262,28 @@ def translate_articles(sources: dict[str, list[dict]]) -> None:
                             batch[ridx]["display_title"] = r["display_title"]
                         if r.get("summary"):
                             batch[ridx]["summary"] = r["summary"]
-                translated = len([a for a in batch if a.get("display_title")])
-                print(f"    배치 {idx + 1}: {translated}/{len(batch)}개 번역 완료")
+                label = "번역+요약" if translate else "요약"
+                done = len([a for a in batch if a.get("summary")])
+                print(f"    {label} 배치 {idx + 1}: {done}/{len(batch)}개 완료")
 
-    # 안전망: display_title이 비어있으면 원문 title 사용
+    # 안전망: display_title/summary 비어있으면 폴백
     for a in to_translate:
         if not a.get("display_title"):
             a["display_title"] = a["title"]
+        if not a.get("summary"):
+            a["summary"] = a["description"][:300] if a["description"] else ""
+    for a in to_summarize_ko:
         if not a.get("summary"):
             a["summary"] = a["description"][:300] if a["description"] else ""
 
 
 # ─── Node 1: collector ───
 def collector_node(state: NewsGraphState) -> dict:
-    """모든 소스에서 RSS 수집 + 이미지 보강 + 이미지 없는 기사 제거"""
+    """모든 소스에서 RSS 수집 + 이미지 보강 + 이미지 없는 기사 제거 + 본문 스크래핑"""
     sources = fetch_all_sources()
     enrich_images(sources)
     filter_imageless(sources)
+    scrape_bodies(sources)
     return {"sources": sources}
 
 
