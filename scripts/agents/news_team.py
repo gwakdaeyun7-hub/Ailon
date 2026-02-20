@@ -473,7 +473,7 @@ HIGHLIGHT_COUNT = 3
 
 
 def ranker_node(state: NewsGraphState) -> dict:
-    """최근 기사 우선 + 점수순 Top 3 하이라이트 (미번역 기사 차단)"""
+    """당일 기사 중 점수순 Top 3 하이라이트 (미번역 기사 차단)"""
     candidates = state.get("scored_candidates", [])
     if not candidates:
         return {"highlights": [], "category_pool": []}
@@ -481,14 +481,23 @@ def ranker_node(state: NewsGraphState) -> dict:
     highlight_pool = [c for c in candidates if c.get("source_key", "") in HIGHLIGHT_SOURCES]
     non_highlight = [c for c in candidates if c.get("source_key", "") not in HIGHLIGHT_SOURCES]
 
-    # 발행일 최신순 → 동일 날짜 내 점수순
+    # 당일 기사만 우선 필터
+    today_pool = [c for c in highlight_pool if _is_today(c)]
+    fallback_pool = highlight_pool  # 당일 부족 시 전체에서 보충
+
+    _epoch = datetime(2000, 1, 1, tzinfo=timezone.utc)
+    def _pub_key(c: dict):
+        return _parse_published(c.get("published", "")) or _epoch
+
+    # 당일 기사: 점수순 정렬
     ordered_pool = sorted(
-        highlight_pool,
-        key=lambda c: (c.get("published", ""), c.get("_total_score", 0)),
+        today_pool,
+        key=lambda c: (_pub_key(c), c.get("_total_score", 0)),
         reverse=True,
     )
+    print(f"  [랭킹] 당일 기사 {len(today_pool)}/{len(highlight_pool)}개")
 
-    print(f"  [랭킹] 후보 {len(ordered_pool)}개")
+    print(f"  [랭킹] 당일 후보 {len(ordered_pool)}개")
 
     selected: list[dict] = []
     used_tags: set[str] = set()
@@ -514,9 +523,14 @@ def ranker_node(state: NewsGraphState) -> dict:
         if tag:
             used_tags.add(tag)
 
-    # 부족하면 이미지 있는 기사로 채움 (미번역 허용)
+    # 부족하면 전체 풀(당일 외 포함)에서 최신순+점수순으로 보충
     if len(selected) < HIGHLIGHT_COUNT:
-        for c in ordered_pool:
+        all_ordered = sorted(
+            fallback_pool,
+            key=lambda c: (_pub_key(c), c.get("_total_score", 0)),
+            reverse=True,
+        )
+        for c in all_ordered:
             if len(selected) >= HIGHLIGHT_COUNT:
                 break
             if c not in selected and c.get("image_url"):
