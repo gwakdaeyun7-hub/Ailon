@@ -387,30 +387,41 @@ OUTPUT ONLY VALID JSON ARRAY (no markdown, no explanation, strict format):"""
     
     try:
         result = llm.invoke([HumanMessage(content=prompt)])
-        evaluated_ideas = parse_llm_json(result.content)
+        parsed = parse_llm_json(result.content)
+        # LLM이 list를 반환하되 일부 원소가 string일 수 있음 → dict만 필터
+        if isinstance(parsed, list):
+            evaluated_ideas = [item for item in parsed if isinstance(item, dict)]
+        else:
+            evaluated_ideas = []
+        if not evaluated_ideas:
+            raise ValueError("LLM이 유효한 아이디어 dict 목록을 반환하지 않음")
     except Exception as e:
         print(f"  [WARNING] blueprint_architect_node 파싱 실패: {e}")
         evaluated_ideas = state["raw_ideas"]
-        for idea in evaluated_ideas:
-            idea.setdefault("feasibility_score", 7)
-            idea.setdefault("novelty_score", 7)
-            idea.setdefault("impact_score", 8)
-            idea.setdefault("total_score", 22)
-            idea.setdefault("challenges", [])
-            idea.setdefault("improvements", [])
-            idea.setdefault("technical_roadmap", {
-                "phases": [],
-                "totalDuration": "3개월",
-                "techStack": idea.get("required_tech", []),
-            })
-            idea.setdefault("market_feasibility", {
-                "tam": "",
-                "competitors": [],
-                "differentiation": idea.get("key_innovation", ""),
-                "revenueModel": "",
-                "feasibilityScore": 7,
-            })
-    
+
+    # 필수 필드 기본값 보장 (LLM 파싱/폴백 모두 적용)
+    for idea in evaluated_ideas:
+        if not isinstance(idea, dict):
+            continue
+        idea.setdefault("feasibility_score", 7)
+        idea.setdefault("novelty_score", 7)
+        idea.setdefault("impact_score", 8)
+        idea.setdefault("total_score", 22)
+        idea.setdefault("challenges", [])
+        idea.setdefault("improvements", [])
+        idea.setdefault("technical_roadmap", {
+            "phases": [],
+            "totalDuration": "3개월",
+            "techStack": idea.get("required_tech", []),
+        })
+        idea.setdefault("market_feasibility", {
+            "tam": "",
+            "competitors": [],
+            "differentiation": idea.get("key_innovation", ""),
+            "revenueModel": "",
+            "feasibilityScore": 7,
+        })
+
     print(f"  [OK] {len(evaluated_ideas)}개 아이디어 평가 완료")
     return {"evaluated_ideas": evaluated_ideas}
 
@@ -422,8 +433,8 @@ def idea_verifier_node(state: IdeaGraphState) -> dict:
     """
     print("\n[idea_verifier_node] 아이디어 검증 중...")
     
-    evaluated_ideas = state["evaluated_ideas"]
-    
+    evaluated_ideas = [x for x in state["evaluated_ideas"] if isinstance(x, dict)]
+
     # 상위 3개 아이디어만 검증
     top_ideas = sorted(evaluated_ideas, key=lambda x: x.get("total_score", 0), reverse=True)[:3]
     

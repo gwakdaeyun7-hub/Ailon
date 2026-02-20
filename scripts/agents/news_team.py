@@ -153,7 +153,7 @@ def translate_articles(sources: dict[str, list[dict]]) -> None:
     batch_size = 15
     batches = [to_translate[i:i + batch_size] for i in range(0, len(to_translate), batch_size)]
 
-    with ThreadPoolExecutor(max_workers=3) as executor:
+    with ThreadPoolExecutor(max_workers=2) as executor:
         futures = {
             executor.submit(_translate_batch, batch, idx): (batch, idx)
             for idx, batch in enumerate(batches)
@@ -235,7 +235,7 @@ Output exactly {len(candidates)} items:
 [{{"i":0,"impact":4,"freshness":5,"breadth":3,"topic_tag":"example-tag"}}]"""
 
     try:
-        llm = get_llm(temperature=0.1, max_tokens=2048)
+        llm = get_llm(temperature=0.1, max_tokens=4096)
         content = _llm_invoke_with_retry(llm, prompt, max_retries=2)
         scores = _parse_llm_json(content)
 
