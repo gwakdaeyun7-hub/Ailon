@@ -28,42 +28,52 @@ from agents.idea_graph import run_idea_graph as run_idea_team
 
 
 def save_news_to_firestore(result: dict):
-    """뉴스 결과를 Firestore에 저장 (소스별 기사 플랫 구조)"""
+    """뉴스 결과를 Firestore에 저장 (3-Section 구조: highlights + categorized + source_articles)"""
     db = get_firestore_client()
     today = datetime.now().strftime("%Y-%m-%d")
 
-    def _flatten(src_dict):
-        items = []
-        for source_key, articles in src_dict.items():
-            for a in articles:
-                items.append({
-                    "title": a.get("title", ""),
-                    "display_title": a.get("display_title", ""),
-                    "description": a.get("description", ""),
-                    "summary": a.get("summary", ""),
-                    "link": a.get("link", ""),
-                    "published": a.get("published", ""),
-                    "source": a.get("source", ""),
-                    "source_key": a.get("source_key", source_key),
-                    "image_url": a.get("image_url", ""),
-                })
-        return items
+    def _flatten_list(articles: list[dict]) -> list[dict]:
+        return [
+            {
+                "title": a.get("title", ""),
+                "display_title": a.get("display_title", ""),
+                "description": a.get("description", ""),
+                "summary": a.get("summary", ""),
+                "link": a.get("link", ""),
+                "published": a.get("published", ""),
+                "source": a.get("source", ""),
+                "source_key": a.get("source_key", ""),
+                "image_url": a.get("image_url", ""),
+            }
+            for a in articles
+        ]
 
-    image_articles = _flatten(result.get("sources", {}))
-    text_only_articles = _flatten(result.get("text_only_sources", {}))
+    highlights = _flatten_list(result.get("highlights", []))
+    categorized_articles = {
+        cat: _flatten_list(articles)
+        for cat, articles in result.get("categorized_articles", {}).items()
+    }
+    source_articles = {
+        src: _flatten_list(articles)
+        for src, articles in result.get("source_articles", {}).items()
+    }
 
     doc_ref = db.collection("daily_news").document(today)
     doc_data = {
         "date": today,
-        "articles": image_articles,
-        "text_only_articles": text_only_articles,
+        "highlights": highlights,
+        "categorized_articles": categorized_articles,
+        "category_order": result.get("category_order", []),
+        "source_articles": source_articles,
         "source_order": result.get("source_order", []),
-        "text_only_order": result.get("text_only_order", []),
         "total_count": result.get("total_count", 0),
         "updated_at": firestore.SERVER_TIMESTAMP,
     }
     doc_ref.set(doc_data)
-    print(f"  💾 뉴스 저장 완료: 이미지 {len(image_articles)}개 + 텍스트 {len(text_only_articles)}개")
+
+    cat_count = sum(len(v) for v in categorized_articles.values())
+    src_count = sum(len(v) for v in source_articles.values())
+    print(f"  💾 뉴스 저장 완료: 하이라이트 {len(highlights)}개 + 카테고리 {cat_count}개 + 소스별 {src_count}개")
 
 
 def save_principles_to_firestore(result: dict):
@@ -286,7 +296,7 @@ def main():
     # ─── 완료 리포트 ───
     print("\n" + "=" * 60)
     print("✅ Daily Agent Pipeline 완료!")
-    print(f"   📰 뉴스: {news_result.get('total_count', 0)}개 수집 (14개 소스)")
+    print(f"   📰 뉴스: {news_result.get('total_count', 0)}개 수집 (13개 소스)")
     principle_title = knowledge_result.get("final_principle", {}).get("title", "N/A")
     print(f"   📚 원리: 1개 융합 사례 생성 ({principle_title})")
     print(f"   💡 아이디어: {len(idea_result.get('problems', []))}개 문제 → {len(idea_result.get('final_ideas', []))}개 융합 아이디어")

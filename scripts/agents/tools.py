@@ -1,17 +1,18 @@
 """
-뉴스 수집 도구 — 14개 소스 RSS/API 기반 수집 + og:image 추출
+뉴스 수집 도구 — 13개 소스 RSS/API 기반 수집 + og:image 추출
 
 [Tier 1] 영어 AI 전문 뉴스 (매일 다수, 고품질 썸네일)
-  Wired AI / The Verge AI / TechCrunch AI / VentureBeat AI / MIT Tech Review / InfoQ AI
+  Wired AI / The Verge AI / TechCrunch AI / MIT Tech Review
 
 [Tier 2] AI 기업 공식 블로그 (1차 소스, 주 2-5회)
-  OpenAI / Google DeepMind / NVIDIA / HuggingFace
+  Google DeepMind / NVIDIA / HuggingFace
 
 [Tier 3] 한국 소스
-  AI타임스 / GeekNews / ZDNet Korea / 한국경제 IT
+  AI타임스 / GeekNews / ZDNet Korea / 한국경제 IT / 인공지능신문 / 디지털투데이
 """
 
 import os
+import re
 import feedparser
 import requests
 from datetime import datetime, timedelta
@@ -25,7 +26,7 @@ SOURCES = [
         "key": "wired_ai",
         "name": "Wired AI",
         "rss_url": "https://www.wired.com/feed/tag/ai/latest/rss",
-        "max_items": 10,
+        "max_items": 20,
         "days": 7,
         "lang": "en",
         "rss_image_field": "media_thumbnail",  # RSS에 media:thumbnail 포함
@@ -34,7 +35,7 @@ SOURCES = [
         "key": "the_verge_ai",
         "name": "The Verge AI",
         "rss_url": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml",
-        "max_items": 10,
+        "max_items": 20,
         "days": 7,
         "lang": "en",
         "rss_image_field": "content_image",  # RSS content에 <img> 포함
@@ -43,15 +44,7 @@ SOURCES = [
         "key": "techcrunch_ai",
         "name": "TechCrunch AI",
         "rss_url": "https://techcrunch.com/category/artificial-intelligence/feed/",
-        "max_items": 10,
-        "days": 7,
-        "lang": "en",
-    },
-    {
-        "key": "venturebeat_ai",
-        "name": "VentureBeat AI",
-        "rss_url": "https://venturebeat.com/category/ai/feed/",
-        "max_items": 10,
+        "max_items": 20,
         "days": 7,
         "lang": "en",
     },
@@ -59,34 +52,16 @@ SOURCES = [
         "key": "mit_tech_review",
         "name": "MIT Tech Review",
         "rss_url": "https://www.technologyreview.com/topic/artificial-intelligence/feed",
-        "max_items": 10,
+        "max_items": 20,
         "days": 14,
         "lang": "en",
-    },
-    {
-        "key": "infoq_ai",
-        "name": "InfoQ AI/ML",
-        "rss_url": "https://feed.infoq.com/ai-ml-data-eng/",
-        "max_items": 5,
-        "days": 14,
-        "lang": "en",
-        "text_only": True,  # 이미지 수집 불안정 → 하단 텍스트 섹션
     },
     # Tier 2: AI 기업 공식 블로그
-    {
-        "key": "openai_blog",
-        "name": "OpenAI",
-        "rss_url": "https://openai.com/blog/rss.xml",
-        "max_items": 5,
-        "days": 30,
-        "lang": "en",
-        "text_only": True,  # 이미지 수집 불안정 → 하단 텍스트 섹션
-    },
     {
         "key": "deepmind_blog",
         "name": "Google DeepMind",
         "rss_url": "https://deepmind.google/blog/rss.xml",
-        "max_items": 10,
+        "max_items": 20,
         "days": 30,
         "lang": "en",
         "rss_image_field": "media_thumbnail",
@@ -95,7 +70,7 @@ SOURCES = [
         "key": "nvidia_blog",
         "name": "NVIDIA AI",
         "rss_url": "https://blogs.nvidia.com/feed/",
-        "max_items": 10,
+        "max_items": 20,
         "days": 14,
         "lang": "en",
         "ai_filter": True,  # AI 관련 기사만 필터링
@@ -104,7 +79,7 @@ SOURCES = [
         "key": "huggingface_blog",
         "name": "Hugging Face",
         "rss_url": "https://huggingface.co/blog/feed.xml",
-        "max_items": 10,
+        "max_items": 20,
         "days": 30,
         "lang": "en",
     },
@@ -113,7 +88,7 @@ SOURCES = [
         "key": "aitimes",
         "name": "AI타임스",
         "rss_url": "https://www.aitimes.com/rss/allArticle.xml",
-        "max_items": 10,
+        "max_items": 20,
         "days": 7,
         "lang": "ko",
     },
@@ -121,7 +96,7 @@ SOURCES = [
         "key": "geeknews",
         "name": "GeekNews",
         "rss_url": "https://news.hada.io/rss/news",
-        "max_items": 10,
+        "max_items": 20,
         "days": 7,
         "lang": "ko",
         "ai_filter": True,
@@ -130,7 +105,7 @@ SOURCES = [
         "key": "zdnet_korea",
         "name": "ZDNet Korea",
         "rss_url": "https://zdnet.co.kr/feed",
-        "max_items": 10,
+        "max_items": 20,
         "days": 7,
         "lang": "ko",
         "ai_filter": True,
@@ -139,7 +114,25 @@ SOURCES = [
         "key": "hankyung_it",
         "name": "한국경제 IT",
         "rss_url": "https://www.hankyung.com/feed/it",
-        "max_items": 10,
+        "max_items": 20,
+        "days": 7,
+        "lang": "ko",
+        "ai_filter": True,
+    },
+    {
+        "key": "ainews_kr",
+        "name": "인공지능신문",
+        "rss_url": "https://www.aitimes.kr/rss/allArticle.xml",
+        "max_items": 20,
+        "days": 7,
+        "lang": "ko",
+        "ai_filter": True,
+    },
+    {
+        "key": "digitaltoday",
+        "name": "디지털투데이",
+        "rss_url": "https://www.digitaltoday.co.kr/rss/allArticle.xml",
+        "max_items": 20,
         "days": 7,
         "lang": "ko",
         "ai_filter": True,
@@ -154,6 +147,25 @@ _AI_KEYWORDS = [
     "인공지능", "머신러닝", "딥러닝", "생성형", "언어모델", "챗봇",
     "에이전트", "파인튜닝", "임베딩", "프롬프트",
 ]
+
+# ─── 소스별 역할 분류 ─────────────────────────────────────────────────────
+# 하이라이트 후보 소스 (Tier 1: 에디토리얼 영어 매체)
+HIGHLIGHT_SOURCES = {"wired_ai", "the_verge_ai", "techcrunch_ai", "mit_tech_review"}
+
+# 카테고리 분류 대상 소스 (Tier 1 + Tier 2 기업 블로그)
+CATEGORY_SOURCES = {
+    "wired_ai", "the_verge_ai", "techcrunch_ai", "mit_tech_review",
+    "deepmind_blog", "nvidia_blog", "huggingface_blog",
+}
+
+# 소스별 섹션 (한국 소스)
+SOURCE_SECTION_SOURCES = {
+    "aitimes", "geeknews", "zdnet_korea", "hankyung_it",
+    "ainews_kr", "digitaltoday",
+}
+
+assert CATEGORY_SOURCES.isdisjoint(SOURCE_SECTION_SOURCES), \
+    "CATEGORY_SOURCES와 SOURCE_SECTION_SOURCES는 겹치면 안 됩니다"
 
 
 # ─── 날짜 유틸 ───────────────────────────────────────────────────────────
@@ -206,7 +218,6 @@ def _extract_rss_image(entry: dict, rss_image_field: str = "") -> str:
         elif entry.get("summary"):
             content = entry["summary"]
         if content:
-            import re
             match = re.search(r'<img[^>]+src=["\']([^"\']+)["\']', content)
             if match:
                 url = match.group(1)
@@ -222,16 +233,24 @@ def _extract_rss_image(entry: dict, rss_image_field: str = "") -> str:
 
 
 def extract_og_image(url: str) -> str:
-    """기사 URL에서 og:image 메타태그 추출"""
+    """기사 URL에서 og:image 메타태그 추출 (10KB 스트리밍으로 대역폭 절약)"""
     if not url:
         return ""
     try:
         from bs4 import BeautifulSoup
         headers = {"User-Agent": "Mozilla/5.0 (compatible; AilonBot/1.0)"}
-        resp = requests.get(url, headers=headers, timeout=5, allow_redirects=True)
+        resp = requests.get(url, headers=headers, timeout=5, allow_redirects=True, stream=True)
         if resp.status_code != 200:
+            resp.close()
             return ""
-        soup = BeautifulSoup(resp.content[:30000], "html.parser")
+        # og:image는 <head> 안에 있으므로 10KB면 충분
+        content = b""
+        for chunk in resp.iter_content(chunk_size=2048):
+            content += chunk
+            if len(content) >= 10000:
+                break
+        resp.close()
+        soup = BeautifulSoup(content, "html.parser")
         for prop, attr in [("og:image", "property"), ("twitter:image", "name")]:
             meta = soup.find("meta", {attr: prop})
             if meta and meta.get("content"):
@@ -253,7 +272,6 @@ def fetch_source(source_config: dict) -> list[dict]:
     days = source_config.get("days", 7)
     lang = source_config.get("lang", "en")
     ai_filter = source_config.get("ai_filter", False)
-    text_only = source_config.get("text_only", False)
     rss_image_field = source_config.get("rss_image_field", "")
 
     articles = []
@@ -272,8 +290,6 @@ def fetch_source(source_config: dict) -> list[dict]:
                 continue
 
             description = (entry.get("summary", "") or "").strip()
-            # HTML 태그 제거 (간단하게)
-            import re
             description = re.sub(r'<[^>]+>', '', description)[:500]
 
             if ai_filter and not _is_ai_related(title, description):
@@ -306,7 +322,7 @@ def fetch_all_sources() -> dict[str, list[dict]]:
     모든 소스에서 병렬 수집
     반환: { source_key: [articles...], ... }
     """
-    print("\n  ═══ 14개 소스 수집 시작 ═══")
+    print("\n  ═══ 소스 수집 시작 ═══")
     result: dict[str, list[dict]] = {}
 
     with ThreadPoolExecutor(max_workers=6) as executor:
@@ -365,16 +381,18 @@ def enrich_images(sources: dict[str, list[dict]]) -> None:
 
 def filter_imageless(sources: dict[str, list[dict]]) -> None:
     """
-    text_only가 아닌 소스에서 image_url이 없는 기사를 제거 (in-place)
-    제거 후에도 최소 10개 유지되도록 상위 10개만 남김
+    image_url이 없는 기사를 제거 (in-place)
+    각 소스에서 상위 10개만 남김
+    한국 소스(SOURCE_SECTION_SOURCES)는 이미지 없어도 유지 (10개 제한만 적용)
     """
-    text_only_keys = {s["key"] for s in SOURCES if s.get("text_only")}
     removed = 0
     for key, articles in sources.items():
-        if key in text_only_keys:
-            continue
         before = len(articles)
-        sources[key] = [a for a in articles if a.get("image_url")][:10]
+        if key in SOURCE_SECTION_SOURCES:
+            # 한국 소스는 이미지 필터 없이 10개만 제한
+            sources[key] = articles[:10]
+        else:
+            sources[key] = [a for a in articles if a.get("image_url")][:10]
         removed += before - len(sources[key])
     if removed > 0:
         print(f"  [필터] 이미지 없는 기사 {removed}개 제거")

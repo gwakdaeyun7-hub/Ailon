@@ -20,12 +20,18 @@ export interface Article {
 
 export interface DailyNews {
   date: string;
-  articles: Article[];              // 이미지 있는 소스 기사
-  text_only_articles?: Article[];   // 이미지 없는 소스 기사 (OpenAI, InfoQ)
+  // 새 구조 (3-Section)
+  highlights?: Article[];
+  categorized_articles?: Record<string, Article[]>;
+  category_order?: string[];
+  source_articles?: Record<string, Article[]>;
   source_order?: string[];
-  text_only_order?: string[];
   total_count?: number;
   updated_at: any;
+  // 레거시 호환 (기존 데이터 폴백)
+  articles?: Article[];
+  text_only_articles?: Article[];
+  text_only_order?: string[];
 }
 
 // ---------------------------------------------------------------------------
