@@ -266,7 +266,32 @@ def translate_articles(sources: dict[str, list[dict]]) -> None:
                 done = len([a for a in batch if a.get("summary")])
                 print(f"    {label} 배치 {idx + 1}: {done}/{len(batch)}개 완료")
 
-    # 안전망: display_title/summary 비어있으면 폴백
+    # 개별 재시도: 배치에서 번역 실패한 영어 기사를 1개씩 재시도
+    failed_en = [a for a in to_translate if not a.get("display_title") or not a.get("summary")]
+    if failed_en:
+        print(f"  [재시도] 번역 실패 {len(failed_en)}개 기사 개별 재시도 중...")
+        for a in failed_en:
+            result = _summarize_batch([a], 0, translate=True)
+            if result and isinstance(result, list) and len(result) > 0:
+                r = result[0]
+                if isinstance(r, dict):
+                    if r.get("display_title"):
+                        a["display_title"] = r["display_title"]
+                    if r.get("summary"):
+                        a["summary"] = r["summary"]
+
+    # 개별 재시도: 요약 실패한 한국어 기사
+    failed_ko = [a for a in to_summarize_ko if not a.get("summary")]
+    if failed_ko:
+        print(f"  [재시도] 요약 실패 {len(failed_ko)}개 기사 개별 재시도 중...")
+        for a in failed_ko:
+            result = _summarize_batch([a], 0, translate=False)
+            if result and isinstance(result, list) and len(result) > 0:
+                r = result[0]
+                if isinstance(r, dict) and r.get("summary"):
+                    a["summary"] = r["summary"]
+
+    # 최종 안전망: 그래도 비어있으면 원문 폴백
     for a in to_translate:
         if not a.get("display_title"):
             a["display_title"] = a["title"]

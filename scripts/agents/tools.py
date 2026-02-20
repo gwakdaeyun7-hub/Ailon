@@ -144,26 +144,29 @@ SOURCES = [
     },
 ]
 
-# AI 키워드 (ai_filter=True인 소스에서 사용)
-_AI_KEYWORDS = [
+# AI 키워드 — 정규식 단어 경계 매칭 (ai_filter=True인 소스에서 사용)
+# _WORD_BOUNDARY_KEYWORDS: \bkw\b 로 매칭 (부분 문자열 오탐 방지)
+_WORD_BOUNDARY_KEYWORDS = [
+    "ai", "llm", "gpt", "nlp", "rag", "gpu", "tpu",
+]
+# _PLAIN_KEYWORDS: 단순 부분 문자열 매칭 (충분히 길어서 오탐 없음)
+_PLAIN_KEYWORDS = [
     # Core AI terms (English)
-    "ai", "artificial intelligence", "machine learning", "deep learning",
-    "llm", "gpt", "chatgpt", "claude", "gemini", "neural", "transformer",
-    "agent", "agentic", "multimodal", "generative", "diffusion",
-    "nlp", "natural language", "computer vision", "robotics", "autonomous",
+    "artificial intelligence", "machine learning", "deep learning",
+    "chatgpt", "claude", "gemini", "neural", "transformer",
+    "agentic", "multimodal", "generative", "diffusion",
+    "natural language", "computer vision", "robotics", "autonomous",
     "chatbot", "foundation model", "large language model",
     # AI-adjacent: companies, products, techniques
     "openai", "anthropic", "deepmind", "hugging face", "huggingface",
     "midjourney", "stable diffusion", "copilot", "sora", "dall-e",
-    "nvidia", "tensor", "gpu", "tpu", "fine-tun", "rag", "embedding",
+    "nvidia", "tensor", "fine-tun", "embedding",
     "reinforcement learning", "supervised learning", "unsupervised",
-    "prompt engineer", "synthetic data", "ai chip", "ai regulation",
-    "ai safety", "ai ethics", "ai governance", "ai startup",
+    "prompt engineer", "synthetic data",
     # Korean equivalents
     "인공지능", "머신러닝", "딥러닝", "생성형", "언어모델", "챗봇",
-    "에이전트", "파인튜닝", "임베딩", "프롬프트", "신경망", "자율주행",
-    "컴퓨터 비전", "자연어 처리", "강화학습", "초거대", "sllm",
-    "ai 반도체", "ai 규제", "ai 윤리", "ai 스타트업", "로봇",
+    "파인튜닝", "임베딩", "프롬프트", "신경망", "자율주행",
+    "컴퓨터 비전", "자연어 처리", "강화학습", "초거대",
 ]
 
 # ─── 소스별 역할 분류 ─────────────────────────────────────────────────────
@@ -210,7 +213,12 @@ def _within_days(date_str: str, days: int) -> bool:
 
 def _is_ai_related(title: str, description: str) -> bool:
     text = (title + " " + description).lower()
-    return any(kw in text for kw in _AI_KEYWORDS)
+    # 짧은 키워드는 단어 경계로 매칭 (ai→said 오탐 방지)
+    for kw in _WORD_BOUNDARY_KEYWORDS:
+        if re.search(r'\b' + kw + r'\b', text):
+            return True
+    # 긴 키워드는 부분 문자열 매칭
+    return any(kw in text for kw in _PLAIN_KEYWORDS)
 
 
 # ─── 이미지 추출 ─────────────────────────────────────────────────────────
