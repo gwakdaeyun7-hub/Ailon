@@ -216,6 +216,13 @@ OUTPUT ONLY VALID JSON ARRAY (no markdown, no explanation):
     try:
         result = llm.invoke([HumanMessage(content=prompt)])
         matched_problems = parse_llm_json(result.content)
+        # LLM이 dict로 감싸서 반환할 수 있음 (예: {"problems": [...]})
+        if isinstance(matched_problems, dict):
+            matched_problems = next(
+                (v for v in matched_problems.values() if isinstance(v, list)), []
+            )
+        if not isinstance(matched_problems, list):
+            matched_problems = []
         # 최대 3개
         matched_problems = matched_problems[:3]
     except Exception as e:

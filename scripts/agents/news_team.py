@@ -243,7 +243,14 @@ Output exactly {len(candidates)} items:
             scores = next((v for v in scores.values() if isinstance(v, list)), [])
 
         for s in scores:
-            idx = s.get("i", -1)
+            if not isinstance(s, dict):
+                continue
+            # LLM이 "i", "index", 문자열 등 다양한 형태로 반환할 수 있음
+            raw_idx = s.get("i", s.get("index", -1))
+            try:
+                idx = int(raw_idx)
+            except (ValueError, TypeError):
+                continue
             if 0 <= idx < len(candidates):
                 candidates[idx]["_score_impact"] = s.get("impact", 3)
                 candidates[idx]["_score_freshness"] = s.get("freshness", 3)
@@ -256,10 +263,13 @@ Output exactly {len(candidates)} items:
                 )
 
         scored = len([c for c in candidates if "_total_score" in c])
+        if scored == 0 and scores:
+            sample = scores[0] if isinstance(scores, list) else scores
+            print(f"  [DEBUG] 스코어 샘플: {str(sample)[:200]}")
         print(f"  [스코어링] {scored}/{len(candidates)}개 평가 완료")
 
     except Exception as e:
-        print(f"  [WARNING] 스코어링 실패, 기본값 사용: {e}")
+        print(f"  [WARNING] 스코어링 실패, 기본값 사용: {type(e).__name__}: {e}")
 
     # 폴백: 미평가 기사에 기본 점수
     for c in candidates:
