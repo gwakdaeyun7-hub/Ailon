@@ -5,9 +5,9 @@ collector → translator → scorer → ranker → classifier → assembler
 
 1. collector:   13개 소스 RSS 수집 + og:image 추출 + 이미지 없는 기사 제거
 2. translator:  영어 기사 한국어 번역 (병렬 배치)
-3. scorer:      LLM으로 CATEGORY_SOURCES 전체 기사 3차원 점수 평가
-4. ranker:      점수 기반 Top 3 하이라이트 선정 + topic_tag/소스 중복 제거
-5. classifier:  나머지 기사 3개 카테고리 분류 (키워드 우선, 모호한 것만 LLM)
+3. scorer:      LLM 4차원 평가 (ai_relevance/impact/freshness/breadth) + 카테고리 태깅
+4. ranker:      LLM이 상위 12개 후보 중 Top 3 하이라이트 직접 선정
+5. classifier:  scorer 카테고리 우선 → 키워드 보조 → 모호한 것만 LLM 분류
                + 카테고리별 Top 10 선정 (점수순 + 소스 상한 3개)
 6. assembler:   한국 소스를 소스별로 분리, 최종 결과 조합
 """
@@ -199,9 +199,9 @@ def translator_node(state: NewsGraphState) -> dict:
     return {"translated": True, "sources": state["sources"]}
 
 
-# ─── Node 3: scorer (LLM 3차원 평가) ───
+# ─── Node 3: scorer (LLM 4차원 평가) ───
 def scorer_node(state: NewsGraphState) -> dict:
-    """CATEGORY_SOURCES 전체 기사에 대해 impact/freshness/breadth 점수 부여"""
+    """CATEGORY_SOURCES 전체 기사에 대해 ai_relevance/impact/freshness/breadth 점수 부여"""
     sources = state["sources"]
 
     candidates: list[dict] = []
@@ -213,7 +213,7 @@ def scorer_node(state: NewsGraphState) -> dict:
         print("  [스코어링] 평가 대상 없음")
         return {"scored_candidates": []}
 
-    print(f"  [스코어링] {len(candidates)}개 하이라이트 후보 평가 중...")
+    print(f"  [스코어링] {len(candidates)}개 기사 평가 중...")
 
     article_text = ""
     for i, a in enumerate(candidates):
@@ -223,17 +223,48 @@ def scorer_node(state: NewsGraphState) -> dict:
 
     prompt = f"""You are a JSON-only AI news scorer. Output ONLY a valid JSON array, no markdown, no explanation.
 
-Score each article on 3 dimensions (1-5 integer):
-- impact: importance to AI field (5=paradigm shift, 1=minor update)
-- freshness: novelty (5=first report, 1=rehash)
-- breadth: scope of influence (5=whole industry, 1=niche)
-- topic_tag: short English tag (e.g. "openai-gpt5", "eu-regulation")
+Score each article on 4 dimensions (1-5 integer):
+
+1. ai_relevance: How directly related to AI/ML is this article?
+   5 = Core AI (new model, AI research breakthrough, AI product launch)
+   4 = AI-adjacent (AI chip, AI regulation, AI company funding)
+   3 = Mentions AI but main topic is broader tech
+   2 = Tangentially related (general tech with minor AI mention)
+   1 = Not AI-related (general news, politics, entertainment)
+
+2. impact: Importance to the AI field
+   5 = Paradigm shift (new GPT-level model, major policy change)
+   4 = Significant (notable model release, large funding round)
+   3 = Moderate (incremental update, niche research)
+   2 = Minor (routine announcement, small update)
+   1 = Trivial (opinion piece, rehashed content)
+
+3. freshness: Novelty of information
+   5 = Breaking news, first report globally
+   4 = New development reported within hours
+   3 = Recent but already covered by multiple outlets
+   2 = Follow-up or analysis of known news
+   1 = Old news or rehash
+
+4. breadth: Scope of influence
+   5 = Affects entire AI industry (OpenAI, Google, regulation)
+   4 = Affects major segment (NLP, computer vision, robotics)
+   3 = Affects specific community (researchers, developers)
+   2 = Affects niche audience
+   1 = Very narrow scope
+
+Also provide:
+- topic_tag: short English tag for deduplication (e.g. "openai-gpt5", "eu-ai-act")
+- category: one of "model_research", "product_tools", "industry_business"
+  model_research = new models, papers, benchmarks, architecture, training methods
+  product_tools = product launches, tools, APIs, frameworks, developer tools
+  industry_business = funding, regulation, market, strategy, partnerships
 
 Articles:
 {article_text}
 
 Output exactly {len(candidates)} items:
-[{{"i":0,"impact":4,"freshness":5,"breadth":3,"topic_tag":"example-tag"}}]"""
+[{{"i":0,"ai_relevance":5,"impact":4,"freshness":5,"breadth":3,"topic_tag":"example-tag","category":"model_research"}}]"""
 
     try:
         llm = get_llm(temperature=0.1, max_tokens=4096)
@@ -246,21 +277,25 @@ Output exactly {len(candidates)} items:
         for s in scores:
             if not isinstance(s, dict):
                 continue
-            # LLM이 "i", "index", 문자열 등 다양한 형태로 반환할 수 있음
             raw_idx = s.get("i", s.get("index", -1))
             try:
                 idx = int(raw_idx)
             except (ValueError, TypeError):
                 continue
             if 0 <= idx < len(candidates):
-                candidates[idx]["_score_impact"] = s.get("impact", 3)
-                candidates[idx]["_score_freshness"] = s.get("freshness", 3)
-                candidates[idx]["_score_breadth"] = s.get("breadth", 3)
+                ai_rel = s.get("ai_relevance", 3)
+                impact = s.get("impact", 3)
+                fresh = s.get("freshness", 3)
+                breadth = s.get("breadth", 3)
+                candidates[idx]["_score_ai_relevance"] = ai_rel
+                candidates[idx]["_score_impact"] = impact
+                candidates[idx]["_score_freshness"] = fresh
+                candidates[idx]["_score_breadth"] = breadth
                 candidates[idx]["_topic_tag"] = s.get("topic_tag", "")
+                candidates[idx]["_llm_category"] = s.get("category", "")
+                # ai_relevance 가중치 3x, impact 2x
                 candidates[idx]["_total_score"] = (
-                    s.get("impact", 3) * 2  # impact 가중치 2x
-                    + s.get("freshness", 3)
-                    + s.get("breadth", 3)
+                    ai_rel * 3 + impact * 2 + fresh + breadth
                 )
 
         scored = len([c for c in candidates if "_total_score" in c])
@@ -275,21 +310,23 @@ Output exactly {len(candidates)} items:
     # 폴백: 미평가 기사에 기본 점수
     for c in candidates:
         if "_total_score" not in c:
+            c["_score_ai_relevance"] = 3
             c["_score_impact"] = 3
             c["_score_freshness"] = 3
             c["_score_breadth"] = 3
             c["_topic_tag"] = ""
-            c["_total_score"] = 12
+            c["_llm_category"] = ""
+            c["_total_score"] = 17  # 3*3 + 3*2 + 3 + 3
 
     return {"scored_candidates": candidates}
 
 
-# ─── Node 4: ranker (순수 Python, LLM 불필요) ───
+# ─── Node 4: ranker (LLM 기반 하이라이트 선정) ───
 HIGHLIGHT_COUNT = 3
-MAX_PER_SOURCE_HIGHLIGHT = 2
+HIGHLIGHT_CANDIDATE_POOL = 12
 
 def ranker_node(state: NewsGraphState) -> dict:
-    """점수 기반 Top 3 하이라이트 선정 + topic_tag/소스 중복 제거"""
+    """LLM이 상위 후보 중 Top 3 하이라이트를 직접 선정"""
     candidates = state.get("scored_candidates", [])
     if not candidates:
         return {"highlights": [], "category_pool": []}
@@ -298,89 +335,127 @@ def ranker_node(state: NewsGraphState) -> dict:
     highlight_pool = [c for c in candidates if c.get("source_key", "") in HIGHLIGHT_SOURCES]
     non_highlight = [c for c in candidates if c.get("source_key", "") not in HIGHLIGHT_SOURCES]
 
+    # 점수순 상위 N개를 LLM 후보로 제공
     ranked = sorted(highlight_pool, key=lambda c: c.get("_total_score", 0), reverse=True)
+    top_candidates = ranked[:HIGHLIGHT_CANDIDATE_POOL]
+    the_rest = ranked[HIGHLIGHT_CANDIDATE_POOL:]
 
-    selected: list[dict] = []
-    used_topics: set[str] = set()
-    source_count: dict[str, int] = {}
-    remaining: list[dict] = []
-
-    for c in ranked:
-        tag = c.get("_topic_tag", "").lower().strip()
+    # LLM에게 최종 3개 선정 요청
+    article_text = ""
+    for i, c in enumerate(top_candidates):
+        title = c.get("display_title") or c.get("title", "")
+        desc = c.get("summary") or c.get("description", "")[:150]
         src = c.get("source_key", "")
-
-        if len(selected) >= HIGHLIGHT_COUNT:
-            remaining.append(c)
-            continue
-
-        # 같은 topic_tag → 스킵
-        if tag and tag in used_topics:
-            remaining.append(c)
-            continue
-
-        # 동일 소스 상한
-        if source_count.get(src, 0) >= MAX_PER_SOURCE_HIGHLIGHT:
-            remaining.append(c)
-            continue
-
-        selected.append(c)
-        if tag:
-            used_topics.add(tag)
-        source_count[src] = source_count.get(src, 0) + 1
-
-    # 부족하면 나머지에서 보충
-    if len(selected) < HIGHLIGHT_COUNT:
-        for c in remaining[:]:
-            if len(selected) >= HIGHLIGHT_COUNT:
-                break
-            selected.append(c)
-            remaining.remove(c)
-
-    print(f"  [랭킹] Top {len(selected)}개 하이라이트 선정 완료")
-    for i, c in enumerate(selected):
-        tag = c.get("_topic_tag", "?")
         score = c.get("_total_score", 0)
-        title = (c.get("display_title") or c.get("title", ""))[:40]
-        print(f"    {i+1}. [{score}점] {title} ({tag})")
+        tag = c.get("_topic_tag", "")
+        article_text += f"\n[{i}] (score={score}, tag={tag}, src={src}) {title} | {desc}"
+
+    prompt = f"""You are an AI news editor. Pick the 3 BEST articles for today's highlights.
+
+Selection criteria (in order of priority):
+1. AI RELEVANCE: Must be directly about AI/ML. Reject general tech, politics, entertainment.
+2. IMPACT: Choose paradigm-shifting or significant news over minor updates.
+3. TOPIC DIVERSITY: Each pick must cover a DIFFERENT topic. No two articles about the same subject.
+4. SOURCE DIVERSITY: Prefer picks from different sources. Max 2 from the same source.
+5. HEADLINE QUALITY: The title should be compelling and informative for readers.
+
+The FIRST pick (index 0 in your output) becomes the Hero card — choose the single most important AI story of the day.
+
+Candidates:
+{article_text}
+
+Output ONLY a valid JSON array with exactly 3 items. No markdown, no explanation.
+[{{"pick":0,"reason":"10-word reason"}}]
+
+pick = the candidate index number [0-{len(top_candidates)-1}]"""
+
+    selected_indices: list[int] = []
+    try:
+        llm = get_llm(temperature=0.2, max_tokens=512)
+        content = _llm_invoke_with_retry(llm, prompt, max_retries=2)
+        picks = _parse_llm_json(content)
+        if not isinstance(picks, list):
+            picks = next((v for v in picks.values() if isinstance(v, list)), [])
+
+        for p in picks:
+            if not isinstance(p, dict):
+                continue
+            raw_idx = p.get("pick", p.get("i", p.get("index", -1)))
+            try:
+                idx = int(raw_idx)
+            except (ValueError, TypeError):
+                continue
+            if 0 <= idx < len(top_candidates) and idx not in selected_indices:
+                selected_indices.append(idx)
+            if len(selected_indices) >= HIGHLIGHT_COUNT:
+                break
+
+        print(f"  [랭킹] LLM이 {len(selected_indices)}개 하이라이트 선정")
+        for rank, idx in enumerate(selected_indices):
+            reason = ""
+            for p in picks:
+                if isinstance(p, dict):
+                    raw = p.get("pick", p.get("i", p.get("index", -1)))
+                    try:
+                        if int(raw) == idx:
+                            reason = p.get("reason", "")
+                            break
+                    except (ValueError, TypeError):
+                        pass
+            c = top_candidates[idx]
+            title = (c.get("display_title") or c.get("title", ""))[:40]
+            print(f"    {rank+1}. [{c.get('_total_score', 0)}점] {title} — {reason}")
+
+    except Exception as e:
+        print(f"  [WARNING] LLM 랭킹 실패, 점수순 폴백: {type(e).__name__}: {e}")
+
+    # LLM이 3개 미만 선정했으면 점수순으로 보충
+    if len(selected_indices) < HIGHLIGHT_COUNT:
+        for i in range(len(top_candidates)):
+            if len(selected_indices) >= HIGHLIGHT_COUNT:
+                break
+            if i not in selected_indices:
+                selected_indices.append(i)
+
+    selected = [top_candidates[i] for i in selected_indices]
+    remaining_hl = [c for i, c in enumerate(top_candidates) if i not in selected_indices]
 
     return {
         "highlights": selected,
-        "category_pool": remaining + non_highlight,
+        "category_pool": remaining_hl + the_rest + non_highlight,
     }
 
 
-# ─── Node 5: classifier (키워드 우선, 모호한 것만 LLM) ───
-def _keyword_classify(articles: list[dict]) -> tuple[dict[str, list[dict]], list[dict]]:
-    """키워드 기반 분류. 확신 있는 것은 분류, 모호한 것은 ambiguous로 반환"""
-    categorized: dict[str, list[dict]] = {
-        "model_research": [],
-        "product_tools": [],
-        "industry_business": [],
-    }
-    ambiguous: list[dict] = []
+# ─── Node 5: classifier (scorer 카테고리 우선, 키워드 보조, LLM 폴백) ───
+VALID_CATEGORIES = {"model_research", "product_tools", "industry_business"}
 
-    for a in articles:
-        text = (a.get("title", "") + " " + a.get("description", "")).lower()
-        scores = {}
-        for cat, keywords in CATEGORY_KEYWORDS.items():
-            scores[cat] = sum(1 for kw in keywords if kw in text)
+def _classify_article(a: dict) -> str | None:
+    """단일 기사 분류. scorer의 _llm_category → 키워드 → None(모호)."""
+    # 1순위: scorer가 이미 분류한 카테고리
+    llm_cat = a.get("_llm_category", "")
+    if llm_cat in VALID_CATEGORIES:
+        return llm_cat
 
-        sorted_cats = sorted(scores.items(), key=lambda x: x[1], reverse=True)
-        best_score = sorted_cats[0][1]
-        second_score = sorted_cats[1][1]
+    # 2순위: 키워드 매칭
+    text = (a.get("title", "") + " " + a.get("description", "")).lower()
+    scores = {}
+    for cat, keywords in CATEGORY_KEYWORDS.items():
+        scores[cat] = sum(1 for kw in keywords if kw in text)
 
-        if best_score == 0:
-            ambiguous.append(a)
-        elif best_score > 0 and (best_score - second_score) <= 1 and best_score <= 2:
-            ambiguous.append(a)
-        else:
-            categorized[sorted_cats[0][0]].append(a)
+    sorted_cats = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+    best_score = sorted_cats[0][1]
+    second_score = sorted_cats[1][1]
 
-    return categorized, ambiguous
+    if best_score >= 3:
+        return sorted_cats[0][0]
+    if best_score >= 2 and (best_score - second_score) >= 2:
+        return sorted_cats[0][0]
+
+    return None  # 모호
 
 
 def _llm_classify_batch(articles: list[dict], categorized: dict[str, list[dict]]):
-    """모호한 기사들만 LLM으로 분류 (소규모 배치)"""
+    """모호한 기사들만 LLM으로 분류"""
     article_text = ""
     for i, a in enumerate(articles):
         title = a.get("display_title") or a.get("title", "")
@@ -389,10 +464,23 @@ def _llm_classify_batch(articles: list[dict], categorized: dict[str, list[dict]]
 
     prompt = f"""You are a JSON-only classifier. Output ONLY a valid JSON array, no markdown.
 
-Classify each AI news article into exactly one category:
-- model_research: models, research, papers, benchmarks, training, architecture
-- product_tools: products, tools, launches, APIs, frameworks, developer tools
-- industry_business: funding, regulation, market, corporate strategy, partnerships
+Classify each AI news article into exactly ONE category using these decision rules:
+
+model_research — Ask: "Was new technical knowledge or capability created?"
+  YES → model_research. Examples: paper published, new model released with weights,
+  benchmark record broken, new architecture proposed, training method discovered.
+
+product_tools — Ask: "Can a user directly use something new or changed?"
+  YES → product_tools. Examples: app launched, API released, tool updated,
+  open-source library published, developer framework released.
+
+industry_business — Ask: "Did money, organizations, or policy move?"
+  YES → industry_business. Examples: funding round, acquisition, partnership,
+  regulation passed, executive hire, market analysis, earnings report.
+
+Priority rule: If an article fits multiple categories, use this priority:
+  model_research > product_tools > industry_business
+  (Technical breakthroughs take priority over product/business framing)
 
 Articles:
 {article_text}
@@ -408,12 +496,17 @@ Output exactly {len(articles)} items:
             results = next((v for v in results.values() if isinstance(v, list)), [])
         classified = set()
         for r in results:
-            idx = r.get("i", -1)
+            if not isinstance(r, dict):
+                continue
+            raw_idx = r.get("i", r.get("index", -1))
+            try:
+                idx = int(raw_idx)
+            except (ValueError, TypeError):
+                continue
             cat = r.get("cat", "")
             if 0 <= idx < len(articles) and cat in categorized:
                 categorized[cat].append(articles[idx])
                 classified.add(idx)
-        # 누락된 기사 → industry_business 폴백
         for i, a in enumerate(articles):
             if i not in classified:
                 categorized["industry_business"].append(a)
@@ -459,23 +552,29 @@ def classifier_node(state: NewsGraphState) -> dict:
     all_to_classify = [a for a in category_pool if a.get("link", "") not in highlight_links]
 
     category_order = ["model_research", "product_tools", "industry_business"]
+    categorized: dict[str, list[dict]] = {k: [] for k in category_order}
 
     if not all_to_classify:
         print("  [분류] 분류 대상 기사 없음")
-        return {
-            "categorized_articles": {k: [] for k in category_order},
-            "category_order": category_order,
-        }
+        return {"categorized_articles": categorized, "category_order": category_order}
 
-    # 키워드 우선 분류
-    categorized, ambiguous = _keyword_classify(all_to_classify)
+    # scorer 카테고리 + 키워드 분류, 모호한 것만 모음
+    ambiguous: list[dict] = []
+    classified_count = 0
+    for a in all_to_classify:
+        cat = _classify_article(a)
+        if cat:
+            categorized[cat].append(a)
+            classified_count += 1
+        else:
+            ambiguous.append(a)
+
+    print(f"  [분류] {classified_count}개 즉시 분류, {len(ambiguous)}개 모호")
 
     # 모호한 기사만 LLM
     if ambiguous:
         print(f"  [분류] {len(ambiguous)}개 모호한 기사 LLM 분류 중...")
         _llm_classify_batch(ambiguous, categorized)
-    else:
-        print("  [분류] 전체 키워드 분류 완료, LLM 불필요")
 
     # 카테고리별 Top 10 선정 (점수순 + 소스 상한)
     for cat in category_order:
