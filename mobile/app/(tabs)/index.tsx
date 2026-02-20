@@ -238,7 +238,7 @@ function HighlightSection({ highlights }: { highlights: Article[] }) {
   if (!highlights || highlights.length === 0) return null;
 
   const hero = highlights[0];
-  const grid = highlights.slice(1, 5);
+  const sub = highlights.slice(1, 3);
 
   return (
     <View style={{ paddingTop: 8, paddingBottom: 16, backgroundColor: '#F0F4FF' }}>
@@ -251,22 +251,13 @@ function HighlightSection({ highlights }: { highlights: Article[] }) {
       {/* Hero 카드 */}
       <HeroCard article={hero} />
 
-      {/* 2x2 그리드 */}
-      {grid.length > 0 && (
-        <View style={{ paddingHorizontal: 16 }}>
-          <View style={{ flexDirection: 'row', gap: 10, marginBottom: 10 }}>
-            {grid.slice(0, 2).map((a, i) => (
-              <SmallHighlightCard key={`hl-${i}`} article={a} />
-            ))}
-          </View>
-          {grid.length > 2 && (
-            <View style={{ flexDirection: 'row', gap: 10 }}>
-              {grid.slice(2, 4).map((a, i) => (
-                <SmallHighlightCard key={`hl-${i + 2}`} article={a} />
-              ))}
-              {grid.length === 3 && <View style={{ flex: 1 }} />}
-            </View>
-          )}
+      {/* 하단 2카드 */}
+      {sub.length > 0 && (
+        <View style={{ flexDirection: 'row', gap: 10, paddingHorizontal: 16 }}>
+          {sub.map((a, i) => (
+            <SmallHighlightCard key={`hl-${i}`} article={a} />
+          ))}
+          {sub.length === 1 && <View style={{ flex: 1 }} />}
         </View>
       )}
     </View>

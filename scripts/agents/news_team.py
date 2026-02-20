@@ -5,9 +5,10 @@ collector → translator → scorer → ranker → classifier → assembler
 
 1. collector:   13개 소스 RSS 수집 + og:image 추출 + 이미지 없는 기사 제거
 2. translator:  영어 기사 한국어 번역 (병렬 배치)
-3. scorer:      LLM으로 하이라이트 후보 기사 3차원 점수 평가
-4. ranker:      점수 기반 Top 5 선정 + topic_tag 중복 제거 (순수 Python)
+3. scorer:      LLM으로 CATEGORY_SOURCES 전체 기사 3차원 점수 평가
+4. ranker:      점수 기반 Top 3 하이라이트 선정 + topic_tag/소스 중복 제거
 5. classifier:  나머지 기사 3개 카테고리 분류 (키워드 우선, 모호한 것만 LLM)
+               + 카테고리별 Top 10 선정 (점수순 + 소스 상한 3개)
 6. assembler:   한국 소스를 소스별로 분리, 최종 결과 조합
 """
 
@@ -200,16 +201,16 @@ def translator_node(state: NewsGraphState) -> dict:
 
 # ─── Node 3: scorer (LLM 3차원 평가) ───
 def scorer_node(state: NewsGraphState) -> dict:
-    """각 하이라이트 후보 기사에 대해 impact/freshness/breadth 점수 부여"""
+    """CATEGORY_SOURCES 전체 기사에 대해 impact/freshness/breadth 점수 부여"""
     sources = state["sources"]
 
     candidates: list[dict] = []
-    for key in HIGHLIGHT_SOURCES:
+    for key in CATEGORY_SOURCES:
         for a in sources.get(key, []):
             candidates.append(a)
 
     if not candidates:
-        print("  [스코어링] 하이라이트 후보 없음")
+        print("  [스코어링] 평가 대상 없음")
         return {"scored_candidates": []}
 
     print(f"  [스코어링] {len(candidates)}개 하이라이트 후보 평가 중...")
@@ -284,43 +285,58 @@ Output exactly {len(candidates)} items:
 
 
 # ─── Node 4: ranker (순수 Python, LLM 불필요) ───
+HIGHLIGHT_COUNT = 3
+MAX_PER_SOURCE_HIGHLIGHT = 2
+
 def ranker_node(state: NewsGraphState) -> dict:
-    """점수 기반 Top 5 선정 + topic_tag 중복 제거"""
+    """점수 기반 Top 3 하이라이트 선정 + topic_tag/소스 중복 제거"""
     candidates = state.get("scored_candidates", [])
     if not candidates:
         return {"highlights": [], "category_pool": []}
 
-    ranked = sorted(candidates, key=lambda c: c.get("_total_score", 0), reverse=True)
+    # 하이라이트는 HIGHLIGHT_SOURCES에서만 선정
+    highlight_pool = [c for c in candidates if c.get("source_key", "") in HIGHLIGHT_SOURCES]
+    non_highlight = [c for c in candidates if c.get("source_key", "") not in HIGHLIGHT_SOURCES]
+
+    ranked = sorted(highlight_pool, key=lambda c: c.get("_total_score", 0), reverse=True)
 
     selected: list[dict] = []
     used_topics: set[str] = set()
+    source_count: dict[str, int] = {}
     remaining: list[dict] = []
 
     for c in ranked:
         tag = c.get("_topic_tag", "").lower().strip()
+        src = c.get("source_key", "")
 
-        if len(selected) >= 5:
+        if len(selected) >= HIGHLIGHT_COUNT:
             remaining.append(c)
             continue
 
-        # 같은 topic_tag → 스킵 (다양성 보장)
+        # 같은 topic_tag → 스킵
         if tag and tag in used_topics:
+            remaining.append(c)
+            continue
+
+        # 동일 소스 상한
+        if source_count.get(src, 0) >= MAX_PER_SOURCE_HIGHLIGHT:
             remaining.append(c)
             continue
 
         selected.append(c)
         if tag:
             used_topics.add(tag)
+        source_count[src] = source_count.get(src, 0) + 1
 
-    # 5개 미만이면 나머지에서 보충
-    if len(selected) < 5:
+    # 부족하면 나머지에서 보충
+    if len(selected) < HIGHLIGHT_COUNT:
         for c in remaining[:]:
-            if len(selected) >= 5:
+            if len(selected) >= HIGHLIGHT_COUNT:
                 break
             selected.append(c)
             remaining.remove(c)
 
-    print(f"  [랭킹] Top {len(selected)}개 선정 완료")
+    print(f"  [랭킹] Top {len(selected)}개 하이라이트 선정 완료")
     for i, c in enumerate(selected):
         tag = c.get("_topic_tag", "?")
         score = c.get("_total_score", 0)
@@ -329,7 +345,7 @@ def ranker_node(state: NewsGraphState) -> dict:
 
     return {
         "highlights": selected,
-        "category_pool": remaining,
+        "category_pool": remaining + non_highlight,
     }
 
 
@@ -407,21 +423,40 @@ Output exactly {len(articles)} items:
             categorized["industry_business"].append(a)
 
 
+CATEGORY_TOP_N = 10
+MAX_PER_SOURCE_CATEGORY = 3
+
+def _select_top_n(articles: list[dict], n: int, max_per_source: int) -> list[dict]:
+    """점수순 Top N 선정 + 동일 소스 상한. 동점 시 최신순."""
+    sorted_articles = sorted(
+        articles,
+        key=lambda a: (a.get("_total_score", 0), a.get("published", "")),
+        reverse=True,
+    )
+    selected: list[dict] = []
+    source_count: dict[str, int] = {}
+
+    for a in sorted_articles:
+        if len(selected) >= n:
+            break
+        src = a.get("source_key", "")
+        if source_count.get(src, 0) >= max_per_source:
+            continue
+        selected.append(a)
+        source_count[src] = source_count.get(src, 0) + 1
+
+    return selected
+
+
 def classifier_node(state: NewsGraphState) -> dict:
-    """하이라이트 제외 기사를 3개 카테고리로 분류"""
-    sources = state["sources"]
+    """하이라이트 제외 기사를 3개 카테고리로 분류 + 카테고리별 Top 10 선정"""
     highlights = state.get("highlights", [])
     category_pool = state.get("category_pool", [])
 
     highlight_links = set(a.get("link", "") for a in highlights)
 
-    # 분류 대상: ranker가 남긴 category_pool + Tier 2 소스 기사
-    all_to_classify: list[dict] = list(category_pool)
-    for key in CATEGORY_SOURCES:
-        if key not in HIGHLIGHT_SOURCES:
-            for a in sources.get(key, []):
-                if a.get("link", "") not in highlight_links:
-                    all_to_classify.append(a)
+    # 분류 대상: ranker가 남긴 category_pool (이미 스코어링됨)
+    all_to_classify = [a for a in category_pool if a.get("link", "") not in highlight_links]
 
     category_order = ["model_research", "product_tools", "industry_business"]
 
@@ -442,8 +477,11 @@ def classifier_node(state: NewsGraphState) -> dict:
     else:
         print("  [분류] 전체 키워드 분류 완료, LLM 불필요")
 
+    # 카테고리별 Top 10 선정 (점수순 + 소스 상한)
     for cat in category_order:
-        print(f"    {cat}: {len(categorized[cat])}개")
+        total = len(categorized[cat])
+        categorized[cat] = _select_top_n(categorized[cat], CATEGORY_TOP_N, MAX_PER_SOURCE_CATEGORY)
+        print(f"    {cat}: {total}개 → Top {len(categorized[cat])}개 선정")
 
     return {
         "categorized_articles": categorized,
