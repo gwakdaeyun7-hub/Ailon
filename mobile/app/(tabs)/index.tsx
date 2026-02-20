@@ -283,6 +283,12 @@ function NewsCard({ article, onPress }: { article: Article; onPress: () => void 
               <Calendar size={12} color={TEXT_LIGHT} />
               <Text style={{ fontSize: 11, color: TEXT_LIGHT }}>{formatDate(article.published)}</Text>
             </View>
+            {article.source ? (
+              <>
+                <Text style={{ fontSize: 10, color: TEXT_LIGHT }}>·</Text>
+                <Text style={{ fontSize: 11, color: TEXT_LIGHT }} numberOfLines={1}>{article.source}</Text>
+              </>
+            ) : null}
             <LikeCount itemId={itemId} />
           </View>
           {article.link && (
