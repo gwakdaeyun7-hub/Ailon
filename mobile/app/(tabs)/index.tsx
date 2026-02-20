@@ -355,68 +355,117 @@ function HScrollCard({
   );
 }
 
-// ─── Section 2: 카테고리별 가로 스크롤 ──────────────────────────────────
-function CategorySection({
-  categoryKey, articles,
+// ─── Section 2: 카테고리 탭 + 세로 리스트 ──────────────────────────────
+function CategoryTabSection({
+  categorizedArticles, categoryOrder,
 }: {
-  categoryKey: string; articles: Article[];
+  categorizedArticles: Record<string, Article[]>; categoryOrder: string[];
 }) {
+  const [activeTab, setActiveTab] = useState(categoryOrder[0] || 'model_research');
   const [showMore, setShowMore] = useState(false);
   const [expandedLink, setExpandedLink] = useState<string | null>(null);
 
-  if (!articles || articles.length === 0) return null;
-
-  const name = CATEGORY_NAMES[categoryKey] || categoryKey;
-  const color = CATEGORY_COLORS[categoryKey] || TEXT_SECONDARY;
+  const articles = categorizedArticles[activeTab] || [];
   const first5 = articles.slice(0, 5);
   const more5 = articles.slice(5, 10);
   const visible = showMore ? [...first5, ...more5] : first5;
   const expandedArticle = expandedLink ? visible.find(a => a.link === expandedLink) : null;
 
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    setShowMore(false);
+    setExpandedLink(null);
+  };
+
   return (
     <View style={{ marginBottom: 24 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 10 }}>
-        <View style={{ width: 4, height: 18, borderRadius: 2, backgroundColor: color, marginRight: 8 }} />
-        <Text style={{ fontSize: 15, fontWeight: '800', color: TEXT_PRIMARY, flex: 1 }}>
-          {name}
-        </Text>
-        <Text style={{ fontSize: 11, color: TEXT_LIGHT }}>{articles.length}개</Text>
-      </View>
-
+      {/* 카테고리 탭 */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 4 }}
+        contentContainerStyle={{ paddingHorizontal: 16, gap: 8, marginBottom: 12 }}
       >
-        {visible.map((a, i) => (
-          <HScrollCard
-            key={`${categoryKey}-${i}`}
-            article={a}
-            showSourceBadge
-            isExpanded={expandedLink === a.link}
-            onToggle={() => setExpandedLink(prev => prev === a.link ? null : a.link)}
-          />
-        ))}
-
-        {more5.length > 0 && !showMore && (
-          <Pressable
-            onPress={() => setShowMore(true)}
-            style={{
-              width: 80,
-              height: HCARD_HEIGHT,
-              marginRight: 12,
-              backgroundColor: BORDER,
-              borderRadius: 12,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Text style={{ fontSize: 12, fontWeight: '700', color: TEXT_SECONDARY, textAlign: 'center' }}>
-              +{more5.length}개{'\n'}더보기
-            </Text>
-          </Pressable>
-        )}
+        {categoryOrder.map(catKey => {
+          const isActive = catKey === activeTab;
+          const color = CATEGORY_COLORS[catKey] || TEXT_SECONDARY;
+          return (
+            <Pressable
+              key={catKey}
+              onPress={() => handleTabChange(catKey)}
+              style={{
+                paddingHorizontal: 14, paddingVertical: 7,
+                borderRadius: 20,
+                backgroundColor: isActive ? color : CARD,
+                borderWidth: 1,
+                borderColor: isActive ? color : BORDER,
+              }}
+            >
+              <Text style={{
+                fontSize: 13, fontWeight: '700',
+                color: isActive ? '#FFF' : TEXT_SECONDARY,
+              }}>
+                {CATEGORY_NAMES[catKey] || catKey}
+              </Text>
+            </Pressable>
+          );
+        })}
       </ScrollView>
+
+      {/* 세로 기사 리스트 */}
+      <View style={{ paddingHorizontal: 16 }}>
+        {visible.map((a, i) => (
+          <Pressable
+            key={`cat-${activeTab}-${i}`}
+            onPress={() => setExpandedLink(prev => prev === a.link ? null : a.link)}
+            style={({ pressed }) => ({
+              flexDirection: 'row',
+              paddingVertical: 12,
+              borderBottomWidth: 1,
+              borderBottomColor: BORDER,
+              opacity: pressed ? 0.7 : 1,
+            })}
+          >
+            {a.image_url ? (
+              <Image
+                source={a.image_url}
+                style={{ width: 72, height: 72, borderRadius: 8, marginRight: 12 }}
+                contentFit="cover"
+                transition={200}
+                recyclingKey={a.link}
+              />
+            ) : (
+              <View style={{ width: 72, height: 72, borderRadius: 8, marginRight: 12, backgroundColor: BORDER, alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ fontSize: 20, color: TEXT_LIGHT }}>📰</Text>
+              </View>
+            )}
+            <View style={{ flex: 1, justifyContent: 'center' }}>
+              <Text
+                style={{ fontSize: 13, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 18 }}
+                numberOfLines={2}
+                ellipsizeMode="tail"
+              >
+                {getTitle(a)}
+              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: 8 }}>
+                <SourceBadge sourceKey={a.source_key} />
+                <Text style={{ fontSize: 10, color: TEXT_LIGHT }}>{formatDate(a.published)}</Text>
+              </View>
+            </View>
+          </Pressable>
+        ))}
+      </View>
+
+      {/* 더보기 */}
+      {more5.length > 0 && !showMore && (
+        <Pressable
+          onPress={() => setShowMore(true)}
+          style={{ alignItems: 'center', paddingVertical: 12 }}
+        >
+          <Text style={{ fontSize: 13, fontWeight: '700', color: TEXT_SECONDARY }}>
+            +{more5.length}개 더보기
+          </Text>
+        </Pressable>
+      )}
 
       {expandedArticle && (
         <ExpandedSummary
@@ -503,10 +552,13 @@ function SourceHScrollSection({
 // ─── GeekNews 세로 리스트 ────────────────────────────────────────────────
 function GeekNewsSection({ articles }: { articles: Article[] }) {
   const [expandedLink, setExpandedLink] = useState<string | null>(null);
+  const [showMore, setShowMore] = useState(false);
 
   if (!articles || articles.length === 0) return null;
 
-  const visible = articles.slice(0, 5);
+  const first5 = articles.slice(0, 5);
+  const more5 = articles.slice(5, 10);
+  const visible = showMore ? [...first5, ...more5] : first5;
   const color = SOURCE_COLORS['geeknews'] || TEXT_SECONDARY;
   const expandedArticle = expandedLink ? visible.find(a => a.link === expandedLink) : null;
 
@@ -546,6 +598,17 @@ function GeekNewsSection({ articles }: { articles: Article[] }) {
           </Pressable>
         ))}
       </View>
+
+      {more5.length > 0 && !showMore && (
+        <Pressable
+          onPress={() => setShowMore(true)}
+          style={{ alignItems: 'center', paddingVertical: 12 }}
+        >
+          <Text style={{ fontSize: 13, fontWeight: '700', color: TEXT_SECONDARY }}>
+            +{more5.length}개 더보기
+          </Text>
+        </Pressable>
+      )}
 
       {expandedArticle && (
         <ExpandedSummary
@@ -671,14 +734,11 @@ export default function NewsScreen() {
             {/* Section 1: 하이라이트 */}
             <HighlightSection highlights={highlights} />
 
-            {/* Section 2: 카테고리별 뉴스 */}
-            {categoryOrder.map(catKey => (
-              <CategorySection
-                key={catKey}
-                categoryKey={catKey}
-                articles={categorizedArticles[catKey] || []}
-              />
-            ))}
+            {/* Section 2: 카테고리 탭 + 세로 리스트 */}
+            <CategoryTabSection
+              categorizedArticles={categorizedArticles}
+              categoryOrder={categoryOrder}
+            />
 
             {/* 구분선 */}
             {sourceOrder.some(key => (sourceArticles[key]?.length ?? 0) > 0) && (

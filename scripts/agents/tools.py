@@ -22,7 +22,7 @@ SOURCES = [
         "name": "Wired AI",
         "rss_url": "https://www.wired.com/feed/tag/ai/latest/rss",
         "max_items": 20,
-        "days": 7,
+
         "lang": "en",
         "rss_image_field": "media_thumbnail",  # RSS에 media:thumbnail 포함
         "ai_filter": True,
@@ -32,7 +32,7 @@ SOURCES = [
         "name": "The Verge AI",
         "rss_url": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml",
         "max_items": 20,
-        "days": 7,
+
         "lang": "en",
         "rss_image_field": "content_image",  # RSS content에 <img> 포함
         "ai_filter": True,
@@ -42,7 +42,7 @@ SOURCES = [
         "name": "TechCrunch AI",
         "rss_url": "https://techcrunch.com/category/artificial-intelligence/feed/",
         "max_items": 20,
-        "days": 7,
+
         "lang": "en",
         "ai_filter": True,
     },
@@ -51,7 +51,7 @@ SOURCES = [
         "name": "MIT Tech Review",
         "rss_url": "https://www.technologyreview.com/topic/artificial-intelligence/feed",
         "max_items": 20,
-        "days": 7,
+
         "lang": "en",
         "ai_filter": True,
     },
@@ -60,7 +60,7 @@ SOURCES = [
         "name": "VentureBeat",
         "rss_url": "https://venturebeat.com/feed/",
         "max_items": 20,
-        "days": 7,
+
         "lang": "en",
         "ai_filter": True,
     },
@@ -70,7 +70,7 @@ SOURCES = [
         "name": "Google DeepMind",
         "rss_url": "https://deepmind.google/blog/rss.xml",
         "max_items": 20,
-        "days": 7,
+
         "lang": "en",
         "rss_image_field": "media_thumbnail",
     },
@@ -79,7 +79,7 @@ SOURCES = [
         "name": "NVIDIA AI",
         "rss_url": "https://blogs.nvidia.com/feed/",
         "max_items": 20,
-        "days": 7,
+
         "lang": "en",
         "ai_filter": True,
     },
@@ -88,7 +88,7 @@ SOURCES = [
         "name": "Hugging Face",
         "rss_url": "https://huggingface.co/blog/feed.xml",
         "max_items": 20,
-        "days": 7,
+
         "lang": "en",
     },
     # Tier 3: 한국 소스
@@ -97,7 +97,7 @@ SOURCES = [
         "name": "AI타임스",
         "rss_url": "https://www.aitimes.com/rss/allArticle.xml",
         "max_items": 20,
-        "days": 7,
+
         "lang": "ko",
     },
     {
@@ -105,7 +105,7 @@ SOURCES = [
         "name": "GeekNews",
         "rss_url": "https://news.hada.io/rss/news",
         "max_items": 20,
-        "days": 7,
+
         "lang": "ko",
         "ai_filter": True,
     },
@@ -114,7 +114,7 @@ SOURCES = [
         "name": "ZDNet AI 에디터",
         "scrape_url": "https://zdnet.co.kr/reporter/?lstcode=media",
         "max_items": 20,
-        "days": 7,
+
         "lang": "ko",
     },
     {
@@ -122,7 +122,7 @@ SOURCES = [
         "name": "요즘IT AI",
         "rss_url": "https://yozm.wishket.com/magazine/ai/feed/",
         "max_items": 20,
-        "days": 7,
+
         "lang": "ko",
         "rss_image_field": "content_image",
     },
@@ -287,8 +287,6 @@ def _fetch_scrape_source(source_config: dict) -> list[dict]:
                         published = txt
                         break
 
-            if published and not _within_days_ymd(published, days):
-                continue
 
             articles.append({
                 "title": title,
@@ -349,8 +347,6 @@ def fetch_source(source_config: dict) -> list[dict]:
                 continue
 
             published = entry.get("published", "") or entry.get("updated", "")
-            if not _within_days(published, days):
-                continue
 
             description = (entry.get("summary", "") or "").strip()
             description = re.sub(r'<[^>]+>', '', description)[:500]
@@ -414,18 +410,16 @@ def fetch_all_sources() -> dict[str, list[dict]]:
 
 def filter_imageless(sources: dict[str, list[dict]]) -> None:
     """
-    image_url이 없는 기사를 제거 (in-place)
-    각 소스에서 상위 10개만 남김
-    한국 소스(SOURCE_SECTION_SOURCES)는 이미지 없어도 유지 (10개 제한만 적용)
+    영어 소스: image_url 없는 기사 제거 (최대 20개 유지)
+    한국 소스: 이미지 무관, 최대 20개 유지
     """
     removed = 0
     for key, articles in sources.items():
         before = len(articles)
         if key in SOURCE_SECTION_SOURCES:
-            # 한국 소스는 이미지 필터 없이 10개만 제한
-            sources[key] = articles[:10]
+            sources[key] = articles[:20]
         else:
-            sources[key] = [a for a in articles if a.get("image_url")][:10]
+            sources[key] = [a for a in articles if a.get("image_url")][:20]
         removed += before - len(sources[key])
     if removed > 0:
         print(f"  [필터] 이미지 없는 기사 {removed}개 제거")
