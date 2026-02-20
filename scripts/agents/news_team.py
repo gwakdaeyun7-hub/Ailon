@@ -609,8 +609,11 @@ def _select_top_n(articles: list[dict], n: int, max_per_source: int,
     with_img = [a for a in articles if a.get("image_url")]
     without_img = [a for a in articles if not a.get("image_url")]
 
-    # 발행일 내림차순 (가장 최근이 앞)
-    by_recency = sorted(with_img, key=lambda a: a.get("published", ""), reverse=True)
+    # 발행일 내림차순 (파싱으로 정규화, 파싱 실패 시 최저 순위)
+    _epoch = datetime(2000, 1, 1, tzinfo=timezone.utc)
+    def _pub_key(a: dict):
+        return _parse_published(a.get("published", "")) or _epoch
+    by_recency = sorted(with_img, key=_pub_key, reverse=True)
     by_score = sorted(with_img, key=lambda a: a.get("_total_score", 0), reverse=True)
 
     selected: list[dict] = []
@@ -652,7 +655,7 @@ def _select_top_n(articles: list[dict], n: int, max_per_source: int,
                 break
             _try_add(a)
 
-    selected.sort(key=lambda a: (a.get("published", ""), a.get("_total_score", 0)), reverse=True)
+    selected.sort(key=lambda a: _pub_key(a), reverse=True)
     return selected
 
 

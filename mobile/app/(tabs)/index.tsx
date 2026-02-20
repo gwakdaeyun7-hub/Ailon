@@ -500,6 +500,63 @@ function SourceHScrollSection({
   );
 }
 
+// ─── GeekNews 세로 리스트 ────────────────────────────────────────────────
+function GeekNewsSection({ articles }: { articles: Article[] }) {
+  const [expandedLink, setExpandedLink] = useState<string | null>(null);
+
+  if (!articles || articles.length === 0) return null;
+
+  const visible = articles.slice(0, 5);
+  const color = SOURCE_COLORS['geeknews'] || TEXT_SECONDARY;
+  const expandedArticle = expandedLink ? visible.find(a => a.link === expandedLink) : null;
+
+  return (
+    <View style={{ marginBottom: 24 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 10 }}>
+        <View style={{ width: 4, height: 18, borderRadius: 2, backgroundColor: color, marginRight: 8 }} />
+        <Text style={{ fontSize: 15, fontWeight: '800', color: TEXT_PRIMARY, flex: 1 }}>GeekNews</Text>
+        <Text style={{ fontSize: 11, color: TEXT_LIGHT }}>{visible.length}개</Text>
+      </View>
+
+      <View style={{ paddingHorizontal: 16 }}>
+        {visible.map((a, i) => (
+          <Pressable
+            key={`geeknews-${i}`}
+            onPress={() => setExpandedLink(prev => prev === a.link ? null : a.link)}
+            style={({ pressed }) => ({
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingVertical: 10,
+              borderBottomWidth: i < visible.length - 1 ? 1 : 0,
+              borderBottomColor: BORDER,
+              opacity: pressed ? 0.7 : 1,
+            })}
+          >
+            <Text style={{ fontSize: 12, fontWeight: '800', color: color, width: 20 }}>{i + 1}</Text>
+            <View style={{ flex: 1 }}>
+              <Text
+                style={{ fontSize: 13, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 18 }}
+                numberOfLines={2}
+                ellipsizeMode="tail"
+              >
+                {getTitle(a)}
+              </Text>
+              <Text style={{ fontSize: 10, color: TEXT_LIGHT, marginTop: 2 }}>{formatDate(a.published)}</Text>
+            </View>
+          </Pressable>
+        ))}
+      </View>
+
+      {expandedArticle && (
+        <ExpandedSummary
+          article={expandedArticle}
+          onClose={() => setExpandedLink(null)}
+        />
+      )}
+    </View>
+  );
+}
+
 // ─── 메인 화면 ──────────────────────────────────────────────────────────
 export default function NewsScreen() {
   const [refreshing, setRefreshing] = useState(false);
@@ -633,14 +690,17 @@ export default function NewsScreen() {
               </View>
             )}
 
-            {/* Section 3: 소스별 뉴스 (한국 소스) */}
-            {sourceOrder.map(key => (
+            {/* Section 3: 소스별 뉴스 (한국 소스, GeekNews 제외) */}
+            {sourceOrder.filter(key => key !== 'geeknews').map(key => (
               <SourceHScrollSection
                 key={key}
                 sourceKey={key}
                 articles={sourceArticles[key] || []}
               />
             ))}
+
+            {/* Section 4: GeekNews 세로 리스트 */}
+            <GeekNewsSection articles={sourceArticles['geeknews'] || []} />
           </>
         )}
 
