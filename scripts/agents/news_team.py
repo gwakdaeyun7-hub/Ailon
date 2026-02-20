@@ -178,7 +178,8 @@ def _summarize_batch(batch: list[dict], batch_idx: int, translate: bool = True) 
         title_rule = (
             "display_title: 한국 뉴스 헤드라인 스타일 제목 (max 30 chars)\n"
             "  - 직역 금지. 한국 언론이 실제로 쓸 법한 자연스러운 제목으로 의역\n"
-            "  - 예: 'Google Releases New AI Model' → '구글, 새 AI 모델 전격 공개'\n"
+            "  - 고유명사(회사명·제품명·모델명)는 영어 그대로 유지 (예: Google, OpenAI, GPT-4, Claude, Meta Llama)\n"
+            "  - 예: 'Google Releases New AI Model' → 'Google, 새 AI 모델 전격 공개'\n"
             "  - 쉼표·말줄임표·능동형 서술어 등 한국 뉴스 제목 관행 따르기"
         )
     else:

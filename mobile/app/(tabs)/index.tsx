@@ -14,6 +14,7 @@ import {
   RefreshControl,
   Linking,
   StatusBar,
+  Modal,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -137,9 +138,9 @@ const HIGHLIGHT_CARD_WIDTH = 280;
 const HIGHLIGHT_CARD_HEIGHT = 260;
 
 function HighlightScrollCard({
-  article, isFirst, isExpanded, onToggle,
+  article, isFirst, onToggle,
 }: {
-  article: Article; isFirst?: boolean; isExpanded?: boolean; onToggle?: () => void;
+  article: Article; isFirst?: boolean; onToggle?: () => void;
 }) {
   const { trackView } = useArticleViews(article.link);
 
@@ -164,8 +165,8 @@ function HighlightScrollCard({
         backgroundColor: CARD,
         borderRadius: 14,
         overflow: 'hidden',
-        borderWidth: isExpanded ? 2 : 1,
-        borderColor: isExpanded ? '#3B82F6' : BORDER,
+        borderWidth: 1,
+        borderColor: BORDER,
         opacity: pressed ? 0.92 : 1,
       })}
     >
@@ -202,58 +203,99 @@ function HighlightScrollCard({
   );
 }
 
-function ExpandedSummary({ article, onClose }: { article: Article; onClose: () => void }) {
-  const { trackView } = useArticleViews(article.link);
+function SummaryModal({ article, onClose }: { article: Article | null; onClose: () => void }) {
+  const { trackView } = useArticleViews(article?.link ?? '');
+
+  if (!article) return null;
 
   const handleOpenOriginal = async () => {
     await trackView();
     if (article.link) Linking.openURL(article.link);
   };
 
+  const sourceName = SOURCE_NAMES[article.source_key || ''] || article.source_key || '';
+  const sourceColor = SOURCE_COLORS[article.source_key || ''] || TEXT_SECONDARY;
+
   return (
-    <View style={{
-      marginHorizontal: 16, marginTop: 8, marginBottom: 12,
-      backgroundColor: CARD, borderRadius: 12, padding: 16,
-      borderWidth: 1, borderColor: '#3B82F6' + '40',
-    }}>
-      <Text style={{
-        fontSize: 13, fontWeight: '800', color: TEXT_PRIMARY, lineHeight: 20, marginBottom: 10,
-      }}>
-        {getTitle(article)}
-      </Text>
-      <Text style={{
-        fontSize: 13, color: TEXT_SECONDARY, lineHeight: 22,
-      }}>
-        {article.summary || '요약이 아직 없어요.'}
-      </Text>
-      <View style={{ flexDirection: 'row', marginTop: 14, gap: 10 }}>
+    <Modal
+      visible={!!article}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <Pressable
+        style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}
+        onPress={onClose}
+      >
         <Pressable
-          onPress={handleOpenOriginal}
           style={{
-            backgroundColor: '#000', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8,
+            backgroundColor: CARD,
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+            paddingBottom: 40,
+            maxHeight: '80%',
           }}
+          onPress={() => {}}
         >
-          <Text style={{ color: '#FFF', fontSize: 12, fontWeight: '700' }}>원문 보기</Text>
+          {/* 드래그 핸들바 */}
+          <View style={{ alignItems: 'center', paddingTop: 12, paddingBottom: 8 }}>
+            <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: '#D1D5DB' }} />
+          </View>
+
+          <ScrollView
+            style={{ paddingHorizontal: 20 }}
+            showsVerticalScrollIndicator={false}
+          >
+            {/* 제목 */}
+            <Text style={{
+              fontSize: 17, fontWeight: '800', color: TEXT_PRIMARY, lineHeight: 26, marginBottom: 10,
+            }}>
+              {getTitle(article)}
+            </Text>
+
+            {/* 소스 뱃지 + 날짜 */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+              <View style={{
+                backgroundColor: sourceColor + '18',
+                paddingHorizontal: 8, paddingVertical: 3,
+                borderRadius: 4,
+              }}>
+                <Text style={{ fontSize: 11, fontWeight: '700', color: sourceColor }}>{sourceName}</Text>
+              </View>
+              <Text style={{ fontSize: 12, color: TEXT_LIGHT }}>{formatDate(article.published)}</Text>
+            </View>
+
+            {/* 구분선 */}
+            <View style={{ height: 1, backgroundColor: BORDER, marginBottom: 16 }} />
+
+            {/* 요약 본문 */}
+            <Text style={{
+              fontSize: 15, color: '#374151', lineHeight: 26, marginBottom: 24,
+            }}>
+              {article.summary || '요약이 아직 없어요.'}
+            </Text>
+
+            {/* 하단: 원문 보기 + 카운트 */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <Pressable
+                onPress={handleOpenOriginal}
+                style={{
+                  backgroundColor: '#000', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10,
+                }}
+              >
+                <Text style={{ color: '#FFF', fontSize: 14, fontWeight: '700' }}>원문 보기</Text>
+              </Pressable>
+              <ArticleStats articleLink={article.link} />
+            </View>
+          </ScrollView>
         </Pressable>
-        <Pressable
-          onPress={onClose}
-          style={{
-            backgroundColor: BORDER, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8,
-          }}
-        >
-          <Text style={{ color: TEXT_SECONDARY, fontSize: 12, fontWeight: '700' }}>접기</Text>
-        </Pressable>
-      </View>
-    </View>
+      </Pressable>
+    </Modal>
   );
 }
 
-function HighlightSection({ highlights }: { highlights: Article[] }) {
-  const [expandedLink, setExpandedLink] = useState<string | null>(null);
-
+function HighlightSection({ highlights, onArticlePress }: { highlights: Article[]; onArticlePress: (article: Article) => void }) {
   if (!highlights || highlights.length === 0) return null;
-
-  const expandedArticle = expandedLink ? highlights.find(a => a.link === expandedLink) : null;
 
   return (
     <View style={{ paddingTop: 8, paddingBottom: 16, backgroundColor: '#F0F4FF' }}>
@@ -274,19 +316,10 @@ function HighlightSection({ highlights }: { highlights: Article[] }) {
             key={`hl-${i}`}
             article={a}
             isFirst={i === 0}
-            isExpanded={expandedLink === a.link}
-            onToggle={() => setExpandedLink(prev => prev === a.link ? null : a.link)}
+            onToggle={() => onArticlePress(a)}
           />
         ))}
       </ScrollView>
-
-      {/* 펼쳐진 요약 (카드 아래 전체 너비) */}
-      {expandedArticle && (
-        <ExpandedSummary
-          article={expandedArticle}
-          onClose={() => setExpandedLink(null)}
-        />
-      )}
     </View>
   );
 }
@@ -296,9 +329,9 @@ const CARD_WIDTH = 200;
 const HCARD_HEIGHT = 220;
 
 function HScrollCard({
-  article, showSourceBadge, isExpanded, onToggle,
+  article, showSourceBadge, onToggle,
 }: {
-  article: Article; showSourceBadge?: boolean; isExpanded?: boolean; onToggle?: () => void;
+  article: Article; showSourceBadge?: boolean; onToggle?: () => void;
 }) {
   const { trackView } = useArticleViews(article.link);
 
@@ -321,8 +354,8 @@ function HScrollCard({
         backgroundColor: CARD,
         borderRadius: 12,
         overflow: 'hidden',
-        borderWidth: isExpanded ? 2 : 1,
-        borderColor: isExpanded ? '#3B82F6' : BORDER,
+        borderWidth: 1,
+        borderColor: BORDER,
         opacity: pressed ? 0.92 : 1,
       })}
     >
@@ -361,24 +394,21 @@ function HScrollCard({
 
 // ─── Section 2: 카테고리 탭 + 세로 리스트 ──────────────────────────────
 function CategoryTabSection({
-  categorizedArticles, categoryOrder,
+  categorizedArticles, categoryOrder, onArticlePress,
 }: {
-  categorizedArticles: Record<string, Article[]>; categoryOrder: string[];
+  categorizedArticles: Record<string, Article[]>; categoryOrder: string[]; onArticlePress: (article: Article) => void;
 }) {
   const [activeTab, setActiveTab] = useState(categoryOrder[0] || 'model_research');
   const [showMore, setShowMore] = useState(false);
-  const [expandedLink, setExpandedLink] = useState<string | null>(null);
 
   const articles = categorizedArticles[activeTab] || [];
   const first5 = articles.slice(0, 5);
   const more5 = articles.slice(5, 10);
   const visible = showMore ? [...first5, ...more5] : first5;
-  const expandedArticle = expandedLink ? visible.find(a => a.link === expandedLink) : null;
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
     setShowMore(false);
-    setExpandedLink(null);
   };
 
   return (
@@ -420,7 +450,7 @@ function CategoryTabSection({
         {visible.map((a, i) => (
           <Pressable
             key={`cat-${activeTab}-${i}`}
-            onPress={() => setExpandedLink(prev => prev === a.link ? null : a.link)}
+            onPress={() => onArticlePress(a)}
             style={({ pressed }) => ({
               flexDirection: 'row',
               paddingVertical: 12,
@@ -471,25 +501,17 @@ function CategoryTabSection({
           </Text>
         </Pressable>
       )}
-
-      {expandedArticle && (
-        <ExpandedSummary
-          article={expandedArticle}
-          onClose={() => setExpandedLink(null)}
-        />
-      )}
     </View>
   );
 }
 
 // ─── Section 3: 소스별 가로 스크롤 (한국 소스) ──────────────────────────
 function SourceHScrollSection({
-  sourceKey, articles,
+  sourceKey, articles, onArticlePress,
 }: {
-  sourceKey: string; articles: Article[];
+  sourceKey: string; articles: Article[]; onArticlePress: (article: Article) => void;
 }) {
   const [showMore, setShowMore] = useState(false);
-  const [expandedLink, setExpandedLink] = useState<string | null>(null);
 
   if (!articles || articles.length === 0) return null;
 
@@ -498,7 +520,6 @@ function SourceHScrollSection({
   const first5 = articles.slice(0, 5);
   const more5 = articles.slice(5, 10);
   const visible = showMore ? [...first5, ...more5] : first5;
-  const expandedArticle = expandedLink ? visible.find(a => a.link === expandedLink) : null;
 
   return (
     <View style={{ marginBottom: 24 }}>
@@ -519,8 +540,7 @@ function SourceHScrollSection({
           <HScrollCard
             key={`${sourceKey}-${i}`}
             article={a}
-            isExpanded={expandedLink === a.link}
-            onToggle={() => setExpandedLink(prev => prev === a.link ? null : a.link)}
+            onToggle={() => onArticlePress(a)}
           />
         ))}
 
@@ -543,20 +563,12 @@ function SourceHScrollSection({
           </Pressable>
         )}
       </ScrollView>
-
-      {expandedArticle && (
-        <ExpandedSummary
-          article={expandedArticle}
-          onClose={() => setExpandedLink(null)}
-        />
-      )}
     </View>
   );
 }
 
 // ─── GeekNews 세로 리스트 ────────────────────────────────────────────────
-function GeekNewsSection({ articles }: { articles: Article[] }) {
-  const [expandedLink, setExpandedLink] = useState<string | null>(null);
+function GeekNewsSection({ articles, onArticlePress }: { articles: Article[]; onArticlePress: (article: Article) => void }) {
   const [showMore, setShowMore] = useState(false);
 
   if (!articles || articles.length === 0) return null;
@@ -565,7 +577,6 @@ function GeekNewsSection({ articles }: { articles: Article[] }) {
   const more5 = articles.slice(5, 10);
   const visible = showMore ? [...first5, ...more5] : first5;
   const color = SOURCE_COLORS['geeknews'] || TEXT_SECONDARY;
-  const expandedArticle = expandedLink ? visible.find(a => a.link === expandedLink) : null;
 
   return (
     <View style={{ marginBottom: 24 }}>
@@ -579,7 +590,7 @@ function GeekNewsSection({ articles }: { articles: Article[] }) {
         {visible.map((a, i) => (
           <Pressable
             key={`geeknews-${i}`}
-            onPress={() => setExpandedLink(prev => prev === a.link ? null : a.link)}
+            onPress={() => onArticlePress(a)}
             style={({ pressed }) => ({
               flexDirection: 'row',
               paddingVertical: 12,
@@ -615,13 +626,6 @@ function GeekNewsSection({ articles }: { articles: Article[] }) {
           </Text>
         </Pressable>
       )}
-
-      {expandedArticle && (
-        <ExpandedSummary
-          article={expandedArticle}
-          onClose={() => setExpandedLink(null)}
-        />
-      )}
     </View>
   );
 }
@@ -629,8 +633,13 @@ function GeekNewsSection({ articles }: { articles: Article[] }) {
 // ─── 메인 화면 ──────────────────────────────────────────────────────────
 export default function NewsScreen() {
   const [refreshing, setRefreshing] = useState(false);
+  const [modalArticle, setModalArticle] = useState<Article | null>(null);
   const { openDrawer, setActiveTab } = useDrawer();
   const { newsData, loading, error, refresh } = useNews();
+
+  const handleArticlePress = useCallback((article: Article) => {
+    setModalArticle(article);
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -732,18 +741,20 @@ export default function NewsScreen() {
                 key={key}
                 sourceKey={key}
                 articles={legacyGrouped[key] || []}
+                onArticlePress={handleArticlePress}
               />
             ))}
           </>
         ) : (
           <>
             {/* Section 1: 하이라이트 */}
-            <HighlightSection highlights={highlights} />
+            <HighlightSection highlights={highlights} onArticlePress={handleArticlePress} />
 
             {/* Section 2: 카테고리 탭 + 세로 리스트 */}
             <CategoryTabSection
               categorizedArticles={categorizedArticles}
               categoryOrder={categoryOrder}
+              onArticlePress={handleArticlePress}
             />
 
             {/* 구분선 */}
@@ -762,16 +773,20 @@ export default function NewsScreen() {
                 key={key}
                 sourceKey={key}
                 articles={sourceArticles[key] || []}
+                onArticlePress={handleArticlePress}
               />
             ))}
 
             {/* Section 4: GeekNews 세로 리스트 */}
-            <GeekNewsSection articles={sourceArticles['geeknews'] || []} />
+            <GeekNewsSection articles={sourceArticles['geeknews'] || []} onArticlePress={handleArticlePress} />
           </>
         )}
 
         <View style={{ height: 30 }} />
       </ScrollView>
+
+      {/* 요약 모달 */}
+      <SummaryModal article={modalArticle} onClose={() => setModalArticle(null)} />
     </SafeAreaView>
   );
 }
