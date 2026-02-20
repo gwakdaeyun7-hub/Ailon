@@ -85,7 +85,11 @@ const DEFAULT_SOURCE_ORDER = ['aitimes', 'geeknews', 'zdnet_ai_editor', 'yozm_ai
 function formatDate(str?: string) {
   if (!str) return '';
   try {
-    return new Date(str).toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' }).replace(/\. /g, '/').replace('.', '');
+    const d = new Date(str);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}/${m}/${day}`;
   } catch { return ''; }
 }
 
@@ -449,6 +453,7 @@ function CategoryTabSection({
               <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: 8 }}>
                 <SourceBadge sourceKey={a.source_key} />
                 <Text style={{ fontSize: 10, color: TEXT_LIGHT }}>{formatDate(a.published)}</Text>
+                <ArticleStats articleLink={a.link} />
               </View>
             </View>
           </Pressable>
@@ -577,15 +582,13 @@ function GeekNewsSection({ articles }: { articles: Article[] }) {
             onPress={() => setExpandedLink(prev => prev === a.link ? null : a.link)}
             style={({ pressed }) => ({
               flexDirection: 'row',
-              alignItems: 'center',
-              paddingVertical: 10,
-              borderBottomWidth: i < visible.length - 1 ? 1 : 0,
+              paddingVertical: 12,
+              borderBottomWidth: 1,
               borderBottomColor: BORDER,
               opacity: pressed ? 0.7 : 1,
             })}
           >
-            <Text style={{ fontSize: 12, fontWeight: '800', color: color, width: 20 }}>{i + 1}</Text>
-            <View style={{ flex: 1 }}>
+            <View style={{ flex: 1, justifyContent: 'center' }}>
               <Text
                 style={{ fontSize: 13, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 18 }}
                 numberOfLines={2}
@@ -593,7 +596,10 @@ function GeekNewsSection({ articles }: { articles: Article[] }) {
               >
                 {getTitle(a)}
               </Text>
-              <Text style={{ fontSize: 10, color: TEXT_LIGHT, marginTop: 2 }}>{formatDate(a.published)}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: 8 }}>
+                <Text style={{ fontSize: 10, color: TEXT_LIGHT }}>{formatDate(a.published)}</Text>
+                <ArticleStats articleLink={a.link} />
+              </View>
             </View>
           </Pressable>
         ))}
