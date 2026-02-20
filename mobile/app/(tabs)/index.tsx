@@ -3,9 +3,10 @@
  *
  * 구조:
  *   1. 헤더: A 로고 + AI News + 검색 + 메뉴
- *   2. 카테고리 탭 (상단)
- *   3. 뉴스 카드 목록 (이미지있는것만, 최신순, 최대10개)
- *   4. 가로 스크롤 섹션 (공식발표, 한국AI, GeekNews, 큐레이션)
+ *   2. 하이라이트 카드 (오늘의 뉴스 1개)
+ *   3. 카테고리 탭 (상단)
+ *   4. 뉴스 카드 목록 (날짜순, 최대10개, 이미지 없는 기사도 표시)
+ *   5. 가로 스크롤 섹션 (공식발표, 한국AI, GeekNews, 큐레이션)
  */
 
 import React, { useState, useCallback } from 'react';
@@ -184,6 +185,60 @@ function NewsDetailModal({
   );
 }
 
+// ─── 하이라이트 카드 ───────────────────────────────────────────────────────
+function HighlightCard({ article, onPress }: { article: Article; onPress: () => void }) {
+  const catColor = CATEGORY_COLORS[article.category as NewsCategory] || '#6B7280';
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => ({
+        marginHorizontal: 16,
+        marginBottom: 16,
+        borderRadius: 14,
+        overflow: 'hidden',
+        opacity: pressed ? 0.95 : 1,
+      })}
+    >
+      {article.image_url ? (
+        <View style={{ height: 200, overflow: 'hidden', backgroundColor: '#F3F4F6' }}>
+          <Image source={{ uri: article.image_url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+          <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)' }} />
+          <View style={{ position: 'absolute', bottom: 16, left: 16, right: 16 }}>
+            <Text style={{ fontSize: 18, fontWeight: '800', color: '#FFFFFF', lineHeight: 24 }} numberOfLines={2}>
+              {displayTitle(article)}
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Calendar size={12} color="rgba(255,255,255,0.8)" />
+                <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.8)' }}>{formatDate(article.published)}</Text>
+              </View>
+              <View style={{ backgroundColor: 'rgba(255,255,255,0.25)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 }}>
+                <Text style={{ fontSize: 10, fontWeight: '700', color: '#FFFFFF' }}>{article.source}</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+      ) : (
+        <View style={{ height: 200, backgroundColor: catColor, justifyContent: 'flex-end', padding: 16 }}>
+          <Text style={{ fontSize: 18, fontWeight: '800', color: '#FFFFFF', lineHeight: 24 }} numberOfLines={2}>
+            {displayTitle(article)}
+          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Calendar size={12} color="rgba(255,255,255,0.8)" />
+              <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.8)' }}>{formatDate(article.published)}</Text>
+            </View>
+            <View style={{ backgroundColor: 'rgba(255,255,255,0.25)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 }}>
+              <Text style={{ fontSize: 10, fontWeight: '700', color: '#FFFFFF' }}>{article.source}</Text>
+            </View>
+          </View>
+        </View>
+      )}
+    </Pressable>
+  );
+}
+
 // ─── 뉴스 카드 ───────────────────────────────────────────────────────────
 function NewsCard({ article, onPress }: { article: Article; onPress: () => void }) {
   const itemId = article.link ?? article.title;
@@ -207,12 +262,12 @@ function NewsCard({ article, onPress }: { article: Article; onPress: () => void 
         opacity: pressed ? 0.95 : 1,
       })}
     >
-      {/* 이미지 */}
-      {article.image_url && (
+      {/* 이미지 (있을 때만) */}
+      {article.image_url ? (
         <View style={{ height: 160, overflow: 'hidden', backgroundColor: '#F3F4F6' }}>
           <Image source={{ uri: article.image_url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
         </View>
-      )}
+      ) : null}
 
       {/* 텍스트 영역 */}
       <View style={{ padding: 14 }}>
@@ -224,10 +279,22 @@ function NewsCard({ article, onPress }: { article: Article; onPress: () => void 
         {/* 메타 정보 */}
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
-            <View style={{ width: 4, height: 12, backgroundColor: CATEGORY_COLORS[article.category as NewsCategory], borderRadius: 2 }} />
-            <Text style={{ fontSize: 11, color: TEXT_LIGHT }}>{formatDate(article.published)}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Calendar size={12} color={TEXT_LIGHT} />
+              <Text style={{ fontSize: 11, color: TEXT_LIGHT }}>{formatDate(article.published)}</Text>
+            </View>
+            <LikeCount itemId={itemId} />
           </View>
-          <LikeCount itemId={itemId} />
+          {article.link && (
+            <Pressable
+              onPress={(e) => { e.stopPropagation(); Linking.openURL(article.link); }}
+              hitSlop={8}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, backgroundColor: BORDER, borderRadius: 6 }}
+            >
+              <ExternalLink size={12} color={TEXT_SECONDARY} />
+              <Text style={{ fontSize: 11, fontWeight: '600', color: TEXT_SECONDARY }}>뷰</Text>
+            </Pressable>
+          )}
         </View>
       </View>
     </Pressable>
@@ -237,12 +304,14 @@ function NewsCard({ article, onPress }: { article: Article; onPress: () => void 
 // ─── 가로 스크롤 카드 ───────────────────────────────────────────────────────
 function HorizontalCard({ article, onPress }: { article: HorizontalArticle; onPress: () => void }) {
   const title = article.display_title || article.title;
+  const brandColor = (article as any).brand_color;
 
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => ({
         width: 160,
+        height: 200,
         marginRight: 12,
         backgroundColor: CARD,
         borderRadius: 10,
@@ -259,18 +328,27 @@ function HorizontalCard({ article, onPress }: { article: HorizontalArticle; onPr
     >
       {/* 이미지 */}
       {article.image_url ? (
-        <View style={{ height: 100, overflow: 'hidden' }}>
+        <View style={{ height: 90, overflow: 'hidden', backgroundColor: '#F3F4F6' }}>
           <Image source={{ uri: article.image_url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
         </View>
       ) : (
-        <View style={{ height: 100, backgroundColor: '#E5E7EB' }} />
+        <View style={{ height: 90, backgroundColor: brandColor || '#E5E7EB', alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ fontSize: 20, color: brandColor ? '#FFFFFF' : TEXT_LIGHT, fontWeight: '800' }}>
+            {article.source?.charAt(0)?.toUpperCase() || 'N'}
+          </Text>
+        </View>
       )}
 
-      {/* 제목 */}
-      <View style={{ padding: 10 }}>
+      {/* 제목 + 메타 */}
+      <View style={{ flex: 1, padding: 10, justifyContent: 'space-between' }}>
         <Text style={{ fontSize: 12, fontWeight: '600', color: TEXT_PRIMARY, lineHeight: 16 }} numberOfLines={2}>
           {title}
         </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Text style={{ fontSize: 10, color: TEXT_LIGHT }}>{formatDate(article.published)}</Text>
+          <Text style={{ fontSize: 10, color: TEXT_LIGHT }}>·</Text>
+          <Text style={{ fontSize: 10, color: TEXT_LIGHT }} numberOfLines={1}>{article.source}</Text>
+        </View>
       </View>
     </Pressable>
   );
@@ -410,11 +488,14 @@ export default function NewsScreen() {
     setDetailVisible(true);
   };
 
-  // 카테고리별 뉴스 필터링 (이미지있는것만, 날짜내림차순, 최대10개)
+  // 카테고리별 뉴스 필터링 (날짜내림차순, 최대10개)
   const filteredNews = (newsData?.articles ?? [])
-    .filter(a => a.category === selectedCategory && a.image_url)
+    .filter(a => a.category === selectedCategory)
     .sort((a, b) => new Date(b.published || 0).getTime() - new Date(a.published || 0).getTime())
     .slice(0, 10);
+
+  // 하이라이트 기사
+  const highlight = newsData?.highlight ?? null;
 
   // 가로 스크롤 섹션 데이터
   const hs = newsData?.horizontal_sections ?? {};
@@ -441,6 +522,14 @@ export default function NewsScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={TEXT_SECONDARY} />}
       >
+        {/* ─── 하이라이트 ─── */}
+        {highlight && (
+          <HighlightCard
+            article={highlight}
+            onPress={() => openDetail(highlight)}
+          />
+        )}
+
         {/* ─── 카테고리 탭 ─── */}
         <View style={{ flexDirection: 'row', paddingHorizontal: 16, marginBottom: 20, gap: 8 }}>
           {TABS.map(tab => (
@@ -483,7 +572,7 @@ export default function NewsScreen() {
           </View>
         ) : filteredNews.length === 0 ? (
           <View style={{ alignItems: 'center', paddingVertical: 60 }}>
-            <Text style={{ color: TEXT_LIGHT, fontSize: 14 }}>이미지가 있는 뉴스가 없어요</Text>
+            <Text style={{ color: TEXT_LIGHT, fontSize: 14 }}>아직 뉴스가 없어요</Text>
           </View>
         ) : (
           <>
