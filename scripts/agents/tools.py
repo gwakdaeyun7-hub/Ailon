@@ -1,14 +1,9 @@
 """
-뉴스 수집 도구 — 13개 소스 RSS/API 기반 수집 + og:image 추출
+뉴스 수집 도구 — 12개 소스 RSS/스크래핑 기반 수집
 
-[Tier 1] 영어 AI 전문 뉴스 (매일 다수, 고품질 썸네일)
-  Wired AI / The Verge AI / TechCrunch AI / MIT Tech Review
-
-[Tier 2] AI 기업 공식 블로그 (1차 소스, 주 2-5회)
-  Google DeepMind / NVIDIA / HuggingFace
-
-[Tier 3] 한국 소스
-  AI타임스 / GeekNews / ZDNet Korea / 한국경제 IT / 인공지능신문 / 디지털투데이
+[Tier 1] 영어 AI 전문 뉴스 — Wired AI / The Verge AI / TechCrunch AI / MIT Tech Review
+[Tier 2] AI 기업 공식 블로그 — Google DeepMind / NVIDIA / HuggingFace
+[Tier 3] 한국 소스 — AI타임스 / GeekNews / 인공지능신문 / ZDNet AI 에디터 / 요즘IT AI
 """
 
 import os
@@ -107,24 +102,6 @@ SOURCES = [
         "ai_filter": True,
     },
     {
-        "key": "zdnet_korea",
-        "name": "ZDNet Korea",
-        "rss_url": "https://zdnet.co.kr/feed",
-        "max_items": 20,
-        "days": 7,
-        "lang": "ko",
-        "ai_filter": True,
-    },
-    {
-        "key": "hankyung_it",
-        "name": "한국경제 IT",
-        "rss_url": "https://www.hankyung.com/feed/it",
-        "max_items": 20,
-        "days": 7,
-        "lang": "ko",
-        "ai_filter": True,
-    },
-    {
         "key": "ainews_kr",
         "name": "인공지능신문",
         "rss_url": "https://www.aitimes.kr/rss/allArticle.xml",
@@ -189,8 +166,7 @@ CATEGORY_SOURCES = {
 
 # 소스별 섹션 (한국 소스)
 SOURCE_SECTION_SOURCES = {
-    "aitimes", "geeknews", "zdnet_korea", "hankyung_it",
-    "ainews_kr", "zdnet_ai_editor", "yozm_ai",
+    "aitimes", "geeknews", "ainews_kr", "zdnet_ai_editor", "yozm_ai",
 }
 
 assert CATEGORY_SOURCES.isdisjoint(SOURCE_SECTION_SOURCES), \
@@ -264,36 +240,6 @@ def _extract_rss_image(entry: dict, rss_image_field: str = "") -> str:
             return enc["href"]
 
     return ""
-
-
-def extract_og_image(url: str) -> str:
-    """기사 URL에서 og:image 메타태그 추출 (10KB 스트리밍으로 대역폭 절약)"""
-    if not url:
-        return ""
-    try:
-        from bs4 import BeautifulSoup
-        headers = {"User-Agent": "Mozilla/5.0 (compatible; AilonBot/1.0)"}
-        resp = requests.get(url, headers=headers, timeout=5, allow_redirects=True, stream=True)
-        if resp.status_code != 200:
-            resp.close()
-            return ""
-        # og:image는 <head> 안에 있으므로 10KB면 충분
-        content = b""
-        for chunk in resp.iter_content(chunk_size=2048):
-            content += chunk
-            if len(content) >= 10000:
-                break
-        resp.close()
-        soup = BeautifulSoup(content, "html.parser")
-        for prop, attr in [("og:image", "property"), ("twitter:image", "name")]:
-            meta = soup.find("meta", {attr: prop})
-            if meta and meta.get("content"):
-                img = str(meta["content"])
-                if img.startswith("http") and not img.endswith(".svg"):
-                    return img
-        return ""
-    except Exception:
-        return ""
 
 
 # ─── HTML 스크래핑 수집 ──────────────────────────────────────────────────
@@ -467,40 +413,6 @@ def fetch_all_sources() -> dict[str, list[dict]]:
     return result
 
 
-def enrich_images(sources: dict[str, list[dict]]) -> None:
-    """
-    image_url이 비어있는 기사에 대해 og:image 추출 (병렬, in-place 수정)
-    """
-    tasks = []
-    for articles in sources.values():
-        for a in articles:
-            if not a.get("image_url"):
-                tasks.append(a)
-
-    if not tasks:
-        print("  [이미지] 추출 필요 없음 (모든 기사에 이미지 있음)")
-        return
-
-    print(f"  [이미지] {len(tasks)}개 기사에서 og:image 추출 중...")
-    with ThreadPoolExecutor(max_workers=8) as executor:
-        futures = {
-            executor.submit(extract_og_image, a["link"]): a
-            for a in tasks
-        }
-        found = 0
-        for future in as_completed(futures):
-            article = futures[future]
-            try:
-                img = future.result()
-                if img:
-                    article["image_url"] = img
-                    found += 1
-            except Exception:
-                pass
-
-    print(f"  [이미지] {found}/{len(tasks)}개 추가 확보")
-
-
 def filter_imageless(sources: dict[str, list[dict]]) -> None:
     """
     image_url이 없는 기사를 제거 (in-place)
@@ -520,50 +432,64 @@ def filter_imageless(sources: dict[str, list[dict]]) -> None:
         print(f"  [필터] 이미지 없는 기사 {removed}개 제거")
 
 
-# ─── 본문 스크래핑 ──────────────────────────────────────────────────────
-def scrape_article_body(url: str) -> str:
-    """기사 URL에서 본문 텍스트 추출 (trafilatura)"""
+# ─── 본문 + og:image 통합 스크래핑 ─────────────────────────────────────
+def _scrape_body_and_image(url: str) -> tuple[str, str]:
+    """기사 URL에서 본문 텍스트 + og:image를 한 번의 HTTP로 추출"""
     if not url:
-        return ""
+        return "", ""
     try:
         import trafilatura
         downloaded = trafilatura.fetch_url(url)
         if not downloaded:
-            return ""
+            return "", ""
+
+        # og:image 추출 (HTML 앞부분에서)
+        image_url = ""
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(downloaded[:10000], "html.parser")
+        for prop, attr in [("og:image", "property"), ("twitter:image", "name")]:
+            meta = soup.find("meta", {attr: prop})
+            if meta and meta.get("content"):
+                img = str(meta["content"])
+                if img.startswith("http") and not img.endswith(".svg"):
+                    image_url = img
+                    break
+
         text = trafilatura.extract(downloaded)
-        if not text:
-            return ""
-        return text[:3000]
+        return (text[:3000] if text else ""), image_url
     except Exception:
-        return ""
+        return "", ""
 
 
-def scrape_bodies(sources: dict[str, list[dict]]) -> None:
-    """모든 기사의 link에서 본문 추출 (병렬, in-place 수정)"""
+def enrich_and_scrape(sources: dict[str, list[dict]]) -> None:
+    """og:image + 본문을 단일 HTTP 요청으로 병렬 추출 (in-place)"""
     tasks = []
     for articles in sources.values():
         for a in articles:
             tasks.append(a)
 
     if not tasks:
-        print("  [본문] 스크래핑 대상 없음")
         return
 
-    print(f"  [본문] {len(tasks)}개 기사에서 본문 스크래핑 중...")
-    with ThreadPoolExecutor(max_workers=8) as executor:
+    print(f"  [fetch] {len(tasks)}개 기사: og:image + 본문 통합 스크래핑...")
+    with ThreadPoolExecutor(max_workers=10) as executor:
         futures = {
-            executor.submit(scrape_article_body, a["link"]): a
+            executor.submit(_scrape_body_and_image, a["link"]): a
             for a in tasks
         }
-        found = 0
+        body_found = 0
+        img_enriched = 0
         for future in as_completed(futures):
             article = futures[future]
             try:
-                body = future.result()
+                body, img = future.result()
                 article["body"] = body
                 if body:
-                    found += 1
+                    body_found += 1
+                if img and not article.get("image_url"):
+                    article["image_url"] = img
+                    img_enriched += 1
             except Exception:
                 article["body"] = ""
 
-    print(f"  [본문] {found}/{len(tasks)}개 본문 추출 성공")
+    print(f"  [fetch] 본문 {body_found}/{len(tasks)}개, 이미지 보강 {img_enriched}개")

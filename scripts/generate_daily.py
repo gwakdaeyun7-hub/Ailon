@@ -8,6 +8,7 @@
 
 import sys
 import os
+import time
 from datetime import datetime, timedelta
 from firebase_admin import firestore
 
@@ -16,6 +17,34 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from agents.config import initialize_firebase, get_firestore_client
 from agents.news_team import run_news_pipeline
+
+
+def _validate_output(result: dict) -> list[str]:
+    """저장 전 품질 검증. 경고 목록 반환."""
+    warnings = []
+    highlights = result.get("highlights", [])
+    categorized = result.get("categorized_articles", {})
+    source_articles = result.get("source_articles", {})
+
+    if len(highlights) < 2:
+        warnings.append(f"하이라이트 {len(highlights)}/3개 (최소 2)")
+    for i, h in enumerate(highlights):
+        if not h.get("image_url"):
+            warnings.append(f"하이라이트 {i+1} 썸네일 없음")
+
+    for cat in ["model_research", "product_tools", "industry_business"]:
+        count = len(categorized.get(cat, []))
+        if count < 5:
+            warnings.append(f"카테고리 {cat}: {count}/10개 (최소 5)")
+        no_img = sum(1 for a in categorized.get(cat, []) if not a.get("image_url"))
+        if no_img > 0:
+            warnings.append(f"카테고리 {cat}: 썸네일 없는 기사 {no_img}개")
+
+    active_sources = sum(1 for v in source_articles.values() if len(v) > 0)
+    if active_sources < 2:
+        warnings.append(f"한국 소스 {active_sources}/5개만 활성")
+
+    return warnings
 
 
 def save_news_to_firestore(result: dict):
@@ -60,7 +89,12 @@ def save_news_to_firestore(result: dict):
         "total_count": result.get("total_count", 0),
         "updated_at": firestore.SERVER_TIMESTAMP,
     }
-    doc_ref.set(doc_data)
+    try:
+        doc_ref.set(doc_data)
+    except Exception as e:
+        print(f"  [RETRY] Firestore 저장 실패: {e}, 5초 후 재시도...")
+        time.sleep(5)
+        doc_ref.set(doc_data)
 
     cat_count = sum(len(v) for v in categorized_articles.values())
     src_count = sum(len(v) for v in source_articles.values())
@@ -107,7 +141,18 @@ def main():
     print("\n" + "-" * 40)
     print("Step 1: 뉴스 파이프라인")
     print("-" * 40)
+    start = time.time()
     news_result = run_news_pipeline()
+    elapsed = time.time() - start
+    print(f"\n  파이프라인 소요: {elapsed:.1f}초")
+
+    # ─── 저장 전 검증 ───
+    warnings = _validate_output(news_result)
+    if warnings:
+        print("\n  [검증 경고]")
+        for w in warnings:
+            print(f"    - {w}")
+
     save_news_to_firestore(news_result)
 
     # ─── 오래된 데이터 정리 ───

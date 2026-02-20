@@ -63,19 +63,32 @@ CATEGORY_KEYWORDS = {
 }
 
 
-def get_llm(temperature: float = 0.7, max_tokens: int = 2048):
-    """LangChain Google Gemini LLM 인스턴스 생성 (gemini-2.5-flash)"""
+_llm_cache: dict[tuple, ChatGoogleGenerativeAI] = {}
+
+
+def get_llm(temperature: float = 0.7, max_tokens: int = 2048, thinking: bool = True):
+    """LangChain Google Gemini LLM (캐싱, thinking 토글 지원)"""
+    cache_key = (temperature, max_tokens, thinking)
+    if cache_key in _llm_cache:
+        return _llm_cache[cache_key]
+
     api_key = os.getenv("GOOGLE_API_KEY")
     if not api_key:
         print("[ERROR] GOOGLE_API_KEY not found")
         sys.exit(1)
 
-    return ChatGoogleGenerativeAI(
-        model="gemini-2.5-flash",
-        temperature=temperature,
-        max_tokens=max_tokens,
-        google_api_key=api_key,
-    )
+    kwargs = {
+        "model": "gemini-2.5-flash",
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+        "google_api_key": api_key,
+    }
+    if not thinking:
+        kwargs["model_kwargs"] = {"thinking": {"type": "disabled"}}
+
+    llm = ChatGoogleGenerativeAI(**kwargs)
+    _llm_cache[cache_key] = llm
+    return llm
 
 
 

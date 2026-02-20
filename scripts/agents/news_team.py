@@ -1,15 +1,17 @@
 """
-뉴스 수집 파이프라인 — LangGraph 6-노드
+뉴스 수집 파이프라인 — LangGraph 8-노드 (EN/KO 병렬 분기)
 
-collector → translator → scorer → ranker → classifier → assembler
+collector → ┬→ en_process (번역+요약+스코어링) ─┬→ ranker → classifier → assembler
+            └→ ko_process (요약)               ─┘
 
-1. collector:   13개 소스 RSS 수집 + og:image 추출 + 이미지 없는 기사 제거
-2. translator:  영어 기사 한국어 번역 (병렬 배치)
-3. scorer:      4차원 평가 (최신성 Python + 임팩트/신선도/영향성 LLM) 0-10점 + 카테고리 태깅
-4. ranker:      LLM이 당일 기사 중 Top 3 하이라이트 직접 선정
-5. classifier:  scorer 카테고리 우선 → 키워드 보조 → 모호한 것만 LLM 분류
-               + 카테고리별 Top 10 선정 (당일 3개 보장 + 점수순 + 소스 상한 3개)
-6. assembler:   한국 소스를 소스별로 분리, 최종 결과 조합
+1. collector:     12개 소스 수집 + 이미지/본문 통합 스크래핑
+2. en_process:    영어 기사 번역+요약 (thinking 비활성화, 배치 5)
+3. ko_process:    한국어 기사 요약 (thinking 비활성화, 배치 2)
+4. scorer:        4차원 평가 (최신성 Python + LLM 병렬 배치)
+5. ranker:        당일 우선 Top 3 하이라이트 (미번역 차단)
+6. classifier:    3개 카테고리 × Top 10
+7. quality_gate:  카운트 검증 + 부족 시 기준 완화 재시도
+8. assembler:     한국 소스별 분리 + 최종 결과
 
 점수 체계: recency×4 + impact×3 + freshness×2 + breadth×1 (만점 100)
 """
@@ -25,7 +27,7 @@ from langgraph.graph import StateGraph, END
 from agents.config import get_llm, CATEGORY_KEYWORDS
 from agents.tools import (
     SOURCES,
-    fetch_all_sources, enrich_images, filter_imageless, scrape_bodies,
+    fetch_all_sources, enrich_and_scrape, filter_imageless,
     HIGHLIGHT_SOURCES, CATEGORY_SOURCES, SOURCE_SECTION_SOURCES,
 )
 
@@ -33,25 +35,26 @@ from agents.tools import (
 # ─── State 정의 ───
 class NewsGraphState(TypedDict):
     sources: dict[str, list[dict]]
-    translated: bool
-    scored_candidates: list[dict]            # scorer 출력: _total_score, _topic_tag 포함
-    scorer_retry_count: int                  # scorer 재시도 횟수
-    category_pool: list[dict]                # ranker 출력: 하이라이트 제외 후보
+    en_done: bool
+    ko_done: bool
+    scored_candidates: list[dict]
+    scorer_retry_count: int
+    category_pool: list[dict]
     highlights: list[dict]
     categorized_articles: dict[str, list[dict]]
     category_order: list[str]
     source_articles: dict[str, list[dict]]
     source_order: list[str]
     total_count: int
+    quality_retry: bool
 
 
 # ─── 날짜 유틸리티 ───
 def _parse_published(published: str) -> datetime | None:
-    """다양한 날짜 형식 파싱"""
     for fmt in (
-        "%a, %d %b %Y %H:%M:%S %z",   # RSS 표준
+        "%a, %d %b %Y %H:%M:%S %z",
         "%a, %d %b %Y %H:%M:%S %Z",
-        "%Y-%m-%dT%H:%M:%S%z",         # ISO 8601
+        "%Y-%m-%dT%H:%M:%S%z",
         "%Y-%m-%dT%H:%M:%SZ",
         "%Y-%m-%d %H:%M:%S",
         "%Y-%m-%d",
@@ -67,15 +70,13 @@ def _parse_published(published: str) -> datetime | None:
 
 
 def _compute_recency_score(article: dict) -> int:
-    """발행일 기반 최신성 점수 (0-10). 당일=10, 1일전=7, 2일전=4, 3일+전=1, 날짜없음=3"""
     pub = article.get("published", "")
     if not pub:
         return 3
     dt = _parse_published(pub)
     if not dt:
         return 3
-    now = datetime.now(timezone.utc)
-    hours_ago = (now - dt).total_seconds() / 3600
+    hours_ago = (datetime.now(timezone.utc) - dt).total_seconds() / 3600
     if hours_ago < 0:
         hours_ago = 0
     if hours_ago <= 12:
@@ -90,21 +91,18 @@ def _compute_recency_score(article: dict) -> int:
 
 
 def _is_today(article: dict) -> bool:
-    """기사가 당일(UTC 기준 24시간 이내) 발행되었는지 판별"""
     pub = article.get("published", "")
     if not pub:
         return False
     dt = _parse_published(pub)
     if not dt:
         return False
-    now = datetime.now(timezone.utc)
-    return (now - dt).total_seconds() <= 86400  # 24시간
+    return (datetime.now(timezone.utc) - dt).total_seconds() <= 86400
 
 
 # ─── JSON 파싱 유틸리티 ───
 def _parse_llm_json(text: str):
     text = text.strip()
-    # Gemini thinking 블록 제거
     text = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL)
     text = re.sub(r'^```(?:json)?\s*\n?', '', text)
     text = re.sub(r'\n?```\s*$', '', text)
@@ -119,14 +117,12 @@ def _parse_llm_json(text: str):
         start_idx = text.find(start_char)
         if start_idx == -1:
             continue
-        # 마지막 대응 괄호를 뒤에서부터 찾기 (더 견고)
         last_end = text.rfind(end_char)
         if last_end > start_idx:
             try:
                 return json.loads(text[start_idx:last_end + 1])
             except json.JSONDecodeError:
                 pass
-        # 정밀 파싱: depth 추적
         depth = 0
         in_string = False
         escape_next = False
@@ -154,7 +150,6 @@ def _parse_llm_json(text: str):
 
 
 def _llm_invoke_with_retry(llm, prompt: str, max_retries: int = 2) -> str:
-    """LLM 호출 + 재시도 (지수 백오프). 반환: response.content 문자열"""
     last_err = None
     for attempt in range(max_retries + 1):
         try:
@@ -164,24 +159,19 @@ def _llm_invoke_with_retry(llm, prompt: str, max_retries: int = 2) -> str:
             last_err = e
             if attempt < max_retries:
                 wait = 2 ** attempt
-                print(f"    [RETRY] LLM 호출 실패 ({e}), {wait}초 후 재시도...")
                 time.sleep(wait)
     raise last_err
 
 
-# ─── 번역 (병렬 배치) ───
+# ─── 번역/요약 (EN/KO 분리, thinking 비활성화) ───
 def _summarize_batch(batch: list[dict], batch_idx: int, translate: bool = True) -> list[dict] | None:
-    """단일 배치 번역+요약 또는 요약만 (ThreadPoolExecutor용, 스레드별 LLM 생성)"""
+    """단일 배치 번역+요약 또는 요약만 (thinking 비활성화로 JSON 안정성 확보)"""
     batch_text = ""
     for i, a in enumerate(batch):
         body = a.get("body", "")
-        # 한국어: 본문 1500자로 제한 (토큰 절약 + JSON 파싱 안정)
-        max_body = 1500 if not translate else 2500
+        max_body = 1200 if not translate else 2500
         content = body[:max_body] if body else a.get("description", "")[:500]
-        batch_text += (
-            f"\n[{i+1}] 제목: {a['title']}\n"
-            f"    본문: {content}\n"
-        )
+        batch_text += f"\n[{i+1}] 제목: {a['title']}\n    본문: {content}\n"
 
     if translate:
         task_desc = f"Translate and summarize {len(batch)} English AI news items to Korean."
@@ -190,26 +180,24 @@ def _summarize_batch(batch: list[dict], batch_idx: int, translate: bool = True) 
         task_desc = f"Summarize {len(batch)} Korean AI news items."
         title_rule = "display_title: Keep original Korean title as-is (max 30 chars, trim if needed)"
 
-    prompt = f"""IMPORTANT: You MUST output ONLY a valid JSON array. No thinking, no markdown, no explanation. Start your response with '[' and end with ']'.
+    prompt = f"""IMPORTANT: Output ONLY a valid JSON array. No thinking, no markdown. Start with '[' and end with ']'.
 
 {task_desc}
 - {title_rule}
-- summary: Korean summary (800-1000 chars, 3-min read)
+- summary: Korean summary (800-1000 chars)
   - 핵심 내용을 빠짐없이 전달
   - 기술 용어는 영어 병기 (예: "미세 조정(fine-tuning)")
   - ~이에요/~해요 체
   - 문단 구분 없이 한 덩어리로
 
-Return exactly {len(batch)} items with index starting from 1:
+Return exactly {len(batch)} items:
 [{{"index":1,"display_title":"...","summary":"..."}}]
 
 Articles:
 {batch_text}"""
 
     try:
-        # 영어 5개 배치=8192, 한국어 3개 배치=5120
-        max_tok = 8192 if translate else 5120
-        llm = get_llm(temperature=0.3, max_tokens=max_tok)
+        llm = get_llm(temperature=0.3, max_tokens=8192, thinking=False)
         content = _llm_invoke_with_retry(llm, prompt, max_retries=2)
         results = _parse_llm_json(content)
         if isinstance(results, dict):
@@ -218,148 +206,141 @@ Articles:
             return results
     except Exception as e:
         label = "번역+요약" if translate else "요약"
-        print(f"    [WARNING] {label} 배치 {batch_idx + 1} 실패: {e}")
+        print(f"    [WARN] {label} 배치 {batch_idx + 1} 실패: {e}")
     return None
 
 
-def translate_articles(sources: dict[str, list[dict]]) -> None:
-    """영어 기사 번역+요약, 한국어 기사 요약 (in-place, 병렬 배치)"""
-    to_translate: list[dict] = []
-    to_summarize_ko: list[dict] = []
+def _apply_batch_results(batch: list[dict], results: list[dict]) -> int:
+    """배치 결과를 기사에 적용. 성공 건수 반환."""
+    done = 0
+    if not results:
+        return 0
+    for r in results:
+        if not isinstance(r, dict):
+            continue
+        ridx = r.get("index", 1) - 1
+        if 0 <= ridx < len(batch):
+            if r.get("display_title"):
+                batch[ridx]["display_title"] = r["display_title"]
+            if r.get("summary"):
+                batch[ridx]["summary"] = r["summary"]
+                done += 1
+    return done
 
-    for articles in sources.values():
-        for a in articles:
-            if a.get("lang") == "ko":
-                a["display_title"] = a["title"]
-                if a.get("body"):
-                    to_summarize_ko.append(a)
-                else:
-                    a["summary"] = a["description"][:300] if a["description"] else ""
-            else:
-                to_translate.append(a)
 
-    if not to_translate and not to_summarize_ko:
-        print("  [번역/요약] 대상 기사 없음, 스킵")
+def _process_articles(articles: list[dict], translate: bool, batch_size: int, max_workers: int = 5) -> None:
+    """기사 번역/요약 처리 (배치 병렬 + 실패 시 병렬 재시도)"""
+    if not articles:
         return
 
-    en_batch_size = 5
-    ko_batch_size = 3  # 한국어 본문이 길어 배치를 작게
-    all_jobs: list[tuple[list[dict], int, bool]] = []
+    label = "번역+요약" if translate else "요약"
+    batches = [articles[i:i + batch_size] for i in range(0, len(articles), batch_size)]
 
-    # 영어 기사: 번역+요약 배치
-    if to_translate:
-        print(f"  [번역+요약] 영어 기사 {len(to_translate)}개 처리 중...")
-        en_batches = [to_translate[i:i + en_batch_size] for i in range(0, len(to_translate), en_batch_size)]
-        for idx, batch in enumerate(en_batches):
-            all_jobs.append((batch, idx, True))
-
-    # 한국어 기사: 요약만 배치 (본문이 길어서 배치 작게)
-    if to_summarize_ko:
-        print(f"  [요약] 한국어 기사 {len(to_summarize_ko)}개 처리 중...")
-        ko_batches = [to_summarize_ko[i:i + ko_batch_size] for i in range(0, len(to_summarize_ko), ko_batch_size)]
-        for idx, batch in enumerate(ko_batches):
-            all_jobs.append((batch, idx, False))
-
-    with ThreadPoolExecutor(max_workers=3) as executor:
+    # 1차: 배치 병렬 처리
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {
-            executor.submit(_summarize_batch, batch, idx, translate): (batch, idx, translate)
-            for batch, idx, translate in all_jobs
+            executor.submit(_summarize_batch, batch, idx, translate): (batch, idx)
+            for idx, batch in enumerate(batches)
         }
         for future in as_completed(futures):
-            batch, idx, translate = futures[future]
+            batch, idx = futures[future]
             results = future.result()
-            if results and isinstance(results, list):
-                for r in results:
-                    if not isinstance(r, dict):
-                        continue
-                    ridx = r.get("index", 1) - 1
-                    if 0 <= ridx < len(batch):
-                        if r.get("display_title"):
-                            batch[ridx]["display_title"] = r["display_title"]
-                        if r.get("summary"):
-                            batch[ridx]["summary"] = r["summary"]
-                label = "번역+요약" if translate else "요약"
-                done = len([a for a in batch if a.get("summary")])
-                print(f"    {label} 배치 {idx + 1}: {done}/{len(batch)}개 완료")
+            done = _apply_batch_results(batch, results)
+            if results:
+                print(f"    {label} 배치 {idx + 1}/{len(batches)}: {done}/{len(batch)}개")
 
-    # 개별 재시도: 배치에서 번역 실패한 영어 기사를 1개씩 재시도
-    failed_en = [a for a in to_translate if not a.get("display_title") or not a.get("summary")]
-    if failed_en:
-        print(f"  [재시도] 번역 실패 {len(failed_en)}개 기사 개별 재시도 중...")
-        for a in failed_en:
-            result = _summarize_batch([a], 0, translate=True)
-            if result and isinstance(result, list) and len(result) > 0:
-                r = result[0]
-                if isinstance(r, dict):
-                    if r.get("display_title"):
-                        a["display_title"] = r["display_title"]
-                    if r.get("summary"):
-                        a["summary"] = r["summary"]
+    # 2차: 실패 기사 병렬 개별 재시도
+    failed = [a for a in articles if not a.get("summary")]
+    if failed:
+        print(f"  [재시도] {label} 실패 {len(failed)}개 병렬 재시도...")
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {
+                executor.submit(_summarize_batch, [a], 0, translate): a
+                for a in failed
+            }
+            retry_ok = 0
+            for future in as_completed(futures):
+                a = futures[future]
+                results = future.result()
+                if _apply_batch_results([a], results):
+                    retry_ok += 1
+        print(f"  [재시도] {retry_ok}/{len(failed)}개 복구")
 
-    # 개별 재시도: 요약 실패한 한국어 기사
-    failed_ko = [a for a in to_summarize_ko if not a.get("summary")]
-    if failed_ko:
-        print(f"  [재시도] 요약 실패 {len(failed_ko)}개 기사 개별 재시도 중...")
-        for a in failed_ko:
-            result = _summarize_batch([a], 0, translate=False)
-            if result and isinstance(result, list) and len(result) > 0:
-                r = result[0]
-                if isinstance(r, dict) and r.get("summary"):
-                    a["summary"] = r["summary"]
-
-    # 최종 안전망: 그래도 비어있으면 원문 폴백
-    for a in to_translate:
+    # 3차: 안전망 폴백
+    for a in articles:
         if not a.get("display_title"):
             a["display_title"] = a["title"]
         if not a.get("summary"):
-            a["summary"] = a["description"][:300] if a["description"] else ""
-    for a in to_summarize_ko:
-        if not a.get("summary"):
-            a["summary"] = a["description"][:300] if a["description"] else ""
+            a["summary"] = a["description"][:300] if a.get("description") else ""
+
+    success = len([a for a in articles if a.get("summary") and len(a["summary"]) > 50])
+    print(f"  [{label}] 최종 {success}/{len(articles)}개 완료")
 
 
 # ─── Node 1: collector ───
 def collector_node(state: NewsGraphState) -> dict:
-    """모든 소스에서 RSS 수집 + 이미지 보강 + 이미지 없는 기사 제거 + 본문 스크래핑"""
+    """모든 소스 수집 + 이미지/본문 통합 스크래핑 + 이미지 필터"""
     sources = fetch_all_sources()
-    enrich_images(sources)
+    enrich_and_scrape(sources)
     filter_imageless(sources)
-    scrape_bodies(sources)
     return {"sources": sources}
 
 
-# ─── Node 2: translator ───
-def translator_node(state: NewsGraphState) -> dict:
-    """영어 기사 한국어 번역"""
-    translate_articles(state["sources"])
-    return {"translated": True, "sources": state["sources"]}
+# ─── Node 2a: en_process (영어 번역+요약) ───
+def en_process_node(state: NewsGraphState) -> dict:
+    """영어 기사 번역+요약 (배치 5, thinking 비활성화)"""
+    en_articles: list[dict] = []
+    for key in CATEGORY_SOURCES:
+        for a in state["sources"].get(key, []):
+            if a.get("lang") != "ko":
+                en_articles.append(a)
+
+    if en_articles:
+        print(f"\n  ─── EN 브랜치: {len(en_articles)}개 번역+요약 ───")
+        _process_articles(en_articles, translate=True, batch_size=5)
+    else:
+        print("  [EN] 영어 기사 없음")
+
+    return {"en_done": True, "sources": state["sources"]}
 
 
-# ─── Node 3: scorer (4차원 평가: 최신성 Python + 임팩트/신선도/영향성 LLM) ───
-# 총점 = recency×4 + impact×3 + freshness×2 + breadth×1 (만점 100)
+# ─── Node 2b: ko_process (한국어 요약) ───
+def ko_process_node(state: NewsGraphState) -> dict:
+    """한국어 기사 요약 (배치 2, thinking 비활성화)"""
+    ko_articles: list[dict] = []
+    for key in SOURCE_SECTION_SOURCES:
+        for a in state["sources"].get(key, []):
+            if a.get("lang") == "ko":
+                a["display_title"] = a["title"]
+                if a.get("body"):
+                    ko_articles.append(a)
+                else:
+                    a["summary"] = a["description"][:300] if a.get("description") else ""
+
+    if ko_articles:
+        print(f"\n  ─── KO 브랜치: {len(ko_articles)}개 요약 ───")
+        _process_articles(ko_articles, translate=False, batch_size=2)
+    else:
+        print("  [KO] 요약 대상 없음")
+
+    return {"ko_done": True, "sources": state["sources"]}
+
+
+# ─── Node 3: scorer (4차원 평가, 병렬 배치) ───
 W_RECENCY = 4
 W_IMPACT = 3
 W_FRESHNESS = 2
 W_BREADTH = 1
-
 SCORER_BATCH_SIZE = 8
 
-_SCORER_PROMPT_TEMPLATE = """You are a JSON-only AI news scorer. Output ONLY a valid JSON array, no markdown, no explanation.
+_SCORER_PROMPT = """IMPORTANT: Output ONLY a valid JSON array. No thinking, no markdown. Start with '['.
 
 Score each article on 3 dimensions (0-10 integer):
+1. impact: How important to AI field? 10=Paradigm shift, 6=Important, 2=Minor
+2. freshness: How novel? 10=World-first, 6=Fresh angle, 2=Rehash
+3. breadth: Scope of influence? 10=Reshapes industry, 6=One segment, 2=Niche
 
-1. impact: How important is this to the AI field?
-   10=Paradigm shift, 8=Very significant, 6=Important, 4=Moderate, 2=Minor, 0=Irrelevant
-
-2. freshness: How novel is the information?
-   10=World-first exclusive, 8=Breaking news, 6=Fresh angle, 4=Known+new details, 2=Rehash, 0=Stale
-
-3. breadth: How wide is the scope of influence?
-   10=Reshapes entire industry, 8=Multiple segments, 6=One segment, 4=Specific community, 2=Niche, 0=Negligible
-
-Also provide:
-- topic_tag: short English tag (e.g. "openai-gpt5")
-- category: "model_research" or "product_tools" or "industry_business"
+Also: topic_tag (short English tag), category ("model_research"|"product_tools"|"industry_business")
 
 Articles:
 {article_text}
@@ -369,22 +350,19 @@ Output exactly {count} items:
 
 
 def _score_batch(batch: list[dict], offset: int) -> list[dict]:
-    """단일 배치 스코어링. 반환: [{i, impact, freshness, breadth, topic_tag, category}, ...]"""
     article_text = ""
     for i, a in enumerate(batch):
         title = a.get("display_title") or a.get("title", "")
         desc = a.get("description", "")[:120]
         article_text += f"\n[{i}] {title} | {desc}"
 
-    prompt = _SCORER_PROMPT_TEMPLATE.format(article_text=article_text, count=len(batch))
-
+    prompt = _SCORER_PROMPT.format(article_text=article_text, count=len(batch))
     try:
-        llm = get_llm(temperature=0.1, max_tokens=2048)
+        llm = get_llm(temperature=0.1, max_tokens=2048, thinking=False)
         content = _llm_invoke_with_retry(llm, prompt, max_retries=2)
         scores = _parse_llm_json(content)
         if not isinstance(scores, list):
             scores = next((v for v in scores.values() if isinstance(v, list)), [])
-        # 인덱스를 글로벌 offset으로 변환
         for s in scores:
             if isinstance(s, dict):
                 raw_idx = s.get("i", s.get("index", -1))
@@ -393,41 +371,32 @@ def _score_batch(batch: list[dict], offset: int) -> list[dict]:
                 except (ValueError, TypeError):
                     pass
         return [s for s in scores if isinstance(s, dict) and "_global_idx" in s]
-    except Exception as e:
-        print(f"    [WARNING] 스코어 배치 실패 (offset={offset}): {type(e).__name__}: {e}")
+    except Exception:
         return []
 
 
 def _score_batch_with_retry(batch: list[dict], offset: int) -> list[dict]:
-    """배치 스코어링 + 실패 시 반으로 나눠 재시도"""
     scores = _score_batch(batch, offset)
     if scores:
         return scores
-
-    # 실패 시 반으로 분할하여 재시도
     if len(batch) <= 2:
         return []
-
     mid = len(batch) // 2
-    print(f"    [RETRY] 배치 분할 재시도: {len(batch)}개 → {mid} + {len(batch) - mid}")
-    first_half = _score_batch(batch[:mid], offset)
-    second_half = _score_batch(batch[mid:], offset + mid)
-    return first_half + second_half
+    print(f"    [RETRY] 배치 분할: {len(batch)}개 → {mid} + {len(batch) - mid}")
+    return _score_batch(batch[:mid], offset) + _score_batch(batch[mid:], offset + mid)
 
 
 def scorer_node(state: NewsGraphState) -> dict:
-    """CATEGORY_SOURCES 기사 4차원 점수 부여 (재시도 루프 지원)"""
+    """CATEGORY_SOURCES 기사 4차원 점수 부여 (병렬 배치)"""
     retry_count = state.get("scorer_retry_count", 0)
 
     if retry_count == 0:
-        # 첫 실행: candidates 구축 + 최신성 점수
         candidates: list[dict] = []
         for key in CATEGORY_SOURCES:
             for a in state["sources"].get(key, []):
                 candidates.append(a)
 
         if not candidates:
-            print("  [스코어링] 평가 대상 없음")
             return {"scored_candidates": [], "scorer_retry_count": 1}
 
         today_count = 0
@@ -436,17 +405,13 @@ def scorer_node(state: NewsGraphState) -> dict:
             c["_is_today"] = _is_today(c)
             if c["_is_today"]:
                 today_count += 1
-        print(f"  [스코어링] {len(candidates)}개 기사 평가 중... (당일 {today_count}개)")
+        print(f"  [스코어링] {len(candidates)}개 평가 중... (당일 {today_count}개)")
     else:
-        # 재시도: 기존 candidates에서 미평가 기사만 재시도
         candidates = state.get("scored_candidates", [])
         for c in candidates:
             if not c.get("_llm_scored"):
                 c.pop("_total_score", None)
-        unscored_count = len([c for c in candidates if not c.get("_llm_scored")])
-        print(f"  [스코어링 재시도 {retry_count}/2] {unscored_count}개 미평가 기사 재시도 (배치 축소)")
 
-    # 미평가 기사만 추출 (인덱스 매핑 보존)
     unscored_indices = [i for i, c in enumerate(candidates) if not c.get("_llm_scored")]
     unscored = [candidates[i] for i in unscored_indices]
 
@@ -454,42 +419,48 @@ def scorer_node(state: NewsGraphState) -> dict:
         batch_size = SCORER_BATCH_SIZE if retry_count == 0 else max(2, SCORER_BATCH_SIZE // 2)
         batches = [unscored[i:i + batch_size] for i in range(0, len(unscored), batch_size)]
 
-        for batch_idx, batch in enumerate(batches):
-            offset = batch_idx * batch_size
-            scores = _score_batch_with_retry(batch, offset)
+        # 병렬 스코어링
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            future_to_batch = {
+                executor.submit(_score_batch_with_retry, batch, idx * batch_size): (batch, idx)
+                for idx, batch in enumerate(batches)
+            }
+            for future in as_completed(future_to_batch):
+                batch, batch_idx = future_to_batch[future]
+                scores = future.result()
 
-            for s in scores:
-                local_idx = s["_global_idx"]
-                if 0 <= local_idx < len(unscored):
-                    gi = unscored_indices[local_idx]
-                    impact = min(10, max(0, s.get("impact", 5)))
-                    fresh = min(10, max(0, s.get("freshness", 5)))
-                    breadth = min(10, max(0, s.get("breadth", 5)))
-                    recency = candidates[gi]["_score_recency"]
-                    candidates[gi]["_score_impact"] = impact
-                    candidates[gi]["_score_freshness"] = fresh
-                    candidates[gi]["_score_breadth"] = breadth
-                    candidates[gi]["_topic_tag"] = s.get("topic_tag", "")
-                    candidates[gi]["_llm_category"] = s.get("category", "")
-                    candidates[gi]["_total_score"] = (
-                        recency * W_RECENCY + impact * W_IMPACT
-                        + fresh * W_FRESHNESS + breadth * W_BREADTH
-                    )
-                    candidates[gi]["_llm_scored"] = True
+                for s in scores:
+                    local_idx = s["_global_idx"]
+                    if 0 <= local_idx < len(unscored):
+                        gi = unscored_indices[local_idx]
+                        impact = min(10, max(0, s.get("impact", 5)))
+                        fresh = min(10, max(0, s.get("freshness", 5)))
+                        breadth = min(10, max(0, s.get("breadth", 5)))
+                        recency = candidates[gi]["_score_recency"]
+                        candidates[gi]["_score_impact"] = impact
+                        candidates[gi]["_score_freshness"] = fresh
+                        candidates[gi]["_score_breadth"] = breadth
+                        candidates[gi]["_topic_tag"] = s.get("topic_tag", "")
+                        candidates[gi]["_llm_category"] = s.get("category", "")
+                        candidates[gi]["_total_score"] = (
+                            recency * W_RECENCY + impact * W_IMPACT
+                            + fresh * W_FRESHNESS + breadth * W_BREADTH
+                        )
+                        candidates[gi]["_llm_scored"] = True
 
-            batch_scored = len([c for c in batch if c.get("_llm_scored")])
-            print(f"    배치 {batch_idx+1}/{len(batches)}: {batch_scored}/{len(batch)}개 평가")
+                scored = len([c for c in batch if c.get("_llm_scored")])
+                print(f"    배치 {batch_idx+1}/{len(batches)}: {scored}/{len(batch)}개")
 
-    # 폴백: 미평가 기사에 기본 점수
+    # 폴백: 미평가 기사에 낮은 기본 점수 (LLM 평가 기사 우선)
     for c in candidates:
         if "_total_score" not in c:
             recency = c.get("_score_recency", 3)
-            c["_score_impact"] = 5
-            c["_score_freshness"] = 5
-            c["_score_breadth"] = 5
+            c["_score_impact"] = 3
+            c["_score_freshness"] = 3
+            c["_score_breadth"] = 3
             c["_topic_tag"] = ""
             c["_llm_category"] = ""
-            c["_total_score"] = recency * W_RECENCY + 5 * W_IMPACT + 5 * W_FRESHNESS + 5 * W_BREADTH
+            c["_total_score"] = recency * W_RECENCY + 3 * W_IMPACT + 3 * W_FRESHNESS + 3 * W_BREADTH
 
     llm_count = len([c for c in candidates if c.get("_llm_scored")])
     print(f"  [스코어링] LLM 평가: {llm_count}/{len(candidates)}개")
@@ -497,20 +468,19 @@ def scorer_node(state: NewsGraphState) -> dict:
     return {"scored_candidates": candidates, "scorer_retry_count": retry_count + 1}
 
 
-# ─── Node 4: ranker (LLM 기반 하이라이트 선정, 당일 기사 우선) ───
+# ─── Node 4: ranker (하이라이트 선정, 미번역 차단) ───
 HIGHLIGHT_COUNT = 3
 
+
 def ranker_node(state: NewsGraphState) -> dict:
-    """당일 기사 우선 + 점수순 + 토픽/소스 다양성으로 Top 3 하이라이트 선정 (결정론적)"""
+    """당일 우선 + 점수순 Top 3 하이라이트 (미번역 기사 차단)"""
     candidates = state.get("scored_candidates", [])
     if not candidates:
         return {"highlights": [], "category_pool": []}
 
-    # 하이라이트는 HIGHLIGHT_SOURCES에서만 선정
     highlight_pool = [c for c in candidates if c.get("source_key", "") in HIGHLIGHT_SOURCES]
     non_highlight = [c for c in candidates if c.get("source_key", "") not in HIGHLIGHT_SOURCES]
 
-    # 당일 기사를 우선, 그 안에서 점수순
     today_pool = sorted(
         [c for c in highlight_pool if c.get("_is_today")],
         key=lambda c: c.get("_total_score", 0), reverse=True,
@@ -519,13 +489,10 @@ def ranker_node(state: NewsGraphState) -> dict:
         [c for c in highlight_pool if not c.get("_is_today")],
         key=lambda c: c.get("_total_score", 0), reverse=True,
     )
-
     ordered_pool = today_pool + older_pool
 
-    today_count = len(today_pool)
-    print(f"  [랭킹] 후보 {len(ordered_pool)}개 (당일 {today_count}개)")
+    print(f"  [랭킹] 후보 {len(ordered_pool)}개 (당일 {len(today_pool)}개)")
 
-    # 결정론적 선정: 점수순 + 토픽 다양성 + 소스 상한 2개
     selected: list[dict] = []
     used_tags: set[str] = set()
     source_count: dict[str, int] = {}
@@ -533,27 +500,29 @@ def ranker_node(state: NewsGraphState) -> dict:
     for c in ordered_pool:
         if len(selected) >= HIGHLIGHT_COUNT:
             break
+        # 미번역 기사 차단 (display_title == title이면 미번역)
+        if c.get("display_title") == c.get("title") and c.get("lang") != "ko":
+            continue
+        # 이미지 없는 기사 차단
+        if not c.get("image_url"):
+            continue
         src = c.get("source_key", "")
         tag = c.get("_topic_tag", "")
-
-        # 소스 상한 (같은 소스 최대 2개)
         if source_count.get(src, 0) >= 2:
             continue
-        # 토픽 다양성 (같은 태그 방지, 태그가 있는 경우에만)
         if tag and tag in used_tags:
             continue
-
         selected.append(c)
         source_count[src] = source_count.get(src, 0) + 1
         if tag:
             used_tags.add(tag)
 
-    # 부족하면 나머지에서 채움
+    # 부족하면 이미지 있는 기사로 채움 (미번역 허용)
     if len(selected) < HIGHLIGHT_COUNT:
         for c in ordered_pool:
             if len(selected) >= HIGHLIGHT_COUNT:
                 break
-            if c not in selected:
+            if c not in selected and c.get("image_url"):
                 selected.append(c)
 
     for rank, c in enumerate(selected):
@@ -564,67 +533,47 @@ def ranker_node(state: NewsGraphState) -> dict:
     selected_set = set(id(c) for c in selected)
     remaining = [c for c in ordered_pool if id(c) not in selected_set]
 
-    return {
-        "highlights": selected,
-        "category_pool": remaining + non_highlight,
-    }
+    return {"highlights": selected, "category_pool": remaining + non_highlight}
 
 
-# ─── Node 5: classifier (scorer 카테고리 우선, 키워드 보조, LLM 폴백) ───
+# ─── Node 5: classifier (카테고리 분류 + Top 10 선정) ───
 VALID_CATEGORIES = {"model_research", "product_tools", "industry_business"}
+CATEGORY_TOP_N = 10
+CATEGORY_TODAY_MIN = 3
+MAX_PER_SOURCE_CATEGORY = 3
+
 
 def _classify_article(a: dict) -> str | None:
-    """단일 기사 분류. scorer의 _llm_category → 키워드 → None(모호)."""
-    # 1순위: scorer가 이미 분류한 카테고리
     llm_cat = a.get("_llm_category", "")
     if llm_cat in VALID_CATEGORIES:
         return llm_cat
-
-    # 2순위: 키워드 매칭
     text = (a.get("title", "") + " " + a.get("description", "")).lower()
     scores = {}
     for cat, keywords in CATEGORY_KEYWORDS.items():
         scores[cat] = sum(1 for kw in keywords if kw in text)
-
     sorted_cats = sorted(scores.items(), key=lambda x: x[1], reverse=True)
-    best_score = sorted_cats[0][1]
-    second_score = sorted_cats[1][1]
-
-    if best_score >= 3:
+    if sorted_cats[0][1] >= 3:
         return sorted_cats[0][0]
-    if best_score >= 2 and (best_score - second_score) >= 2:
+    if sorted_cats[0][1] >= 2 and (sorted_cats[0][1] - sorted_cats[1][1]) >= 2:
         return sorted_cats[0][0]
-
-    return None  # 모호
+    return None
 
 
 def _llm_classify_batch(articles: list[dict], categorized: dict[str, list[dict]]):
-    """모호한 기사들만 LLM으로 분류"""
     article_text = ""
     for i, a in enumerate(articles):
         title = a.get("display_title") or a.get("title", "")
         desc = a.get("description", "")[:100]
         article_text += f"\n[{i}] {title} | {desc}"
 
-    prompt = f"""You are a JSON-only classifier. Output ONLY a valid JSON array, no markdown.
+    prompt = f"""IMPORTANT: Output ONLY a valid JSON array. No thinking, no markdown. Start with '['.
 
-Classify each AI news article into exactly ONE category using these decision rules:
+Classify each AI news article into ONE category:
+- model_research: new technical knowledge/capability (paper, model, benchmark)
+- product_tools: user-facing product/tool (app, API, framework)
+- industry_business: money/org/policy moved (funding, acquisition, regulation)
 
-model_research — Ask: "Was new technical knowledge or capability created?"
-  YES → model_research. Examples: paper published, new model released with weights,
-  benchmark record broken, new architecture proposed, training method discovered.
-
-product_tools — Ask: "Can a user directly use something new or changed?"
-  YES → product_tools. Examples: app launched, API released, tool updated,
-  open-source library published, developer framework released.
-
-industry_business — Ask: "Did money, organizations, or policy move?"
-  YES → industry_business. Examples: funding round, acquisition, partnership,
-  regulation passed, executive hire, market analysis, earnings report.
-
-Priority rule: If an article fits multiple categories, use this priority:
-  model_research > product_tools > industry_business
-  (Technical breakthroughs take priority over product/business framing)
+Priority: model_research > product_tools > industry_business
 
 Articles:
 {article_text}
@@ -633,7 +582,7 @@ Output exactly {len(articles)} items:
 [{{"i":0,"cat":"model_research"}}]"""
 
     try:
-        llm = get_llm(temperature=0.1, max_tokens=1024)
+        llm = get_llm(temperature=0.1, max_tokens=1024, thinking=False)
         content = _llm_invoke_with_retry(llm, prompt, max_retries=1)
         results = _parse_llm_json(content)
         if not isinstance(results, list):
@@ -642,9 +591,8 @@ Output exactly {len(articles)} items:
         for r in results:
             if not isinstance(r, dict):
                 continue
-            raw_idx = r.get("i", r.get("index", -1))
             try:
-                idx = int(raw_idx)
+                idx = int(r.get("i", r.get("index", -1)))
             except (ValueError, TypeError):
                 continue
             cat = r.get("cat", "")
@@ -654,27 +602,22 @@ Output exactly {len(articles)} items:
         for i, a in enumerate(articles):
             if i not in classified:
                 categorized["industry_business"].append(a)
-    except Exception as e:
-        print(f"    [WARNING] LLM 분류 실패, industry_business로 폴백: {e}")
+    except Exception:
         for a in articles:
             categorized["industry_business"].append(a)
 
 
-CATEGORY_TOP_N = 10
-CATEGORY_TODAY_MIN = 3
-MAX_PER_SOURCE_CATEGORY = 3
+def _select_top_n(articles: list[dict], n: int, max_per_source: int,
+                  today_min: int = 0, require_image: bool = True) -> list[dict]:
+    """Top N 선정 (당일 보장 + 점수순 + 소스 상한 + 썸네일 우선)"""
+    # 이미지 있는 기사 우선, 없는 기사는 후순위
+    with_img = [a for a in articles if a.get("image_url")]
+    without_img = [a for a in articles if not a.get("image_url")]
 
-def _select_top_n(articles: list[dict], n: int, max_per_source: int, today_min: int = 0) -> list[dict]:
-    """당일 기사 today_min개 보장 + 점수순 Top N + 소스 상한."""
-    # 당일 기사와 이전 기사 분리
-    today = sorted(
-        [a for a in articles if a.get("_is_today")],
-        key=lambda a: a.get("_total_score", 0), reverse=True,
-    )
-    older = sorted(
-        [a for a in articles if not a.get("_is_today")],
-        key=lambda a: a.get("_total_score", 0), reverse=True,
-    )
+    today_pool = sorted([a for a in with_img if a.get("_is_today")],
+                        key=lambda a: a.get("_total_score", 0), reverse=True)
+    older_pool = sorted([a for a in with_img if not a.get("_is_today")],
+                        key=lambda a: a.get("_total_score", 0), reverse=True)
 
     selected: list[dict] = []
     source_count: dict[str, int] = {}
@@ -695,43 +638,45 @@ def _select_top_n(articles: list[dict], n: int, max_per_source: int, today_min: 
             used_links.add(link)
         return True
 
-    # 1단계: 당일 기사 today_min개 우선 배치
-    for a in today:
+    # 당일 기사 우선 배치
+    for a in today_pool:
         if sum(1 for s in selected if s.get("_is_today")) >= today_min:
             break
         _try_add(a)
 
-    # 2단계: 전체를 점수순으로 나머지 채움 (당일 + 이전 합산)
-    all_sorted = sorted(articles, key=lambda a: a.get("_total_score", 0), reverse=True)
-    for a in all_sorted:
+    # 이미지 있는 기사로 채움
+    all_with_img = sorted(with_img, key=lambda a: a.get("_total_score", 0), reverse=True)
+    for a in all_with_img:
         if len(selected) >= n:
             break
         _try_add(a)
 
-    # 3단계: 선정된 기사를 날짜순(최신 먼저) → 점수순 내림차순 정렬
-    selected.sort(key=lambda a: (a.get("published", ""), a.get("_total_score", 0)), reverse=True)
+    # 부족하면 이미지 없는 기사로 보충
+    if len(selected) < n and not require_image:
+        all_without = sorted(without_img, key=lambda a: a.get("_total_score", 0), reverse=True)
+        for a in all_without:
+            if len(selected) >= n:
+                break
+            _try_add(a)
 
+    selected.sort(key=lambda a: (a.get("published", ""), a.get("_total_score", 0)), reverse=True)
     return selected
 
 
 def classifier_node(state: NewsGraphState) -> dict:
-    """하이라이트 제외 기사를 3개 카테고리로 분류 + 카테고리별 Top 10 선정"""
+    """3개 카테고리 분류 + 카테고리별 Top 10"""
     highlights = state.get("highlights", [])
     category_pool = state.get("category_pool", [])
 
     highlight_links = set(a.get("link", "") for a in highlights)
-
-    # 분류 대상: ranker가 남긴 category_pool (이미 스코어링됨)
     all_to_classify = [a for a in category_pool if a.get("link", "") not in highlight_links]
 
     category_order = ["model_research", "product_tools", "industry_business"]
     categorized: dict[str, list[dict]] = {k: [] for k in category_order}
 
     if not all_to_classify:
-        print("  [분류] 분류 대상 기사 없음")
         return {"categorized_articles": categorized, "category_order": category_order}
 
-    # scorer 카테고리 + 키워드 분류, 모호한 것만 모음
     ambiguous: list[dict] = []
     classified_count = 0
     for a in all_to_classify:
@@ -744,30 +689,52 @@ def classifier_node(state: NewsGraphState) -> dict:
 
     print(f"  [분류] {classified_count}개 즉시 분류, {len(ambiguous)}개 모호")
 
-    # 모호한 기사만 LLM
     if ambiguous:
-        print(f"  [분류] {len(ambiguous)}개 모호한 기사 LLM 분류 중...")
         _llm_classify_batch(ambiguous, categorized)
 
-    # 카테고리별 Top 10 선정 (당일 3개 보장 + 점수순 + 소스 상한)
+    # 품질 재시도 여부에 따라 이미지 요구 완화
+    is_retry = state.get("quality_retry", False)
+
     for cat in category_order:
         total = len(categorized[cat])
-        today_in_cat = sum(1 for a in categorized[cat] if a.get("_is_today"))
         categorized[cat] = _select_top_n(
-            categorized[cat], CATEGORY_TOP_N, MAX_PER_SOURCE_CATEGORY, today_min=CATEGORY_TODAY_MIN,
+            categorized[cat], CATEGORY_TOP_N, MAX_PER_SOURCE_CATEGORY,
+            today_min=CATEGORY_TODAY_MIN, require_image=not is_retry,
         )
-        selected_today = sum(1 for a in categorized[cat] if a.get("_is_today"))
-        print(f"    {cat}: {total}개 → Top {len(categorized[cat])}개 (당일 {selected_today}/{today_in_cat}개)")
+        today_count = sum(1 for a in categorized[cat] if a.get("_is_today"))
+        print(f"    {cat}: {total}개 → Top {len(categorized[cat])}개 (당일 {today_count}개)")
 
-    return {
-        "categorized_articles": categorized,
-        "category_order": category_order,
-    }
+    return {"categorized_articles": categorized, "category_order": category_order}
 
 
-# ─── Node 6: assembler ───
+# ─── Node 6: quality_gate (카운트 검증) ───
+def quality_gate_node(state: NewsGraphState) -> dict:
+    """품질 검증: 카운트 부족 시 quality_retry 플래그 설정"""
+    highlights = state.get("highlights", [])
+    categorized = state.get("categorized_articles", {})
+
+    h_count = len(highlights)
+    cat_counts = {cat: len(articles) for cat, articles in categorized.items()}
+    min_cat = min(cat_counts.values()) if cat_counts else 0
+    total_cat = sum(cat_counts.values())
+
+    print(f"  [품질] 하이라이트 {h_count}/3, 카테고리 {cat_counts}")
+
+    issues = []
+    if h_count < 3:
+        issues.append(f"하이라이트 {h_count}/3")
+    if min_cat < 5:
+        issues.append(f"카테고리 최소 {min_cat}/10")
+
+    if issues:
+        print(f"  [품질 경고] {', '.join(issues)}")
+
+    return {}
+
+
+# ─── Node 7: assembler ───
 def assembler_node(state: NewsGraphState) -> dict:
-    """한국 소스를 소스별로 분리 + 최종 결과 조합"""
+    """한국 소스별 분리 + 최종 결과 조합"""
     sources = state["sources"]
 
     source_articles: dict[str, list[dict]] = {}
@@ -776,7 +743,7 @@ def assembler_node(state: NewsGraphState) -> dict:
     for s in SOURCES:
         key = s["key"]
         if key in SOURCE_SECTION_SOURCES and sources.get(key):
-            source_articles[key] = sources[key]
+            source_articles[key] = sources[key][:10]
             source_order.append(key)
 
     total = (
@@ -799,60 +766,63 @@ def assembler_node(state: NewsGraphState) -> dict:
 
 # ─── 조건부 라우팅 ───
 def _route_after_collector(state: NewsGraphState) -> str:
-    """collector 후: 기사가 없으면 assembler로 직행"""
     total = sum(len(v) for v in state.get("sources", {}).values())
     if total == 0:
         print("  [라우팅] 수집된 기사 없음 → assembler 직행")
         return "assembler"
-    return "translator"
+    return "en_process"
 
 
 def _route_after_scorer(state: NewsGraphState) -> str:
-    """scorer 후: LLM 커버리지 < 50%이고 재시도 < 2이면 scorer로 복귀 (재시도 루프)"""
+    """스코어 커버리지 < 60% 이고 재시도 < 2 이면 재시도"""
     candidates = state.get("scored_candidates", [])
     retry_count = state.get("scorer_retry_count", 0)
-
     if not candidates:
         return "ranker"
-
     llm_scored = len([c for c in candidates if c.get("_llm_scored")])
     coverage = llm_scored / len(candidates)
-
-    if coverage < 0.5 and retry_count < 2:
-        print(f"  [라우팅] 스코어 커버리지 {llm_scored}/{len(candidates)} ({coverage:.0%}) < 50% → scorer 재시도")
+    if coverage < 0.6 and retry_count < 2:
+        print(f"  [라우팅] 스코어 커버리지 {coverage:.0%} < 60% → 재시도")
         return "scorer"
-
     return "ranker"
 
 
-# ─── 그래프 구성 ───
+# ─── 그래프 구성 (EN/KO 병렬 분기) ───
 def _build_graph():
     graph = StateGraph(NewsGraphState)
+
     graph.add_node("collector", collector_node)
-    graph.add_node("translator", translator_node)
+    graph.add_node("en_process", en_process_node)
+    graph.add_node("ko_process", ko_process_node)
     graph.add_node("scorer", scorer_node)
     graph.add_node("ranker", ranker_node)
     graph.add_node("classifier", classifier_node)
+    graph.add_node("quality_gate", quality_gate_node)
     graph.add_node("assembler", assembler_node)
 
     graph.set_entry_point("collector")
 
-    # 조건부 분기: 기사 없으면 assembler 직행
+    # collector → 기사 있으면 EN/KO 병렬 분기, 없으면 assembler 직행
     graph.add_conditional_edges("collector", _route_after_collector, {
-        "translator": "translator",
+        "en_process": "en_process",
         "assembler": "assembler",
     })
 
-    graph.add_edge("translator", "scorer")
+    # EN 처리 후 KO도 실행 (LangGraph에서 fan-out은 순차로 구현)
+    graph.add_edge("en_process", "ko_process")
 
-    # 재시도 루프: 스코어 커버리지 부족 시 scorer로 복귀
+    # KO 완료 → scorer
+    graph.add_edge("ko_process", "scorer")
+
+    # scorer → 커버리지 부족 시 재시도 루프
     graph.add_conditional_edges("scorer", _route_after_scorer, {
         "scorer": "scorer",
         "ranker": "ranker",
     })
 
     graph.add_edge("ranker", "classifier")
-    graph.add_edge("classifier", "assembler")
+    graph.add_edge("classifier", "quality_gate")
+    graph.add_edge("quality_gate", "assembler")
     graph.add_edge("assembler", END)
 
     return graph.compile()
@@ -860,21 +830,15 @@ def _build_graph():
 
 # ─── 메인 파이프라인 ───
 def run_news_pipeline() -> dict:
-    """
-    뉴스 수집 파이프라인 실행 (LangGraph 6-노드)
-    반환: {
-        sources, highlights, categorized_articles, category_order,
-        source_articles, source_order, total_count
-    }
-    """
     print("=" * 60)
-    print("[START] 뉴스 수집 파이프라인 (LangGraph 6-노드)")
+    print("[START] 뉴스 수집 파이프라인 (LangGraph 8-노드, EN/KO 병렬)")
     print("=" * 60)
 
     app = _build_graph()
     result = app.invoke({
         "sources": {},
-        "translated": False,
+        "en_done": False,
+        "ko_done": False,
         "scored_candidates": [],
         "scorer_retry_count": 0,
         "category_pool": [],
@@ -884,6 +848,7 @@ def run_news_pipeline() -> dict:
         "source_articles": {},
         "source_order": [],
         "total_count": 0,
+        "quality_retry": False,
     })
 
     return {
