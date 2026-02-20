@@ -104,6 +104,8 @@ def _is_today(article: dict) -> bool:
 # ─── JSON 파싱 유틸리티 ───
 def _parse_llm_json(text: str):
     text = text.strip()
+    # Gemini thinking 블록 제거
+    text = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL)
     text = re.sub(r'^```(?:json)?\s*\n?', '', text)
     text = re.sub(r'\n?```\s*$', '', text)
     text = text.strip()
@@ -117,6 +119,14 @@ def _parse_llm_json(text: str):
         start_idx = text.find(start_char)
         if start_idx == -1:
             continue
+        # 마지막 대응 괄호를 뒤에서부터 찾기 (더 견고)
+        last_end = text.rfind(end_char)
+        if last_end > start_idx:
+            try:
+                return json.loads(text[start_idx:last_end + 1])
+            except json.JSONDecodeError:
+                pass
+        # 정밀 파싱: depth 추적
         depth = 0
         in_string = False
         escape_next = False
@@ -165,7 +175,9 @@ def _summarize_batch(batch: list[dict], batch_idx: int, translate: bool = True) 
     batch_text = ""
     for i, a in enumerate(batch):
         body = a.get("body", "")
-        content = body[:2500] if body else a.get("description", "")[:500]
+        # 한국어: 본문 1500자로 제한 (토큰 절약 + JSON 파싱 안정)
+        max_body = 1500 if not translate else 2500
+        content = body[:max_body] if body else a.get("description", "")[:500]
         batch_text += (
             f"\n[{i+1}] 제목: {a['title']}\n"
             f"    본문: {content}\n"
@@ -178,7 +190,7 @@ def _summarize_batch(batch: list[dict], batch_idx: int, translate: bool = True) 
         task_desc = f"Summarize {len(batch)} Korean AI news items."
         title_rule = "display_title: Keep original Korean title as-is (max 30 chars, trim if needed)"
 
-    prompt = f"""You are a JSON-only AI news translator and summarizer. Output ONLY a valid JSON array, no markdown, no explanation.
+    prompt = f"""IMPORTANT: You MUST output ONLY a valid JSON array. No thinking, no markdown, no explanation. Start your response with '[' and end with ']'.
 
 {task_desc}
 - {title_rule}
@@ -195,7 +207,9 @@ Articles:
 {batch_text}"""
 
     try:
-        llm = get_llm(temperature=0.3, max_tokens=8192)
+        # 영어 5개 배치=8192, 한국어 3개 배치=5120
+        max_tok = 8192 if translate else 5120
+        llm = get_llm(temperature=0.3, max_tokens=max_tok)
         content = _llm_invoke_with_retry(llm, prompt, max_retries=2)
         results = _parse_llm_json(content)
         if isinstance(results, dict):
@@ -228,20 +242,21 @@ def translate_articles(sources: dict[str, list[dict]]) -> None:
         print("  [번역/요약] 대상 기사 없음, 스킵")
         return
 
-    batch_size = 5
+    en_batch_size = 5
+    ko_batch_size = 3  # 한국어 본문이 길어 배치를 작게
     all_jobs: list[tuple[list[dict], int, bool]] = []
 
     # 영어 기사: 번역+요약 배치
     if to_translate:
         print(f"  [번역+요약] 영어 기사 {len(to_translate)}개 처리 중...")
-        en_batches = [to_translate[i:i + batch_size] for i in range(0, len(to_translate), batch_size)]
+        en_batches = [to_translate[i:i + en_batch_size] for i in range(0, len(to_translate), en_batch_size)]
         for idx, batch in enumerate(en_batches):
             all_jobs.append((batch, idx, True))
 
-    # 한국어 기사: 요약만 배치
+    # 한국어 기사: 요약만 배치 (본문이 길어서 배치 작게)
     if to_summarize_ko:
         print(f"  [요약] 한국어 기사 {len(to_summarize_ko)}개 처리 중...")
-        ko_batches = [to_summarize_ko[i:i + batch_size] for i in range(0, len(to_summarize_ko), batch_size)]
+        ko_batches = [to_summarize_ko[i:i + ko_batch_size] for i in range(0, len(to_summarize_ko), ko_batch_size)]
         for idx, batch in enumerate(ko_batches):
             all_jobs.append((batch, idx, False))
 

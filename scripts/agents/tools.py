@@ -144,7 +144,7 @@ SOURCES = [
     {
         "key": "yozm_ai",
         "name": "요즘IT AI",
-        "rss_url": "https://yozm.wishket.com/magazine/list/ai/feed/",
+        "rss_url": "https://yozm.wishket.com/magazine/ai/feed/",
         "max_items": 20,
         "days": 7,
         "lang": "ko",
