@@ -172,13 +172,15 @@ function HighlightScrollCard({
       })}
     >
       {article.image_url ? (
-        <Image
-          source={article.image_url}
-          style={{ width: cardWidth, height: 150 }}
-          contentFit="cover"
-          transition={200}
-          recyclingKey={article.link}
-        />
+        <View style={{ width: cardWidth, height: 150, backgroundColor: BORDER }}>
+          <Image
+            source={article.image_url}
+            style={{ width: cardWidth, height: 150 }}
+            contentFit="contain"
+            transition={200}
+            recyclingKey={article.link}
+          />
+        </View>
       ) : (
         <View style={{ width: cardWidth, height: 150, backgroundColor: BORDER, alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ fontSize: 28, color: TEXT_LIGHT }}>📰</Text>
