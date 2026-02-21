@@ -172,15 +172,13 @@ function HighlightScrollCard({
       })}
     >
       {article.image_url ? (
-        <View style={{ width: cardWidth, height: 150, backgroundColor: BORDER }}>
-          <Image
-            source={article.image_url}
-            style={{ width: cardWidth, height: 150 }}
-            contentFit="contain"
-            transition={200}
-            recyclingKey={article.link}
-          />
-        </View>
+        <Image
+          source={article.image_url}
+          style={{ width: cardWidth, height: 150 }}
+          contentFit="fill"
+          transition={200}
+          recyclingKey={article.link}
+        />
       ) : (
         <View style={{ width: cardWidth, height: 150, backgroundColor: BORDER, alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ fontSize: 28, color: TEXT_LIGHT }}>📰</Text>
@@ -190,7 +188,7 @@ function HighlightScrollCard({
         <View>
           <SourceBadge sourceKey={article.source_key} />
           <Text
-            style={{ fontSize: 13, fontWeight: '800', color: TEXT_PRIMARY, lineHeight: 18, marginTop: 4 }}
+            style={{ fontSize: 13, fontWeight: '800', color: TEXT_PRIMARY, lineHeight: 18, marginTop: 4, flexShrink: 1 }}
             numberOfLines={2}
             ellipsizeMode="tail"
           >
@@ -233,9 +231,20 @@ function SummaryModal({ article, onClose }: { article: Article | null; onClose: 
 
   const handleShare = async () => {
     try {
-      const summary = article.summary || '';
+      let body = '';
+      if (article.one_line) {
+        body = article.one_line;
+        if (article.key_points?.length) {
+          body += '\n\n' + article.key_points.map(p => `• ${p}`).join('\n');
+        }
+        if (article.why_important) {
+          body += '\n\n' + article.why_important;
+        }
+      } else {
+        body = article.summary || '';
+      }
       await Share.share({
-        message: `[${sourceName}] ${getTitle(article)}\n\n${summary}\n\n원문: ${article.link}`,
+        message: `[${sourceName}] ${getTitle(article)}\n\n${body}\n\n원문: ${article.link}`,
       });
     } catch {}
   };
@@ -270,15 +279,13 @@ function SummaryModal({ article, onClose }: { article: Article | null; onClose: 
           >
             {/* 썸네일 */}
             {article.image_url ? (
-              <View style={{ backgroundColor: BORDER }}>
-                <Image
-                  source={article.image_url}
-                  style={{ width: '100%', height: 200 }}
-                  contentFit="contain"
-                  transition={200}
-                  recyclingKey={article.link}
-                />
-              </View>
+              <Image
+                source={article.image_url}
+                style={{ width: '100%', height: 200 }}
+                contentFit="fill"
+                transition={200}
+                recyclingKey={article.link}
+              />
             ) : null}
 
             {/* 제목 */}
@@ -309,23 +316,49 @@ function SummaryModal({ article, onClose }: { article: Article | null; onClose: 
             {/* 구분선 */}
             <View style={{ height: 1, backgroundColor: BORDER, marginBottom: 18, marginHorizontal: 20 }} />
 
-            {/* 요약 본문 */}
-            <Text style={{
-              fontSize: 15, color: '#374151', lineHeight: 28, letterSpacing: 0.2, marginBottom: 16,
-              paddingHorizontal: 20,
-            }}>
-              {article.summary || '요약이 아직 없어요.'}
-            </Text>
+            {/* 3-파트 요약 */}
+            {article.one_line ? (
+              <View style={{ paddingHorizontal: 20, marginBottom: 16 }}>
+                {/* 핵심 한줄 */}
+                <View style={{ backgroundColor: '#F0F4FF', borderRadius: 10, padding: 14, marginBottom: 16 }}>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: '#6366F1', marginBottom: 4 }}>핵심 한줄</Text>
+                  <Text style={{ fontSize: 15, color: TEXT_PRIMARY, lineHeight: 24, fontWeight: '600' }}>
+                    {article.one_line}
+                  </Text>
+                </View>
 
-            {/* 원문 링크 */}
-            <Pressable
-              onPress={handleOpenOriginal}
-              style={{ paddingHorizontal: 20, marginBottom: 24 }}
-            >
-              <Text style={{ fontSize: 12, color: '#3B82F6', textDecorationLine: 'underline' }} numberOfLines={1}>
-                {article.link}
+                {/* 주요 포인트 */}
+                {article.key_points && article.key_points.length > 0 && (
+                  <View style={{ marginBottom: 16 }}>
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: '#0891B2', marginBottom: 8 }}>주요 포인트</Text>
+                    {article.key_points.map((point, idx) => (
+                      <View key={idx} style={{ flexDirection: 'row', marginBottom: 6, paddingRight: 4 }}>
+                        <Text style={{ fontSize: 14, color: '#0891B2', marginRight: 8, lineHeight: 22 }}>•</Text>
+                        <Text style={{ fontSize: 14, color: '#374151', lineHeight: 22, flex: 1 }}>{point}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+                {/* 왜 중요해요? */}
+                {article.why_important ? (
+                  <View style={{ backgroundColor: '#FFFBEB', borderRadius: 10, padding: 14 }}>
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: '#D97706', marginBottom: 4 }}>왜 중요해요?</Text>
+                    <Text style={{ fontSize: 14, color: '#374151', lineHeight: 24 }}>
+                      {article.why_important}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+            ) : (
+              /* 레거시 폴백: 기존 summary 텍스트 */
+              <Text style={{
+                fontSize: 15, color: '#374151', lineHeight: 28, letterSpacing: 0.2, marginBottom: 16,
+                paddingHorizontal: 20,
+              }}>
+                {article.summary || '요약이 아직 없어요.'}
               </Text>
-            </Pressable>
+            )}
 
             {/* 액션 버튼 */}
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16, paddingHorizontal: 20 }}>
@@ -447,15 +480,13 @@ function HScrollCard({
       })}
     >
       {article.image_url ? (
-        <View style={{ width: CARD_WIDTH, height: 140, backgroundColor: BORDER }}>
-          <Image
-            source={article.image_url}
-            style={{ width: CARD_WIDTH, height: 140 }}
-            contentFit="contain"
-            transition={200}
-            recyclingKey={article.link}
-          />
-        </View>
+        <Image
+          source={article.image_url}
+          style={{ width: CARD_WIDTH, height: 140 }}
+          contentFit="fill"
+          transition={200}
+          recyclingKey={article.link}
+        />
       ) : (
         <View style={{ width: CARD_WIDTH, height: 140, backgroundColor: BORDER, alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ fontSize: 28, color: TEXT_LIGHT }}>📰</Text>
@@ -465,7 +496,7 @@ function HScrollCard({
         <View>
           {showSourceBadge && <SourceBadge sourceKey={article.source_key} />}
           <Text
-            style={{ fontSize: 13, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 18, marginTop: showSourceBadge ? 4 : 0 }}
+            style={{ fontSize: 13, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 18, marginTop: showSourceBadge ? 4 : 0, flexShrink: 1 }}
             numberOfLines={2}
             ellipsizeMode="tail"
           >
@@ -552,7 +583,13 @@ function CategoryTabSection({
             })}
           >
             {a.image_url ? (
-              <View style={{ width: 100, height: 100, backgroundColor: BORDER }}>
+              <View style={{ width: 100, height: 100, overflow: 'hidden' }}>
+                <Image
+                  source={a.image_url}
+                  style={{ position: 'absolute', width: 100, height: 100 }}
+                  contentFit="cover"
+                  blurRadius={20}
+                />
                 <Image
                   source={a.image_url}
                   style={{ width: 100, height: 100 }}

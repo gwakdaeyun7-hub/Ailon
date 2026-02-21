@@ -24,7 +24,7 @@ from typing import TypedDict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from langchain_core.messages import HumanMessage
 from langgraph.graph import StateGraph, END
-from agents.config import get_llm, CATEGORY_KEYWORDS
+from agents.config import get_llm
 from agents.tools import (
     SOURCES,
     fetch_all_sources, enrich_and_scrape, filter_imageless,
@@ -190,14 +190,13 @@ def _summarize_batch(batch: list[dict], batch_idx: int, translate: bool = True) 
 
 {task_desc}
 - {title_rule}
-- summary: Korean summary (800-1000 chars)
-  - 핵심 내용을 빠짐없이 전달
-  - 기술 용어는 영어 병기 (예: "미세 조정(fine-tuning)")
-  - ~이에요/~해요 체
-  - 문단 구분 없이 한 덩어리로
+- one_line: 핵심 한줄 요약 (1-2문장, ~이에요/~해요 체)
+- key_points: 주요 포인트 배열 (3-5개, 각 1문장)
+- why_important: 왜 중요한지 (2-3문장, ~이에요/~해요 체)
+- 기술 용어는 영어 병기 (예: "미세 조정(fine-tuning)")
 
 Return exactly {len(batch)} items:
-[{{"index":1,"display_title":"...","summary":"..."}}]
+[{{"index":1,"display_title":"...","one_line":"...","key_points":["...","...","..."],"why_important":"..."}}]
 
 Articles:
 {batch_text}"""
@@ -228,7 +227,20 @@ def _apply_batch_results(batch: list[dict], results: list[dict]) -> int:
         if 0 <= ridx < len(batch):
             if r.get("display_title"):
                 batch[ridx]["display_title"] = r["display_title"]
-            if r.get("summary"):
+            one_line = r.get("one_line", "")
+            key_points = r.get("key_points", [])
+            why_important = r.get("why_important", "")
+            if one_line or key_points:
+                batch[ridx]["one_line"] = one_line
+                batch[ridx]["key_points"] = key_points if isinstance(key_points, list) else []
+                batch[ridx]["why_important"] = why_important
+                # summary 폴백 (레거시 호환)
+                parts = [one_line]
+                parts.extend(key_points if isinstance(key_points, list) else [])
+                parts.append(why_important)
+                batch[ridx]["summary"] = "\n".join(p for p in parts if p)
+                done += 1
+            elif r.get("summary"):
                 batch[ridx]["summary"] = r["summary"]
                 done += 1
     return done
@@ -560,18 +572,10 @@ MAX_PER_SOURCE_CATEGORY = 3
 
 
 def _classify_article(a: dict) -> str | None:
+    """scorer LLM이 부여한 카테고리만 사용. 없으면 None → LLM 배치 분류로."""
     llm_cat = a.get("_llm_category", "")
     if llm_cat in VALID_CATEGORIES:
         return llm_cat
-    text = (a.get("title", "") + " " + a.get("description", "")).lower()
-    scores = {}
-    for cat, keywords in CATEGORY_KEYWORDS.items():
-        scores[cat] = sum(1 for kw in keywords if kw in text)
-    sorted_cats = sorted(scores.items(), key=lambda x: x[1], reverse=True)
-    if sorted_cats[0][1] >= 3:
-        return sorted_cats[0][0]
-    if sorted_cats[0][1] >= 2 and (sorted_cats[0][1] - sorted_cats[1][1]) >= 2:
-        return sorted_cats[0][0]
     return None
 
 

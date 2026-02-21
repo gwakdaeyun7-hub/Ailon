@@ -10,7 +10,10 @@ export interface Article {
   title: string;
   display_title?: string;   // 한국어 제목 (없으면 title 사용)
   description?: string;
-  summary?: string;          // 한국어 요약
+  summary?: string;          // 한국어 요약 (레거시 폴백)
+  one_line?: string;          // 핵심 한줄 요약
+  key_points?: string[];      // 주요 포인트 (3-5개)
+  why_important?: string;     // 왜 중요한지
   link: string;
   published: string;
   source: string;
