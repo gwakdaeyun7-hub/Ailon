@@ -1,20 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, Pressable, ActivityIndicator, SafeAreaView } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
 import { Zap } from 'lucide-react-native';
 
 export default function AuthScreen() {
-  const { signInWithGoogle } = useAuth();
+  const { user, signInWithGoogle } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleGoogleSignIn = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      await signInWithGoogle();
+  // 로그인 성공 시 자동 이동
+  useEffect(() => {
+    if (user) {
       router.replace('/(tabs)');
+    }
+  }, [user]);
+
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      await signInWithGoogle();
+      // OAuth는 비동기 — user 상태 변화로 자동 이동
     } catch (err: any) {
       setError('로그인에 실패했어요. 다시 시도해주세요.');
       console.error(err);

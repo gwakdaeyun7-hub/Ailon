@@ -21,13 +21,14 @@ import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import {
-  Menu, RefreshCw, ThumbsUp, Eye, Share2, ExternalLink,
+  Menu, RefreshCw, ThumbsUp, Eye, Share2, ExternalLink, MessageCircle,
 } from 'lucide-react-native';
 import { useNews } from '@/hooks/useNews';
 import { useDrawer } from '@/context/DrawerContext';
 import { useReactions } from '@/hooks/useReactions';
 import { useArticleViews } from '@/hooks/useArticleViews';
 import { NewsCardSkeleton } from '@/components/shared/LoadingSkeleton';
+import { CommentSheet } from '@/components/shared/CommentSheet';
 import type { Article } from '@/lib/types';
 
 // ─── 색상 ───────────────────────────────────────────────────────────────
@@ -211,6 +212,7 @@ function SummaryModal({ article, onClose }: { article: Article | null; onClose: 
   const { views, trackView } = useArticleViews(article?.link ?? '');
   const { likes, liked, toggleLike } = useReactions('news', article?.link ?? '');
   const viewTracked = useRef(false);
+  const [commentVisible, setCommentVisible] = useState(false);
 
   // 모달 열릴 때 뷰수 자동 증가 (1회)
   useEffect(() => {
@@ -398,6 +400,20 @@ function SummaryModal({ article, onClose }: { article: Article | null; onClose: 
                 </Text>
               </Pressable>
 
+              {/* 댓글 */}
+              <Pressable
+                onPress={() => setCommentVisible(true)}
+                style={({ pressed }) => ({
+                  flexDirection: 'row', alignItems: 'center', gap: 5,
+                  backgroundColor: BORDER,
+                  paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10,
+                  opacity: pressed ? 0.8 : 1,
+                })}
+              >
+                <MessageCircle size={14} color={TEXT_SECONDARY} />
+                <Text style={{ fontSize: 13, fontWeight: '700', color: TEXT_SECONDARY }}>댓글</Text>
+              </Pressable>
+
               {/* 공유 */}
               <Pressable
                 onPress={handleShare}
@@ -415,6 +431,14 @@ function SummaryModal({ article, onClose }: { article: Article | null; onClose: 
           </ScrollView>
         </View>
       </View>
+
+      {/* 댓글 시트 */}
+      <CommentSheet
+        visible={commentVisible}
+        onClose={() => setCommentVisible(false)}
+        itemType="news"
+        itemId={article.link}
+      />
     </Modal>
   );
 }
