@@ -21,48 +21,43 @@ SOURCES = [
         "key": "wired_ai",
         "name": "Wired AI",
         "rss_url": "https://www.wired.com/feed/tag/ai/latest/rss",
-        "max_items": 20,
+        "max_items": 30,
 
         "lang": "en",
         "rss_image_field": "media_thumbnail",  # RSS에 media:thumbnail 포함
-        "ai_filter": True,
     },
     {
         "key": "the_verge_ai",
         "name": "The Verge AI",
         "rss_url": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml",
-        "max_items": 20,
+        "max_items": 30,
 
         "lang": "en",
         "rss_image_field": "content_image",  # RSS content에 <img> 포함
-        "ai_filter": True,
     },
     {
         "key": "techcrunch_ai",
         "name": "TechCrunch AI",
         "rss_url": "https://techcrunch.com/category/artificial-intelligence/feed/",
-        "max_items": 20,
+        "max_items": 30,
 
         "lang": "en",
-        "ai_filter": True,
     },
     {
         "key": "mit_tech_review",
         "name": "MIT Tech Review",
         "rss_url": "https://www.technologyreview.com/topic/artificial-intelligence/feed",
-        "max_items": 20,
+        "max_items": 30,
 
         "lang": "en",
-        "ai_filter": True,
     },
     {
         "key": "venturebeat",
         "name": "VentureBeat",
         "rss_url": "https://venturebeat.com/feed/",
-        "max_items": 20,
+        "max_items": 30,
 
         "lang": "en",
-        "ai_filter": True,
     },
     # Tier 2: AI 기업 공식 블로그
     {
@@ -78,10 +73,9 @@ SOURCES = [
         "key": "nvidia_blog",
         "name": "NVIDIA AI",
         "rss_url": "https://blogs.nvidia.com/feed/",
-        "max_items": 20,
+        "max_items": 30,
 
         "lang": "en",
-        "ai_filter": True,
     },
     {
         "key": "huggingface_blog",

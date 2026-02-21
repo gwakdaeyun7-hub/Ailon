@@ -342,10 +342,9 @@ Return ONLY the indices of articles where AI technology is the core subject:
 
 
 def _llm_filter_sources(sources: dict[str, list[dict]]) -> None:
-    """소스별 뉴스(한국 소스)를 LLM으로 AI 관련성 필터링"""
+    """모든 소스를 LLM으로 AI 관련성 필터링 (엄격)"""
     total_removed = 0
-    for key in SOURCE_SECTION_SOURCES:
-        articles = sources.get(key, [])
+    for key, articles in sources.items():
         if not articles:
             continue
 
