@@ -190,9 +190,15 @@ def _summarize_batch(batch: list[dict], batch_idx: int, translate: bool = True) 
 
 {task_desc}
 - {title_rule}
-- one_line: 핵심 한줄 요약 (1-2문장, ~이에요/~해요 체)
-- key_points: 주요 포인트 배열 (3-5개, 각 1문장)
-- why_important: 왜 중요한지 (2-3문장, ~이에요/~해요 체)
+- one_line: 무슨 일이 일어났는가 (What) — 정확히 1문장, 최대 50자, ~이에요/~해요 체
+  - 팩트만 전달. 해석/의견/중요성 언급 금지.
+  - 예: "OpenAI가 GPT-5를 공식 출시했어요"
+- key_points: 구체적 팩트 배열 (3개 고정, 각 최대 40자)
+  - 숫자·모델명·성능 지표 등 구체적 정보 우선
+  - 예: "컨텍스트 윈도우 256K 토큰 지원", "GPT-4 대비 추론 속도 2배"
+- why_important: 업계에 미치는 영향 (Impact) — 1-2문장, ~이에요/~해요 체
+  - one_line에 이미 나온 내용 반복 금지
+  - "~에 영향을 줄 수 있어요", "~가 바뀔 수 있어요" 등 영향/시사점 중심
 - 기술 용어는 영어 병기 (예: "미세 조정(fine-tuning)")
 
 Return exactly {len(batch)} items:
