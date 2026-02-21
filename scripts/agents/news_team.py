@@ -142,6 +142,22 @@ def _parse_llm_json(text: str):
     except json.JSONDecodeError:
         pass
 
+    # 잘린 JSON 배열 복구 ([ 있지만 ] 없는 경우 — {/} 추출보다 먼저 시도)
+    bracket_idx = text.find('[')
+    if bracket_idx != -1 and ']' not in text[bracket_idx:]:
+        truncated = text[bracket_idx:].rstrip()
+        # 끝의 불완전한 요소/쉼표 제거 후 ] 추가
+        truncated = re.sub(r'[,\s]+$', '', truncated)
+        # 불완전한 마지막 객체 제거 ({"i":0,"sig... 같은 경우)
+        truncated = re.sub(r',\s*\{[^}]*$', '', truncated)
+        truncated += ']'
+        try:
+            result = json.loads(truncated)
+            print(f"    [JSON 복구] 잘린 배열 복구 성공: {len(result)}개 항목")
+            return result
+        except json.JSONDecodeError:
+            pass
+
     for start_char, end_char in [('[', ']'), ('{', '}')]:
         start_idx = text.find(start_char)
         if start_idx == -1:
@@ -174,22 +190,6 @@ def _parse_llm_json(text: str):
                             return json.loads(text[start_idx:i + 1])
                         except json.JSONDecodeError:
                             break
-
-    # 잘린 JSON 배열 복구 시도 (max_tokens 초과로 ] 없이 잘린 경우)
-    bracket_idx = text.find('[')
-    if bracket_idx != -1 and ']' not in text[bracket_idx:]:
-        truncated = text[bracket_idx:].rstrip()
-        # 끝의 불완전한 요소/쉼표 제거 후 ] 추가
-        truncated = re.sub(r'[,\s]+$', '', truncated)
-        # 불완전한 마지막 객체 제거 ({"i":0,"sig... 같은 경우)
-        truncated = re.sub(r',\s*\{[^}]*$', '', truncated)
-        truncated += ']'
-        try:
-            result = json.loads(truncated)
-            print(f"    [JSON 복구] 잘린 배열 복구 성공: {len(result)}개 항목")
-            return result
-        except json.JSONDecodeError:
-            pass
 
     # 디버그: 파싱 실패 시 응답 내용 출력
     preview = text[:300].replace('\n', '\\n')
@@ -614,7 +614,7 @@ def _score_batch(batch: list[dict], offset: int) -> list[dict]:
     prompt = _SCORER_PROMPT.format(article_text=article_text, count=len(batch))
     try:
         _scorer_throttle()  # 레이트리밋 방지
-        llm = get_llm(temperature=0.1, max_tokens=2048, thinking=False, json_mode=True)
+        llm = get_llm(temperature=0.1, max_tokens=4096, thinking=False, json_mode=True)
         content = _llm_invoke_with_retry(llm, prompt, max_retries=2)
         scores = _parse_llm_json(content)
         if not isinstance(scores, list):
