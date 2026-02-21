@@ -608,7 +608,12 @@ def _score_batch(batch: list[dict], offset: int) -> list[dict]:
                     s["_global_idx"] = offset + int(raw_idx)
                 except (ValueError, TypeError):
                     pass
-        return [s for s in scores if isinstance(s, dict) and "_global_idx" in s]
+        valid = [s for s in scores if isinstance(s, dict) and "_global_idx" in s]
+        if len(valid) < len(batch):
+            # 진단: 어떤 인덱스가 반환됐는지 로깅
+            raw_indices = [s.get("i", s.get("index", "MISSING")) for s in scores if isinstance(s, dict)]
+            print(f"    [SCORER 진단] offset={offset}, 요청={len(batch)}개, 파싱={len(scores)}개, 유효={len(valid)}개, i값={raw_indices}")
+        return valid
     except Exception as e:
         print(f"    [SCORER ERROR] 배치 offset={offset}, size={len(batch)}: {type(e).__name__}: {e}")
         return []
