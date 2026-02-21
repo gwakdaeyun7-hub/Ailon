@@ -600,9 +600,9 @@ def ranker_node(state: NewsGraphState) -> dict:
         title = (c.get("display_title") or c.get("title", ""))[:40]
         print(f"    {rank+1}. [{c.get('_total_score', 0)}점] {title}")
 
-    # 하이라이트 제외한 당일 기사 → 카테고리 분류 대상
+    # 하이라이트 제외한 전체 후보 → 카테고리 분류 대상
     selected_set = set(id(c) for c in selected)
-    remaining = [c for c in today_candidates if id(c) not in selected_set]
+    remaining = [c for c in candidates if id(c) not in selected_set]
 
     return {"highlights": selected, "category_pool": remaining}
 
@@ -668,8 +668,49 @@ Output exactly {len(articles)} items:
             categorized["industry_business"].append(a)
 
 
+def _select_category_top_n(articles: list[dict], n: int = CATEGORY_TOP_N, today_min: int = 3) -> list[dict]:
+    """당일 기사 today_min개 보장 + 나머지 점수순 채움 + 날짜 최신순 정렬"""
+    _epoch = datetime(2000, 1, 1, tzinfo=timezone.utc)
+    def _pub_key(a: dict):
+        return _parse_published(a.get("published", "")) or _epoch
+
+    today = sorted([a for a in articles if a.get("_is_today")],
+                   key=lambda a: a.get("_total_score", 0), reverse=True)
+    rest = sorted([a for a in articles if not a.get("_is_today")],
+                  key=lambda a: a.get("_total_score", 0), reverse=True)
+
+    selected: list[dict] = []
+    used: set[int] = set()
+
+    # 1) 당일 기사에서 today_min개 보장 (부족하면 최근 기사로 보충)
+    for a in today:
+        if len(selected) >= today_min:
+            break
+        selected.append(a)
+        used.add(id(a))
+    if len(selected) < today_min:
+        for a in rest:
+            if len(selected) >= today_min:
+                break
+            selected.append(a)
+            used.add(id(a))
+
+    # 2) 나머지 점수순으로 n개까지 채움
+    all_by_score = sorted(articles, key=lambda a: a.get("_total_score", 0), reverse=True)
+    for a in all_by_score:
+        if len(selected) >= n:
+            break
+        if id(a) not in used:
+            selected.append(a)
+            used.add(id(a))
+
+    # 3) 날짜 최신순 정렬
+    selected.sort(key=_pub_key, reverse=True)
+    return selected
+
+
 def classifier_node(state: NewsGraphState) -> dict:
-    """당일 기사를 3개 카테고리 분류 + 카테고리별 점수순 Top 10"""
+    """3개 카테고리 분류 + 당일 3개 보장 + 점수순 Top 10 + 날짜순 정렬"""
     category_pool = state.get("category_pool", [])
 
     category_order = ["model_research", "product_tools", "industry_business"]
@@ -693,12 +734,12 @@ def classifier_node(state: NewsGraphState) -> dict:
     if ambiguous:
         _llm_classify_batch(ambiguous, categorized)
 
-    # 카테고리별 점수순 Top 10
+    # 카테고리별 당일 3개 보장 + 점수순 Top 10 + 날짜순 정렬
     for cat in category_order:
         total = len(categorized[cat])
-        by_score = sorted(categorized[cat], key=lambda a: a.get("_total_score", 0), reverse=True)
-        categorized[cat] = by_score[:CATEGORY_TOP_N]
-        print(f"    {cat}: {total}개 → Top {len(categorized[cat])}개")
+        today_count = len([a for a in categorized[cat] if a.get("_is_today")])
+        categorized[cat] = _select_category_top_n(categorized[cat])
+        print(f"    {cat}: {total}개 (당일 {today_count}) → Top {len(categorized[cat])}개")
 
     return {"categorized_articles": categorized, "category_order": category_order}
 
