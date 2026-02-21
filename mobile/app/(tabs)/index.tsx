@@ -159,7 +159,10 @@ function HighlightScrollCard({
       onPress={handlePress}
       style={({ pressed }) => ({
         width: HIGHLIGHT_CARD_WIDTH,
+        maxWidth: HIGHLIGHT_CARD_WIDTH,
         height: HIGHLIGHT_CARD_HEIGHT,
+        flexGrow: 0,
+        flexShrink: 0,
         marginRight: 12,
         backgroundColor: CARD,
         borderRadius: 14,
@@ -184,11 +187,11 @@ function HighlightScrollCard({
           <Text style={{ fontSize: 28, color: TEXT_LIGHT }}>📰</Text>
         </View>
       )}
-      <View style={{ padding: 12, flex: 1, justifyContent: 'space-between' }}>
-        <View>
+      <View style={{ padding: 12, flex: 1, justifyContent: 'space-between', width: HIGHLIGHT_CARD_WIDTH }}>
+        <View style={{ width: HIGHLIGHT_CARD_WIDTH - 24 }}>
           <SourceBadge sourceKey={article.source_key} />
           <Text
-            style={{ fontSize: 13, fontWeight: '800', color: TEXT_PRIMARY, lineHeight: 18, marginTop: 4, flexShrink: 1 }}
+            style={{ fontSize: 13, fontWeight: '800', color: TEXT_PRIMARY, lineHeight: 18, marginTop: 4 }}
             numberOfLines={2}
             ellipsizeMode="tail"
           >
@@ -470,7 +473,10 @@ function HScrollCard({
       onPress={handlePress}
       style={({ pressed }) => ({
         width: CARD_WIDTH,
+        maxWidth: CARD_WIDTH,
         height: HCARD_HEIGHT,
+        flexGrow: 0,
+        flexShrink: 0,
         marginRight: 14,
         backgroundColor: CARD,
         borderRadius: 12,
@@ -495,11 +501,11 @@ function HScrollCard({
           <Text style={{ fontSize: 28, color: TEXT_LIGHT }}>📰</Text>
         </View>
       )}
-      <View style={{ padding: 10, flex: 1, justifyContent: 'space-between' }}>
-        <View>
+      <View style={{ padding: 10, flex: 1, justifyContent: 'space-between', width: CARD_WIDTH }}>
+        <View style={{ width: CARD_WIDTH - 20 }}>
           {showSourceBadge && <SourceBadge sourceKey={article.source_key} />}
           <Text
-            style={{ fontSize: 13, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 18, marginTop: showSourceBadge ? 4 : 0, flexShrink: 1 }}
+            style={{ fontSize: 13, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 18, marginTop: showSourceBadge ? 4 : 0 }}
             numberOfLines={2}
             ellipsizeMode="tail"
           >
