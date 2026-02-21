@@ -418,17 +418,11 @@ def fetch_all_sources() -> dict[str, list[dict]]:
 
 
 def filter_imageless(sources: dict[str, list[dict]]) -> None:
-    """
-    영어 소스: image_url 없는 기사 제거 (최대 20개 유지)
-    한국 소스: 이미지 무관, 캡 없음 (LLM 필터 + assembler가 관리)
-    """
+    """모든 소스에서 image_url 없는 기사 제거"""
     removed = 0
     for key, articles in sources.items():
         before = len(articles)
-        if key in SOURCE_SECTION_SOURCES:
-            pass  # 한국 소스: 캡 없이 전부 LLM 필터로 전달
-        else:
-            sources[key] = [a for a in articles if a.get("image_url")][:20]
+        sources[key] = [a for a in articles if a.get("image_url")]
         removed += before - len(sources[key])
     if removed > 0:
         print(f"  [필터] 이미지 없는 기사 {removed}개 제거")
