@@ -233,8 +233,9 @@ function SummaryModal({ article, onClose }: { article: Article | null; onClose: 
 
   const handleShare = async () => {
     try {
+      const summary = article.summary || '';
       await Share.share({
-        message: `${getTitle(article)}\n${article.link}`,
+        message: `[${sourceName}] ${getTitle(article)}\n\n${summary}\n\n원문: ${article.link}`,
       });
     } catch {}
   };
