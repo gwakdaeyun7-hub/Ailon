@@ -308,8 +308,11 @@ def _llm_ai_filter_batch(articles: list[dict]) -> set[int]:
 
 Which articles are genuinely about AI/ML technology, research, products, or industry?
 
-INCLUDE: AI models, LLM, machine learning, deep learning, AI products/tools, AI startups/funding, AI policy/regulation, AI research papers
-EXCLUDE: Articles that merely mention "AI" in passing but are primarily about other topics (e.g., general business, non-AI tech, politics)
+INCLUDE: AI models, LLM, machine learning, deep learning, neural networks, AI products/tools, AI startups/funding, AI policy/regulation, AI research papers, robotics AI, autonomous driving AI
+EXCLUDE:
+- Articles that merely mention "AI" in passing but are primarily about politics, entertainment, celebrities, sports, or general business
+- Articles with tags like "[AI 이슈트렌드]" or "[AI 브리핑]" but whose actual content is NOT about AI technology (e.g., celebrity news, political scandals, social issues)
+- Judge by the ACTUAL TOPIC of the article, NOT by source name or section tags
 
 Articles:
 {article_text}
