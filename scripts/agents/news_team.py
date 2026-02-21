@@ -609,7 +609,8 @@ def _score_batch(batch: list[dict], offset: int) -> list[dict]:
                 except (ValueError, TypeError):
                     pass
         return [s for s in scores if isinstance(s, dict) and "_global_idx" in s]
-    except Exception:
+    except Exception as e:
+        print(f"    [SCORER ERROR] 배치 offset={offset}, size={len(batch)}: {type(e).__name__}: {e}")
         return []
 
 
@@ -617,11 +618,15 @@ def _score_batch_with_retry(batch: list[dict], offset: int) -> list[dict]:
     scores = _score_batch(batch, offset)
     if scores:
         return scores
-    if len(batch) <= 2:
+    if len(batch) <= 1:
         return []
     mid = len(batch) // 2
     print(f"    [RETRY] 배치 분할: {len(batch)}개 -> {mid} + {len(batch) - mid}")
-    return _score_batch(batch[:mid], offset) + _score_batch(batch[mid:], offset + mid)
+    time.sleep(1)  # 레이트리밋 방지
+    left = _score_batch(batch[:mid], offset)
+    time.sleep(0.5)
+    right = _score_batch(batch[mid:], offset + mid)
+    return left + right
 
 
 @_safe_node("scorer")
@@ -657,8 +662,8 @@ def scorer_node(state: NewsGraphState) -> dict:
         batch_size = SCORER_BATCH_SIZE if retry_count == 0 else max(2, SCORER_BATCH_SIZE // 2)
         batches = [unscored[i:i + batch_size] for i in range(0, len(unscored), batch_size)]
 
-        # 병렬 스코어링
-        with ThreadPoolExecutor(max_workers=4) as executor:
+        # 병렬 스코어링 (max_workers=3으로 Gemini 레이트리밋 방지)
+        with ThreadPoolExecutor(max_workers=3) as executor:
             future_to_batch = {
                 executor.submit(_score_batch_with_retry, batch, idx * batch_size): (batch, idx)
                 for idx, batch in enumerate(batches)
