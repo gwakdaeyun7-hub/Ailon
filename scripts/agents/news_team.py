@@ -560,22 +560,22 @@ HIGHLIGHT_COUNT = 3
 
 
 def ranker_node(state: NewsGraphState) -> dict:
-    """당일 기사 중 점수순 Top 3 하이라이트 (미번역 기사 차단)"""
+    """Tier 1 당일 기사 중 점수순 Top 3 하이라이트"""
     candidates = state.get("scored_candidates", [])
     if not candidates:
         return {"highlights": [], "category_pool": []}
 
-    # 당일 기사만 대상
-    today_candidates = [c for c in candidates if c.get("_is_today")]
-    print(f"  [랭킹] 당일 기사 {len(today_candidates)}/{len(candidates)}개")
+    # 하이라이트: Tier 1 당일 기사만
+    tier1_today = [c for c in candidates
+                   if c.get("source_key", "") in HIGHLIGHT_SOURCES and c.get("_is_today")]
+    print(f"  [랭킹] Tier1 당일 기사 {len(tier1_today)}/{len(candidates)}개")
 
     _epoch = datetime(2000, 1, 1, tzinfo=timezone.utc)
     def _pub_key(c: dict):
         return _parse_published(c.get("published", "")) or _epoch
 
-    # 점수순 내림차순 정렬 (동점이면 최신순)
     ordered = sorted(
-        today_candidates,
+        tier1_today,
         key=lambda c: (c.get("_total_score", 0), _pub_key(c)),
         reverse=True,
     )
@@ -600,7 +600,7 @@ def ranker_node(state: NewsGraphState) -> dict:
         title = (c.get("display_title") or c.get("title", ""))[:40]
         print(f"    {rank+1}. [{c.get('_total_score', 0)}점] {title}")
 
-    # 하이라이트 제외한 전체 후보 → 카테고리 분류 대상
+    # 하이라이트 제외한 Tier 1+2 전체 → 카테고리 분류 대상
     selected_set = set(id(c) for c in selected)
     remaining = [c for c in candidates if id(c) not in selected_set]
 
