@@ -584,7 +584,6 @@ def ranker_node(state: NewsGraphState) -> dict:
     )
 
     selected: list[dict] = []
-    source_count: dict[str, int] = {}
 
     for c in ordered:
         if len(selected) >= HIGHLIGHT_COUNT:
@@ -592,12 +591,7 @@ def ranker_node(state: NewsGraphState) -> dict:
         # 미번역 기사 차단
         if c.get("display_title") == c.get("title") and c.get("lang") != "ko":
             continue
-        # 같은 소스 최대 2개
-        src = c.get("source_key", "")
-        if source_count.get(src, 0) >= 2:
-            continue
         selected.append(c)
-        source_count[src] = source_count.get(src, 0) + 1
 
     for rank, c in enumerate(selected):
         title = (c.get("display_title") or c.get("title", ""))[:40]
@@ -780,10 +774,15 @@ def assembler_node(state: NewsGraphState) -> dict:
     source_articles: dict[str, list[dict]] = {}
     source_order: list[str] = []
 
+    _epoch = datetime(2000, 1, 1, tzinfo=timezone.utc)
+    def _pub_key(a: dict):
+        return _parse_published(a.get("published", "")) or _epoch
+
     for s in SOURCES:
         key = s["key"]
         if key in SOURCE_SECTION_SOURCES and sources.get(key):
-            source_articles[key] = sources[key][:10]
+            sorted_articles = sorted(sources[key], key=_pub_key, reverse=True)
+            source_articles[key] = sorted_articles[:10]
             source_order.append(key)
 
     total = (
