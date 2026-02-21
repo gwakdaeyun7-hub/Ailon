@@ -269,13 +269,15 @@ function SummaryModal({ article, onClose }: { article: Article | null; onClose: 
           >
             {/* 썸네일 */}
             {article.image_url ? (
-              <Image
-                source={article.image_url}
-                style={{ width: '100%', height: 200 }}
-                contentFit="cover"
-                transition={200}
-                recyclingKey={article.link}
-              />
+              <View style={{ backgroundColor: BORDER }}>
+                <Image
+                  source={article.image_url}
+                  style={{ width: '100%', height: 200 }}
+                  contentFit="contain"
+                  transition={200}
+                  recyclingKey={article.link}
+                />
+              </View>
             ) : null}
 
             {/* 제목 */}
