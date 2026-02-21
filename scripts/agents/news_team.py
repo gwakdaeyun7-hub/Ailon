@@ -530,7 +530,7 @@ def ko_process_node(state: NewsGraphState) -> dict:
 W_SIGNIFICANCE = 4  # 중요도 (LLM 평가)
 W_RELEVANCE = 3     # 개발자 관련성 (LLM 평가)
 W_FRESHNESS = 3     # 정보 신선도 (LLM 평가 -- novelty, NOT recency)
-SCORER_BATCH_SIZE = 5
+SCORER_BATCH_SIZE = 3
 
 _SCORER_PROMPT = """IMPORTANT: Output ONLY a valid JSON array. No thinking, no markdown. Start with '['.
 
@@ -586,6 +586,23 @@ Output exactly {count} items:
 [{{"i":0,"significance":6,"relevance":7,"freshness":5,"category":"model_research"}}]"""
 
 
+_scorer_lock = __import__("threading").Lock()
+_scorer_call_ts: list[float] = []  # 최근 API 호출 시각 기록
+
+
+def _scorer_throttle():
+    """Gemini 레이트리밋 방지: 최근 5초 내 호출이 3개 이상이면 대기"""
+    with _scorer_lock:
+        now = time.time()
+        # 5초 이내 호출만 유지
+        _scorer_call_ts[:] = [t for t in _scorer_call_ts if now - t < 5]
+        if len(_scorer_call_ts) >= 3:
+            wait = 5.0 - (now - _scorer_call_ts[0]) + 0.2
+            if wait > 0:
+                time.sleep(wait)
+        _scorer_call_ts.append(time.time())
+
+
 def _score_batch(batch: list[dict], offset: int) -> list[dict]:
     article_text = ""
     for i, a in enumerate(batch):
@@ -596,11 +613,19 @@ def _score_batch(batch: list[dict], offset: int) -> list[dict]:
 
     prompt = _SCORER_PROMPT.format(article_text=article_text, count=len(batch))
     try:
+        _scorer_throttle()  # 레이트리밋 방지
         llm = get_llm(temperature=0.1, max_tokens=2048, thinking=False, json_mode=True)
         content = _llm_invoke_with_retry(llm, prompt, max_retries=2)
         scores = _parse_llm_json(content)
         if not isinstance(scores, list):
             scores = next((v for v in scores.values() if isinstance(v, list)), [])
+
+        # 빈 응답 진단 (레이트리밋으로 [] 또는 {} 반환 시)
+        if not scores:
+            preview = str(content)[:150] if content else "EMPTY"
+            print(f"    [SCORER 빈 응답] offset={offset}, size={len(batch)}, raw={preview}")
+            return []
+
         for s in scores:
             if isinstance(s, dict):
                 raw_idx = s.get("i", s.get("index", -1))
@@ -608,9 +633,17 @@ def _score_batch(batch: list[dict], offset: int) -> list[dict]:
                     s["_global_idx"] = offset + int(raw_idx)
                 except (ValueError, TypeError):
                     pass
+
+        # 폴백: "i" 필드 없지만 개수가 맞으면 순서대로 매핑
         valid = [s for s in scores if isinstance(s, dict) and "_global_idx" in s]
+        if not valid and len([s for s in scores if isinstance(s, dict)]) == len(batch):
+            print(f"    [SCORER 폴백] i값 없음 → 순서 매핑 (offset={offset}, {len(batch)}개)")
+            for idx, s in enumerate(scores):
+                if isinstance(s, dict):
+                    s["_global_idx"] = offset + idx
+            valid = [s for s in scores if isinstance(s, dict) and "_global_idx" in s]
+
         if len(valid) < len(batch):
-            # 진단: 어떤 인덱스가 반환됐는지 로깅
             raw_indices = [s.get("i", s.get("index", "MISSING")) for s in scores if isinstance(s, dict)]
             print(f"    [SCORER 진단] offset={offset}, 요청={len(batch)}개, 파싱={len(scores)}개, 유효={len(valid)}개, i값={raw_indices}")
         return valid
@@ -627,9 +660,7 @@ def _score_batch_with_retry(batch: list[dict], offset: int) -> list[dict]:
         return []
     mid = len(batch) // 2
     print(f"    [RETRY] 배치 분할: {len(batch)}개 -> {mid} + {len(batch) - mid}")
-    time.sleep(1)  # 레이트리밋 방지
     left = _score_batch(batch[:mid], offset)
-    time.sleep(0.5)
     right = _score_batch(batch[mid:], offset + mid)
     return left + right
 
@@ -667,8 +698,8 @@ def scorer_node(state: NewsGraphState) -> dict:
         batch_size = SCORER_BATCH_SIZE if retry_count == 0 else max(2, SCORER_BATCH_SIZE // 2)
         batches = [unscored[i:i + batch_size] for i in range(0, len(unscored), batch_size)]
 
-        # 병렬 스코어링 (max_workers=3으로 Gemini 레이트리밋 방지)
-        with ThreadPoolExecutor(max_workers=3) as executor:
+        # 병렬 스코어링 (throttle + max_workers=2로 Gemini 레이트리밋 방지)
+        with ThreadPoolExecutor(max_workers=2) as executor:
             future_to_batch = {
                 executor.submit(_score_batch_with_retry, batch, idx * batch_size): (batch, idx)
                 for idx, batch in enumerate(batches)
