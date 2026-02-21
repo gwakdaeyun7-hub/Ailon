@@ -415,26 +415,27 @@ def ko_process_node(state: NewsGraphState) -> dict:
 
 
 # ─── Node 3: scorer (4차원 평가, 병렬 배치) ───
-W_RECENCY = 4
-W_IMPACT = 3
-W_FRESHNESS = 2
-W_BREADTH = 1
+W_IMPACT = 4        # 파급력
+W_PRACTICALITY = 3  # 실용성
+W_BUZZ = 2          # 화제성
+W_NOVELTY = 1       # 신규성
 SCORER_BATCH_SIZE = 8
 
 _SCORER_PROMPT = """IMPORTANT: Output ONLY a valid JSON array. No thinking, no markdown. Start with '['.
 
-Score each article on 3 dimensions (0-10 integer):
-1. impact: How important to AI field? 10=Paradigm shift, 6=Important, 2=Minor
-2. freshness: How novel? 10=World-first, 6=Fresh angle, 2=Rehash
-3. breadth: Scope of influence? 10=Reshapes industry, 6=One segment, 2=Niche
+Score each article on 4 dimensions (0-10 integer):
+1. impact: 파급력 - How much does this affect the AI industry? 10=Paradigm shift, 6=Important, 2=Minor
+2. practicality: 실용성 - Can developers/users try this right now? 10=Immediately usable, 6=Soon usable, 2=Theoretical only
+3. buzz: 화제성 - Will this be talked about on social media/communities? 10=Explosive interest, 6=High interest, 2=Quiet
+4. novelty: 신규성 - Is this completely new? 10=World-first, 6=Fresh approach, 2=Rehash of existing
 
-Also: topic_tag (short English tag), category ("model_research"|"product_tools"|"industry_business")
+Also: category ("model_research"|"product_tools"|"industry_business")
 
 Articles:
 {article_text}
 
 Output exactly {count} items:
-[{{"i":0,"impact":8,"freshness":7,"breadth":6,"topic_tag":"tag","category":"model_research"}}]"""
+[{{"i":0,"impact":8,"practicality":7,"buzz":6,"novelty":5,"category":"model_research"}}]"""
 
 
 def _score_batch(batch: list[dict], offset: int) -> list[dict]:
@@ -489,7 +490,6 @@ def scorer_node(state: NewsGraphState) -> dict:
 
         today_count = 0
         for c in candidates:
-            c["_score_recency"] = _compute_recency_score(c)
             c["_is_today"] = _is_today(c)
             if c["_is_today"]:
                 today_count += 1
@@ -522,17 +522,17 @@ def scorer_node(state: NewsGraphState) -> dict:
                     if 0 <= local_idx < len(unscored):
                         gi = unscored_indices[local_idx]
                         impact = min(10, max(0, s.get("impact", 5)))
-                        fresh = min(10, max(0, s.get("freshness", 5)))
-                        breadth = min(10, max(0, s.get("breadth", 5)))
-                        recency = candidates[gi]["_score_recency"]
+                        practicality = min(10, max(0, s.get("practicality", 5)))
+                        buzz = min(10, max(0, s.get("buzz", 5)))
+                        novelty = min(10, max(0, s.get("novelty", 5)))
                         candidates[gi]["_score_impact"] = impact
-                        candidates[gi]["_score_freshness"] = fresh
-                        candidates[gi]["_score_breadth"] = breadth
-                        candidates[gi]["_topic_tag"] = s.get("topic_tag", "")
+                        candidates[gi]["_score_practicality"] = practicality
+                        candidates[gi]["_score_buzz"] = buzz
+                        candidates[gi]["_score_novelty"] = novelty
                         candidates[gi]["_llm_category"] = s.get("category", "")
                         candidates[gi]["_total_score"] = (
-                            recency * W_RECENCY + impact * W_IMPACT
-                            + fresh * W_FRESHNESS + breadth * W_BREADTH
+                            impact * W_IMPACT + practicality * W_PRACTICALITY
+                            + buzz * W_BUZZ + novelty * W_NOVELTY
                         )
                         candidates[gi]["_llm_scored"] = True
 
@@ -542,13 +542,12 @@ def scorer_node(state: NewsGraphState) -> dict:
     # 폴백: 미평가 기사에 낮은 기본 점수 (LLM 평가 기사 우선)
     for c in candidates:
         if "_total_score" not in c:
-            recency = c.get("_score_recency", 3)
             c["_score_impact"] = 3
-            c["_score_freshness"] = 3
-            c["_score_breadth"] = 3
-            c["_topic_tag"] = ""
+            c["_score_practicality"] = 3
+            c["_score_buzz"] = 3
+            c["_score_novelty"] = 3
             c["_llm_category"] = ""
-            c["_total_score"] = recency * W_RECENCY + 3 * W_IMPACT + 3 * W_FRESHNESS + 3 * W_BREADTH
+            c["_total_score"] = 3 * W_IMPACT + 3 * W_PRACTICALITY + 3 * W_BUZZ + 3 * W_NOVELTY
 
     llm_count = len([c for c in candidates if c.get("_llm_scored")])
     print(f"  [스코어링] LLM 평가: {llm_count}/{len(candidates)}개")
@@ -556,7 +555,7 @@ def scorer_node(state: NewsGraphState) -> dict:
     return {"scored_candidates": candidates, "scorer_retry_count": retry_count + 1}
 
 
-# ─── Node 4: ranker (하이라이트 선정, 미번역 차단) ───
+# ─── Node 4: ranker (하이라이트 선정, 당일 기사 전용) ───
 HIGHLIGHT_COUNT = 3
 
 
@@ -566,79 +565,51 @@ def ranker_node(state: NewsGraphState) -> dict:
     if not candidates:
         return {"highlights": [], "category_pool": []}
 
-    highlight_pool = [c for c in candidates if c.get("source_key", "") in HIGHLIGHT_SOURCES]
-    non_highlight = [c for c in candidates if c.get("source_key", "") not in HIGHLIGHT_SOURCES]
-
-    # 당일 기사만 우선 필터
-    today_pool = [c for c in highlight_pool if _is_today(c)]
-    fallback_pool = highlight_pool  # 당일 부족 시 전체에서 보충
+    # 당일 기사만 대상
+    today_candidates = [c for c in candidates if c.get("_is_today")]
+    print(f"  [랭킹] 당일 기사 {len(today_candidates)}/{len(candidates)}개")
 
     _epoch = datetime(2000, 1, 1, tzinfo=timezone.utc)
     def _pub_key(c: dict):
         return _parse_published(c.get("published", "")) or _epoch
 
-    # 당일 기사: 점수순 내림차순 정렬 (동점이면 최신순)
-    ordered_pool = sorted(
-        today_pool,
+    # 점수순 내림차순 정렬 (동점이면 최신순)
+    ordered = sorted(
+        today_candidates,
         key=lambda c: (c.get("_total_score", 0), _pub_key(c)),
         reverse=True,
     )
-    print(f"  [랭킹] 당일 기사 {len(today_pool)}/{len(highlight_pool)}개")
-
-    print(f"  [랭킹] 당일 후보 {len(ordered_pool)}개")
 
     selected: list[dict] = []
-    used_tags: set[str] = set()
     source_count: dict[str, int] = {}
 
-    for c in ordered_pool:
+    for c in ordered:
         if len(selected) >= HIGHLIGHT_COUNT:
             break
-        # 미번역 기사 차단 (display_title == title이면 미번역)
+        # 미번역 기사 차단
         if c.get("display_title") == c.get("title") and c.get("lang") != "ko":
             continue
-        # 이미지 없는 기사 차단
-        if not c.get("image_url"):
-            continue
+        # 같은 소스 최대 2개
         src = c.get("source_key", "")
-        tag = c.get("_topic_tag", "")
         if source_count.get(src, 0) >= 2:
-            continue
-        if tag and tag in used_tags:
             continue
         selected.append(c)
         source_count[src] = source_count.get(src, 0) + 1
-        if tag:
-            used_tags.add(tag)
-
-    # 부족하면 전체 풀(당일 외 포함)에서 최신순+점수순으로 보충
-    if len(selected) < HIGHLIGHT_COUNT:
-        all_ordered = sorted(
-            fallback_pool,
-            key=lambda c: (c.get("_total_score", 0), _pub_key(c)),
-            reverse=True,
-        )
-        for c in all_ordered:
-            if len(selected) >= HIGHLIGHT_COUNT:
-                break
-            if c not in selected and c.get("image_url"):
-                selected.append(c)
 
     for rank, c in enumerate(selected):
         title = (c.get("display_title") or c.get("title", ""))[:40]
         print(f"    {rank+1}. [{c.get('_total_score', 0)}점] {title}")
 
+    # 하이라이트 제외한 당일 기사 → 카테고리 분류 대상
     selected_set = set(id(c) for c in selected)
-    remaining = [c for c in ordered_pool if id(c) not in selected_set]
+    remaining = [c for c in today_candidates if id(c) not in selected_set]
 
-    return {"highlights": selected, "category_pool": remaining + non_highlight}
+    return {"highlights": selected, "category_pool": remaining}
 
 
 # ─── Node 5: classifier (카테고리 분류 + Top 10 선정) ───
 VALID_CATEGORIES = {"model_research", "product_tools", "industry_business"}
 CATEGORY_TOP_N = 10
-CATEGORY_RECENT_MIN = 3
-MAX_PER_SOURCE_CATEGORY = 99
 
 
 def _classify_article(a: dict) -> str | None:
@@ -697,79 +668,19 @@ Output exactly {len(articles)} items:
             categorized["industry_business"].append(a)
 
 
-def _select_top_n(articles: list[dict], n: int, max_per_source: int,
-                  recent_min: int = 0, require_image: bool = True) -> list[dict]:
-    """Top N 선정 (최근 기사 보장 + 점수순 + 소스 상한 + 썸네일 우선)"""
-    with_img = [a for a in articles if a.get("image_url")]
-    without_img = [a for a in articles if not a.get("image_url")]
-
-    # 발행일 내림차순 (파싱으로 정규화, 파싱 실패 시 최저 순위)
-    _epoch = datetime(2000, 1, 1, tzinfo=timezone.utc)
-    def _pub_key(a: dict):
-        return _parse_published(a.get("published", "")) or _epoch
-    by_recency = sorted(with_img, key=_pub_key, reverse=True)
-    by_score = sorted(with_img, key=lambda a: a.get("_total_score", 0), reverse=True)
-
-    selected: list[dict] = []
-    source_count: dict[str, int] = {}
-    used_links: set[str] = set()
-
-    def _try_add(a: dict) -> bool:
-        if len(selected) >= n:
-            return False
-        link = a.get("link", "")
-        if link in used_links:
-            return False
-        src = a.get("source_key", "")
-        if source_count.get(src, 0) >= max_per_source:
-            return False
-        selected.append(a)
-        source_count[src] = source_count.get(src, 0) + 1
-        if link:
-            used_links.add(link)
-        return True
-
-    # 가장 최근 기사 recent_min개 우선 배치
-    for a in by_recency:
-        if len(selected) >= recent_min:
-            break
-        _try_add(a)
-
-    # 점수순으로 나머지 채움
-    for a in by_score:
-        if len(selected) >= n:
-            break
-        _try_add(a)
-
-    # 부족하면 이미지 없는 기사로 보충
-    if len(selected) < n and not require_image:
-        all_without = sorted(without_img, key=lambda a: a.get("_total_score", 0), reverse=True)
-        for a in all_without:
-            if len(selected) >= n:
-                break
-            _try_add(a)
-
-    selected.sort(key=lambda a: _pub_key(a), reverse=True)
-    return selected
-
-
 def classifier_node(state: NewsGraphState) -> dict:
-    """3개 카테고리 분류 + 카테고리별 Top 10"""
-    highlights = state.get("highlights", [])
+    """당일 기사를 3개 카테고리 분류 + 카테고리별 점수순 Top 10"""
     category_pool = state.get("category_pool", [])
-
-    highlight_links = set(a.get("link", "") for a in highlights)
-    all_to_classify = [a for a in category_pool if a.get("link", "") not in highlight_links]
 
     category_order = ["model_research", "product_tools", "industry_business"]
     categorized: dict[str, list[dict]] = {k: [] for k in category_order}
 
-    if not all_to_classify:
+    if not category_pool:
         return {"categorized_articles": categorized, "category_order": category_order}
 
     ambiguous: list[dict] = []
     classified_count = 0
-    for a in all_to_classify:
+    for a in category_pool:
         cat = _classify_article(a)
         if cat:
             categorized[cat].append(a)
@@ -782,15 +693,11 @@ def classifier_node(state: NewsGraphState) -> dict:
     if ambiguous:
         _llm_classify_batch(ambiguous, categorized)
 
-    # 품질 재시도 여부에 따라 이미지 요구 완화
-    is_retry = state.get("quality_retry", False)
-
+    # 카테고리별 점수순 Top 10
     for cat in category_order:
         total = len(categorized[cat])
-        categorized[cat] = _select_top_n(
-            categorized[cat], CATEGORY_TOP_N, MAX_PER_SOURCE_CATEGORY,
-            recent_min=CATEGORY_RECENT_MIN, require_image=not is_retry,
-        )
+        by_score = sorted(categorized[cat], key=lambda a: a.get("_total_score", 0), reverse=True)
+        categorized[cat] = by_score[:CATEGORY_TOP_N]
         print(f"    {cat}: {total}개 → Top {len(categorized[cat])}개")
 
     return {"categorized_articles": categorized, "category_order": category_order}
