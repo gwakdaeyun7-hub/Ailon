@@ -525,34 +525,37 @@ function CategoryTabSection({
             onPress={() => onArticlePress(a)}
             style={({ pressed }) => ({
               flexDirection: 'row',
-              paddingVertical: 12,
-              borderBottomWidth: 1,
-              borderBottomColor: BORDER,
-              opacity: pressed ? 0.7 : 1,
+              backgroundColor: CARD,
+              borderRadius: 12,
+              overflow: 'hidden',
+              marginBottom: 10,
+              borderWidth: 1,
+              borderColor: BORDER,
+              opacity: pressed ? 0.92 : 1,
             })}
           >
             {a.image_url ? (
               <Image
                 source={a.image_url}
-                style={{ width: 72, height: 72, borderRadius: 8, marginRight: 12 }}
+                style={{ width: 100, height: 100 }}
                 contentFit="cover"
                 transition={200}
                 recyclingKey={a.link}
               />
             ) : (
-              <View style={{ width: 72, height: 72, borderRadius: 8, marginRight: 12, backgroundColor: BORDER, alignItems: 'center', justifyContent: 'center' }}>
-                <Text style={{ fontSize: 20, color: TEXT_LIGHT }}>📰</Text>
+              <View style={{ width: 100, height: 100, backgroundColor: BORDER, alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ fontSize: 24, color: TEXT_LIGHT }}>📰</Text>
               </View>
             )}
-            <View style={{ flex: 1, justifyContent: 'center' }}>
+            <View style={{ flex: 1, padding: 10, justifyContent: 'space-between' }}>
               <Text
-                style={{ fontSize: 13, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 18 }}
+                style={{ fontSize: 14, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 20 }}
                 numberOfLines={2}
                 ellipsizeMode="tail"
               >
                 {getTitle(a)}
               </Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: 8 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                 <SourceBadge sourceKey={a.source_key} />
                 <Text style={{ fontSize: 10, color: TEXT_LIGHT }}>{formatDate(a.published)}</Text>
                 <ArticleStats articleLink={a.link} />
