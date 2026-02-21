@@ -202,7 +202,7 @@ Articles:
 {batch_text}"""
 
     try:
-        llm = get_llm(temperature=0.3, max_tokens=8192, thinking=False)
+        llm = get_llm(temperature=0.3, max_tokens=8192, thinking=False, json_mode=True)
         content = _llm_invoke_with_retry(llm, prompt, max_retries=2)
         results = _parse_llm_json(content)
         if isinstance(results, dict):
@@ -330,7 +330,7 @@ Return ONLY the indices of articles where AI technology is the core subject:
 [0, 2, 5]"""
 
     try:
-        llm = get_llm(temperature=0.1, max_tokens=512, thinking=False)
+        llm = get_llm(temperature=0.1, max_tokens=512, thinking=False, json_mode=True)
         content = _llm_invoke_with_retry(llm, prompt, max_retries=1)
         result = _parse_llm_json(content)
         if isinstance(result, list):
@@ -442,7 +442,7 @@ def _score_batch(batch: list[dict], offset: int) -> list[dict]:
 
     prompt = _SCORER_PROMPT.format(article_text=article_text, count=len(batch))
     try:
-        llm = get_llm(temperature=0.1, max_tokens=2048, thinking=False)
+        llm = get_llm(temperature=0.1, max_tokens=2048, thinking=False, json_mode=True)
         content = _llm_invoke_with_retry(llm, prompt, max_retries=2)
         scores = _parse_llm_json(content)
         if not isinstance(scores, list):
@@ -668,7 +668,7 @@ Output exactly {len(articles)} items:
 [{{"i":0,"cat":"model_research"}}]"""
 
     try:
-        llm = get_llm(temperature=0.1, max_tokens=1024, thinking=False)
+        llm = get_llm(temperature=0.1, max_tokens=1024, thinking=False, json_mode=True)
         content = _llm_invoke_with_retry(llm, prompt, max_retries=1)
         results = _parse_llm_json(content)
         if not isinstance(results, list):

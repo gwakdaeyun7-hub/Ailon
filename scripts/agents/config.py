@@ -66,9 +66,9 @@ CATEGORY_KEYWORDS = {
 _llm_cache: dict[tuple, ChatGoogleGenerativeAI] = {}
 
 
-def get_llm(temperature: float = 0.7, max_tokens: int = 2048, thinking: bool = True):
-    """LangChain Google Gemini LLM (캐싱, thinking 토글 지원)"""
-    cache_key = (temperature, max_tokens, thinking)
+def get_llm(temperature: float = 0.7, max_tokens: int = 2048, thinking: bool = True, json_mode: bool = False):
+    """LangChain Google Gemini LLM (캐싱, thinking 토글, JSON 모드 지원)"""
+    cache_key = (temperature, max_tokens, thinking, json_mode)
     if cache_key in _llm_cache:
         return _llm_cache[cache_key]
 
@@ -83,8 +83,13 @@ def get_llm(temperature: float = 0.7, max_tokens: int = 2048, thinking: bool = T
         "max_tokens": max_tokens,
         "google_api_key": api_key,
     }
+    model_kwargs = {}
     if not thinking:
-        kwargs["model_kwargs"] = {"thinking": {"type": "disabled"}}
+        model_kwargs["thinking"] = {"type": "disabled"}
+    if json_mode:
+        model_kwargs["response_mime_type"] = "application/json"
+    if model_kwargs:
+        kwargs["model_kwargs"] = model_kwargs
 
     llm = ChatGoogleGenerativeAI(**kwargs)
     _llm_cache[cache_key] = llm
