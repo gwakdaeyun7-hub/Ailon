@@ -27,7 +27,7 @@ from langgraph.graph import StateGraph, END
 from agents.config import get_llm
 from agents.tools import (
     SOURCES,
-    fetch_all_sources, enrich_and_scrape, filter_imageless,
+    fetch_all_sources, enrich_and_scrape, filter_imageless, _is_ai_related,
     HIGHLIGHT_SOURCES, CATEGORY_SOURCES, SOURCE_SECTION_SOURCES,
 )
 
@@ -340,9 +340,12 @@ Return ONLY the indices of articles where AI technology is the core subject:
         if isinstance(result, list):
             return set(int(idx) for idx in result if isinstance(idx, (int, float)))
     except Exception as e:
-        print(f"    [WARN] LLM AI 필터 실패: {e}")
-    # 실패 시 전부 통과
-    return set(range(len(articles)))
+        print(f"    [WARN] LLM AI 필터 실패 → 키워드 폴백: {e}")
+    # 실패 시 키워드 필터로 폴백
+    return set(
+        i for i, a in enumerate(articles)
+        if _is_ai_related(a.get("title", ""), a.get("description", ""))
+    )
 
 
 def _llm_filter_sources(sources: dict[str, list[dict]]) -> None:

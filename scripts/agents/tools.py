@@ -91,7 +91,7 @@ SOURCES = [
         "name": "AI타임스",
         "rss_url": "https://www.aitimes.com/rss/allArticle.xml",
         "max_items": 30,
-
+        "ai_filter": True,
         "lang": "ko",
     },
     {
@@ -99,7 +99,7 @@ SOURCES = [
         "name": "GeekNews",
         "rss_url": "https://news.hada.io/rss/news",
         "max_items": 30,
-
+        "ai_filter": True,
         "lang": "ko",
     },
     {
@@ -107,7 +107,7 @@ SOURCES = [
         "name": "ZDNet AI 에디터",
         "scrape_url": "https://zdnet.co.kr/reporter/?lstcode=media",
         "max_items": 30,
-
+        "ai_filter": True,
         "lang": "ko",
     },
     {
@@ -115,7 +115,7 @@ SOURCES = [
         "name": "요즘IT AI",
         "rss_url": "https://yozm.wishket.com/magazine/ai/feed/",
         "max_items": 30,
-
+        "ai_filter": True,
         "lang": "ko",
         "rss_image_field": "content_image",
     },
@@ -245,9 +245,11 @@ def _fetch_scrape_source(source_config: dict) -> list[dict]:
     max_items = source_config.get("max_items", 20)
     days = source_config.get("days", 30)
     lang = source_config.get("lang", "ko")
+    ai_filter = source_config.get("ai_filter", False)
 
     articles = []
     date_filtered = 0
+    keyword_filtered = 0
     try:
         headers = {"User-Agent": "Mozilla/5.0 (compatible; AilonBot/1.0)"}
         resp = requests.get(url, headers=headers, timeout=10)
@@ -286,6 +288,11 @@ def _fetch_scrape_source(source_config: dict) -> list[dict]:
                 date_filtered += 1
                 continue
 
+            # 키워드 AI 필터
+            if ai_filter and not _is_ai_related(title, ""):
+                keyword_filtered += 1
+                continue
+
             articles.append({
                 "title": title,
                 "display_title": "",
@@ -304,6 +311,8 @@ def _fetch_scrape_source(source_config: dict) -> list[dict]:
 
     if date_filtered > 0:
         print(f"  [{name}] 날짜 필터: {date_filtered}개 ({days}일 초과) 제거")
+    if keyword_filtered > 0:
+        print(f"  [{name}] AI 키워드 필터: {keyword_filtered}개 비AI 기사 제거")
 
     return articles
 
