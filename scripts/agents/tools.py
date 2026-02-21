@@ -243,10 +243,11 @@ def _fetch_scrape_source(source_config: dict) -> list[dict]:
     name = source_config["name"]
     url = source_config["scrape_url"]
     max_items = source_config.get("max_items", 20)
-    days = source_config.get("days", 7)
+    days = source_config.get("days", 30)
     lang = source_config.get("lang", "ko")
 
     articles = []
+    date_filtered = 0
     try:
         headers = {"User-Agent": "Mozilla/5.0 (compatible; AilonBot/1.0)"}
         resp = requests.get(url, headers=headers, timeout=10)
@@ -280,6 +281,10 @@ def _fetch_scrape_source(source_config: dict) -> list[dict]:
                         published = txt
                         break
 
+            # 최근 N일 이내 기사만 수집
+            if published and not _within_days_ymd(published, days):
+                date_filtered += 1
+                continue
 
             articles.append({
                 "title": title,
@@ -296,6 +301,9 @@ def _fetch_scrape_source(source_config: dict) -> list[dict]:
 
     except Exception as e:
         print(f"  [WARNING] {name} 스크래핑 실패: {e}")
+
+    if date_filtered > 0:
+        print(f"  [{name}] 날짜 필터: {date_filtered}개 ({days}일 초과) 제거")
 
     return articles
 
@@ -322,13 +330,14 @@ def fetch_source(source_config: dict) -> list[dict]:
     name = source_config["name"]
     rss_url = source_config["rss_url"]
     max_items = source_config.get("max_items", 10)
-    days = source_config.get("days", 7)
+    days = source_config.get("days", 30)
     lang = source_config.get("lang", "en")
     ai_filter = source_config.get("ai_filter", False)
     rss_image_field = source_config.get("rss_image_field", "")
 
     articles = []
     filtered_out = 0
+    date_filtered = 0
     try:
         feed = feedparser.parse(rss_url, agent="Mozilla/5.0")
         for entry in feed.entries:
@@ -340,6 +349,11 @@ def fetch_source(source_config: dict) -> list[dict]:
                 continue
 
             published = entry.get("published", "") or entry.get("updated", "")
+
+            # 최근 N일 이내 기사만 수집
+            if published and not _within_days(published, days):
+                date_filtered += 1
+                continue
 
             description = (entry.get("summary", "") or "").strip()
             description = re.sub(r'<[^>]+>', '', description)[:500]
@@ -367,6 +381,8 @@ def fetch_source(source_config: dict) -> list[dict]:
     except Exception as e:
         print(f"  [WARNING] {name} RSS 수집 실패: {e}")
 
+    if date_filtered > 0:
+        print(f"  [{name}] 날짜 필터: {date_filtered}개 ({days}일 초과) 제거")
     if filtered_out > 0:
         print(f"  [{name}] AI 필터: {filtered_out}개 비AI 기사 제거")
 
@@ -404,13 +420,13 @@ def fetch_all_sources() -> dict[str, list[dict]]:
 def filter_imageless(sources: dict[str, list[dict]]) -> None:
     """
     영어 소스: image_url 없는 기사 제거 (최대 20개 유지)
-    한국 소스: 이미지 무관, 최대 20개 유지
+    한국 소스: 이미지 무관, 캡 없음 (LLM 필터 + assembler가 관리)
     """
     removed = 0
     for key, articles in sources.items():
         before = len(articles)
         if key in SOURCE_SECTION_SOURCES:
-            sources[key] = articles[:20]
+            pass  # 한국 소스: 캡 없이 전부 LLM 필터로 전달
         else:
             sources[key] = [a for a in articles if a.get("image_url")][:20]
         removed += before - len(sources[key])

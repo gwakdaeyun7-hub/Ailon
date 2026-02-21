@@ -319,9 +319,13 @@ EXCLUDE (even if "AI" appears in title/tags):
 - Company investment/funding/business strategy that happens to involve AI (e.g., "Samsung invests in AI chips", "AI startup raises $100M")
 - General tech news mentioning AI as one of many topics
 - Politics, entertainment, celebrities, sports, social issues
+- Celebrity/influencer/public figure content (e.g., 충주맨, 유튜버, 인플루언서, 연예인)
+- Government PR, regional marketing, tourism promotion that uses AI as a buzzword
 - Articles with tags like "[AI 이슈트렌드]" or "[AI 브리핑]" but actual content is NOT about AI technology
 - Market trends, stock analysis, industry forecasts about AI sector
-- Judge by the ACTUAL TOPIC, NOT by source name or section tags
+- Hardware/chip/semiconductor business news unless about AI model training/inference
+- "AI + 비기술 주제" 조합 기사 (e.g., "AI로 본 부동산", "AI 추천 맛집", "AI 시대 자기계발")
+- Judge by the ACTUAL TOPIC, NOT by source name or section tags. When in doubt, EXCLUDE.
 
 Articles:
 {article_text}
