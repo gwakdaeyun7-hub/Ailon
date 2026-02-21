@@ -576,9 +576,9 @@ function CategoryTabSection({
             onPress={() => onArticlePress(a)}
             style={({ pressed }) => ({
               flexDirection: 'row',
-              height: 100,
+              height: 110,
               backgroundColor: CARD,
-              borderRadius: 12,
+              borderRadius: 14,
               overflow: 'hidden',
               marginBottom: 10,
               borderWidth: 1,
@@ -586,41 +586,30 @@ function CategoryTabSection({
               opacity: pressed ? 0.92 : 1,
             })}
           >
-            {a.image_url ? (
-              <View style={{ width: 100, height: 100, overflow: 'hidden' }}>
-                <Image
-                  source={a.image_url}
-                  style={{ position: 'absolute', width: 100, height: 100 }}
-                  contentFit="cover"
-                  blurRadius={20}
-                />
-                <Image
-                  source={a.image_url}
-                  style={{ width: 100, height: 100 }}
-                  contentFit="contain"
-                  transition={200}
-                  recyclingKey={a.link}
-                />
-              </View>
-            ) : (
-              <View style={{ width: 100, height: 100, backgroundColor: BORDER, alignItems: 'center', justifyContent: 'center' }}>
-                <Text style={{ fontSize: 24, color: TEXT_LIGHT }}>📰</Text>
-              </View>
-            )}
-            <View style={{ flex: 1, padding: 10, justifyContent: 'space-between' }}>
+            <View style={{ flex: 1, padding: 12, justifyContent: 'space-between' }}>
               <Text
-                style={{ fontSize: 13, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 18 }}
-                numberOfLines={2}
+                style={{ fontSize: 14, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 20 }}
+                numberOfLines={3}
                 ellipsizeMode="tail"
               >
                 {getTitle(a)}
               </Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                <SourceBadge sourceKey={a.source_key} />
-                <Text style={{ fontSize: 10, color: TEXT_LIGHT }}>{formatDate(a.published)}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <ArticleStats articleLink={a.link} />
+                <Text style={{ fontSize: 10, color: TEXT_LIGHT }}>{formatDate(a.published)}</Text>
               </View>
             </View>
+            {a.image_url ? (
+              <View style={{ width: 110, height: 110, backgroundColor: BORDER }}>
+                <Image
+                  source={a.image_url}
+                  style={{ width: 110, height: 110 }}
+                  contentFit="cover"
+                  transition={200}
+                  recyclingKey={a.link}
+                />
+              </View>
+            ) : null}
           </Pressable>
         ))}
       </View>
