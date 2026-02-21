@@ -535,13 +535,15 @@ function CategoryTabSection({
             })}
           >
             {a.image_url ? (
-              <Image
-                source={a.image_url}
-                style={{ width: 100, height: 100 }}
-                contentFit="cover"
-                transition={200}
-                recyclingKey={a.link}
-              />
+              <View style={{ width: 100, height: 100, backgroundColor: BORDER }}>
+                <Image
+                  source={a.image_url}
+                  style={{ width: 100, height: 100 }}
+                  contentFit="contain"
+                  transition={200}
+                  recyclingKey={a.link}
+                />
+              </View>
             ) : (
               <View style={{ width: 100, height: 100, backgroundColor: BORDER, alignItems: 'center', justifyContent: 'center' }}>
                 <Text style={{ fontSize: 24, color: TEXT_LIGHT }}>📰</Text>
