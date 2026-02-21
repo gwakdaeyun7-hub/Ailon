@@ -581,7 +581,6 @@ function CategoryTabSection({
             key={`cat-${activeTab}-${i}`}
             onPress={() => onArticlePress(a)}
             style={({ pressed }) => ({
-              flexDirection: 'row',
               height: 110,
               backgroundColor: CARD,
               borderRadius: 14,
@@ -592,28 +591,30 @@ function CategoryTabSection({
               opacity: pressed ? 0.92 : 1,
             })}
           >
-            {a.image_url ? (
-              <View style={{ width: 110, height: 110, backgroundColor: BORDER }}>
-                <Image
-                  source={a.image_url}
-                  style={{ width: 110, height: 110 }}
-                  contentFit="cover"
-                  transition={200}
-                  recyclingKey={a.link}
-                />
-              </View>
-            ) : null}
-            <View style={{ flex: 1, padding: 12, justifyContent: 'space-between' }}>
-              <Text
-                style={{ fontSize: 14, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 20 }}
-                numberOfLines={3}
-                ellipsizeMode="tail"
-              >
-                {getTitle(a)}
-              </Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <ArticleStats articleLink={a.link} />
-                <Text style={{ fontSize: 10, color: TEXT_LIGHT }}>{formatDate(a.published)}</Text>
+            <View style={{ flexDirection: 'row', flex: 1 }}>
+              {a.image_url ? (
+                <View style={{ width: 108, height: 108, backgroundColor: BORDER }}>
+                  <Image
+                    source={a.image_url}
+                    style={{ width: 108, height: 108 }}
+                    contentFit="cover"
+                    transition={200}
+                    recyclingKey={a.link}
+                  />
+                </View>
+              ) : null}
+              <View style={{ flex: 1, padding: 12, justifyContent: 'space-between' }}>
+                <Text
+                  style={{ fontSize: 14, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 20 }}
+                  numberOfLines={3}
+                  ellipsizeMode="tail"
+                >
+                  {getTitle(a)}
+                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <ArticleStats articleLink={a.link} />
+                  <Text style={{ fontSize: 10, color: TEXT_LIGHT }}>{formatDate(a.published)}</Text>
+                </View>
               </View>
             </View>
           </Pressable>
