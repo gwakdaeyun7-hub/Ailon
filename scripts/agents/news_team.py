@@ -295,12 +295,67 @@ def _process_articles(articles: list[dict], translate: bool, batch_size: int, ma
     print(f"  [{label}] 최종 {success}/{len(articles)}개 완료")
 
 
+# ─── LLM AI 관련성 필터 ───
+def _llm_ai_filter_batch(articles: list[dict]) -> set[int]:
+    """기사 목록에서 AI 관련 기사 인덱스를 LLM으로 판별"""
+    article_text = ""
+    for i, a in enumerate(articles):
+        title = a.get("title", "")
+        desc = (a.get("description", "") or "")[:120]
+        article_text += f"\n[{i}] {title} | {desc}"
+
+    prompt = f"""IMPORTANT: Output ONLY a valid JSON array of integers. No thinking, no markdown.
+
+Which articles are genuinely about AI/ML technology, research, products, or industry?
+
+INCLUDE: AI models, LLM, machine learning, deep learning, AI products/tools, AI startups/funding, AI policy/regulation, AI research papers
+EXCLUDE: Articles that merely mention "AI" in passing but are primarily about other topics (e.g., general business, non-AI tech, politics)
+
+Articles:
+{article_text}
+
+Return ONLY the indices of AI-relevant articles as a JSON array:
+[0, 2, 5]"""
+
+    try:
+        llm = get_llm(temperature=0.1, max_tokens=512, thinking=False)
+        content = _llm_invoke_with_retry(llm, prompt, max_retries=1)
+        result = _parse_llm_json(content)
+        if isinstance(result, list):
+            return set(int(idx) for idx in result if isinstance(idx, (int, float)))
+    except Exception as e:
+        print(f"    [WARN] LLM AI 필터 실패: {e}")
+    # 실패 시 전부 통과
+    return set(range(len(articles)))
+
+
+def _llm_filter_sources(sources: dict[str, list[dict]]) -> None:
+    """소스별 뉴스(한국 소스)를 LLM으로 AI 관련성 필터링"""
+    total_removed = 0
+    for key in SOURCE_SECTION_SOURCES:
+        articles = sources.get(key, [])
+        if not articles:
+            continue
+
+        ai_indices = _llm_ai_filter_batch(articles)
+        before = len(articles)
+        sources[key] = [a for i, a in enumerate(articles) if i in ai_indices]
+        removed = before - len(sources[key])
+        total_removed += removed
+        if removed > 0:
+            print(f"    [{key}] LLM AI 필터: {removed}개 제거 → {len(sources[key])}개")
+
+    if total_removed > 0:
+        print(f"  [LLM AI 필터] 총 {total_removed}개 비AI 기사 제거")
+
+
 # ─── Node 1: collector ───
 def collector_node(state: NewsGraphState) -> dict:
-    """모든 소스 수집 + 이미지/본문 통합 스크래핑 + 이미지 필터"""
+    """모든 소스 수집 + 이미지/본문 통합 스크래핑 + 이미지 필터 + LLM AI 필터"""
     sources = fetch_all_sources()
     enrich_and_scrape(sources)
     filter_imageless(sources)
+    _llm_filter_sources(sources)
     return {"sources": sources}
 
 

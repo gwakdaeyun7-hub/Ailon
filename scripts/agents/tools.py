@@ -99,7 +99,6 @@ SOURCES = [
         "max_items": 20,
 
         "lang": "ko",
-        "ai_filter": True,
     },
     {
         "key": "geeknews",
@@ -108,7 +107,6 @@ SOURCES = [
         "max_items": 20,
 
         "lang": "ko",
-        "ai_filter": True,
     },
     {
         "key": "zdnet_ai_editor",
@@ -117,7 +115,6 @@ SOURCES = [
         "max_items": 20,
 
         "lang": "ko",
-        "ai_filter": True,
     },
     {
         "key": "yozm_ai",
@@ -126,7 +123,6 @@ SOURCES = [
         "max_items": 20,
 
         "lang": "ko",
-        "ai_filter": True,
         "rss_image_field": "content_image",
     },
 ]
@@ -255,10 +251,8 @@ def _fetch_scrape_source(source_config: dict) -> list[dict]:
     max_items = source_config.get("max_items", 20)
     days = source_config.get("days", 7)
     lang = source_config.get("lang", "ko")
-    ai_filter = source_config.get("ai_filter", False)
 
     articles = []
-    filtered_out = 0
     try:
         headers = {"User-Agent": "Mozilla/5.0 (compatible; AilonBot/1.0)"}
         resp = requests.get(url, headers=headers, timeout=10)
@@ -276,10 +270,6 @@ def _fetch_scrape_source(source_config: dict) -> list[dict]:
 
             title = h3.get_text(strip=True)
             if not title:
-                continue
-
-            if ai_filter and not _is_ai_related(title, ""):
-                filtered_out += 1
                 continue
 
             href = a_tag["href"]
@@ -312,9 +302,6 @@ def _fetch_scrape_source(source_config: dict) -> list[dict]:
 
     except Exception as e:
         print(f"  [WARNING] {name} 스크래핑 실패: {e}")
-
-    if filtered_out > 0:
-        print(f"  [{name}] AI 필터: {filtered_out}개 비AI 기사 제거")
 
     return articles
 
