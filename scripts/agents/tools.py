@@ -21,7 +21,7 @@ SOURCES = [
         "key": "wired_ai",
         "name": "Wired AI",
         "rss_url": "https://www.wired.com/feed/tag/ai/latest/rss",
-        "max_items": 30,
+        "max_items": 40,
 
         "lang": "en",
         "rss_image_field": "media_thumbnail",  # RSS에 media:thumbnail 포함
@@ -30,7 +30,7 @@ SOURCES = [
         "key": "the_verge_ai",
         "name": "The Verge AI",
         "rss_url": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml",
-        "max_items": 30,
+        "max_items": 40,
 
         "lang": "en",
         "rss_image_field": "content_image",  # RSS content에 <img> 포함
@@ -39,7 +39,7 @@ SOURCES = [
         "key": "techcrunch_ai",
         "name": "TechCrunch AI",
         "rss_url": "https://techcrunch.com/category/artificial-intelligence/feed/",
-        "max_items": 30,
+        "max_items": 40,
 
         "lang": "en",
     },
@@ -47,7 +47,7 @@ SOURCES = [
         "key": "mit_tech_review",
         "name": "MIT Tech Review",
         "rss_url": "https://www.technologyreview.com/topic/artificial-intelligence/feed",
-        "max_items": 30,
+        "max_items": 40,
 
         "lang": "en",
     },
@@ -55,7 +55,7 @@ SOURCES = [
         "key": "venturebeat",
         "name": "VentureBeat",
         "rss_url": "https://venturebeat.com/feed/",
-        "max_items": 30,
+        "max_items": 40,
 
         "lang": "en",
     },
@@ -64,7 +64,7 @@ SOURCES = [
         "key": "deepmind_blog",
         "name": "Google DeepMind",
         "rss_url": "https://deepmind.google/blog/rss.xml",
-        "max_items": 20,
+        "max_items": 40,
 
         "lang": "en",
         "rss_image_field": "media_thumbnail",
@@ -73,7 +73,7 @@ SOURCES = [
         "key": "nvidia_blog",
         "name": "NVIDIA AI",
         "rss_url": "https://blogs.nvidia.com/feed/",
-        "max_items": 30,
+        "max_items": 40,
 
         "lang": "en",
     },
@@ -81,7 +81,7 @@ SOURCES = [
         "key": "huggingface_blog",
         "name": "Hugging Face",
         "rss_url": "https://huggingface.co/blog/feed.xml",
-        "max_items": 20,
+        "max_items": 40,
 
         "lang": "en",
     },
@@ -90,7 +90,7 @@ SOURCES = [
         "key": "aitimes",
         "name": "AI타임스",
         "rss_url": "https://www.aitimes.com/rss/allArticle.xml",
-        "max_items": 40,
+        "max_items": 30,
 
         "lang": "ko",
     },
@@ -98,7 +98,7 @@ SOURCES = [
         "key": "geeknews",
         "name": "GeekNews",
         "rss_url": "https://news.hada.io/rss/news",
-        "max_items": 40,
+        "max_items": 30,
 
         "lang": "ko",
     },
@@ -106,7 +106,7 @@ SOURCES = [
         "key": "zdnet_ai_editor",
         "name": "ZDNet AI 에디터",
         "scrape_url": "https://zdnet.co.kr/reporter/?lstcode=media",
-        "max_items": 40,
+        "max_items": 30,
 
         "lang": "ko",
     },
@@ -114,7 +114,7 @@ SOURCES = [
         "key": "yozm_ai",
         "name": "요즘IT AI",
         "rss_url": "https://yozm.wishket.com/magazine/ai/feed/",
-        "max_items": 40,
+        "max_items": 30,
 
         "lang": "ko",
         "rss_image_field": "content_image",
