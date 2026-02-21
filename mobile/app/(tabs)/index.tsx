@@ -16,7 +16,7 @@ import {
   StatusBar,
   Modal,
   Share,
-  Alert,
+  Animated,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -37,7 +37,7 @@ const BG = '#F9FAFB';
 const CARD = '#FFFFFF';
 const TEXT_PRIMARY = '#111827';
 const TEXT_SECONDARY = '#6B7280';
-const TEXT_LIGHT = '#9CA3AF';
+const TEXT_LIGHT = '#737D8C';
 const BORDER = '#F3F4F6';
 
 const SOURCE_COLORS: Record<string, string> = {
@@ -101,27 +101,29 @@ function getTitle(a: Article) {
   return a.display_title || a.title;
 }
 
-// ─── 좋아요+뷰 카운트 ──────────────────────────────────────────────────
-function ArticleStats({ articleLink }: { articleLink: string }) {
-  const { likes } = useReactions('news', articleLink);
-  const { views } = useArticleViews(articleLink);
-
+// ─── 좋아요+뷰 카운트 (정적 — 피드 카드에서 리스너 폭발 방지) ──────────
+const ArticleStats = React.memo(function ArticleStats({ likes, views }: { likes?: number; views?: number }) {
+  if (!likes && !views) return null;
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-        <ThumbsUp size={11} color={TEXT_LIGHT} />
-        <Text style={{ fontSize: 10, color: TEXT_LIGHT, fontWeight: '600' }}>{likes}</Text>
-      </View>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-        <Eye size={11} color={TEXT_LIGHT} />
-        <Text style={{ fontSize: 10, color: TEXT_LIGHT, fontWeight: '600' }}>{views}</Text>
-      </View>
+      {(likes ?? 0) > 0 && (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+          <ThumbsUp size={11} color={TEXT_LIGHT} />
+          <Text style={{ fontSize: 10, color: TEXT_LIGHT, fontWeight: '600' }}>{likes}</Text>
+        </View>
+      )}
+      {(views ?? 0) > 0 && (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+          <Eye size={11} color={TEXT_LIGHT} />
+          <Text style={{ fontSize: 10, color: TEXT_LIGHT, fontWeight: '600' }}>{views}</Text>
+        </View>
+      )}
     </View>
   );
-}
+});
 
 // ─── 소스 뱃지 ──────────────────────────────────────────────────────────
-function SourceBadge({ sourceKey }: { sourceKey?: string }) {
+const SourceBadge = React.memo(function SourceBadge({ sourceKey }: { sourceKey?: string }) {
   if (!sourceKey) return null;
   const name = SOURCE_NAMES[sourceKey] || sourceKey;
   const color = SOURCE_COLORS[sourceKey] || TEXT_SECONDARY;
@@ -134,7 +136,7 @@ function SourceBadge({ sourceKey }: { sourceKey?: string }) {
       <Text style={{ fontSize: 9, fontWeight: '700', color }}>{name}</Text>
     </View>
   );
-}
+});
 
 // ─── Section 1: 하이라이트 ──────────────────────────────────────────────
 const HIGHLIGHT_CARD_WIDTH = 280;
@@ -145,13 +147,10 @@ function HighlightScrollCard({
 }: {
   article: Article; onToggle?: () => void;
 }) {
-  const { trackView } = useArticleViews(article.link);
-
   const handlePress = () => {
     if (onToggle) {
       onToggle();
     } else {
-      trackView();
       if (article.link) Linking.openURL(article.link);
     }
   };
@@ -159,6 +158,8 @@ function HighlightScrollCard({
   return (
     <Pressable
       onPress={handlePress}
+      accessibilityLabel={getTitle(article)}
+      accessibilityRole="button"
       style={({ pressed }) => ({
         width: HIGHLIGHT_CARD_WIDTH,
         maxWidth: HIGHLIGHT_CARD_WIDTH,
@@ -171,7 +172,7 @@ function HighlightScrollCard({
         overflow: 'hidden',
         borderWidth: 1,
         borderColor: BORDER,
-        opacity: pressed ? 0.92 : 1,
+        opacity: pressed ? 0.85 : 1,
       })}
     >
       {article.image_url ? (
@@ -193,7 +194,7 @@ function HighlightScrollCard({
         <View style={{ width: HIGHLIGHT_CARD_WIDTH - 24 }}>
           <SourceBadge sourceKey={article.source_key} />
           <Text
-            style={{ fontSize: 13, fontWeight: '800', color: TEXT_PRIMARY, lineHeight: 18, marginTop: 4 }}
+            style={{ fontSize: 15, fontWeight: '800', color: TEXT_PRIMARY, lineHeight: 20, marginTop: 4 }}
             numberOfLines={2}
             ellipsizeMode="tail"
           >
@@ -202,7 +203,6 @@ function HighlightScrollCard({
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <Text style={{ fontSize: 10, color: TEXT_LIGHT }}>{formatDate(article.published)}</Text>
-          <ArticleStats articleLink={article.link} />
         </View>
       </View>
     </Pressable>
@@ -214,6 +214,17 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
   const { likes, liked, toggleLike } = useReactions('news', article?.link ?? '');
   const viewTracked = useRef(false);
   const insets = useSafeAreaInsets();
+  const [toastMsg, setToastMsg] = useState('');
+  const toastOpacity = useRef(new Animated.Value(0)).current;
+
+  const showToast = (msg: string) => {
+    setToastMsg(msg);
+    Animated.sequence([
+      Animated.timing(toastOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
+      Animated.delay(1500),
+      Animated.timing(toastOpacity, { toValue: 0, duration: 300, useNativeDriver: true }),
+    ]).start();
+  };
 
   // 모달 열릴 때 뷰수 자동 증가 (1회)
   useEffect(() => {
@@ -238,7 +249,7 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
   const handleLike = async () => {
     const result = await toggleLike();
     if (result === 'already') {
-      Alert.alert('', '오늘은 이미 좋아요를 눌렀어요');
+      showToast('오늘은 이미 좋아요를 눌렀어요');
     }
   };
 
@@ -272,12 +283,12 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
           {/* 드래그 핸들바 + X 닫기 버튼 */}
           <View style={{ flexDirection: 'row', alignItems: 'center', paddingTop: 16, paddingBottom: 12, paddingHorizontal: 20 }}>
             <View style={{ flex: 1 }} />
-            <Pressable onPress={onClose} hitSlop={12} style={{ padding: 8 }}>
-              <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: '#D1D5DB' }} />
-            </Pressable>
+            <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: '#D1D5DB' }} />
             <View style={{ flex: 1, alignItems: 'flex-end' }}>
               <Pressable
                 onPress={onClose}
+                accessibilityLabel="닫기"
+                accessibilityRole="button"
                 style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center' }}
               >
                 <X size={14} color={TEXT_SECONDARY} />
@@ -400,6 +411,8 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
             {/* 원문 보기 — 전폭 프라이머리 버튼 */}
             <Pressable
               onPress={handleOpenOriginal}
+              accessibilityLabel="원문 보기"
+              accessibilityRole="link"
               style={({ pressed }) => ({
                 flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
                 backgroundColor: '#000', paddingVertical: 12, borderRadius: 10,
@@ -414,6 +427,8 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
             <View style={{ flexDirection: 'row', gap: 10 }}>
               <Pressable
                 onPress={handleLike}
+                accessibilityLabel={liked ? '좋아요 취소' : '좋아요'}
+                accessibilityRole="button"
                 style={({ pressed }) => ({
                   flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5,
                   backgroundColor: liked ? '#EF444415' : BORDER,
@@ -430,6 +445,8 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
 
               <Pressable
                 onPress={onOpenComments}
+                accessibilityLabel="댓글"
+                accessibilityRole="button"
                 style={({ pressed }) => ({
                   flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5,
                   backgroundColor: BORDER, paddingVertical: 10, borderRadius: 10,
@@ -442,6 +459,8 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
 
               <Pressable
                 onPress={handleShare}
+                accessibilityLabel="공유"
+                accessibilityRole="button"
                 style={({ pressed }) => ({
                   flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5,
                   backgroundColor: BORDER, paddingVertical: 10, borderRadius: 10,
@@ -453,6 +472,17 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
               </Pressable>
             </View>
           </View>
+
+          {/* 인라인 토스트 */}
+          {toastMsg ? (
+            <Animated.View style={{
+              position: 'absolute', top: 20, left: 20, right: 20,
+              backgroundColor: '#1F2937', borderRadius: 10, paddingVertical: 10, paddingHorizontal: 16,
+              alignItems: 'center', opacity: toastOpacity,
+            }} pointerEvents="none">
+              <Text style={{ color: '#FFF', fontSize: 13, fontWeight: '600' }}>{toastMsg}</Text>
+            </Animated.View>
+          ) : null}
         </View>
       </View>
     </Modal>
@@ -476,9 +506,9 @@ function HighlightSection({ highlights, onArticlePress }: { highlights: Article[
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 4 }}
       >
-        {highlights.map((a, i) => (
+        {highlights.map((a) => (
           <HighlightScrollCard
-            key={`hl-${i}`}
+            key={`hl-${a.link}`}
             article={a}
             onToggle={() => onArticlePress(a)}
           />
@@ -497,13 +527,10 @@ function HScrollCard({
 }: {
   article: Article; showSourceBadge?: boolean; onToggle?: () => void;
 }) {
-  const { trackView } = useArticleViews(article.link);
-
   const handlePress = () => {
     if (onToggle) {
       onToggle();
     } else {
-      trackView();
       if (article.link) Linking.openURL(article.link);
     }
   };
@@ -511,6 +538,8 @@ function HScrollCard({
   return (
     <Pressable
       onPress={handlePress}
+      accessibilityLabel={getTitle(article)}
+      accessibilityRole="button"
       style={({ pressed }) => ({
         width: CARD_WIDTH,
         maxWidth: CARD_WIDTH,
@@ -523,7 +552,7 @@ function HScrollCard({
         overflow: 'hidden',
         borderWidth: 1,
         borderColor: BORDER,
-        opacity: pressed ? 0.92 : 1,
+        opacity: pressed ? 0.85 : 1,
       })}
     >
       {article.image_url ? (
@@ -552,10 +581,7 @@ function HScrollCard({
             {getTitle(article)}
           </Text>
         </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Text style={{ fontSize: 10, color: TEXT_LIGHT }}>{formatDate(article.published)}</Text>
-          <ArticleStats articleLink={article.link} />
-        </View>
+        <Text style={{ fontSize: 10, color: TEXT_LIGHT }}>{formatDate(article.published)}</Text>
       </View>
     </Pressable>
   );
@@ -595,6 +621,9 @@ function CategoryTabSection({
             <Pressable
               key={catKey}
               onPress={() => handleTabChange(catKey)}
+              accessibilityLabel={CATEGORY_NAMES[catKey] || catKey}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: isActive }}
               style={{
                 paddingHorizontal: 14, paddingVertical: 7,
                 borderRadius: 20,
@@ -616,10 +645,12 @@ function CategoryTabSection({
 
       {/* 세로 기사 리스트 */}
       <View style={{ paddingHorizontal: 16 }}>
-        {visible.map((a, i) => (
+        {visible.map((a) => (
           <Pressable
-            key={`cat-${activeTab}-${i}`}
+            key={`cat-${activeTab}-${a.link}`}
             onPress={() => onArticlePress(a)}
+            accessibilityLabel={getTitle(a)}
+            accessibilityRole="button"
             style={({ pressed }) => ({
               height: 110,
               backgroundColor: CARD,
@@ -628,7 +659,7 @@ function CategoryTabSection({
               marginBottom: 10,
               borderWidth: 1,
               borderColor: BORDER,
-              opacity: pressed ? 0.92 : 1,
+              opacity: pressed ? 0.85 : 1,
             })}
           >
             <View style={{ flexDirection: 'row', flex: 1 }}>
@@ -654,10 +685,7 @@ function CategoryTabSection({
                     {getTitle(a)}
                   </Text>
                 </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <ArticleStats articleLink={a.link} />
-                  <Text style={{ fontSize: 10, color: TEXT_LIGHT }}>{formatDate(a.published)}</Text>
-                </View>
+                <Text style={{ fontSize: 10, color: TEXT_LIGHT }}>{formatDate(a.published)}</Text>
               </View>
             </View>
           </Pressable>
@@ -668,11 +696,15 @@ function CategoryTabSection({
       {more5.length > 0 && !showMore && (
         <Pressable
           onPress={() => setShowMore(true)}
-          style={{ alignItems: 'center', paddingVertical: 12 }}
+          accessibilityLabel={`${more5.length}개 더 보기`}
+          accessibilityRole="button"
+          style={{ alignItems: 'center', paddingVertical: 12, marginHorizontal: 16 }}
         >
-          <Text style={{ fontSize: 13, fontWeight: '700', color: TEXT_SECONDARY }}>
-            +{more5.length}개 더보기
-          </Text>
+          <View style={{ paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10, backgroundColor: BORDER, borderWidth: 1, borderColor: '#E5E7EB' }}>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: TEXT_SECONDARY }}>
+              +{more5.length}개 더보기
+            </Text>
+          </View>
         </Pressable>
       )}
     </View>
@@ -710,9 +742,9 @@ function SourceHScrollSection({
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 4 }}
       >
-        {visible.map((a, i) => (
+        {visible.map((a) => (
           <HScrollCard
-            key={`${sourceKey}-${i}`}
+            key={`${sourceKey}-${a.link}`}
             article={a}
             onToggle={() => onArticlePress(a)}
           />
@@ -761,10 +793,12 @@ function GeekNewsSection({ articles, onArticlePress }: { articles: Article[]; on
       </View>
 
       <View style={{ paddingHorizontal: 16 }}>
-        {visible.map((a, i) => (
+        {visible.map((a) => (
           <Pressable
-            key={`geeknews-${i}`}
+            key={`geeknews-${a.link}`}
             onPress={() => onArticlePress(a)}
+            accessibilityLabel={getTitle(a)}
+            accessibilityRole="button"
             style={({ pressed }) => ({
               height: 80,
               backgroundColor: CARD,
@@ -774,7 +808,7 @@ function GeekNewsSection({ articles, onArticlePress }: { articles: Article[]; on
               padding: 14,
               marginBottom: 10,
               justifyContent: 'space-between',
-              opacity: pressed ? 0.92 : 1,
+              opacity: pressed ? 0.85 : 1,
             })}
           >
             <Text
@@ -784,10 +818,7 @@ function GeekNewsSection({ articles, onArticlePress }: { articles: Article[]; on
             >
               {getTitle(a)}
             </Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Text style={{ fontSize: 10, color: TEXT_LIGHT }}>{formatDate(a.published)}</Text>
-              <ArticleStats articleLink={a.link} />
-            </View>
+            <Text style={{ fontSize: 10, color: TEXT_LIGHT }}>{formatDate(a.published)}</Text>
           </Pressable>
         ))}
       </View>
@@ -795,11 +826,15 @@ function GeekNewsSection({ articles, onArticlePress }: { articles: Article[]; on
       {more5.length > 0 && !showMore && (
         <Pressable
           onPress={() => setShowMore(true)}
-          style={{ alignItems: 'center', paddingVertical: 12 }}
+          accessibilityLabel={`${more5.length}개 더 보기`}
+          accessibilityRole="button"
+          style={{ alignItems: 'center', paddingVertical: 12, marginHorizontal: 16 }}
         >
-          <Text style={{ fontSize: 13, fontWeight: '700', color: TEXT_SECONDARY }}>
-            +{more5.length}개 더보기
-          </Text>
+          <View style={{ paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10, backgroundColor: BORDER, borderWidth: 1, borderColor: '#E5E7EB' }}>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: TEXT_SECONDARY }}>
+              +{more5.length}개 더보기
+            </Text>
+          </View>
         </Pressable>
       )}
     </View>
@@ -881,12 +916,16 @@ export default function NewsScreen() {
           <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '800' }}>A</Text>
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 18, fontWeight: '800', color: TEXT_PRIMARY }}>AI News</Text>
+          <Text style={{ fontSize: 18, fontWeight: '800', color: TEXT_PRIMARY }}>AI 트렌드</Text>
           {totalArticles > 0 && (
-            <Text style={{ fontSize: 11, color: TEXT_LIGHT }}>{totalArticles}개 기사</Text>
+            <Text style={{ fontSize: 11, color: TEXT_LIGHT }}>
+              {newsData?.updated_at
+                ? `${new Date(newsData.updated_at.seconds ? newsData.updated_at.seconds * 1000 : newsData.updated_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })} 업데이트`
+                : `${totalArticles}개 기사`}
+            </Text>
           )}
         </View>
-        <Pressable onPress={openDrawer} style={{ width: 38, height: 38, alignItems: 'center', justifyContent: 'center' }}>
+        <Pressable onPress={openDrawer} accessibilityLabel="메뉴 열기" accessibilityRole="button" style={{ width: 38, height: 38, alignItems: 'center', justifyContent: 'center' }}>
           <Menu size={22} color={TEXT_SECONDARY} />
         </Pressable>
       </View>
@@ -940,12 +979,15 @@ export default function NewsScreen() {
               onArticlePress={handleArticlePress}
             />
 
-            {/* 구분선 */}
+            {/* 구분선: 카테고리 → 소스별 */}
             {sourceOrder.some(key => (sourceArticles[key]?.length ?? 0) > 0) && (
-              <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>
-                <View style={{ height: 1, backgroundColor: BORDER }} />
-                <Text style={{ fontSize: 13, fontWeight: '700', color: TEXT_SECONDARY, marginTop: 12 }}>
+              <View style={{ paddingHorizontal: 16, marginBottom: 16, marginTop: 8 }}>
+                <View style={{ height: 6, backgroundColor: '#F3F4F6', borderRadius: 3, marginBottom: 16 }} />
+                <Text style={{ fontSize: 16, fontWeight: '800', color: TEXT_PRIMARY }}>
                   소스별 뉴스
+                </Text>
+                <Text style={{ fontSize: 12, color: TEXT_SECONDARY, marginTop: 2 }}>
+                  한국 AI 미디어 소식
                 </Text>
               </View>
             )}
@@ -961,6 +1003,11 @@ export default function NewsScreen() {
             ))}
 
             {/* Section 4: GeekNews 세로 리스트 */}
+            {(sourceArticles['geeknews']?.length ?? 0) > 0 && (
+              <View style={{ paddingHorizontal: 16, marginBottom: 8 }}>
+                <View style={{ height: 1, backgroundColor: '#E5E7EB' }} />
+              </View>
+            )}
             <GeekNewsSection articles={sourceArticles['geeknews'] || []} onArticlePress={handleArticlePress} />
           </>
         )}
