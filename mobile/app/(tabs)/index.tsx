@@ -310,11 +310,21 @@ function SummaryModal({ article, onClose }: { article: Article | null; onClose: 
 
             {/* 요약 본문 */}
             <Text style={{
-              fontSize: 15, color: '#374151', lineHeight: 28, letterSpacing: 0.2, marginBottom: 28,
+              fontSize: 15, color: '#374151', lineHeight: 28, letterSpacing: 0.2, marginBottom: 16,
               paddingHorizontal: 20,
             }}>
               {article.summary || '요약이 아직 없어요.'}
             </Text>
+
+            {/* 원문 링크 */}
+            <Pressable
+              onPress={handleOpenOriginal}
+              style={{ paddingHorizontal: 20, marginBottom: 24 }}
+            >
+              <Text style={{ fontSize: 12, color: '#3B82F6', textDecorationLine: 'underline' }} numberOfLines={1}>
+                {article.link}
+              </Text>
+            </Pressable>
 
             {/* 액션 버튼 */}
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16, paddingHorizontal: 20 }}>
@@ -675,25 +685,25 @@ function GeekNewsSection({ articles, onArticlePress }: { articles: Article[]; on
             key={`geeknews-${i}`}
             onPress={() => onArticlePress(a)}
             style={({ pressed }) => ({
-              flexDirection: 'row',
-              paddingVertical: 12,
-              borderBottomWidth: 1,
-              borderBottomColor: BORDER,
-              opacity: pressed ? 0.7 : 1,
+              backgroundColor: CARD,
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: BORDER,
+              padding: 14,
+              marginBottom: 10,
+              opacity: pressed ? 0.92 : 1,
             })}
           >
-            <View style={{ flex: 1, justifyContent: 'center' }}>
-              <Text
-                style={{ fontSize: 13, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 18 }}
-                numberOfLines={2}
-                ellipsizeMode="tail"
-              >
-                {getTitle(a)}
-              </Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: 8 }}>
-                <Text style={{ fontSize: 10, color: TEXT_LIGHT }}>{formatDate(a.published)}</Text>
-                <ArticleStats articleLink={a.link} />
-              </View>
+            <Text
+              style={{ fontSize: 14, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 20 }}
+              numberOfLines={2}
+              ellipsizeMode="tail"
+            >
+              {getTitle(a)}
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, gap: 8 }}>
+              <Text style={{ fontSize: 10, color: TEXT_LIGHT }}>{formatDate(a.published)}</Text>
+              <ArticleStats articleLink={a.link} />
             </View>
           </Pressable>
         ))}
