@@ -586,6 +586,17 @@ function CategoryTabSection({
               opacity: pressed ? 0.92 : 1,
             })}
           >
+            {a.image_url ? (
+              <View style={{ width: 110, height: 110, backgroundColor: BORDER }}>
+                <Image
+                  source={a.image_url}
+                  style={{ width: 110, height: 110 }}
+                  contentFit="cover"
+                  transition={200}
+                  recyclingKey={a.link}
+                />
+              </View>
+            ) : null}
             <View style={{ flex: 1, padding: 12, justifyContent: 'space-between' }}>
               <Text
                 style={{ fontSize: 14, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 20 }}
@@ -599,17 +610,6 @@ function CategoryTabSection({
                 <Text style={{ fontSize: 10, color: TEXT_LIGHT }}>{formatDate(a.published)}</Text>
               </View>
             </View>
-            {a.image_url ? (
-              <View style={{ width: 110, height: 110, backgroundColor: BORDER }}>
-                <Image
-                  source={a.image_url}
-                  style={{ width: 110, height: 110 }}
-                  contentFit="cover"
-                  transition={200}
-                  recyclingKey={a.link}
-                />
-              </View>
-            ) : null}
           </Pressable>
         ))}
       </View>
