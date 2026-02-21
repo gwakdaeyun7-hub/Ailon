@@ -87,7 +87,7 @@ def get_llm(temperature: float = 0.7, max_tokens: int = 2048, thinking: bool = T
     if not thinking:
         model_kwargs["thinking"] = {"type": "disabled"}
     if json_mode:
-        model_kwargs["response_mime_type"] = "application/json"
+        kwargs["response_mime_type"] = "application/json"
     if model_kwargs:
         kwargs["model_kwargs"] = model_kwargs
 
