@@ -175,6 +175,22 @@ def _parse_llm_json(text: str):
                         except json.JSONDecodeError:
                             break
 
+    # 잘린 JSON 배열 복구 시도 (max_tokens 초과로 ] 없이 잘린 경우)
+    bracket_idx = text.find('[')
+    if bracket_idx != -1 and ']' not in text[bracket_idx:]:
+        truncated = text[bracket_idx:].rstrip()
+        # 끝의 불완전한 요소/쉼표 제거 후 ] 추가
+        truncated = re.sub(r'[,\s]+$', '', truncated)
+        # 불완전한 마지막 객체 제거 ({"i":0,"sig... 같은 경우)
+        truncated = re.sub(r',\s*\{[^}]*$', '', truncated)
+        truncated += ']'
+        try:
+            result = json.loads(truncated)
+            print(f"    [JSON 복구] 잘린 배열 복구 성공: {len(result)}개 항목")
+            return result
+        except json.JSONDecodeError:
+            pass
+
     # 디버그: 파싱 실패 시 응답 내용 출력
     preview = text[:300].replace('\n', '\\n')
     raise json.JSONDecodeError(f"No valid JSON found. Response preview: {preview}", text, 0)
@@ -383,7 +399,7 @@ Return the indices of AI-technology articles as a JSON array:
 [0, 2, 5]"""
 
     try:
-        llm = get_llm(temperature=0.1, max_tokens=1024, thinking=False, json_mode=True)
+        llm = get_llm(temperature=0.1, max_tokens=2048, thinking=False, json_mode=True)
         content = _llm_invoke_with_retry(llm, prompt, max_retries=1)
         result = _parse_llm_json(content)
         if isinstance(result, list):
@@ -514,7 +530,7 @@ def ko_process_node(state: NewsGraphState) -> dict:
 W_SIGNIFICANCE = 4  # 중요도 (LLM 평가)
 W_RELEVANCE = 3     # 개발자 관련성 (LLM 평가)
 W_FRESHNESS = 3     # 정보 신선도 (LLM 평가 -- novelty, NOT recency)
-SCORER_BATCH_SIZE = 8
+SCORER_BATCH_SIZE = 5
 
 _SCORER_PROMPT = """IMPORTANT: Output ONLY a valid JSON array. No thinking, no markdown. Start with '['.
 
