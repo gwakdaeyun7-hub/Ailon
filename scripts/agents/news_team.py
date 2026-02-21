@@ -1,29 +1,38 @@
 """
-뉴스 수집 파이프라인 — LangGraph 8-노드 (EN/KO 병렬 분기)
+뉴스 수집 파이프라인 -- LangGraph 7-노드 (EN/KO 진정한 병렬 분기)
 
-collector → ┬→ en_process (번역+요약+스코어링) ─┬→ ranker → classifier → assembler
-            └→ ko_process (요약)               ─┘
+collector --> [en_process, ko_process] (병렬 Send) --> scorer --> ranker --> classifier --> assembler
+                                                        ^  |
+                                                        +--+ (커버리지 < 60% 시 재시도)
 
-1. collector:     12개 소스 수집 + 이미지/본문 통합 스크래핑
-2. en_process:    영어 기사 번역+요약 (thinking 비활성화, 배치 5)
-3. ko_process:    한국어 기사 요약 (thinking 비활성화, 배치 2)
-4. scorer:        3차원 평가 (significance×4 + relevance×3 + freshness×3, 만점 100)
+1. collector:     12개 소스 수집 + 이미지/본문 통합 스크래핑 + LLM AI 필터
+2. en_process:    영어 기사 번역+요약 (thinking 비활성화, 배치 5)  -- 병렬
+3. ko_process:    한국어 기사 요약 (thinking 비활성화, 배치 2)     -- 병렬
+4. scorer:        3차원 LLM 평가 (significance*4 + relevance*3 + freshness*3, 만점 100)
 5. ranker:        당일 우선 Top 3 하이라이트 (미번역 차단)
-6. classifier:    3개 카테고리 × Top 10
-7. quality_gate:  카운트 검증 + 부족 시 기준 완화 재시도
-8. assembler:     한국 소스별 분리 + 최종 결과
+6. classifier:    3개 카테고리 * Top 10 + 품질 검증 (quality_gate 통합)
+7. assembler:     한국 소스별 분리 + 최종 결과 + 타이밍 리포트
 
-점수 체계: significance×4 + relevance×3 + freshness×3 (만점 100)
+개선 사항:
+- EN/KO Send API 병렬 실행 (순차 -> 병렬, ~2x 속도 개선)
+- 노드별 에러 핸들링 (한 노드 실패 시 파이프라인 전체 중단 방지)
+- 불필요한 state 필드 제거 (en_done, ko_done, quality_retry)
+- quality_gate 를 classifier 에 통합 (실효 없는 노드 제거)
+- 노드별 소요 시간 측정
+- sources Annotated 리듀서로 EN/KO 결과 안전 머지
+
+점수 체계: significance*4 + relevance*3 + freshness*3 (만점 100, 전부 LLM 평가)
 """
 
 import json
 import re
 import time
 from datetime import datetime, timezone
-from typing import TypedDict
+from typing import Annotated, TypedDict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from langchain_core.messages import HumanMessage
 from langgraph.graph import StateGraph, END
+from langgraph.types import Send
 from agents.config import get_llm
 from agents.tools import (
     SOURCES,
@@ -32,11 +41,23 @@ from agents.tools import (
 )
 
 
+# ─── State 리듀서 ───
+def _merge_dicts(left: dict, right: dict) -> dict:
+    """두 dict 를 머지한다. EN/KO 노드가 각각 자기 소스만 반환할 때 사용.
+    in-place 변경 없이 새 dict 를 반환하므로 병렬 안전."""
+    if not left:
+        return right
+    if not right:
+        return left
+    merged = dict(left)
+    merged.update(right)
+    return merged
+
+
 # ─── State 정의 ───
 class NewsGraphState(TypedDict):
-    sources: dict[str, list[dict]]
-    en_done: bool
-    ko_done: bool
+    # sources: 소스키 -> 기사 리스트. EN/KO 병렬 노드가 각각 자기 소스만 반환하므로 merge 리듀서 사용.
+    sources: Annotated[dict[str, list[dict]], _merge_dicts]
     scored_candidates: list[dict]
     scorer_retry_count: int
     category_pool: list[dict]
@@ -46,7 +67,8 @@ class NewsGraphState(TypedDict):
     source_articles: dict[str, list[dict]]
     source_order: list[str]
     total_count: int
-    quality_retry: bool
+    # 노드별 소요 시간 (초)
+    node_timings: Annotated[dict[str, float], _merge_dicts]
 
 
 # ─── 날짜 유틸리티 ───
@@ -174,32 +196,44 @@ def _summarize_batch(batch: list[dict], batch_idx: int, translate: bool = True) 
         batch_text += f"\n[{i+1}] 제목: {a['title']}\n    본문: {content}\n"
 
     if translate:
-        task_desc = f"Translate and summarize {len(batch)} English AI news items to Korean."
+        task_desc = f"Translate and summarize {len(batch)} English AI news articles into Korean."
         title_rule = (
-            "display_title: 한국 뉴스 헤드라인 스타일 제목 (max 30 chars)\n"
-            "  - 직역 금지. 한국 언론이 실제로 쓸 법한 자연스러운 제목으로 의역\n"
-            "  - 고유명사(회사명·제품명·모델명)는 영어 그대로 유지 (예: Google, OpenAI, GPT-4, Claude, Meta Llama)\n"
-            "  - 예: 'Google Releases New AI Model' → 'Google, 새 AI 모델 전격 공개'\n"
-            "  - 쉼표·말줄임표·능동형 서술어 등 한국 뉴스 제목 관행 따르기"
+            "display_title: 한국 뉴스 헤드라인 스타일 제목 (15~35자)\n"
+            "  - 직역 금지. 한국 뉴스 데스크가 실제로 쓸 법한 자연스러운 제목\n"
+            "  - 고유명사(회사명·제품명·모델명)는 영어 유지 (Google, OpenAI, GPT-4, Claude)\n"
+            "  - 예: 'Google Releases New AI Model' -> 'Google, 새 AI 모델 전격 공개'\n"
+            "  - 예: 'Anthropic Raises $2B at $60B Valuation' -> 'Anthropic, 60조 가치에 2조 원 투자 유치'\n"
+            "  - 핵심 행위자 + 핵심 사건을 압축. 쉼표·능동형 서술어 활용"
         )
     else:
-        task_desc = f"Summarize {len(batch)} Korean AI news items."
-        title_rule = "display_title: Keep original Korean title as-is (max 30 chars, trim if needed)"
+        task_desc = f"Summarize {len(batch)} Korean AI news articles."
+        title_rule = "display_title: 원래 한국어 제목을 그대로 사용 (35자 초과 시 핵심만 남겨 축약)"
 
     prompt = f"""IMPORTANT: Output ONLY a valid JSON array. No thinking, no markdown. Start with '[' and end with ']'.
 
+RULE: Only use facts stated in the provided article text. Never infer, speculate, or add information not present in the source.
+
 {task_desc}
+
+For each article, produce:
 - {title_rule}
-- one_line: 무슨 일이 일어났는가 (What) — 정확히 1문장, 최대 50자, ~이에요/~해요 체
-  - 팩트만 전달. 해석/의견/중요성 언급 금지.
+- one_line: 무슨 일이 일어났는가 -- 정확히 1문장 (~이에요/~해요 체)
+  - 팩트만 전달. 의견·해석·중요성 평가 금지
+  - 본문에 없는 정보 추가 금지
   - 예: "OpenAI가 GPT-5를 공식 출시했어요"
-- key_points: 구체적 팩트 배열 (3개 고정, 각 최대 40자)
-  - 숫자·모델명·성능 지표 등 구체적 정보 우선
-  - 예: "컨텍스트 윈도우 256K 토큰 지원", "GPT-4 대비 추론 속도 2배"
-- why_important: 업계에 미치는 영향 (Impact) — 1-2문장, ~이에요/~해요 체
-  - one_line에 이미 나온 내용 반복 금지
-  - "~에 영향을 줄 수 있어요", "~가 바뀔 수 있어요" 등 영향/시사점 중심
-- 기술 용어는 영어 병기 (예: "미세 조정(fine-tuning)")
+  - 예: "Meta가 Llama 4를 오픈소스로 공개했어요"
+- key_points: 핵심 팩트 3개 (각 1문장 이내, ~이에요/~해요 체)
+  - 숫자·모델명·성능 지표·구체적 스펙 우선
+  - one_line과 중복 금지
+  - 본문에 구체적 팩트가 부족하면 2개도 허용
+  - 예: ["컨텍스트 윈도우 256K 토큰을 지원해요", "GPT-4 대비 추론 속도가 2배 빨라요", "API 가격은 50% 인하됐어요"]
+- why_important: 업계/개발자에게 미치는 영향 -- 1~2문장, ~이에요/~해요 체
+  - one_line·key_points에 나온 내용 반복 금지
+  - "~에 영향을 줄 수 있어요", "~가 바뀔 수 있어요" 등 시사점 중심
+
+문체 규칙:
+- 종결어미: ~이에요/~해요/~있어요 (해요체). ~입니다/~합니다(합쇼체) 사용 금지
+- 기술 용어 영어 병기: "미세 조정(fine-tuning)", "검색 증강 생성(RAG)"
 
 Return exactly {len(batch)} items:
 [{{"index":1,"display_title":"...","one_line":"...","key_points":["...","...","..."],"why_important":"..."}}]
@@ -312,31 +346,31 @@ def _llm_ai_filter_batch(articles: list[dict]) -> set[int]:
 
     prompt = f"""IMPORTANT: Output ONLY a valid JSON array of integers. No thinking, no markdown.
 
-STRICT FILTER: Only select articles where AI TECHNOLOGY is the CORE subject.
+You are filtering news articles. Return indices of articles where AI TECHNOLOGY is the CORE subject.
 
-INCLUDE (AI technology must be the main topic):
-- AI/ML model releases, benchmarks, architecture (e.g., "GPT-5 released", "new diffusion model")
+Decision rule: Ask "Is this article primarily ABOUT an AI system, model, tool, or technical advance?" If yes, include. If AI is merely mentioned as context, buzzword, or one of many topics, exclude.
+
+When in doubt, EXCLUDE.
+
+INCLUDE -- AI technology is the main topic:
+- Model releases, benchmarks, architecture advances
 - AI research papers and technical breakthroughs
-- AI product features and tools (e.g., "Cursor adds AI code review")
-- AI framework/library updates (e.g., "PyTorch 3.0", "LangChain update")
-- AI policy/regulation directly about AI tech (e.g., "EU AI Act enforcement")
+- AI-powered products/tools and their features
+- AI frameworks/libraries (PyTorch, LangChain, etc.)
+- AI regulation that directly affects AI development
 
-EXCLUDE (even if "AI" appears in title/tags):
-- Company investment/funding/business strategy that happens to involve AI (e.g., "Samsung invests in AI chips", "AI startup raises $100M")
-- General tech news mentioning AI as one of many topics
-- Politics, entertainment, celebrities, sports, social issues
-- Celebrity/influencer/public figure content (e.g., 충주맨, 유튜버, 인플루언서, 연예인)
-- Government PR, regional marketing, tourism promotion that uses AI as a buzzword
-- Articles with tags like "[AI 이슈트렌드]" or "[AI 브리핑]" but actual content is NOT about AI technology
-- Market trends, stock analysis, industry forecasts about AI sector
-- Hardware/chip/semiconductor business news unless about AI model training/inference
-- "AI + 비기술 주제" 조합 기사 (e.g., "AI로 본 부동산", "AI 추천 맛집", "AI 시대 자기계발")
-- Judge by the ACTUAL TOPIC, NOT by source name or section tags. When in doubt, EXCLUDE.
+EXCLUDE -- AI is not the main topic, even if "AI" appears:
+- Business/investment news (funding, M&A, stock, market forecasts)
+- Non-tech subjects using AI as a buzzword (real estate, food, self-help)
+- Celebrity, entertainment, politics, social issues
+- Government PR, tourism, regional marketing
+- Hardware/semiconductor business (unless specifically about AI training/inference)
+- Section tags like "[AI 브리핑]" do NOT make an article AI-tech -- judge by actual content
 
 Articles:
 {article_text}
 
-Return ONLY the indices of articles where AI technology is the core subject:
+Return the indices of AI-technology articles as a JSON array:
 [0, 2, 5]"""
 
     try:
@@ -346,7 +380,7 @@ Return ONLY the indices of articles where AI technology is the core subject:
         if isinstance(result, list):
             return set(int(idx) for idx in result if isinstance(idx, (int, float)))
     except Exception as e:
-        print(f"    [WARN] LLM AI 필터 실패 → 키워드 폴백: {e}")
+        print(f"    [WARN] LLM AI 필터 실패 -> 키워드 폴백: {e}")
     # 실패 시 키워드 필터로 폴백
     return set(
         i for i, a in enumerate(articles)
@@ -367,13 +401,39 @@ def _llm_filter_sources(sources: dict[str, list[dict]]) -> None:
         removed = before - len(sources[key])
         total_removed += removed
         if removed > 0:
-            print(f"    [{key}] LLM AI 필터: {removed}개 제거 → {len(sources[key])}개")
+            print(f"    [{key}] LLM AI 필터: {removed}개 제거 -> {len(sources[key])}개")
 
     if total_removed > 0:
         print(f"  [LLM AI 필터] 총 {total_removed}개 비AI 기사 제거")
 
 
+# ─── 노드별 에러 핸들링 + 타이밍 데코레이터 ───
+def _safe_node(node_name: str):
+    """노드 실행을 try/except 로 감싸서 실패 시에도 파이프라인 진행.
+    실패한 노드는 빈 결과를 반환하고 에러를 로그에 기록한다.
+    또한 각 노드의 소요 시간을 node_timings 에 기록한다."""
+    def decorator(fn):
+        def wrapper(state):
+            t0 = time.time()
+            try:
+                result = fn(state)
+            except Exception as e:
+                elapsed = time.time() - t0
+                print(f"  [ERROR] {node_name} 노드 실패 ({elapsed:.1f}s): {e}")
+                result = {}
+            elapsed = time.time() - t0
+            print(f"  [{node_name}] {elapsed:.1f}s")
+            result.setdefault("node_timings", {})
+            result["node_timings"][node_name] = round(elapsed, 1)
+            return result
+        wrapper.__name__ = fn.__name__
+        wrapper.__doc__ = fn.__doc__
+        return wrapper
+    return decorator
+
+
 # ─── Node 1: collector ───
+@_safe_node("collector")
 def collector_node(state: NewsGraphState) -> dict:
     """모든 소스 수집 + 이미지/본문 통합 스크래핑 + 이미지 필터 + LLM AI 필터"""
     sources = fetch_all_sources()
@@ -384,90 +444,125 @@ def collector_node(state: NewsGraphState) -> dict:
 
 
 # ─── Node 2a: en_process (영어 번역+요약) ───
+@_safe_node("en_process")
 def en_process_node(state: NewsGraphState) -> dict:
-    """영어 기사 번역+요약 (배치 5, thinking 비활성화)"""
+    """영어 기사 번역+요약 (배치 5, thinking 비활성화)
+
+    _merge_dicts 리듀서를 통해 처리한 소스 키만 state 에 머지된다.
+    이전 코드처럼 state["sources"] 전체를 반환하지 않으므로
+    ko_process 와 병렬 실행해도 안전하다.
+    """
     en_articles: list[dict] = []
+    en_source_keys: set[str] = set()
     for key in CATEGORY_SOURCES:
         for a in state["sources"].get(key, []):
             if a.get("lang") != "ko":
                 en_articles.append(a)
+                en_source_keys.add(key)
 
     if en_articles:
-        print(f"\n  ─── EN 브랜치: {len(en_articles)}개 번역+요약 ───")
+        print(f"\n  --- EN 브랜치: {len(en_articles)}개 번역+요약 ---")
         _process_articles(en_articles, translate=True, batch_size=5)
     else:
         print("  [EN] 영어 기사 없음")
 
-    return {"en_done": True, "sources": state["sources"]}
+    # 처리한 소스 키만 반환 -- 리듀서가 기존 state 에 머지
+    partial_sources = {key: state["sources"][key] for key in en_source_keys if key in state["sources"]}
+    return {"sources": partial_sources}
 
 
 # ─── Node 2b: ko_process (한국어 요약) ───
+@_safe_node("ko_process")
 def ko_process_node(state: NewsGraphState) -> dict:
-    """한국어 기사 요약 (배치 2, thinking 비활성화)"""
+    """한국어 기사 요약 (배치 2, thinking 비활성화)
+
+    _merge_dicts 리듀서를 통해 처리한 소스 키만 state 에 머지된다.
+    """
     ko_articles: list[dict] = []
+    ko_source_keys: set[str] = set()
     for key in SOURCE_SECTION_SOURCES:
         for a in state["sources"].get(key, []):
             if a.get("lang") == "ko":
                 a["display_title"] = a["title"]
+                ko_source_keys.add(key)
                 if a.get("body"):
                     ko_articles.append(a)
                 else:
                     a["summary"] = a["description"][:300] if a.get("description") else ""
 
     if ko_articles:
-        print(f"\n  ─── KO 브랜치: {len(ko_articles)}개 요약 ───")
+        print(f"\n  --- KO 브랜치: {len(ko_articles)}개 요약 ---")
         _process_articles(ko_articles, translate=False, batch_size=2)
     else:
         print("  [KO] 요약 대상 없음")
 
-    return {"ko_done": True, "sources": state["sources"]}
+    # 처리한 소스 키만 반환 -- 리듀서가 기존 state 에 머지
+    partial_sources = {key: state["sources"][key] for key in ko_source_keys if key in state["sources"]}
+    return {"sources": partial_sources}
 
 
-# ─── Node 3: scorer (3차원 평가, 병렬 배치) ───
-W_SIGNIFICANCE = 4  # 중요도 (impact + novelty 통합)
-W_RELEVANCE = 3     # 개발자 관련성
-W_FRESHNESS = 3     # 신선도
+# ─── Node 3: scorer (3 LLM차원, 병렬 배치) ───
+W_SIGNIFICANCE = 4  # 중요도 (LLM 평가)
+W_RELEVANCE = 3     # 개발자 관련성 (LLM 평가)
+W_FRESHNESS = 3     # 정보 신선도 (LLM 평가 -- novelty, NOT recency)
 SCORER_BATCH_SIZE = 8
 
 _SCORER_PROMPT = """IMPORTANT: Output ONLY a valid JSON array. No thinking, no markdown. Start with '['.
 
-Score each article on 3 dimensions (0-10 integer):
+Score each article on 3 dimensions (1-10 integer). Use the FULL range: 5 is average. Most articles should score 3-7. Reserve 9-10 for genuinely exceptional news.
 
 1. significance (중요도): AI 기술 발전에 얼마나 중요한 사건인가?
-   10: 패러다임 전환 (예: GPT-4 출시, Transformer 논문)
-   8: 주요 발전 (예: 새 SOTA 모델, 중요 오픈소스 공개)
-   6: 의미 있는 진전 (예: 주요 기업 AI 전략 발표)
-   4: 일반적인 업데이트 (예: 마이너 버전 업, 후속 연구)
-   2: 단순 소식/후속 보도
+   10: 패러다임 전환 -- 업계 전체가 바뀜 (예: Transformer 논문, ChatGPT 최초 공개)
+    9: 역대급 발전 -- 해당 분야의 판도가 바뀜 (예: GPT-4 출시)
+    8: 주요 발전 -- 새 SOTA 달성, 중요 오픈소스 공개
+    7: 유의미한 기술 진전 -- 주목할 만한 연구 결과, 주요 API/기능 추가
+    6: 의미 있는 소식 -- 주요 기업의 AI 전략 발표, 중요 업데이트
+    5: 평균적 뉴스 -- 일반적인 제품 업데이트, 보통 수준의 연구
+    4: 마이너 업데이트 -- 작은 버전업, 후속 연구
+    3: 단순 소식 -- 반복 보도, 의견 기사
+    2: 관심도 낮음 -- 사소한 변경, 루머
+    1: 무의미 -- 뉴스 가치 없음
 
 2. relevance (개발자 관련성): AI 개발자/실무자가 실제로 활용하거나 알아야 할 내용인가?
-   10: 당장 워크플로우에 적용 가능 (예: 새 프레임워크 출시, API 변경)
-   8: 곧 실무에 영향 (예: 주요 라이브러리 업데이트)
-   6: 기술 이해에 도움 (예: 연구 논문, 벤치마크 결과)
-   4: 간접적 관련 (예: 투자/인수 소식)
-   2: 관련성 낮음 (예: 일반 산업 동향)
+   10: 당장 워크플로우에 적용 가능 (새 프레임워크 출시, 중요 API 변경)
+    8: 곧 실무에 영향 (주요 라이브러리 업데이트, 새 도구)
+    6: 기술 이해에 도움 (연구 논문, 벤치마크 결과)
+    5: 알아두면 좋은 수준
+    4: 간접적 관련 (투자, 인수, 정책)
+    2: 개발자와 거의 무관 (일반 산업 동향)
 
-3. freshness (신선도): 이 뉴스가 최초 보도/새로운 정보인가, 이미 알려진 내용의 반복인가?
-   10: 최초 보도/독점 정보
-   8: 새로운 각도의 분석/추가 정보
-   6: 알려진 사건의 의미 있는 후속 전개
-   4: 이미 보도된 내용의 재탕/요약
-   2: 오래된 뉴스의 반복
+3. freshness (정보 신선도): 이 뉴스가 새로운 정보인가, 이미 알려진 내용의 반복인가?
+   NOTE: This is about NOVELTY of information, NOT recency of publication date.
+   10: 최초 보도 / 독점 정보 -- 이전에 전혀 알려지지 않은 사실 (예: 신모델 최초 공개, 미공개 연구 발표)
+    9: 거의 최초 -- 극소수만 보도한 새로운 사실 (예: 비공개 베타 첫 리뷰)
+    8: 새로운 1차 정보 -- 공식 발표 직후 원문 보도, 새로운 벤치마크/데이터 포함
+    7: 의미 있는 새 관점 -- 기존 사건에 대한 독자적 분석, 새로운 각도의 해석
+    6: 새 정보 일부 포함 -- 알려진 소식이지만 추가 디테일/후속 정보 있음
+    5: 보통 -- 공식 발표의 일반적 보도, 특별한 추가 정보 없음
+    4: 대부분 기존 정보 -- 이미 보도된 내용 + 약간의 새 코멘트
+    3: 재탕 -- 다른 매체가 이미 보도한 내용을 거의 그대로 반복
+    2: 명백한 반복 -- 새로운 정보 없이 기존 보도 요약/재구성
+    1: 완전한 중복 -- 동일 사건의 단순 재게시, 정보 가치 없음
 
-Also: category ("model_research"|"product_tools"|"industry_business")
+4. category: 아래 3개 중 하나를 선택
+   - "model_research": 새로운 모델, 연구 논문, 벤치마크, 학습 기법, 아키텍처
+   - "product_tools": 사용자가 쓸 수 있는 제품, 도구, API, 프레임워크, 라이브러리
+   - "industry_business": 투자, 인수, 규제, 기업 전략, 산업 동향
+   경계 사례: "새 모델 출시 + API 제공" -> model_research (기술이 핵심). "기존 제품에 AI 기능 추가" -> product_tools
 
 Articles:
 {article_text}
 
 Output exactly {count} items:
-[{{"i":0,"significance":8,"relevance":7,"freshness":6,"category":"model_research"}}]"""
+[{{"i":0,"significance":6,"relevance":7,"freshness":5,"category":"model_research"}}]"""
 
 
 def _score_batch(batch: list[dict], offset: int) -> list[dict]:
     article_text = ""
     for i, a in enumerate(batch):
         title = a.get("display_title") or a.get("title", "")
-        desc = a.get("description", "")[:120]
+        one_line = a.get("one_line", "")
+        desc = one_line if one_line else a.get("description", "")[:120]
         article_text += f"\n[{i}] {title} | {desc}"
 
     prompt = _SCORER_PROMPT.format(article_text=article_text, count=len(batch))
@@ -496,10 +591,11 @@ def _score_batch_with_retry(batch: list[dict], offset: int) -> list[dict]:
     if len(batch) <= 2:
         return []
     mid = len(batch) // 2
-    print(f"    [RETRY] 배치 분할: {len(batch)}개 → {mid} + {len(batch) - mid}")
+    print(f"    [RETRY] 배치 분할: {len(batch)}개 -> {mid} + {len(batch) - mid}")
     return _score_batch(batch[:mid], offset) + _score_batch(batch[mid:], offset + mid)
 
 
+@_safe_node("scorer")
 def scorer_node(state: NewsGraphState) -> dict:
     """CATEGORY_SOURCES 기사 3차원 점수 부여 (병렬 배치)"""
     retry_count = state.get("scorer_retry_count", 0)
@@ -546,9 +642,9 @@ def scorer_node(state: NewsGraphState) -> dict:
                     local_idx = s["_global_idx"]
                     if 0 <= local_idx < len(unscored):
                         gi = unscored_indices[local_idx]
-                        significance = min(10, max(0, s.get("significance", 5)))
-                        relevance = min(10, max(0, s.get("relevance", 5)))
-                        freshness = min(10, max(0, s.get("freshness", 5)))
+                        significance = min(10, max(1, s.get("significance", 5)))
+                        relevance = min(10, max(1, s.get("relevance", 5)))
+                        freshness = min(10, max(1, s.get("freshness", 5)))
                         candidates[gi]["_score_significance"] = significance
                         candidates[gi]["_score_relevance"] = relevance
                         candidates[gi]["_score_freshness"] = freshness
@@ -582,6 +678,7 @@ def scorer_node(state: NewsGraphState) -> dict:
 HIGHLIGHT_COUNT = 3
 
 
+@_safe_node("ranker")
 def ranker_node(state: NewsGraphState) -> dict:
     """Tier 1 당일 기사 중 점수순 Top 3 하이라이트"""
     candidates = state.get("scored_candidates", [])
@@ -617,20 +714,20 @@ def ranker_node(state: NewsGraphState) -> dict:
         title = (c.get("display_title") or c.get("title", ""))[:40]
         print(f"    {rank+1}. [{c.get('_total_score', 0)}점] {title}")
 
-    # 하이라이트 제외한 Tier 1+2 전체 → 카테고리 분류 대상
+    # 하이라이트 제외한 Tier 1+2 전체 -> 카테고리 분류 대상
     selected_set = set(id(c) for c in selected)
     remaining = [c for c in candidates if id(c) not in selected_set]
 
     return {"highlights": selected, "category_pool": remaining}
 
 
-# ─── Node 5: classifier (카테고리 분류 + Top 10 선정) ───
+# ─── Node 5: classifier (카테고리 분류 + Top 10 선정 + 품질 검증) ───
 VALID_CATEGORIES = {"model_research", "product_tools", "industry_business"}
 CATEGORY_TOP_N = 10
 
 
 def _classify_article(a: dict) -> str | None:
-    """scorer LLM이 부여한 카테고리만 사용. 없으면 None → LLM 배치 분류로."""
+    """scorer LLM이 부여한 카테고리만 사용. 없으면 None -> LLM 배치 분류로."""
     llm_cat = a.get("_llm_category", "")
     if llm_cat in VALID_CATEGORIES:
         return llm_cat
@@ -646,12 +743,18 @@ def _llm_classify_batch(articles: list[dict], categorized: dict[str, list[dict]]
 
     prompt = f"""IMPORTANT: Output ONLY a valid JSON array. No thinking, no markdown. Start with '['.
 
-Classify each AI news article into ONE category:
-- model_research: new technical knowledge/capability (paper, model, benchmark)
-- product_tools: user-facing product/tool (app, API, framework)
-- industry_business: money/org/policy moved (funding, acquisition, regulation)
+Classify each AI news article into exactly ONE category:
 
-Priority: model_research > product_tools > industry_business
+- "model_research": The article is primarily about a NEW model, research paper, benchmark, training technique, or architecture.
+  Examples: "GPT-5 released", "New SOTA on MMLU", "Scaling laws paper", "Novel attention mechanism"
+- "product_tools": The article is primarily about a user-facing product, tool, API, framework, or library that developers/users can use NOW.
+  Examples: "Cursor adds AI code review", "LangChain 0.3 released", "ChatGPT gets memory feature"
+- "industry_business": The article is primarily about money, organizations, or policy (funding, M&A, regulation, partnerships, market analysis).
+  Examples: "Anthropic raises $2B", "EU AI Act takes effect", "Google restructures AI team"
+
+Tiebreak: If an article spans two categories, pick the one closer to the CORE announcement.
+  "New model released + available via API" -> model_research (the model is the news)
+  "Existing product adds AI features" -> product_tools (the product is the news)
 
 Articles:
 {article_text}
@@ -726,8 +829,9 @@ def _select_category_top_n(articles: list[dict], n: int = CATEGORY_TOP_N, today_
     return selected
 
 
+@_safe_node("classifier")
 def classifier_node(state: NewsGraphState) -> dict:
-    """3개 카테고리 분류 + 당일 3개 보장 + 점수순 Top 10 + 날짜순 정렬"""
+    """3개 카테고리 분류 + 당일 3개 보장 + 점수순 Top 10 + 날짜순 정렬 + 품질 검증"""
     category_pool = state.get("category_pool", [])
 
     category_order = ["model_research", "product_tools", "industry_business"]
@@ -756,21 +860,13 @@ def classifier_node(state: NewsGraphState) -> dict:
         total = len(categorized[cat])
         today_count = len([a for a in categorized[cat] if a.get("_is_today")])
         categorized[cat] = _select_category_top_n(categorized[cat])
-        print(f"    {cat}: {total}개 (당일 {today_count}) → Top {len(categorized[cat])}개")
+        print(f"    {cat}: {total}개 (당일 {today_count}) -> Top {len(categorized[cat])}개")
 
-    return {"categorized_articles": categorized, "category_order": category_order}
-
-
-# ─── Node 6: quality_gate (카운트 검증) ───
-def quality_gate_node(state: NewsGraphState) -> dict:
-    """품질 검증: 카운트 부족 시 quality_retry 플래그 설정"""
+    # 품질 검증 (기존 quality_gate 통합)
     highlights = state.get("highlights", [])
-    categorized = state.get("categorized_articles", {})
-
     h_count = len(highlights)
     cat_counts = {cat: len(articles) for cat, articles in categorized.items()}
     min_cat = min(cat_counts.values()) if cat_counts else 0
-    total_cat = sum(cat_counts.values())
 
     print(f"  [품질] 하이라이트 {h_count}/3, 카테고리 {cat_counts}")
 
@@ -779,16 +875,16 @@ def quality_gate_node(state: NewsGraphState) -> dict:
         issues.append(f"하이라이트 {h_count}/3")
     if min_cat < 5:
         issues.append(f"카테고리 최소 {min_cat}/10")
-
     if issues:
         print(f"  [품질 경고] {', '.join(issues)}")
 
-    return {}
+    return {"categorized_articles": categorized, "category_order": category_order}
 
 
-# ─── Node 7: assembler ───
+# ─── Node 6: assembler ───
+@_safe_node("assembler")
 def assembler_node(state: NewsGraphState) -> dict:
-    """한국 소스별 분리 + 최종 결과 조합"""
+    """한국 소스별 분리 + 최종 결과 조합 + 타이밍 리포트"""
     sources = state["sources"]
 
     source_articles: dict[str, list[dict]] = {}
@@ -816,6 +912,16 @@ def assembler_node(state: NewsGraphState) -> dict:
     print(f"  카테고리별: {sum(len(v) for v in state.get('categorized_articles', {}).values())}개")
     print(f"  소스별(한국): {sum(len(v) for v in source_articles.values())}개")
 
+    # 타이밍 리포트
+    timings = state.get("node_timings", {})
+    if timings:
+        print(f"\n  --- 노드별 소요 시간 ---")
+        total_time = 0.0
+        for nname, elapsed in timings.items():
+            print(f"    {nname}: {elapsed}s")
+            total_time += elapsed
+        print(f"    합계: {total_time:.1f}s")
+
     return {
         "source_articles": source_articles,
         "source_order": source_order,
@@ -824,12 +930,21 @@ def assembler_node(state: NewsGraphState) -> dict:
 
 
 # ─── 조건부 라우팅 ───
-def _route_after_collector(state: NewsGraphState) -> str:
+def _route_after_collector(state: NewsGraphState) -> list[Send]:
+    """collector 후 라우팅:
+    - 기사 있으면 en_process 와 ko_process 를 Send 로 동시 발송 (진정한 병렬)
+    - 기사 없으면 assembler 직행
+    """
     total = sum(len(v) for v in state.get("sources", {}).values())
     if total == 0:
-        print("  [라우팅] 수집된 기사 없음 → assembler 직행")
-        return "assembler"
-    return "en_process"
+        print("  [라우팅] 수집된 기사 없음 -> assembler 직행")
+        return [Send("assembler", state)]
+
+    # EN 과 KO 를 동시에 Send -- LangGraph 가 병렬 실행
+    return [
+        Send("en_process", state),
+        Send("ko_process", state),
+    ]
 
 
 def _route_after_scorer(state: NewsGraphState) -> str:
@@ -841,12 +956,12 @@ def _route_after_scorer(state: NewsGraphState) -> str:
     llm_scored = len([c for c in candidates if c.get("_llm_scored")])
     coverage = llm_scored / len(candidates)
     if coverage < 0.6 and retry_count < 2:
-        print(f"  [라우팅] 스코어 커버리지 {coverage:.0%} < 60% → 재시도")
+        print(f"  [라우팅] 스코어 커버리지 {coverage:.0%} < 60% -> 재시도")
         return "scorer"
     return "ranker"
 
 
-# ─── 그래프 구성 (EN/KO 병렬 분기) ───
+# ─── 그래프 구성 (EN/KO 진정한 병렬 분기) ───
 def _build_graph():
     graph = StateGraph(NewsGraphState)
 
@@ -856,32 +971,25 @@ def _build_graph():
     graph.add_node("scorer", scorer_node)
     graph.add_node("ranker", ranker_node)
     graph.add_node("classifier", classifier_node)
-    graph.add_node("quality_gate", quality_gate_node)
     graph.add_node("assembler", assembler_node)
 
     graph.set_entry_point("collector")
 
-    # collector → 기사 있으면 EN/KO 병렬 분기, 없으면 assembler 직행
-    graph.add_conditional_edges("collector", _route_after_collector, {
-        "en_process": "en_process",
-        "assembler": "assembler",
-    })
+    # collector -> Send API 로 EN/KO 병렬 분기, 또는 assembler 직행
+    graph.add_conditional_edges("collector", _route_after_collector)
 
-    # EN 처리 후 KO도 실행 (LangGraph에서 fan-out은 순차로 구현)
-    graph.add_edge("en_process", "ko_process")
-
-    # KO 완료 → scorer
+    # EN/KO 완료 -> scorer (둘 다 완료되어야 진행)
+    graph.add_edge("en_process", "scorer")
     graph.add_edge("ko_process", "scorer")
 
-    # scorer → 커버리지 부족 시 재시도 루프
+    # scorer -> 커버리지 부족 시 재시도 루프
     graph.add_conditional_edges("scorer", _route_after_scorer, {
         "scorer": "scorer",
         "ranker": "ranker",
     })
 
     graph.add_edge("ranker", "classifier")
-    graph.add_edge("classifier", "quality_gate")
-    graph.add_edge("quality_gate", "assembler")
+    graph.add_edge("classifier", "assembler")
     graph.add_edge("assembler", END)
 
     return graph.compile()
@@ -890,14 +998,12 @@ def _build_graph():
 # ─── 메인 파이프라인 ───
 def run_news_pipeline() -> dict:
     print("=" * 60)
-    print("[START] 뉴스 수집 파이프라인 (LangGraph 8-노드, EN/KO 병렬)")
+    print("[START] 뉴스 수집 파이프라인 (LangGraph 7-노드, EN/KO 병렬)")
     print("=" * 60)
 
     app = _build_graph()
     result = app.invoke({
         "sources": {},
-        "en_done": False,
-        "ko_done": False,
         "scored_candidates": [],
         "scorer_retry_count": 0,
         "category_pool": [],
@@ -907,7 +1013,7 @@ def run_news_pipeline() -> dict:
         "source_articles": {},
         "source_order": [],
         "total_count": 0,
-        "quality_retry": False,
+        "node_timings": {},
     })
 
     return {
