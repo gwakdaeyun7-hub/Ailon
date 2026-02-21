@@ -397,8 +397,8 @@ function HighlightSection({ highlights, onArticlePress }: { highlights: Article[
 }
 
 // ─── 가로 스크롤 카드 (통일 디자인) ──────────────────────────────────────
-const CARD_WIDTH = 200;
-const HCARD_HEIGHT = 220;
+const CARD_WIDTH = 240;
+const HCARD_HEIGHT = 260;
 
 function HScrollCard({
   article, showSourceBadge, onToggle,
@@ -422,7 +422,7 @@ function HScrollCard({
       style={({ pressed }) => ({
         width: CARD_WIDTH,
         height: HCARD_HEIGHT,
-        marginRight: 12,
+        marginRight: 14,
         backgroundColor: CARD,
         borderRadius: 12,
         overflow: 'hidden',
@@ -432,15 +432,17 @@ function HScrollCard({
       })}
     >
       {article.image_url ? (
-        <Image
-          source={article.image_url}
-          style={{ width: CARD_WIDTH, height: 120 }}
-          contentFit="cover"
-          transition={200}
-          recyclingKey={article.link}
-        />
+        <View style={{ width: CARD_WIDTH, height: 140, backgroundColor: BORDER }}>
+          <Image
+            source={article.image_url}
+            style={{ width: CARD_WIDTH, height: 140 }}
+            contentFit="contain"
+            transition={200}
+            recyclingKey={article.link}
+          />
+        </View>
       ) : (
-        <View style={{ width: CARD_WIDTH, height: 120, backgroundColor: BORDER, alignItems: 'center', justifyContent: 'center' }}>
+        <View style={{ width: CARD_WIDTH, height: 140, backgroundColor: BORDER, alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ fontSize: 28, color: TEXT_LIGHT }}>📰</Text>
         </View>
       )}
@@ -448,7 +450,7 @@ function HScrollCard({
         <View>
           {showSourceBadge && <SourceBadge sourceKey={article.source_key} />}
           <Text
-            style={{ fontSize: 12, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 17, marginTop: showSourceBadge ? 4 : 0 }}
+            style={{ fontSize: 13, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 18, marginTop: showSourceBadge ? 4 : 0 }}
             numberOfLines={2}
             ellipsizeMode="tail"
           >
