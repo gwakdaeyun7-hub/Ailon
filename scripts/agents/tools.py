@@ -96,7 +96,7 @@ SOURCES = [
         "key": "aitimes",
         "name": "AI타임스",
         "rss_url": "https://www.aitimes.com/rss/allArticle.xml",
-        "max_items": 20,
+        "max_items": 40,
 
         "lang": "ko",
     },
@@ -104,7 +104,7 @@ SOURCES = [
         "key": "geeknews",
         "name": "GeekNews",
         "rss_url": "https://news.hada.io/rss/news",
-        "max_items": 20,
+        "max_items": 40,
 
         "lang": "ko",
     },
@@ -112,7 +112,7 @@ SOURCES = [
         "key": "zdnet_ai_editor",
         "name": "ZDNet AI 에디터",
         "scrape_url": "https://zdnet.co.kr/reporter/?lstcode=media",
-        "max_items": 20,
+        "max_items": 40,
 
         "lang": "ko",
     },
@@ -120,7 +120,7 @@ SOURCES = [
         "key": "yozm_ai",
         "name": "요즘IT AI",
         "rss_url": "https://yozm.wishket.com/magazine/ai/feed/",
-        "max_items": 20,
+        "max_items": 40,
 
         "lang": "ko",
         "rss_image_field": "content_image",

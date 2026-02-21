@@ -306,18 +306,27 @@ def _llm_ai_filter_batch(articles: list[dict]) -> set[int]:
 
     prompt = f"""IMPORTANT: Output ONLY a valid JSON array of integers. No thinking, no markdown.
 
-Which articles are genuinely about AI/ML technology, research, products, or industry?
+STRICT FILTER: Only select articles where AI TECHNOLOGY is the CORE subject.
 
-INCLUDE: AI models, LLM, machine learning, deep learning, neural networks, AI products/tools, AI startups/funding, AI policy/regulation, AI research papers, robotics AI, autonomous driving AI
-EXCLUDE:
-- Articles that merely mention "AI" in passing but are primarily about politics, entertainment, celebrities, sports, or general business
-- Articles with tags like "[AI 이슈트렌드]" or "[AI 브리핑]" but whose actual content is NOT about AI technology (e.g., celebrity news, political scandals, social issues)
-- Judge by the ACTUAL TOPIC of the article, NOT by source name or section tags
+INCLUDE (AI technology must be the main topic):
+- AI/ML model releases, benchmarks, architecture (e.g., "GPT-5 released", "new diffusion model")
+- AI research papers and technical breakthroughs
+- AI product features and tools (e.g., "Cursor adds AI code review")
+- AI framework/library updates (e.g., "PyTorch 3.0", "LangChain update")
+- AI policy/regulation directly about AI tech (e.g., "EU AI Act enforcement")
+
+EXCLUDE (even if "AI" appears in title/tags):
+- Company investment/funding/business strategy that happens to involve AI (e.g., "Samsung invests in AI chips", "AI startup raises $100M")
+- General tech news mentioning AI as one of many topics
+- Politics, entertainment, celebrities, sports, social issues
+- Articles with tags like "[AI 이슈트렌드]" or "[AI 브리핑]" but actual content is NOT about AI technology
+- Market trends, stock analysis, industry forecasts about AI sector
+- Judge by the ACTUAL TOPIC, NOT by source name or section tags
 
 Articles:
 {article_text}
 
-Return ONLY the indices of AI-relevant articles as a JSON array:
+Return ONLY the indices of articles where AI technology is the core subject:
 [0, 2, 5]"""
 
     try:
