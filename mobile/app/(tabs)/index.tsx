@@ -506,9 +506,9 @@ function HighlightSection({ highlights, onArticlePress }: { highlights: Article[
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 4 }}
       >
-        {highlights.map((a) => (
+        {highlights.map((a, i) => (
           <HighlightScrollCard
-            key={`hl-${a.link}`}
+            key={`hl-${i}-${a.link}`}
             article={a}
             onToggle={() => onArticlePress(a)}
           />
@@ -645,9 +645,9 @@ function CategoryTabSection({
 
       {/* 세로 기사 리스트 */}
       <View style={{ paddingHorizontal: 16 }}>
-        {visible.map((a) => (
+        {visible.map((a, i) => (
           <Pressable
-            key={`cat-${activeTab}-${a.link}`}
+            key={`cat-${activeTab}-${i}-${a.link}`}
             onPress={() => onArticlePress(a)}
             accessibilityLabel={getTitle(a)}
             accessibilityRole="button"
@@ -742,9 +742,9 @@ function SourceHScrollSection({
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 4 }}
       >
-        {visible.map((a) => (
+        {visible.map((a, i) => (
           <HScrollCard
-            key={`${sourceKey}-${a.link}`}
+            key={`${sourceKey}-${i}-${a.link}`}
             article={a}
             onToggle={() => onArticlePress(a)}
           />
@@ -793,9 +793,9 @@ function GeekNewsSection({ articles, onArticlePress }: { articles: Article[]; on
       </View>
 
       <View style={{ paddingHorizontal: 16 }}>
-        {visible.map((a) => (
+        {visible.map((a, i) => (
           <Pressable
-            key={`geeknews-${a.link}`}
+            key={`geeknews-${i}-${a.link}`}
             onPress={() => onArticlePress(a)}
             accessibilityLabel={getTitle(a)}
             accessibilityRole="button"
