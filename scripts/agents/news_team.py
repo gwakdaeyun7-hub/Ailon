@@ -124,11 +124,18 @@ def _is_today(article: dict) -> bool:
 
 # ─── JSON 파싱 유틸리티 ───
 def _parse_llm_json(text: str):
+    if not text:
+        raise json.JSONDecodeError("Empty LLM response", "", 0)
+
     text = text.strip()
-    text = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL)
+    # Gemini 2.5 Flash: <thinking> 태그 제거 (thinking 비활성화 시에도 발생 가능)
+    text = re.sub(r'<think(?:ing)?>.*?</think(?:ing)?>', '', text, flags=re.DOTALL)
     text = re.sub(r'^```(?:json)?\s*\n?', '', text)
     text = re.sub(r'\n?```\s*$', '', text)
     text = text.strip()
+
+    if not text:
+        raise json.JSONDecodeError("LLM response empty after stripping thinking tags", "", 0)
 
     try:
         return json.loads(text)
@@ -168,7 +175,9 @@ def _parse_llm_json(text: str):
                         except json.JSONDecodeError:
                             break
 
-    raise json.JSONDecodeError("No valid JSON found", text, 0)
+    # 디버그: 파싱 실패 시 응답 내용 출력
+    preview = text[:300].replace('\n', '\\n')
+    raise json.JSONDecodeError(f"No valid JSON found. Response preview: {preview}", text, 0)
 
 
 def _llm_invoke_with_retry(llm, prompt: str, max_retries: int = 2) -> str:
@@ -374,7 +383,7 @@ Return the indices of AI-technology articles as a JSON array:
 [0, 2, 5]"""
 
     try:
-        llm = get_llm(temperature=0.1, max_tokens=512, thinking=False, json_mode=True)
+        llm = get_llm(temperature=0.1, max_tokens=1024, thinking=False, json_mode=True)
         content = _llm_invoke_with_retry(llm, prompt, max_retries=1)
         result = _parse_llm_json(content)
         if isinstance(result, list):
