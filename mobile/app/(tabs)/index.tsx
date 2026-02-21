@@ -170,13 +170,15 @@ function HighlightScrollCard({
       })}
     >
       {article.image_url ? (
-        <Image
-          source={article.image_url}
-          style={{ width: HIGHLIGHT_CARD_WIDTH, height: 150 }}
-          contentFit="fill"
-          transition={200}
-          recyclingKey={article.link}
-        />
+        <View style={{ width: HIGHLIGHT_CARD_WIDTH, height: 150, backgroundColor: BORDER }}>
+          <Image
+            source={article.image_url}
+            style={{ width: HIGHLIGHT_CARD_WIDTH, height: 150 }}
+            contentFit="cover"
+            transition={200}
+            recyclingKey={article.link}
+          />
+        </View>
       ) : (
         <View style={{ width: HIGHLIGHT_CARD_WIDTH, height: 150, backgroundColor: BORDER, alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ fontSize: 28, color: TEXT_LIGHT }}>📰</Text>
@@ -277,13 +279,15 @@ function SummaryModal({ article, onClose }: { article: Article | null; onClose: 
           >
             {/* 썸네일 */}
             {article.image_url ? (
-              <Image
-                source={article.image_url}
-                style={{ width: '100%', height: 200 }}
-                contentFit="fill"
-                transition={200}
-                recyclingKey={article.link}
-              />
+              <View style={{ width: '100%', height: 200, backgroundColor: BORDER }}>
+                <Image
+                  source={article.image_url}
+                  style={{ width: '100%', height: 200 }}
+                  contentFit="cover"
+                  transition={200}
+                  recyclingKey={article.link}
+                />
+              </View>
             ) : null}
 
             {/* 제목 */}
@@ -477,13 +481,15 @@ function HScrollCard({
       })}
     >
       {article.image_url ? (
-        <Image
-          source={article.image_url}
-          style={{ width: CARD_WIDTH, height: 140 }}
-          contentFit="fill"
-          transition={200}
-          recyclingKey={article.link}
-        />
+        <View style={{ width: CARD_WIDTH, height: 140, backgroundColor: BORDER }}>
+          <Image
+            source={article.image_url}
+            style={{ width: CARD_WIDTH, height: 140 }}
+            contentFit="cover"
+            transition={200}
+            recyclingKey={article.link}
+          />
+        </View>
       ) : (
         <View style={{ width: CARD_WIDTH, height: 140, backgroundColor: BORDER, alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ fontSize: 28, color: TEXT_LIGHT }}>📰</Text>

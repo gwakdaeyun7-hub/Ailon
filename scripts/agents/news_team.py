@@ -568,7 +568,7 @@ def ranker_node(state: NewsGraphState) -> dict:
 VALID_CATEGORIES = {"model_research", "product_tools", "industry_business"}
 CATEGORY_TOP_N = 10
 CATEGORY_RECENT_MIN = 3
-MAX_PER_SOURCE_CATEGORY = 3
+MAX_PER_SOURCE_CATEGORY = 99
 
 
 def _classify_article(a: dict) -> str | None:
