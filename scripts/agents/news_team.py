@@ -573,10 +573,10 @@ def ranker_node(state: NewsGraphState) -> dict:
     def _pub_key(c: dict):
         return _parse_published(c.get("published", "")) or _epoch
 
-    # 당일 기사: 점수순 정렬
+    # 당일 기사: 점수순 내림차순 정렬 (동점이면 최신순)
     ordered_pool = sorted(
         today_pool,
-        key=lambda c: (_pub_key(c), c.get("_total_score", 0)),
+        key=lambda c: (c.get("_total_score", 0), _pub_key(c)),
         reverse=True,
     )
     print(f"  [랭킹] 당일 기사 {len(today_pool)}/{len(highlight_pool)}개")
@@ -611,7 +611,7 @@ def ranker_node(state: NewsGraphState) -> dict:
     if len(selected) < HIGHLIGHT_COUNT:
         all_ordered = sorted(
             fallback_pool,
-            key=lambda c: (_pub_key(c), c.get("_total_score", 0)),
+            key=lambda c: (c.get("_total_score", 0), _pub_key(c)),
             reverse=True,
         )
         for c in all_ordered:

@@ -604,13 +604,16 @@ function CategoryTabSection({
                 </View>
               ) : null}
               <View style={{ flex: 1, padding: 12, justifyContent: 'space-between' }}>
-                <Text
-                  style={{ fontSize: 14, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 20 }}
-                  numberOfLines={3}
-                  ellipsizeMode="tail"
-                >
-                  {getTitle(a)}
-                </Text>
+                <View>
+                  <SourceBadge sourceKey={a.source_key} />
+                  <Text
+                    style={{ fontSize: 14, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 20, marginTop: 4 }}
+                    numberOfLines={2}
+                    ellipsizeMode="tail"
+                  >
+                    {getTitle(a)}
+                  </Text>
+                </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <ArticleStats articleLink={a.link} />
                   <Text style={{ fontSize: 10, color: TEXT_LIGHT }}>{formatDate(a.published)}</Text>
