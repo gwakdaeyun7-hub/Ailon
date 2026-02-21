@@ -139,9 +139,9 @@ const HIGHLIGHT_CARD_WIDTH = 280;
 const HIGHLIGHT_CARD_HEIGHT = 260;
 
 function HighlightScrollCard({
-  article, isFirst, onToggle,
+  article, onToggle,
 }: {
-  article: Article; isFirst?: boolean; onToggle?: () => void;
+  article: Article; onToggle?: () => void;
 }) {
   const { trackView } = useArticleViews(article.link);
 
@@ -154,13 +154,11 @@ function HighlightScrollCard({
     }
   };
 
-  const cardWidth = isFirst ? 300 : HIGHLIGHT_CARD_WIDTH;
-
   return (
     <Pressable
       onPress={handlePress}
       style={({ pressed }) => ({
-        width: cardWidth,
+        width: HIGHLIGHT_CARD_WIDTH,
         height: HIGHLIGHT_CARD_HEIGHT,
         marginRight: 12,
         backgroundColor: CARD,
@@ -174,13 +172,13 @@ function HighlightScrollCard({
       {article.image_url ? (
         <Image
           source={article.image_url}
-          style={{ width: cardWidth, height: 150 }}
+          style={{ width: HIGHLIGHT_CARD_WIDTH, height: 150 }}
           contentFit="fill"
           transition={200}
           recyclingKey={article.link}
         />
       ) : (
-        <View style={{ width: cardWidth, height: 150, backgroundColor: BORDER, alignItems: 'center', justifyContent: 'center' }}>
+        <View style={{ width: HIGHLIGHT_CARD_WIDTH, height: 150, backgroundColor: BORDER, alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ fontSize: 28, color: TEXT_LIGHT }}>📰</Text>
         </View>
       )}
@@ -435,7 +433,6 @@ function HighlightSection({ highlights, onArticlePress }: { highlights: Article[
           <HighlightScrollCard
             key={`hl-${i}`}
             article={a}
-            isFirst={i === 0}
             onToggle={() => onArticlePress(a)}
           />
         ))}
@@ -573,6 +570,7 @@ function CategoryTabSection({
             onPress={() => onArticlePress(a)}
             style={({ pressed }) => ({
               flexDirection: 'row',
+              height: 100,
               backgroundColor: CARD,
               borderRadius: 12,
               overflow: 'hidden',
@@ -605,7 +603,7 @@ function CategoryTabSection({
             )}
             <View style={{ flex: 1, padding: 10, justifyContent: 'space-between' }}>
               <Text
-                style={{ fontSize: 14, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 20 }}
+                style={{ fontSize: 13, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 18 }}
                 numberOfLines={2}
                 ellipsizeMode="tail"
               >
@@ -723,23 +721,25 @@ function GeekNewsSection({ articles, onArticlePress }: { articles: Article[]; on
             key={`geeknews-${i}`}
             onPress={() => onArticlePress(a)}
             style={({ pressed }) => ({
+              height: 80,
               backgroundColor: CARD,
               borderRadius: 12,
               borderWidth: 1,
               borderColor: BORDER,
               padding: 14,
               marginBottom: 10,
+              justifyContent: 'space-between',
               opacity: pressed ? 0.92 : 1,
             })}
           >
             <Text
-              style={{ fontSize: 14, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 20 }}
+              style={{ fontSize: 13, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 18 }}
               numberOfLines={2}
               ellipsizeMode="tail"
             >
               {getTitle(a)}
             </Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, gap: 8 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Text style={{ fontSize: 10, color: TEXT_LIGHT }}>{formatDate(a.published)}</Text>
               <ArticleStats articleLink={a.link} />
             </View>
