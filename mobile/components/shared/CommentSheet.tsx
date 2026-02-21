@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import { X, Send, MessageCircle } from 'lucide-react-native';
 import { useComments, type Comment } from '@/hooks/useComments';
 import { useAuth } from '@/hooks/useAuth';
@@ -147,8 +148,14 @@ export function CommentSheet({ visible, onClose, itemType, itemId }: CommentShee
                 </Pressable>
               </>
             ) : (
-              <View style={{ flex: 1, alignItems: 'center', paddingVertical: 8 }}>
-                <Text style={{ color: '#BDBDBD', fontSize: 13 }}>댓글을 작성하려면 로그인이 필요해요</Text>
+              <View style={{ flex: 1, alignItems: 'center', paddingVertical: 8, gap: 8 }}>
+                <Text style={{ color: '#9E9E9E', fontSize: 13 }}>댓글을 작성하려면 로그인이 필요해요</Text>
+                <Pressable
+                  onPress={() => { onClose(); router.push('/auth'); }}
+                  style={{ paddingHorizontal: 16, paddingVertical: 8, backgroundColor: '#FFEBEE', borderRadius: 8 }}
+                >
+                  <Text style={{ color: '#E53935', fontSize: 13, fontWeight: '700' }}>로그인하기</Text>
+                </Pressable>
               </View>
             )}
           </View>

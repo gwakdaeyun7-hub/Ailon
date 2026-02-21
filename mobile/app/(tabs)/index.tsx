@@ -16,12 +16,13 @@ import {
   StatusBar,
   Modal,
   Share,
+  Alert,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import {
-  Menu, RefreshCw, ThumbsUp, Eye, Share2, ExternalLink, MessageCircle,
+  Menu, RefreshCw, ThumbsUp, Eye, Share2, ExternalLink, MessageCircle, X,
 } from 'lucide-react-native';
 import { useNews } from '@/hooks/useNews';
 import { useDrawer } from '@/context/DrawerContext';
@@ -208,11 +209,11 @@ function HighlightScrollCard({
   );
 }
 
-function SummaryModal({ article, onClose }: { article: Article | null; onClose: () => void }) {
+function SummaryModal({ article, onClose, onOpenComments }: { article: Article | null; onClose: () => void; onOpenComments: () => void }) {
   const { views, trackView } = useArticleViews(article?.link ?? '');
   const { likes, liked, toggleLike } = useReactions('news', article?.link ?? '');
   const viewTracked = useRef(false);
-  const [commentVisible, setCommentVisible] = useState(false);
+  const insets = useSafeAreaInsets();
 
   // 모달 열릴 때 뷰수 자동 증가 (1회)
   useEffect(() => {
@@ -234,22 +235,18 @@ function SummaryModal({ article, onClose }: { article: Article | null; onClose: 
     if (article.link) Linking.openURL(article.link);
   };
 
+  const handleLike = async () => {
+    const result = await toggleLike();
+    if (result === 'already') {
+      Alert.alert('', '오늘은 이미 좋아요를 눌렀어요');
+    }
+  };
+
   const handleShare = async () => {
     try {
-      let body = '';
-      if (article.one_line) {
-        body = article.one_line;
-        if (article.key_points?.length) {
-          body += '\n\n' + article.key_points.map(p => `• ${p}`).join('\n');
-        }
-        if (article.why_important) {
-          body += '\n\n' + article.why_important;
-        }
-      } else {
-        body = article.summary || '';
-      }
+      const summary = article.one_line || article.summary || '';
       await Share.share({
-        message: `[${sourceName}] ${getTitle(article)}\n\n${body}\n\n원문: ${article.link}`,
+        message: `[${sourceName}] ${getTitle(article)}\n\n${summary}\n\n원문: ${article.link}\n\n— Ailon AI 뉴스`,
       });
     } catch {}
   };
@@ -272,15 +269,26 @@ function SummaryModal({ article, onClose }: { article: Article | null; onClose: 
           borderTopRightRadius: 20,
           maxHeight: '85%',
         }}>
-          {/* 드래그 핸들바 */}
-          <Pressable onPress={onClose} style={{ alignItems: 'center', paddingTop: 12, paddingBottom: 8 }}>
-            <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: '#D1D5DB' }} />
-          </Pressable>
+          {/* 드래그 핸들바 + X 닫기 버튼 */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', paddingTop: 16, paddingBottom: 12, paddingHorizontal: 20 }}>
+            <View style={{ flex: 1 }} />
+            <Pressable onPress={onClose} hitSlop={12} style={{ padding: 8 }}>
+              <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: '#D1D5DB' }} />
+            </Pressable>
+            <View style={{ flex: 1, alignItems: 'flex-end' }}>
+              <Pressable
+                onPress={onClose}
+                style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <X size={14} color={TEXT_SECONDARY} />
+              </Pressable>
+            </View>
+          </View>
 
           <ScrollView
-            showsVerticalScrollIndicator={false}
+            showsVerticalScrollIndicator
             bounces
-            contentContainerStyle={{ paddingBottom: 40 }}
+            contentContainerStyle={{ paddingBottom: 8 }}
           >
             {/* 썸네일 */}
             {article.image_url ? (
@@ -295,17 +303,8 @@ function SummaryModal({ article, onClose }: { article: Article | null; onClose: 
               </View>
             ) : null}
 
-            {/* 제목 */}
-            <Text style={{
-              fontSize: 18, fontWeight: '800', color: TEXT_PRIMARY, lineHeight: 28,
-              marginBottom: 12, marginTop: article.image_url ? 16 : 0,
-              paddingHorizontal: 20,
-            }}>
-              {getTitle(article)}
-            </Text>
-
             {/* 소스 뱃지 + 날짜 + 조회수 */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16, paddingHorizontal: 20 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, marginTop: article.image_url ? 16 : 20 }}>
               <View style={{
                 backgroundColor: sourceColor + '18',
                 paddingHorizontal: 8, paddingVertical: 3,
@@ -320,6 +319,15 @@ function SummaryModal({ article, onClose }: { article: Article | null; onClose: 
               </View>
             </View>
 
+            {/* 제목 */}
+            <Text style={{
+              fontSize: 18, fontWeight: '800', color: TEXT_PRIMARY, lineHeight: 28,
+              marginTop: 10, marginBottom: 12,
+              paddingHorizontal: 20,
+            }}>
+              {getTitle(article)}
+            </Text>
+
             {/* 구분선 */}
             <View style={{ height: 1, backgroundColor: BORDER, marginBottom: 18, marginHorizontal: 20 }} />
 
@@ -328,8 +336,8 @@ function SummaryModal({ article, onClose }: { article: Article | null; onClose: 
               <View style={{ paddingHorizontal: 20, marginBottom: 16 }}>
                 {/* 핵심 한줄 */}
                 <View style={{ backgroundColor: '#F0F4FF', borderRadius: 10, padding: 14, marginBottom: 16 }}>
-                  <Text style={{ fontSize: 13, fontWeight: '700', color: '#6366F1', marginBottom: 4 }}>핵심 한줄</Text>
-                  <Text style={{ fontSize: 15, color: TEXT_PRIMARY, lineHeight: 24, fontWeight: '600' }}>
+                  <Text style={{ fontSize: 11, fontWeight: '600', color: '#6366F1', marginBottom: 6 }}>핵심 한줄</Text>
+                  <Text style={{ fontSize: 16, color: TEXT_PRIMARY, lineHeight: 26, fontWeight: '700' }}>
                     {article.one_line}
                   </Text>
                 </View>
@@ -339,8 +347,8 @@ function SummaryModal({ article, onClose }: { article: Article | null; onClose: 
                   <View style={{ marginBottom: 16 }}>
                     <Text style={{ fontSize: 13, fontWeight: '700', color: '#0891B2', marginBottom: 8 }}>주요 포인트</Text>
                     {article.key_points.map((point, idx) => (
-                      <View key={idx} style={{ flexDirection: 'row', marginBottom: 6, paddingRight: 4 }}>
-                        <Text style={{ fontSize: 14, color: '#0891B2', marginRight: 8, lineHeight: 22 }}>•</Text>
+                      <View key={idx} style={{ flexDirection: 'row', marginBottom: 12, paddingRight: 4 }}>
+                        <Text style={{ fontSize: 13, color: '#0891B2', marginRight: 8, lineHeight: 22, fontWeight: '700' }}>{idx + 1}.</Text>
                         <Text style={{ fontSize: 14, color: '#374151', lineHeight: 22, flex: 1 }}>{point}</Text>
                       </View>
                     ))}
@@ -357,40 +365,60 @@ function SummaryModal({ article, onClose }: { article: Article | null; onClose: 
                   </View>
                 ) : null}
               </View>
-            ) : (
-              /* 레거시 폴백: 기존 summary 텍스트 */
+            ) : article.summary ? (
               <Text style={{
                 fontSize: 15, color: '#374151', lineHeight: 28, letterSpacing: 0.2, marginBottom: 16,
                 paddingHorizontal: 20,
               }}>
-                {article.summary || '요약이 아직 없어요.'}
+                {article.summary}
               </Text>
+            ) : (
+              <View style={{ alignItems: 'center', paddingVertical: 24, paddingHorizontal: 20 }}>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: TEXT_SECONDARY, marginBottom: 4 }}>
+                  아직 AI 요약이 준비되지 않았어요
+                </Text>
+                <Text style={{ fontSize: 13, color: TEXT_LIGHT, marginBottom: 12 }}>
+                  원문을 직접 확인해보세요
+                </Text>
+                <Pressable
+                  onPress={handleOpenOriginal}
+                  style={{ paddingHorizontal: 20, paddingVertical: 10, backgroundColor: '#000', borderRadius: 8 }}
+                >
+                  <Text style={{ color: '#FFF', fontSize: 13, fontWeight: '700' }}>원문 보기</Text>
+                </Pressable>
+              </View>
             )}
 
-            {/* 액션 버튼 */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16, paddingHorizontal: 20 }}>
-              {/* 원문 보기 */}
-              <Pressable
-                onPress={handleOpenOriginal}
-                style={({ pressed }) => ({
-                  flexDirection: 'row', alignItems: 'center', gap: 6,
-                  backgroundColor: '#000', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10,
-                  opacity: pressed ? 0.8 : 1,
-                })}
-              >
-                <ExternalLink size={14} color="#FFF" />
-                <Text style={{ color: '#FFF', fontSize: 13, fontWeight: '700' }}>원문 보기</Text>
-              </Pressable>
+          </ScrollView>
 
-              {/* 좋아요 */}
+          {/* 고정 하단 액션 바 */}
+          <View style={{
+            borderTopWidth: 1, borderTopColor: BORDER,
+            paddingHorizontal: 20, paddingTop: 12,
+            paddingBottom: Math.max(insets.bottom, 12),
+          }}>
+            {/* 원문 보기 — 전폭 프라이머리 버튼 */}
+            <Pressable
+              onPress={handleOpenOriginal}
+              style={({ pressed }) => ({
+                flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+                backgroundColor: '#000', paddingVertical: 12, borderRadius: 10,
+                opacity: pressed ? 0.8 : 1, marginBottom: 10,
+              })}
+            >
+              <ExternalLink size={15} color="#FFF" />
+              <Text style={{ color: '#FFF', fontSize: 14, fontWeight: '700' }}>원문 보기</Text>
+            </Pressable>
+
+            {/* 좋아요 | 댓글 | 공유 — 균등 배치 */}
+            <View style={{ flexDirection: 'row', gap: 10 }}>
               <Pressable
-                onPress={toggleLike}
+                onPress={handleLike}
                 style={({ pressed }) => ({
-                  flexDirection: 'row', alignItems: 'center', gap: 5,
-                  backgroundColor: liked ? '#EF4444' + '15' : BORDER,
-                  paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10,
-                  borderWidth: liked ? 1 : 0,
-                  borderColor: '#EF4444' + '40',
+                  flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5,
+                  backgroundColor: liked ? '#EF444415' : BORDER,
+                  paddingVertical: 10, borderRadius: 10,
+                  borderWidth: liked ? 1 : 0, borderColor: '#EF444440',
                   opacity: pressed ? 0.8 : 1,
                 })}
               >
@@ -400,13 +428,11 @@ function SummaryModal({ article, onClose }: { article: Article | null; onClose: 
                 </Text>
               </Pressable>
 
-              {/* 댓글 */}
               <Pressable
-                onPress={() => setCommentVisible(true)}
+                onPress={onOpenComments}
                 style={({ pressed }) => ({
-                  flexDirection: 'row', alignItems: 'center', gap: 5,
-                  backgroundColor: BORDER,
-                  paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10,
+                  flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5,
+                  backgroundColor: BORDER, paddingVertical: 10, borderRadius: 10,
                   opacity: pressed ? 0.8 : 1,
                 })}
               >
@@ -414,13 +440,11 @@ function SummaryModal({ article, onClose }: { article: Article | null; onClose: 
                 <Text style={{ fontSize: 13, fontWeight: '700', color: TEXT_SECONDARY }}>댓글</Text>
               </Pressable>
 
-              {/* 공유 */}
               <Pressable
                 onPress={handleShare}
                 style={({ pressed }) => ({
-                  flexDirection: 'row', alignItems: 'center', gap: 5,
-                  backgroundColor: BORDER,
-                  paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10,
+                  flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5,
+                  backgroundColor: BORDER, paddingVertical: 10, borderRadius: 10,
                   opacity: pressed ? 0.8 : 1,
                 })}
               >
@@ -428,17 +452,9 @@ function SummaryModal({ article, onClose }: { article: Article | null; onClose: 
                 <Text style={{ fontSize: 13, fontWeight: '700', color: TEXT_SECONDARY }}>공유</Text>
               </Pressable>
             </View>
-          </ScrollView>
+          </View>
         </View>
       </View>
-
-      {/* 댓글 시트 */}
-      <CommentSheet
-        visible={commentVisible}
-        onClose={() => setCommentVisible(false)}
-        itemType="news"
-        itemId={article.link}
-      />
     </Modal>
   );
 }
@@ -794,12 +810,19 @@ function GeekNewsSection({ articles, onArticlePress }: { articles: Article[]; on
 export default function NewsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [modalArticle, setModalArticle] = useState<Article | null>(null);
+  const [commentArticleLink, setCommentArticleLink] = useState<string | null>(null);
   const { openDrawer, setActiveTab } = useDrawer();
   const { newsData, loading, error, refresh } = useNews();
 
   const handleArticlePress = useCallback((article: Article) => {
     setModalArticle(article);
   }, []);
+
+  const handleOpenComments = useCallback(() => {
+    if (modalArticle) {
+      setCommentArticleLink(modalArticle.link);
+    }
+  }, [modalArticle]);
 
   useFocusEffect(
     useCallback(() => {
@@ -946,7 +969,15 @@ export default function NewsScreen() {
       </ScrollView>
 
       {/* 요약 모달 */}
-      <SummaryModal article={modalArticle} onClose={() => setModalArticle(null)} />
+      <SummaryModal article={modalArticle} onClose={() => setModalArticle(null)} onOpenComments={handleOpenComments} />
+
+      {/* 댓글 시트 (모달과 같은 레벨) */}
+      <CommentSheet
+        visible={!!commentArticleLink}
+        onClose={() => setCommentArticleLink(null)}
+        itemType="news"
+        itemId={commentArticleLink ?? ''}
+      />
     </SafeAreaView>
   );
 }

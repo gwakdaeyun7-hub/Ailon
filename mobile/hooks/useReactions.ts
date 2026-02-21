@@ -26,12 +26,14 @@ interface ReactionData {
   dislikedBy: string[];
 }
 
+export type LikeResult = 'done' | 'already' | 'no_user';
+
 interface UseReactionsReturn {
   likes: number;
   dislikes: number;
   liked: boolean;
   disliked: boolean;
-  toggleLike: () => Promise<void>;
+  toggleLike: () => Promise<LikeResult>;
   toggleDislike: () => Promise<void>;
 }
 
@@ -60,11 +62,11 @@ export function useReactions(itemType: ItemType, itemId: string): UseReactionsRe
     return unsub;
   }, [docId]);
 
-  const toggleLike = useCallback(async () => {
-    if (!user) return;
+  const toggleLike = useCallback(async (): Promise<LikeResult> => {
+    if (!user) return 'no_user';
     const key = `like_${todayStr()}_${docId}`;
     const already = await AsyncStorage.getItem(key);
-    if (already) return;
+    if (already) return 'already';
 
     const ref = doc(db, 'reactions', docId);
     await runTransaction(db, async (tx) => {
@@ -88,6 +90,7 @@ export function useReactions(itemType: ItemType, itemId: string): UseReactionsRe
       }, { merge: true });
     });
     await AsyncStorage.setItem(key, '1');
+    return 'done';
   }, [user, docId]);
 
   const toggleDislike = useCallback(async () => {
