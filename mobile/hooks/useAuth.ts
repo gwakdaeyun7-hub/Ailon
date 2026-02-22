@@ -1,6 +1,7 @@
 /**
  * 사용자 인증 관리 Hook
  * 네이티브 Google Sign-In SDK 사용 (Android)
+ * Expo Go에서는 로그인 불가 (네이티브 빌드 필요)
  */
 
 import { useEffect, useState, useCallback } from 'react';
@@ -13,17 +14,21 @@ import {
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { Alert } from 'react-native';
-import {
-  GoogleSignin,
-  statusCodes,
-} from '@react-native-google-signin/google-signin';
 import { auth, db } from '@/lib/firebase';
 
 const WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? '';
 
-GoogleSignin.configure({
-  webClientId: WEB_CLIENT_ID,
-});
+let GoogleSignin: any = null;
+let statusCodes: any = {};
+
+try {
+  const mod = require('@react-native-google-signin/google-signin');
+  GoogleSignin = mod.GoogleSignin;
+  statusCodes = mod.statusCodes;
+  GoogleSignin.configure({ webClientId: WEB_CLIENT_ID });
+} catch {
+  console.warn('Google Sign-In native module not available (Expo Go?)');
+}
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
@@ -58,6 +63,10 @@ export function useAuth() {
   }, []);
 
   const signInWithGoogle = useCallback(async () => {
+    if (!GoogleSignin) {
+      Alert.alert('알림', '개발 빌드에서만 Google 로그인이 가능합니다.');
+      return;
+    }
     try {
       await GoogleSignin.hasPlayServices();
       const response = await GoogleSignin.signIn();
@@ -83,7 +92,7 @@ export function useAuth() {
 
   const signOut = useCallback(async () => {
     try {
-      await GoogleSignin.signOut();
+      if (GoogleSignin) await GoogleSignin.signOut();
       await firebaseSignOut(auth);
     } catch (error) {
       console.error('Sign-out error:', error);
