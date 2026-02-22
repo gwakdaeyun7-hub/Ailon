@@ -173,7 +173,7 @@ const HighlightScrollCard = React.memo(function HighlightScrollCard({
         height: HIGHLIGHT_CARD_HEIGHT,
         flexGrow: 0,
         flexShrink: 0,
-        marginRight: 16,
+        marginRight: 20,
         backgroundColor: CARD,
         borderRadius: 14,
         overflow: 'hidden',
@@ -559,7 +559,7 @@ const HScrollCard = React.memo(function HScrollCard({
         height: HCARD_HEIGHT,
         flexGrow: 0,
         flexShrink: 0,
-        marginRight: 16,
+        marginRight: 20,
         backgroundColor: CARD,
         borderRadius: 12,
         overflow: 'hidden',
@@ -674,7 +674,7 @@ function CategoryTabSection({
               backgroundColor: CARD,
               borderRadius: 14,
               overflow: 'hidden',
-              marginBottom: 18,
+              marginBottom: 22,
               borderWidth: 1,
               borderColor: BORDER,
               opacity: pressed ? 0.85 : 1,
@@ -826,9 +826,9 @@ function GeekNewsSection({ articles, onArticlePress }: { articles: Article[]; on
             accessibilityLabel={getTitle(a)}
             accessibilityRole="button"
             style={({ pressed }) => ({
-              paddingVertical: 16,
+              paddingVertical: 18,
               borderBottomWidth: i < visible.length - 1 ? 1 : 0,
-              borderBottomColor: '#E5E7EB',
+              borderBottomColor: '#D1D5DB',
               justifyContent: 'space-between',
               opacity: pressed ? 0.85 : 1,
             })}
