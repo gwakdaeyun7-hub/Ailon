@@ -12,12 +12,14 @@ function SkeletonItem({ width, height = 16, borderRadius = 8 }: SkeletonProps) {
   const opacity = useRef(new Animated.Value(0.4)).current;
 
   useEffect(() => {
-    Animated.loop(
+    const anim = Animated.loop(
       Animated.sequence([
         Animated.timing(opacity, { toValue: 0.8, duration: 900, useNativeDriver: true }),
         Animated.timing(opacity, { toValue: 0.4, duration: 900, useNativeDriver: true }),
       ])
-    ).start();
+    );
+    anim.start();
+    return () => anim.stop();
   }, [opacity]);
 
   return (

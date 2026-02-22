@@ -408,19 +408,24 @@ Return the indices of AI-technology articles as a JSON array:
 
 
 def _llm_filter_sources(sources: dict[str, list[dict]]) -> None:
-    """모든 소스를 LLM으로 AI 관련성 필터링 (엄격)"""
+    """모든 소스를 LLM으로 AI 관련성 필터링 (병렬)"""
     total_removed = 0
-    for key, articles in sources.items():
-        if not articles:
-            continue
+    tasks = [(key, articles) for key, articles in sources.items() if articles]
 
+    def _filter_one(key: str, articles: list[dict]) -> tuple[str, list[dict], int]:
         ai_indices = _llm_ai_filter_batch(articles)
-        before = len(articles)
-        sources[key] = [a for i, a in enumerate(articles) if i in ai_indices]
-        removed = before - len(sources[key])
-        total_removed += removed
+        filtered = [a for i, a in enumerate(articles) if i in ai_indices]
+        removed = len(articles) - len(filtered)
         if removed > 0:
-            print(f"    [{key}] LLM AI 필터: {removed}개 제거 -> {len(sources[key])}개")
+            print(f"    [{key}] LLM AI 필터: {removed}개 제거 -> {len(filtered)}개")
+        return key, filtered, removed
+
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        futures = {executor.submit(_filter_one, key, articles): key for key, articles in tasks}
+        for future in as_completed(futures):
+            key, filtered, removed = future.result()
+            sources[key] = filtered
+            total_removed += removed
 
     if total_removed > 0:
         print(f"  [LLM AI 필터] 총 {total_removed}개 비AI 기사 제거")
@@ -524,7 +529,7 @@ def ko_process_node(state: NewsGraphState) -> dict:
 W_SIGNIFICANCE = 4  # 중요도 (LLM 평가)
 W_RELEVANCE = 3     # 개발자 관련성 (LLM 평가)
 W_FRESHNESS = 3     # 정보 신선도 (LLM 평가 -- novelty, NOT recency)
-SCORER_BATCH_SIZE = 3
+SCORER_BATCH_SIZE = 5
 
 _SCORER_PROMPT = """IMPORTANT: Output ONLY a valid JSON array. No thinking, no markdown. Start with '['.
 
@@ -693,8 +698,8 @@ def scorer_node(state: NewsGraphState) -> dict:
         batch_size = SCORER_BATCH_SIZE if retry_count == 0 else max(2, SCORER_BATCH_SIZE // 2)
         batches = [unscored[i:i + batch_size] for i in range(0, len(unscored), batch_size)]
 
-        # 병렬 스코어링 (throttle + max_workers=2로 Gemini 레이트리밋 방지)
-        with ThreadPoolExecutor(max_workers=2) as executor:
+        # 병렬 스코어링 (throttle로 Gemini 레이트리밋 방지)
+        with ThreadPoolExecutor(max_workers=3) as executor:
             future_to_batch = {
                 executor.submit(_score_batch_with_retry, batch, idx * batch_size): (batch, idx)
                 for idx, batch in enumerate(batches)

@@ -142,7 +142,7 @@ const SourceBadge = React.memo(function SourceBadge({ sourceKey }: { sourceKey?:
 const HIGHLIGHT_CARD_WIDTH = 280;
 const HIGHLIGHT_CARD_HEIGHT = 260;
 
-function HighlightScrollCard({
+const HighlightScrollCard = React.memo(function HighlightScrollCard({
   article, onToggle,
 }: {
   article: Article; onToggle?: () => void;
@@ -207,7 +207,7 @@ function HighlightScrollCard({
       </View>
     </Pressable>
   );
-}
+});
 
 function SummaryModal({ article, onClose, onOpenComments }: { article: Article | null; onClose: () => void; onOpenComments: () => void }) {
   const { views, trackView } = useArticleViews(article?.link ?? '');
@@ -235,7 +235,7 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
     if (!article) {
       viewTracked.current = false;
     }
-  }, [article]);
+  }, [article, trackView]);
 
   if (!article) return null;
 
@@ -522,7 +522,7 @@ function HighlightSection({ highlights, onArticlePress }: { highlights: Article[
 const CARD_WIDTH = 240;
 const HCARD_HEIGHT = 260;
 
-function HScrollCard({
+const HScrollCard = React.memo(function HScrollCard({
   article, showSourceBadge, onToggle,
 }: {
   article: Article; showSourceBadge?: boolean; onToggle?: () => void;
@@ -585,7 +585,7 @@ function HScrollCard({
       </View>
     </Pressable>
   );
-}
+});
 
 // ─── Section 2: 카테고리 탭 + 세로 리스트 ──────────────────────────────
 function CategoryTabSection({
