@@ -514,7 +514,7 @@ function HighlightSection({ highlights, onArticlePress }: { highlights: Article[
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 4, gap: 100 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 4, gap: 16 }}
       >
         {highlights.map((a, i) => (
           <HighlightScrollCard
