@@ -558,7 +558,6 @@ const HScrollCard = React.memo(function HScrollCard({
         height: HCARD_HEIGHT,
         flexGrow: 0,
         flexShrink: 0,
-        marginRight: 14,
         backgroundColor: CARD,
         borderRadius: 12,
         overflow: 'hidden',
@@ -661,7 +660,7 @@ function CategoryTabSection({
       </ScrollView>
 
       {/* 세로 기사 리스트 */}
-      <View style={{ paddingHorizontal: 16 }}>
+      <View style={{ paddingHorizontal: 16, gap: 16 }}>
         {visible.map((a, i) => (
           <Pressable
             key={`cat-${activeTab}-${i}-${a.link}`}
@@ -673,7 +672,6 @@ function CategoryTabSection({
               backgroundColor: CARD,
               borderRadius: 14,
               overflow: 'hidden',
-              marginBottom: 24,
               borderWidth: 1,
               borderColor: BORDER,
               opacity: pressed ? 0.85 : 1,
@@ -762,7 +760,7 @@ function SourceHScrollSection({
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 4 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 4, gap: 16 }}
       >
         {visible.map((a, i) => (
           <HScrollCard
