@@ -447,17 +447,14 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
                 accessibilityLabel={liked ? '좋아요 취소' : '좋아요'}
                 accessibilityRole="button"
                 style={({ pressed }) => ({
-                  flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5,
-                  backgroundColor: liked ? '#EF444415' : BORDER,
+                  alignItems: 'center', justifyContent: 'center',
+                  backgroundColor: liked ? '#3B82F615' : BORDER,
                   paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10,
-                  borderWidth: liked ? 1 : 0, borderColor: '#EF444440',
+                  borderWidth: liked ? 1 : 0, borderColor: '#3B82F640',
                   opacity: pressed ? 0.8 : 1,
                 })}
               >
-                <ThumbsUp size={18} color={liked ? '#EF4444' : TEXT_SECONDARY} />
-                {likes > 0 && (
-                  <Text style={{ fontSize: 13, fontWeight: '700', color: liked ? '#EF4444' : TEXT_SECONDARY }}>{likes}</Text>
-                )}
+                <ThumbsUp size={18} color={liked ? '#3B82F6' : TEXT_SECONDARY} />
               </Pressable>
 
               <Pressable
