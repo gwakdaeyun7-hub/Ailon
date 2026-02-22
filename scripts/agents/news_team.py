@@ -677,7 +677,7 @@ def _score_batch_with_retry(batch: list[dict], offset: int) -> list[dict]:
 
 @_safe_node("scorer")
 def scorer_node(state: NewsGraphState) -> dict:
-    """CATEGORY_SOURCES 기사 3차원 점수 부여 (병렬 배치)"""
+    """CATEGORY_SOURCES + 당일 한국소스 기사 3차원 점수 부여 (병렬 배치)"""
     retry_count = state.get("scorer_retry_count", 0)
 
     if retry_count == 0:
@@ -685,6 +685,15 @@ def scorer_node(state: NewsGraphState) -> dict:
         for key in CATEGORY_SOURCES:
             for a in state["sources"].get(key, []):
                 candidates.append(a)
+
+        # 한국 소스 당일 기사도 하이라이트 후보로 스코어링
+        ko_today_count = 0
+        for key in SOURCE_SECTION_SOURCES:
+            for a in state["sources"].get(key, []):
+                if _is_today(a):
+                    a["_from_source_section"] = True
+                    candidates.append(a)
+                    ko_today_count += 1
 
         if not candidates:
             return {"scored_candidates": [], "scorer_retry_count": 1}
@@ -694,7 +703,7 @@ def scorer_node(state: NewsGraphState) -> dict:
             c["_is_today"] = _is_today(c)
             if c["_is_today"]:
                 today_count += 1
-        print(f"  [스코어링] {len(candidates)}개 평가 중... (당일 {today_count}개)")
+        print(f"  [스코어링] {len(candidates)}개 평가 중... (당일 {today_count}개, 한국소스 당일 {ko_today_count}개)")
     else:
         candidates = state.get("scored_candidates", [])
         for c in candidates:
@@ -760,29 +769,28 @@ HIGHLIGHT_COUNT = 3
 
 @_safe_node("ranker")
 def ranker_node(state: NewsGraphState) -> dict:
-    """Tier 1 당일 기사 중 점수순 Top 3 하이라이트"""
+    """당일 기사 중 점수 상위 Top 3 하이라이트 (소스 제한 없음)"""
     candidates = state.get("scored_candidates", [])
     if not candidates:
         return {"highlights": [], "category_pool": []}
 
-    # 하이라이트: Tier 1 당일 기사만
-    tier1_today = [c for c in candidates
-                   if c.get("source_key", "") in HIGHLIGHT_SOURCES and c.get("_is_today")]
-    print(f"  [랭킹] Tier1 당일 기사 {len(tier1_today)}/{len(candidates)}개")
+    # 하이라이트: 모든 소스의 당일 기사
+    today_all = [c for c in candidates if c.get("_is_today")]
+    print(f"  [랭킹] 당일 기사 {len(today_all)}/{len(candidates)}개")
 
     _epoch = datetime(2000, 1, 1, tzinfo=timezone.utc)
     def _pub_key(c: dict):
         return _parse_published(c.get("published", "")) or _epoch
 
-    ordered = sorted(
-        tier1_today,
+    # 점수순으로 Top 3 선정
+    by_score = sorted(
+        today_all,
         key=lambda c: (c.get("_total_score", 0), _pub_key(c)),
         reverse=True,
     )
 
     selected: list[dict] = []
-
-    for c in ordered:
+    for c in by_score:
         if len(selected) >= HIGHLIGHT_COUNT:
             break
         # 미번역 기사 차단
@@ -790,13 +798,22 @@ def ranker_node(state: NewsGraphState) -> dict:
             continue
         selected.append(c)
 
+    # 날짜 최신순 → 점수 높은순으로 정렬
+    selected = sorted(
+        selected,
+        key=lambda c: (_pub_key(c), c.get("_total_score", 0)),
+        reverse=True,
+    )
+
     for rank, c in enumerate(selected):
         title = (c.get("display_title") or c.get("title", ""))[:40]
-        print(f"    {rank+1}. [{c.get('_total_score', 0)}점] {title}")
+        src = c.get("source_key", "")
+        print(f"    {rank+1}. [{c.get('_total_score', 0)}점] [{src}] {title}")
 
-    # 하이라이트 제외한 Tier 1+2 전체 -> 카테고리 분류 대상
+    # 하이라이트 제외, 한국 소스 제외 → 카테고리 분류 대상
     selected_set = set(id(c) for c in selected)
-    remaining = [c for c in candidates if id(c) not in selected_set]
+    remaining = [c for c in candidates
+                 if id(c) not in selected_set and not c.get("_from_source_section")]
 
     return {"highlights": selected, "category_pool": remaining}
 
@@ -974,11 +991,14 @@ def assembler_node(state: NewsGraphState) -> dict:
     def _pub_key(a: dict):
         return _parse_published(a.get("published", "")) or _epoch
 
+    highlight_links = set(h.get("link", "") for h in state.get("highlights", []))
     for s in SOURCES:
         key = s["key"]
         if key in SOURCE_SECTION_SOURCES and sources.get(key):
             sorted_articles = sorted(sources[key], key=_pub_key, reverse=True)
-            source_articles[key] = sorted_articles[:10]
+            # 하이라이트에 선정된 기사는 소스 섹션에서 제외
+            source_articles[key] = [a for a in sorted_articles
+                                    if a.get("link", "") not in highlight_links][:10]
             source_order.append(key)
 
     total = (
