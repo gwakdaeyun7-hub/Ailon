@@ -252,8 +252,8 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
 
   const handleLike = async () => {
     const result = await toggleLike();
-    if (result === 'already') {
-      showToast('오늘은 이미 좋아요를 눌렀어요');
+    if (result === 'no_user') {
+      showToast('로그인이 필요합니다');
     }
   };
 
@@ -421,8 +421,8 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
           <View style={{
             borderTopWidth: 1, borderTopColor: BORDER,
             flexDirection: 'row', alignItems: 'center',
-            paddingHorizontal: 16, paddingTop: 8,
-            paddingBottom: Math.max(insets.bottom, 8),
+            paddingHorizontal: 16, paddingTop: 10,
+            paddingBottom: Math.max(insets.bottom, 10),
             gap: 10,
           }}>
             {/* 원문 보기 버튼 */}
@@ -432,31 +432,31 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
               accessibilityRole="link"
               style={({ pressed }) => ({
                 flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5,
-                backgroundColor: '#000', paddingVertical: 10, borderRadius: 10,
+                backgroundColor: '#000', paddingVertical: 11, borderRadius: 10,
                 opacity: pressed ? 0.8 : 1,
               })}
             >
-              <ExternalLink size={14} color="#FFF" />
-              <Text style={{ color: '#FFF', fontSize: 13, fontWeight: '700' }}>원문 보기</Text>
+              <ExternalLink size={15} color="#FFF" />
+              <Text style={{ color: '#FFF', fontSize: 14, fontWeight: '700' }}>원문 보기</Text>
             </Pressable>
 
             {/* 좋아요 | 댓글 | 공유 — 오른쪽 정렬 */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Pressable
                 onPress={handleLike}
                 accessibilityLabel={liked ? '좋아요 취소' : '좋아요'}
                 accessibilityRole="button"
                 style={({ pressed }) => ({
-                  flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4,
+                  flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5,
                   backgroundColor: liked ? '#EF444415' : BORDER,
-                  paddingVertical: 8, paddingHorizontal: 10, borderRadius: 8,
+                  paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10,
                   borderWidth: liked ? 1 : 0, borderColor: '#EF444440',
                   opacity: pressed ? 0.8 : 1,
                 })}
               >
-                <ThumbsUp size={13} color={liked ? '#EF4444' : TEXT_SECONDARY} />
+                <ThumbsUp size={18} color={liked ? '#EF4444' : TEXT_SECONDARY} />
                 {likes > 0 && (
-                  <Text style={{ fontSize: 12, fontWeight: '700', color: liked ? '#EF4444' : TEXT_SECONDARY }}>{likes}</Text>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: liked ? '#EF4444' : TEXT_SECONDARY }}>{likes}</Text>
                 )}
               </Pressable>
 
@@ -467,11 +467,11 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
                 style={({ pressed }) => ({
                   alignItems: 'center', justifyContent: 'center',
                   backgroundColor: BORDER,
-                  paddingVertical: 8, paddingHorizontal: 10, borderRadius: 8,
+                  paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10,
                   opacity: pressed ? 0.8 : 1,
                 })}
               >
-                <MessageCircle size={13} color={TEXT_SECONDARY} />
+                <MessageCircle size={18} color={TEXT_SECONDARY} />
               </Pressable>
 
               <Pressable
@@ -481,11 +481,11 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
                 style={({ pressed }) => ({
                   alignItems: 'center', justifyContent: 'center',
                   backgroundColor: BORDER,
-                  paddingVertical: 8, paddingHorizontal: 10, borderRadius: 8,
+                  paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10,
                   opacity: pressed ? 0.8 : 1,
                 })}
               >
-                <Share2 size={13} color={TEXT_SECONDARY} />
+                <Share2 size={18} color={TEXT_SECONDARY} />
               </Pressable>
             </View>
           </View>

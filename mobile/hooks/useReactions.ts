@@ -64,9 +64,6 @@ export function useReactions(itemType: ItemType, itemId: string): UseReactionsRe
 
   const toggleLike = useCallback(async (): Promise<LikeResult> => {
     if (!user) return 'no_user';
-    const key = `like_${todayStr()}_${docId}`;
-    const already = await AsyncStorage.getItem(key);
-    if (already) return 'already';
 
     const ref = doc(db, 'reactions', docId);
     await runTransaction(db, async (tx) => {
@@ -89,7 +86,6 @@ export function useReactions(itemType: ItemType, itemId: string): UseReactionsRe
         dislikedBy: newDislikedBy,
       }, { merge: true });
     });
-    await AsyncStorage.setItem(key, '1');
     return 'done';
   }, [user, docId]);
 

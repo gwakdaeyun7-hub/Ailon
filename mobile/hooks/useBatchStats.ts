@@ -1,10 +1,10 @@
 /**
  * 피드 카드용 일괄 좋아요수/뷰수 조회 Hook
- * 리스너 대신 getDoc 사용 → 리스너 폭발 방지
+ * reactions는 onSnapshot(실시간), views는 getDoc(1회)
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 export interface BatchStats {
@@ -21,33 +21,36 @@ export function useBatchStats(articleLinks: string[]): Record<string, BatchStats
     if (key === prevKey.current || articleLinks.length === 0) return;
     prevKey.current = key;
 
-    let cancelled = false;
+    const result: Record<string, BatchStats> = {};
+    const unsubs: (() => void)[] = [];
 
-    (async () => {
-      const result: Record<string, BatchStats> = {};
+    // views는 1회 조회, reactions는 실시간 리스너
+    articleLinks.forEach((link) => {
+      const encoded = encodeURIComponent(link).slice(0, 200);
+      const reactionsId = `news_${encoded}`;
+      const viewsId = encoded;
 
-      await Promise.all(
-        articleLinks.map(async (link) => {
-          const encoded = encodeURIComponent(link).slice(0, 200);
-          const reactionsId = `news_${encoded}`;
-          const viewsId = encoded;
+      // views 1회 조회
+      getDoc(doc(db, 'article_views', viewsId)).then((snap) => {
+        const views = snap.exists() ? (snap.data()?.views ?? 0) : 0;
+        setStats((prev) => ({
+          ...prev,
+          [link]: { likes: prev[link]?.likes ?? 0, views },
+        }));
+      }).catch(() => {});
 
-          const [reactSnap, viewsSnap] = await Promise.all([
-            getDoc(doc(db, 'reactions', reactionsId)).catch(() => null),
-            getDoc(doc(db, 'article_views', viewsId)).catch(() => null),
-          ]);
+      // reactions 실시간 리스너
+      const unsub = onSnapshot(doc(db, 'reactions', reactionsId), (snap) => {
+        const likes = snap.exists() ? (snap.data()?.likes ?? 0) : 0;
+        setStats((prev) => ({
+          ...prev,
+          [link]: { likes, views: prev[link]?.views ?? 0 },
+        }));
+      });
+      unsubs.push(unsub);
+    });
 
-          result[link] = {
-            likes: reactSnap?.exists() ? (reactSnap.data()?.likes ?? 0) : 0,
-            views: viewsSnap?.exists() ? (viewsSnap.data()?.views ?? 0) : 0,
-          };
-        })
-      );
-
-      if (!cancelled) setStats(result);
-    })();
-
-    return () => { cancelled = true; };
+    return () => { unsubs.forEach((u) => u()); };
   }, [articleLinks]);
 
   return stats;
