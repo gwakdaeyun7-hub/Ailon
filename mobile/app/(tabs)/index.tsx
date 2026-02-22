@@ -262,9 +262,20 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
 
   const handleShare = async () => {
     try {
-      const summary = article.one_line || article.summary || '';
+      let body = '';
+      if (article.one_line) {
+        body += `💡 핵심 한줄\n${article.one_line}`;
+        if (article.key_points && article.key_points.length > 0) {
+          body += `\n\n📌 주요 포인트\n${article.key_points.map((p, i) => `${i + 1}. ${p}`).join('\n')}`;
+        }
+        if (article.why_important) {
+          body += `\n\n⚡ 왜 중요해요?\n${article.why_important}`;
+        }
+      } else if (article.summary) {
+        body = article.summary;
+      }
       await Share.share({
-        message: `[${sourceName}] ${getTitle(article)}\n\n${summary}\n\n원문: ${article.link}\n\n— Ailon AI 뉴스`,
+        message: `${getTitle(article)}\n\n${body}\n\n— Ailon AI 뉴스`,
       });
     } catch {}
   };
