@@ -911,8 +911,8 @@ def _select_category_top_n(articles: list[dict], n: int = CATEGORY_TOP_N, today_
             selected.append(a)
             used.add(id(a))
 
-    # 3) 날짜 최신순 정렬
-    selected.sort(key=_pub_key, reverse=True)
+    # 3) 날짜 최신순 → 점수 높은순 정렬
+    selected.sort(key=lambda a: (_pub_key(a), a.get("_total_score", 0)), reverse=True)
     return selected
 
 
