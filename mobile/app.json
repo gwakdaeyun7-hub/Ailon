@@ -31,7 +31,8 @@
     "plugins": [
       "expo-router",
       "expo-asset",
-      "expo-dev-client"
+      "expo-dev-client",
+      "@react-native-google-signin/google-signin"
     ],
     "scheme": "ailon",
     "extra": {
