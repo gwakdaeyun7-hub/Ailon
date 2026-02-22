@@ -624,40 +624,44 @@ function CategoryTabSection({
 
   return (
     <View style={{ marginBottom: 24 }}>
-      {/* 카테고리 탭 */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 16, gap: 12, marginBottom: 16 }}
-      >
-        {categoryOrder.map(catKey => {
-          const isActive = catKey === activeTab;
-          const color = CATEGORY_COLORS[catKey] || TEXT_SECONDARY;
-          return (
-            <Pressable
-              key={catKey}
-              onPress={() => handleTabChange(catKey)}
-              accessibilityLabel={CATEGORY_NAMES[catKey] || catKey}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: isActive }}
-              style={{
-                paddingHorizontal: 18, paddingVertical: 10,
-                borderRadius: 20,
-                backgroundColor: isActive ? color : CARD,
-                borderWidth: 1,
-                borderColor: isActive ? color : BORDER,
-              }}
-            >
-              <Text style={{
-                fontSize: 13, fontWeight: '700',
-                color: isActive ? '#FFF' : TEXT_SECONDARY,
-              }}>
-                {CATEGORY_NAMES[catKey] || catKey}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
+      {/* 섹션 헤더 + 카테고리 탭 */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 16 }}>
+        <Text style={{ fontSize: 17, fontWeight: '800', color: TEXT_PRIMARY, marginRight: 12 }}>카테고리별 뉴스</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: 8 }}
+          style={{ flex: 1 }}
+        >
+          {categoryOrder.map(catKey => {
+            const isActive = catKey === activeTab;
+            const color = CATEGORY_COLORS[catKey] || TEXT_SECONDARY;
+            return (
+              <Pressable
+                key={catKey}
+                onPress={() => handleTabChange(catKey)}
+                accessibilityLabel={CATEGORY_NAMES[catKey] || catKey}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: isActive }}
+                style={{
+                  paddingHorizontal: 14, paddingVertical: 6,
+                  borderRadius: 16,
+                  backgroundColor: isActive ? color : CARD,
+                  borderWidth: 1,
+                  borderColor: isActive ? color : BORDER,
+                }}
+              >
+                <Text style={{
+                  fontSize: 12, fontWeight: '700',
+                  color: isActive ? '#FFF' : TEXT_SECONDARY,
+                }}>
+                  {CATEGORY_NAMES[catKey] || catKey}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </View>
 
       {/* 세로 기사 리스트 */}
       <View style={{ paddingHorizontal: 16, gap: 16 }}>
