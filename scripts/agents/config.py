@@ -5,8 +5,8 @@
 """
 
 import os
-import sys
 import json
+import threading
 import firebase_admin
 from firebase_admin import credentials, firestore
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -28,54 +28,21 @@ HORIZONTAL_SECTIONS = {
     "curation":               "큐레이션",
 }
 
-# 카테고리별 키워드 (분류 보조용)
-CATEGORY_KEYWORDS = {
-    "model_research": [
-        "llm", "slm", "gpt", "claude", "gemini", "llama", "mistral",
-        "model", "paper", "research", "arxiv", "benchmark",
-        "attention", "transformer", "architecture",
-        "parameter", "training", "fine-tuning", "inference",
-        "foundation model", "multimodal", "vision language",
-        "scaling", "moe", "mixture of experts", "quantization",
-        "diffusion", "weights", "dataset", "evaluation",
-        "hugging face", "deepseek", "qwen",
-    ],
-    "product_tools": [
-        "launch", "release", "product", "app", "tool", "framework",
-        "sdk", "api", "github", "open source", "library",
-        "plugin", "extension", "update", "version",
-        "developer", "code", "cli", "platform",
-        "langchain", "langgraph", "crewai", "autogen",
-        "ollama", "vllm", "cursor", "copilot",
-        "agent", "agentic", "rag", "retrieval",
-        "mcp", "model context protocol",
-    ],
-    "industry_business": [
-        "funding", "investment", "startup", "vc", "valuation",
-        "acquisition", "partnership", "revenue", "enterprise",
-        "regulation", "policy", "law", "legislation",
-        "safety", "alignment", "ethics", "governance",
-        "market", "competition", "strategy", "business",
-        "microsoft", "google", "meta", "openai", "anthropic",
-        "trend", "report", "analysis", "industry",
-        "robot", "robotics", "autonomous driving",
-    ],
-}
-
 
 _llm_cache: dict[tuple, ChatGoogleGenerativeAI] = {}
+_llm_cache_lock = threading.Lock()
 
 
 def get_llm(temperature: float = 0.7, max_tokens: int = 2048, thinking: bool = True, json_mode: bool = False):
     """LangChain Google Gemini LLM (캐싱, thinking 토글, JSON 모드 지원)"""
     cache_key = (temperature, max_tokens, thinking, json_mode)
-    if cache_key in _llm_cache:
-        return _llm_cache[cache_key]
+    with _llm_cache_lock:
+        if cache_key in _llm_cache:
+            return _llm_cache[cache_key]
 
     api_key = os.getenv("GOOGLE_API_KEY")
     if not api_key:
-        print("[ERROR] GOOGLE_API_KEY not found")
-        sys.exit(1)
+        raise ValueError("GOOGLE_API_KEY not found. Set the environment variable before running.")
 
     kwargs = {
         "model": "gemini-2.5-flash",
@@ -92,7 +59,8 @@ def get_llm(temperature: float = 0.7, max_tokens: int = 2048, thinking: bool = T
         kwargs["model_kwargs"] = model_kwargs
 
     llm = ChatGoogleGenerativeAI(**kwargs)
-    _llm_cache[cache_key] = llm
+    with _llm_cache_lock:
+        _llm_cache[cache_key] = llm
     return llm
 
 
@@ -114,8 +82,7 @@ def initialize_firebase():
             if os.path.exists(cred_path):
                 cred = credentials.Certificate(cred_path)
             else:
-                print("[ERROR] Firebase credentials not found")
-                sys.exit(1)
+                raise ValueError("Firebase credentials not found. Set FIREBASE_CREDENTIALS env var or place firebase-credentials.json.")
 
         firebase_admin.initialize_app(cred)
         print("[OK] Firebase initialized")

@@ -55,6 +55,11 @@ def _merge_dicts(left: dict, right: dict) -> dict:
 
 
 # ─── State 정의 ───
+def _merge_lists(left: list, right: list) -> list:
+    """두 list 를 합친다. 에러 로그 등 병렬 노드 결과 머지용."""
+    return (left or []) + (right or [])
+
+
 class NewsGraphState(TypedDict):
     # sources: 소스키 -> 기사 리스트. EN/KO 병렬 노드가 각각 자기 소스만 반환하므로 merge 리듀서 사용.
     sources: Annotated[dict[str, list[dict]], _merge_dicts]
@@ -69,6 +74,8 @@ class NewsGraphState(TypedDict):
     total_count: int
     # 노드별 소요 시간 (초)
     node_timings: Annotated[dict[str, float], _merge_dicts]
+    # 노드별 에러 기록 (파이프라인 실패 vs 뉴스 없음 구분용)
+    errors: Annotated[list[str], _merge_lists]
 
 
 # ─── 날짜 유틸리티 ───
@@ -89,27 +96,6 @@ def _parse_published(published: str) -> datetime | None:
         except (ValueError, AttributeError):
             continue
     return None
-
-
-def _compute_recency_score(article: dict) -> int:
-    pub = article.get("published", "")
-    if not pub:
-        return 3
-    dt = _parse_published(pub)
-    if not dt:
-        return 3
-    hours_ago = (datetime.now(timezone.utc) - dt).total_seconds() / 3600
-    if hours_ago < 0:
-        hours_ago = 0
-    if hours_ago <= 12:
-        return 10
-    if hours_ago <= 24:
-        return 8
-    if hours_ago <= 48:
-        return 5
-    if hours_ago <= 72:
-        return 3
-    return 1
 
 
 def _is_today(article: dict) -> bool:
@@ -285,6 +271,14 @@ def _apply_batch_results(batch: list[dict], results: list[dict]) -> int:
     done = 0
     if not results:
         return 0
+
+    # 폴백: index 필드 없지만 개수가 맞으면 순서대로 매핑
+    dicts_only = [r for r in results if isinstance(r, dict)]
+    has_index = any(r.get("index") is not None for r in dicts_only)
+    if not has_index and len(dicts_only) == len(batch):
+        for idx, r in enumerate(dicts_only):
+            r["index"] = idx + 1  # 1-based
+
     for r in results:
         if not isinstance(r, dict):
             continue
@@ -445,7 +439,7 @@ def _safe_node(node_name: str):
             except Exception as e:
                 elapsed = time.time() - t0
                 print(f"  [ERROR] {node_name} 노드 실패 ({elapsed:.1f}s): {e}")
-                result = {}
+                result = {"errors": [f"{node_name}: {e}"]}
             elapsed = time.time() - t0
             print(f"  [{node_name}] {elapsed:.1f}s")
             result.setdefault("node_timings", {})
@@ -592,14 +586,15 @@ _scorer_call_ts: list[float] = []  # 최근 API 호출 시각 기록
 
 def _scorer_throttle():
     """Gemini 레이트리밋 방지: 최근 5초 내 호출이 3개 이상이면 대기"""
+    wait = 0
     with _scorer_lock:
         now = time.time()
-        # 5초 이내 호출만 유지
         _scorer_call_ts[:] = [t for t in _scorer_call_ts if now - t < 5]
         if len(_scorer_call_ts) >= 3:
             wait = 5.0 - (now - _scorer_call_ts[0]) + 0.2
-            if wait > 0:
-                time.sleep(wait)
+    if wait > 0:
+        time.sleep(wait)
+    with _scorer_lock:
         _scorer_call_ts.append(time.time())
 
 
@@ -1084,7 +1079,14 @@ def run_news_pipeline() -> dict:
         "source_order": [],
         "total_count": 0,
         "node_timings": {},
+        "errors": [],
     })
+
+    errors = result.get("errors", [])
+    if errors:
+        print(f"\n  [파이프라인 에러] {len(errors)}건:")
+        for err in errors:
+            print(f"    - {err}")
 
     return {
         "sources": result.get("sources", {}),
@@ -1094,4 +1096,5 @@ def run_news_pipeline() -> dict:
         "source_articles": result.get("source_articles", {}),
         "source_order": result.get("source_order", []),
         "total_count": result.get("total_count", 0),
+        "errors": errors,
     }
