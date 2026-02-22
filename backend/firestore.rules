@@ -1,0 +1,109 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Daily news collection - 모두 읽기 가능
+    match /daily_news/{date} {
+      allow read: if true; // 누구나 읽기 가능
+      allow write: if false; // 서버에서만 쓰기 (GitHub Actions)
+    }
+
+    // Daily principles (에이전트 생성) - 모두 읽기 가능
+    match /daily_principles/{date} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Daily ideas (에이전트 생성) - 모두 읽기 가능
+    match /daily_ideas/{date} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Academic snaps (에이전트 생성) - 모두 읽기 가능
+    match /academic_snaps/{date} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Synergy ideas (에이전트 생성) - 모두 읽기 가능
+    match /synergy_ideas/{date} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Principles collection (레거시) - 모두 읽기 가능
+    match /principles/{principleId} {
+      allow read: if true; // 누구나 읽기 가능
+      allow write: if false; // 서버에서만 쓰기
+    }
+
+    // User feedback - 본인 데이터만 CRUD 가능
+    match /user_feedback/{feedbackId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    // User data - 본인만 읽기/쓰기 가능
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+
+      // User's bookmarks subcollection
+      match /bookmarks/{bookmarkId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      // User's learning history subcollection
+      match /learning_history/{historyId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      // User's preferences subcollection
+      match /preferences/{prefId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // Generated ideas - 본인만 읽기/쓰기 가능
+    match /ideas/{ideaId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    // Article views (조회수) - 누구나 읽기/쓰기
+    match /article_views/{articleId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Reactions (좋아요) - 누구나 읽기, 로그인 시 쓰기
+    match /reactions/{reactionId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    // Comments (댓글) - 누구나 읽기, 로그인 시 작성
+    match /comments/{commentId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+
+      match /entries/{entryId} {
+        allow read: if true;
+        allow create: if isAuthenticated();
+        allow update, delete: if isAuthenticated() && resource.data.authorUid == request.auth.uid;
+      }
+    }
+  }
+}

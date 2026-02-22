@@ -1,0 +1,45 @@
+name: Daily AI Agent Pipeline
+
+on:
+  schedule:
+    # 매일 오전 6시 (UTC 21:00 = KST 06:00)
+    - cron: '0 21 * * *'
+    # 매일 오후 6시 (UTC 09:00 = KST 18:00)
+    - cron: '0 9 * * *'
+  workflow_dispatch: # 수동 실행 허용
+
+jobs:
+  run-agent-pipeline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          cd scripts
+          pip install -r requirements.txt
+
+      - name: Run daily agent pipeline
+        env:
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          FIREBASE_CREDENTIALS: ${{ secrets.FIREBASE_CREDENTIALS }}
+        run: |
+          cd scripts
+          python generate_daily.py
+
+      - name: Notify completion
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "✅ Daily agent pipeline completed successfully"
+          else
+            echo "❌ Daily agent pipeline failed (status: ${{ job.status }})"
+          fi

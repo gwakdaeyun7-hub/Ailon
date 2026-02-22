@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "Ailon",
+    "slug": "ailon",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0a0a0a"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.ailon.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0a0a0a"
+      },
+      "package": "com.ailon.app"
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-asset",
+      "expo-dev-client"
+    ],
+    "scheme": "ailon",
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "bffbb3e7-cf38-4b39-ada3-e8fb04b51349"
+      }
+    }
+  }
+}
