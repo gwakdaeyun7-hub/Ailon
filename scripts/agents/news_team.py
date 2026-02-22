@@ -412,23 +412,33 @@ def _llm_filter_sources(sources: dict[str, list[dict]]) -> None:
     total_removed = 0
     tasks = [(key, articles) for key, articles in sources.items() if articles]
 
-    def _filter_one(key: str, articles: list[dict]) -> tuple[str, list[dict], int]:
+    def _filter_one(key: str, articles: list[dict]) -> tuple[str, list[dict], int, int]:
         ai_indices = _llm_ai_filter_batch(articles)
         filtered = [a for i, a in enumerate(articles) if i in ai_indices]
-        removed = len(articles) - len(filtered)
+        removed_articles = [a for i, a in enumerate(articles) if i not in ai_indices]
+        removed = len(removed_articles)
+        today_removed = sum(1 for a in removed_articles if _is_today(a))
         if removed > 0:
-            print(f"    [{key}] LLM AI 필터: {removed}개 제거 -> {len(filtered)}개")
-        return key, filtered, removed
+            msg = f"    [{key}] LLM AI 필터: {removed}개 제거 -> {len(filtered)}개"
+            if today_removed > 0:
+                msg += f" (당일 {today_removed}개 제거됨)"
+            print(msg)
+        return key, filtered, removed, today_removed
 
+    total_today_removed = 0
     with ThreadPoolExecutor(max_workers=4) as executor:
         futures = {executor.submit(_filter_one, key, articles): key for key, articles in tasks}
         for future in as_completed(futures):
-            key, filtered, removed = future.result()
+            key, filtered, removed, today_removed = future.result()
             sources[key] = filtered
             total_removed += removed
+            total_today_removed += today_removed
 
     if total_removed > 0:
-        print(f"  [LLM AI 필터] 총 {total_removed}개 비AI 기사 제거")
+        msg = f"  [LLM AI 필터] 총 {total_removed}개 비AI 기사 제거"
+        if total_today_removed > 0:
+            msg += f" (당일 기사 {total_today_removed}개 포함)"
+        print(msg)
 
 
 # ─── 노드별 에러 핸들링 + 타이밍 데코레이터 ───

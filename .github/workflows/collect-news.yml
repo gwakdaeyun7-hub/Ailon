@@ -38,8 +38,8 @@ jobs:
       - name: Notify completion
         if: always()
         run: |
-          if [ $? -eq 0 ]; then
+          if [ "${{ job.status }}" = "success" ]; then
             echo "✅ Daily agent pipeline completed successfully"
           else
-            echo "❌ Daily agent pipeline failed"
+            echo "❌ Daily agent pipeline failed (status: ${{ job.status }})"
           fi
