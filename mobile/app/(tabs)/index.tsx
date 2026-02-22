@@ -173,7 +173,7 @@ const HighlightScrollCard = React.memo(function HighlightScrollCard({
         height: HIGHLIGHT_CARD_HEIGHT,
         flexGrow: 0,
         flexShrink: 0,
-        marginRight: 20,
+        marginRight: 14,
         backgroundColor: CARD,
         borderRadius: 14,
         overflow: 'hidden',
@@ -559,7 +559,7 @@ const HScrollCard = React.memo(function HScrollCard({
         height: HCARD_HEIGHT,
         flexGrow: 0,
         flexShrink: 0,
-        marginRight: 20,
+        marginRight: 14,
         backgroundColor: CARD,
         borderRadius: 12,
         overflow: 'hidden',
@@ -674,7 +674,7 @@ function CategoryTabSection({
               backgroundColor: CARD,
               borderRadius: 14,
               overflow: 'hidden',
-              marginBottom: 22,
+              marginBottom: 14,
               borderWidth: 1,
               borderColor: BORDER,
               opacity: pressed ? 0.85 : 1,
@@ -818,33 +818,40 @@ function GeekNewsSection({ articles, onArticlePress }: { articles: Article[]; on
         <Text style={{ fontSize: 11, color: TEXT_LIGHT }}>{articles.length}개</Text>
       </View>
 
-      <View style={{ paddingHorizontal: 16, backgroundColor: CARD, borderRadius: 12, marginHorizontal: 16, borderWidth: 1, borderColor: BORDER }}>
+      <View style={{ paddingHorizontal: 16 }}>
         {visible.map((a, i) => (
-          <Pressable
-            key={`geeknews-${i}-${a.link}`}
-            onPress={() => onArticlePress(a)}
-            accessibilityLabel={getTitle(a)}
-            accessibilityRole="button"
-            style={({ pressed }) => ({
-              paddingVertical: 18,
-              borderBottomWidth: i < visible.length - 1 ? 1 : 0,
-              borderBottomColor: '#D1D5DB',
-              justifyContent: 'space-between',
-              opacity: pressed ? 0.85 : 1,
-            })}
-          >
-            <Text
-              style={{ fontSize: 13, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 20 }}
-              numberOfLines={2}
-              ellipsizeMode="tail"
+          <React.Fragment key={`geeknews-${i}-${a.link}`}>
+            <Pressable
+              onPress={() => onArticlePress(a)}
+              accessibilityLabel={getTitle(a)}
+              accessibilityRole="button"
+              style={({ pressed }) => ({
+                backgroundColor: CARD,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: BORDER,
+                padding: 16,
+                marginBottom: 14,
+                justifyContent: 'space-between',
+                opacity: pressed ? 0.85 : 1,
+              })}
             >
-              {getTitle(a)}
-            </Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
-              <Text style={{ fontSize: 11, color: TEXT_LIGHT }}>{formatDate(a.published)}</Text>
-              <ArticleStats likes={stats[a.link]?.likes} views={stats[a.link]?.views} />
-            </View>
-          </Pressable>
+              <Text
+                style={{ fontSize: 13, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 20 }}
+                numberOfLines={2}
+                ellipsizeMode="tail"
+              >
+                {getTitle(a)}
+              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
+                <Text style={{ fontSize: 11, color: TEXT_LIGHT }}>{formatDate(a.published)}</Text>
+                <ArticleStats likes={stats[a.link]?.likes} views={stats[a.link]?.views} />
+              </View>
+            </Pressable>
+            {i < visible.length - 1 && (
+              <View style={{ height: 1, backgroundColor: '#E5E7EB', marginBottom: 14 }} />
+            )}
+          </React.Fragment>
         ))}
       </View>
 
