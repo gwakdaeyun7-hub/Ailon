@@ -173,7 +173,6 @@ const HighlightScrollCard = React.memo(function HighlightScrollCard({
         height: HIGHLIGHT_CARD_HEIGHT,
         flexGrow: 0,
         flexShrink: 0,
-        marginRight: 24,
         backgroundColor: CARD,
         borderRadius: 14,
         overflow: 'hidden',
@@ -515,7 +514,7 @@ function HighlightSection({ highlights, onArticlePress }: { highlights: Article[
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 4 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 4, gap: 16 }}
       >
         {highlights.map((a, i) => (
           <HighlightScrollCard
