@@ -628,7 +628,7 @@ function CategoryTabSection({
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 16, gap: 10, marginBottom: 16 }}
+        contentContainerStyle={{ paddingHorizontal: 16, gap: 12, marginBottom: 16 }}
       >
         {categoryOrder.map(catKey => {
           const isActive = catKey === activeTab;
@@ -641,7 +641,7 @@ function CategoryTabSection({
               accessibilityRole="tab"
               accessibilityState={{ selected: isActive }}
               style={{
-                paddingHorizontal: 14, paddingVertical: 10,
+                paddingHorizontal: 18, paddingVertical: 10,
                 borderRadius: 20,
                 backgroundColor: isActive ? color : CARD,
                 borderWidth: 1,
@@ -1023,11 +1023,6 @@ export default function NewsScreen() {
             ))}
 
             {/* Section 4: GeekNews 세로 리스트 */}
-            {(sourceArticles['geeknews']?.length ?? 0) > 0 && (
-              <View style={{ paddingHorizontal: 16, marginBottom: 8 }}>
-                <View style={{ height: 1, backgroundColor: '#E5E7EB' }} />
-              </View>
-            )}
             <GeekNewsSection articles={sourceArticles['geeknews'] || []} onArticlePress={handleArticlePress} />
           </>
         )}
