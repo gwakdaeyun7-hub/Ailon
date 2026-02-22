@@ -583,8 +583,8 @@ const HScrollCard = React.memo(function HScrollCard({
           <Text style={{ fontSize: 28, color: TEXT_LIGHT }}>📰</Text>
         </View>
       )}
-      <View style={{ padding: 12, flex: 1, width: CARD_WIDTH }}>
-        <View style={{ width: CARD_WIDTH - 24 }}>
+      <View style={{ padding: 14, flex: 1, width: CARD_WIDTH }}>
+        <View style={{ width: CARD_WIDTH - 28 }}>
           {showSourceBadge && <SourceBadge sourceKey={article.source_key} />}
           <Text
             style={{ fontSize: 13, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 18, marginTop: showSourceBadge ? 6 : 0 }}
@@ -674,7 +674,7 @@ function CategoryTabSection({
               backgroundColor: CARD,
               borderRadius: 14,
               overflow: 'hidden',
-              marginBottom: 16,
+              marginBottom: 18,
               borderWidth: 1,
               borderColor: BORDER,
               opacity: pressed ? 0.85 : 1,
@@ -751,7 +751,7 @@ function SourceHScrollSection({
   const visible = showMore ? [...first5, ...more5] : first5;
 
   return (
-    <View style={{ marginBottom: 28 }}>
+    <View style={{ marginBottom: 32 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 14 }}>
         <View style={{ width: 4, height: 18, borderRadius: 2, backgroundColor: color, marginRight: 8 }} />
         <Text style={{ fontSize: 15, fontWeight: '800', color: TEXT_PRIMARY, flex: 1 }}>
@@ -811,7 +811,7 @@ function GeekNewsSection({ articles, onArticlePress }: { articles: Article[]; on
   const color = SOURCE_COLORS['geeknews'] || TEXT_SECONDARY;
 
   return (
-    <View style={{ marginBottom: 28 }}>
+    <View style={{ marginBottom: 32 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 14 }}>
         <View style={{ width: 4, height: 18, borderRadius: 2, backgroundColor: color, marginRight: 8 }} />
         <Text style={{ fontSize: 15, fontWeight: '800', color: TEXT_PRIMARY, flex: 1 }}>GeekNews</Text>
@@ -826,7 +826,7 @@ function GeekNewsSection({ articles, onArticlePress }: { articles: Article[]; on
             accessibilityLabel={getTitle(a)}
             accessibilityRole="button"
             style={({ pressed }) => ({
-              paddingVertical: 14,
+              paddingVertical: 16,
               borderBottomWidth: i < visible.length - 1 ? 1 : 0,
               borderBottomColor: '#E5E7EB',
               justifyContent: 'space-between',
