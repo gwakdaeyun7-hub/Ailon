@@ -37,7 +37,7 @@ const BG = '#F9FAFB';
 const CARD = '#FFFFFF';
 const TEXT_PRIMARY = '#111827';
 const TEXT_SECONDARY = '#6B7280';
-const TEXT_LIGHT = '#737D8C';
+const TEXT_LIGHT = '#636B78';
 const BORDER = '#F3F4F6';
 
 const SOURCE_COLORS: Record<string, string> = {
@@ -105,17 +105,17 @@ function getTitle(a: Article) {
 const ArticleStats = React.memo(function ArticleStats({ likes, views }: { likes?: number; views?: number }) {
   if (!likes && !views) return null;
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
       {(likes ?? 0) > 0 && (
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-          <ThumbsUp size={11} color={TEXT_LIGHT} />
-          <Text style={{ fontSize: 10, color: TEXT_LIGHT, fontWeight: '600' }}>{likes}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <ThumbsUp size={12} color={TEXT_LIGHT} />
+          <Text style={{ fontSize: 11, color: TEXT_LIGHT, fontWeight: '600' }}>{likes}</Text>
         </View>
       )}
       {(views ?? 0) > 0 && (
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-          <Eye size={11} color={TEXT_LIGHT} />
-          <Text style={{ fontSize: 10, color: TEXT_LIGHT, fontWeight: '600' }}>{views}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <Eye size={12} color={TEXT_LIGHT} />
+          <Text style={{ fontSize: 11, color: TEXT_LIGHT, fontWeight: '600' }}>{views}</Text>
         </View>
       )}
     </View>
@@ -130,10 +130,10 @@ const SourceBadge = React.memo(function SourceBadge({ sourceKey }: { sourceKey?:
   return (
     <View style={{
       backgroundColor: color + '18',
-      paddingHorizontal: 6, paddingVertical: 2,
-      borderRadius: 4, alignSelf: 'flex-start',
+      paddingHorizontal: 8, paddingVertical: 3,
+      borderRadius: 6, alignSelf: 'flex-start',
     }}>
-      <Text style={{ fontSize: 9, fontWeight: '700', color }}>{name}</Text>
+      <Text style={{ fontSize: 10, fontWeight: '700', color }}>{name}</Text>
     </View>
   );
 });
@@ -166,7 +166,7 @@ const HighlightScrollCard = React.memo(function HighlightScrollCard({
         height: HIGHLIGHT_CARD_HEIGHT,
         flexGrow: 0,
         flexShrink: 0,
-        marginRight: 12,
+        marginRight: 14,
         backgroundColor: CARD,
         borderRadius: 14,
         overflow: 'hidden',
@@ -190,19 +190,19 @@ const HighlightScrollCard = React.memo(function HighlightScrollCard({
           <Text style={{ fontSize: 28, color: TEXT_LIGHT }}>📰</Text>
         </View>
       )}
-      <View style={{ padding: 12, flex: 1, justifyContent: 'space-between', width: HIGHLIGHT_CARD_WIDTH }}>
-        <View style={{ width: HIGHLIGHT_CARD_WIDTH - 24 }}>
+      <View style={{ padding: 14, flex: 1, justifyContent: 'space-between', width: HIGHLIGHT_CARD_WIDTH }}>
+        <View style={{ width: HIGHLIGHT_CARD_WIDTH - 28 }}>
           <SourceBadge sourceKey={article.source_key} />
           <Text
-            style={{ fontSize: 15, fontWeight: '800', color: TEXT_PRIMARY, lineHeight: 20, marginTop: 4 }}
+            style={{ fontSize: 15, fontWeight: '800', color: TEXT_PRIMARY, lineHeight: 21, marginTop: 6 }}
             numberOfLines={2}
             ellipsizeMode="tail"
           >
             {getTitle(article)}
           </Text>
         </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Text style={{ fontSize: 10, color: TEXT_LIGHT }}>{formatDate(article.published)}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
+          <Text style={{ fontSize: 11, color: TEXT_LIGHT }}>{formatDate(article.published)}</Text>
         </View>
       </View>
     </Pressable>
@@ -299,7 +299,7 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
           <ScrollView
             showsVerticalScrollIndicator
             bounces
-            contentContainerStyle={{ paddingBottom: 8 }}
+            contentContainerStyle={{ paddingBottom: 20 }}
           >
             {/* 썸네일 */}
             {article.image_url ? (
@@ -333,7 +333,7 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
             {/* 제목 */}
             <Text style={{
               fontSize: 18, fontWeight: '800', color: TEXT_PRIMARY, lineHeight: 28,
-              marginTop: 10, marginBottom: 12,
+              marginTop: 14, marginBottom: 14,
               paddingHorizontal: 20,
             }}>
               {getTitle(article)}
@@ -493,9 +493,9 @@ function HighlightSection({ highlights, onArticlePress }: { highlights: Article[
   if (!highlights || highlights.length === 0) return null;
 
   return (
-    <View style={{ paddingTop: 8, paddingBottom: 16, backgroundColor: '#F0F4FF' }}>
+    <View style={{ paddingTop: 12, paddingBottom: 20, backgroundColor: '#F0F4FF' }}>
       {/* 섹션 헤더 */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 12 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 14 }}>
         <Text style={{ fontSize: 17, fontWeight: '800', color: TEXT_PRIMARY }}>오늘의 하이라이트</Text>
         <Text style={{ fontSize: 11, color: TEXT_LIGHT, marginLeft: 8 }}>Top {highlights.length}</Text>
       </View>
@@ -570,18 +570,18 @@ const HScrollCard = React.memo(function HScrollCard({
           <Text style={{ fontSize: 28, color: TEXT_LIGHT }}>📰</Text>
         </View>
       )}
-      <View style={{ padding: 10, flex: 1, justifyContent: 'space-between', width: CARD_WIDTH }}>
-        <View style={{ width: CARD_WIDTH - 20 }}>
+      <View style={{ padding: 12, flex: 1, justifyContent: 'space-between', width: CARD_WIDTH }}>
+        <View style={{ width: CARD_WIDTH - 24 }}>
           {showSourceBadge && <SourceBadge sourceKey={article.source_key} />}
           <Text
-            style={{ fontSize: 13, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 18, marginTop: showSourceBadge ? 4 : 0 }}
+            style={{ fontSize: 13, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 18, marginTop: showSourceBadge ? 6 : 0 }}
             numberOfLines={2}
             ellipsizeMode="tail"
           >
             {getTitle(article)}
           </Text>
         </View>
-        <Text style={{ fontSize: 10, color: TEXT_LIGHT }}>{formatDate(article.published)}</Text>
+        <Text style={{ fontSize: 11, color: TEXT_LIGHT }}>{formatDate(article.published)}</Text>
       </View>
     </Pressable>
   );
@@ -612,7 +612,7 @@ function CategoryTabSection({
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 16, gap: 8, marginBottom: 12 }}
+        contentContainerStyle={{ paddingHorizontal: 16, gap: 10, marginBottom: 16 }}
       >
         {categoryOrder.map(catKey => {
           const isActive = catKey === activeTab;
@@ -625,7 +625,7 @@ function CategoryTabSection({
               accessibilityRole="tab"
               accessibilityState={{ selected: isActive }}
               style={{
-                paddingHorizontal: 14, paddingVertical: 7,
+                paddingHorizontal: 14, paddingVertical: 10,
                 borderRadius: 20,
                 backgroundColor: isActive ? color : CARD,
                 borderWidth: 1,
@@ -652,11 +652,11 @@ function CategoryTabSection({
             accessibilityLabel={getTitle(a)}
             accessibilityRole="button"
             style={({ pressed }) => ({
-              height: 110,
+              height: 120,
               backgroundColor: CARD,
               borderRadius: 14,
               overflow: 'hidden',
-              marginBottom: 10,
+              marginBottom: 14,
               borderWidth: 1,
               borderColor: BORDER,
               opacity: pressed ? 0.85 : 1,
@@ -664,28 +664,28 @@ function CategoryTabSection({
           >
             <View style={{ flexDirection: 'row', flex: 1 }}>
               {a.image_url ? (
-                <View style={{ width: 108, height: 108, backgroundColor: BORDER }}>
+                <View style={{ width: 118, height: 118, backgroundColor: BORDER }}>
                   <Image
                     source={a.image_url}
-                    style={{ width: 108, height: 108 }}
+                    style={{ width: 118, height: 118 }}
                     contentFit="cover"
                     transition={200}
                     recyclingKey={a.link}
                   />
                 </View>
               ) : null}
-              <View style={{ flex: 1, padding: 12, justifyContent: 'space-between' }}>
+              <View style={{ flex: 1, padding: 14, justifyContent: 'space-between' }}>
                 <View>
                   <SourceBadge sourceKey={a.source_key} />
                   <Text
-                    style={{ fontSize: 14, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 20, marginTop: 4 }}
+                    style={{ fontSize: 14, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 20, marginTop: 6 }}
                     numberOfLines={2}
                     ellipsizeMode="tail"
                   >
                     {getTitle(a)}
                   </Text>
                 </View>
-                <Text style={{ fontSize: 10, color: TEXT_LIGHT }}>{formatDate(a.published)}</Text>
+                <Text style={{ fontSize: 11, color: TEXT_LIGHT }}>{formatDate(a.published)}</Text>
               </View>
             </View>
           </Pressable>
@@ -728,8 +728,8 @@ function SourceHScrollSection({
   const visible = showMore ? [...first5, ...more5] : first5;
 
   return (
-    <View style={{ marginBottom: 24 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 10 }}>
+    <View style={{ marginBottom: 28 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 14 }}>
         <View style={{ width: 4, height: 18, borderRadius: 2, backgroundColor: color, marginRight: 8 }} />
         <Text style={{ fontSize: 15, fontWeight: '800', color: TEXT_PRIMARY, flex: 1 }}>
           {name}
@@ -785,8 +785,8 @@ function GeekNewsSection({ articles, onArticlePress }: { articles: Article[]; on
   const color = SOURCE_COLORS['geeknews'] || TEXT_SECONDARY;
 
   return (
-    <View style={{ marginBottom: 24 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 10 }}>
+    <View style={{ marginBottom: 28 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 14 }}>
         <View style={{ width: 4, height: 18, borderRadius: 2, backgroundColor: color, marginRight: 8 }} />
         <Text style={{ fontSize: 15, fontWeight: '800', color: TEXT_PRIMARY, flex: 1 }}>GeekNews</Text>
         <Text style={{ fontSize: 11, color: TEXT_LIGHT }}>{visible.length}개</Text>
@@ -800,25 +800,25 @@ function GeekNewsSection({ articles, onArticlePress }: { articles: Article[]; on
             accessibilityLabel={getTitle(a)}
             accessibilityRole="button"
             style={({ pressed }) => ({
-              height: 80,
+              height: 84,
               backgroundColor: CARD,
               borderRadius: 12,
               borderWidth: 1,
               borderColor: BORDER,
-              padding: 14,
-              marginBottom: 10,
+              padding: 16,
+              marginBottom: 12,
               justifyContent: 'space-between',
               opacity: pressed ? 0.85 : 1,
             })}
           >
             <Text
-              style={{ fontSize: 13, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 18 }}
+              style={{ fontSize: 13, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 20 }}
               numberOfLines={2}
               ellipsizeMode="tail"
             >
               {getTitle(a)}
             </Text>
-            <Text style={{ fontSize: 10, color: TEXT_LIGHT }}>{formatDate(a.published)}</Text>
+            <Text style={{ fontSize: 11, color: TEXT_LIGHT }}>{formatDate(a.published)}</Text>
           </Pressable>
         ))}
       </View>
@@ -907,7 +907,7 @@ export default function NewsScreen() {
       {/* ─── 헤더 ─── */}
       <View style={{
         flexDirection: 'row', alignItems: 'center',
-        paddingHorizontal: 16, paddingVertical: 12, backgroundColor: BG,
+        paddingHorizontal: 16, paddingVertical: 14, backgroundColor: BG,
       }}>
         <View style={{
           width: 36, height: 36, borderRadius: 10,
@@ -918,14 +918,14 @@ export default function NewsScreen() {
         <View style={{ flex: 1 }}>
           <Text style={{ fontSize: 18, fontWeight: '800', color: TEXT_PRIMARY }}>AI 트렌드</Text>
           {totalArticles > 0 && (
-            <Text style={{ fontSize: 11, color: TEXT_LIGHT }}>
+            <Text style={{ fontSize: 12, color: TEXT_LIGHT }}>
               {newsData?.updated_at
                 ? `${new Date(newsData.updated_at.seconds ? newsData.updated_at.seconds * 1000 : newsData.updated_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })} 업데이트`
                 : `${totalArticles}개 기사`}
             </Text>
           )}
         </View>
-        <Pressable onPress={openDrawer} accessibilityLabel="메뉴 열기" accessibilityRole="button" style={{ width: 38, height: 38, alignItems: 'center', justifyContent: 'center' }}>
+        <Pressable onPress={openDrawer} accessibilityLabel="메뉴 열기" accessibilityRole="button" style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
           <Menu size={22} color={TEXT_SECONDARY} />
         </Pressable>
       </View>
@@ -981,12 +981,12 @@ export default function NewsScreen() {
 
             {/* 구분선: 카테고리 → 소스별 */}
             {sourceOrder.some(key => (sourceArticles[key]?.length ?? 0) > 0) && (
-              <View style={{ paddingHorizontal: 16, marginBottom: 16, marginTop: 8 }}>
-                <View style={{ height: 6, backgroundColor: '#F3F4F6', borderRadius: 3, marginBottom: 16 }} />
+              <View style={{ paddingHorizontal: 16, marginBottom: 20, marginTop: 16 }}>
+                <View style={{ height: 8, backgroundColor: '#F3F4F6', borderRadius: 4, marginBottom: 20 }} />
                 <Text style={{ fontSize: 16, fontWeight: '800', color: TEXT_PRIMARY }}>
                   소스별 뉴스
                 </Text>
-                <Text style={{ fontSize: 12, color: TEXT_SECONDARY, marginTop: 2 }}>
+                <Text style={{ fontSize: 12, color: TEXT_SECONDARY, marginTop: 4 }}>
                   한국 AI 미디어 소식
                 </Text>
               </View>
@@ -1012,7 +1012,7 @@ export default function NewsScreen() {
           </>
         )}
 
-        <View style={{ height: 30 }} />
+        <View style={{ height: 40 }} />
       </ScrollView>
 
       {/* 요약 모달 */}
