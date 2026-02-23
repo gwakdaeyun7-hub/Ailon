@@ -180,6 +180,14 @@ const SourceBadge = React.memo(function SourceBadge({ sourceKey }: { sourceKey?:
   );
 });
 
+// ─── 점수 뱃지 ─────────────────────────────────────────────────────────
+function ScoreBadge({ score }: { score?: number }) {
+  if (!score) return null;
+  return (
+    <Text style={{ fontSize: 11, color: '#9333EA', fontWeight: '700' }}>{score}pt</Text>
+  );
+}
+
 // ─── Section 1: 하이라이트 ──────────────────────────────────────────────
 const HIGHLIGHT_CARD_WIDTH = 280;
 const HIGHLIGHT_CARD_HEIGHT = 260;
@@ -244,7 +252,10 @@ const HighlightScrollCard = React.memo(function HighlightScrollCard({
           </Text>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
-          <Text style={{ fontSize: 11, color: TEXT_LIGHT }}>{formatDate(article.published)}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text style={{ fontSize: 11, color: TEXT_LIGHT }}>{formatDate(article.published)}</Text>
+            <ScoreBadge score={article.score} />
+          </View>
           <ArticleStats likes={likes} views={views} />
         </View>
       </View>
@@ -656,7 +667,10 @@ const HScrollCard = React.memo(function HScrollCard({
           </Text>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
-          <Text style={{ fontSize: 11, color: TEXT_LIGHT }}>{formatDate(article.published)}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text style={{ fontSize: 11, color: TEXT_LIGHT }}>{formatDate(article.published)}</Text>
+            <ScoreBadge score={article.score} />
+          </View>
           <ArticleStats likes={likes} views={views} />
         </View>
       </View>
@@ -770,7 +784,10 @@ function CategoryTabSection({
                   </Text>
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Text style={{ fontSize: 11, color: TEXT_LIGHT }}>{formatDate(a.published)}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={{ fontSize: 11, color: TEXT_LIGHT }}>{formatDate(a.published)}</Text>
+                    <ScoreBadge score={a.score} />
+                  </View>
                   <ArticleStats likes={stats[a.link]?.likes} views={stats[a.link]?.views} />
                 </View>
               </View>

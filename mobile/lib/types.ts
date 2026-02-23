@@ -23,6 +23,7 @@ export interface Article {
   source: string;
   source_key?: string;
   image_url?: string;
+  score?: number;
 }
 
 export interface DailyNews {

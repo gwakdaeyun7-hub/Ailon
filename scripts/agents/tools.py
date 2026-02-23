@@ -143,6 +143,7 @@ SOURCES = [
         "rss_url": "https://openai.com/news/rss.xml",
         "max_items": 30,
         "lang": "en",
+        "default_image": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/OpenAI_Logo.svg/1200px-OpenAI_Logo.svg.png",
     },
     {
         "key": "arstechnica_ai",
@@ -556,3 +557,15 @@ def enrich_and_scrape(sources: dict[str, list[dict]]) -> None:
                 article["body"] = ""
 
     print(f"  [fetch] 본문 {body_found}/{len(tasks)}개, 이미지 보강 {img_enriched}개")
+
+    # default_image 적용 (og:image 차단되는 소스용)
+    default_map = {s["key"]: s["default_image"] for s in SOURCES if s.get("default_image")}
+    if default_map:
+        fallback_count = 0
+        for articles in sources.values():
+            for a in articles:
+                if not a.get("image_url") and a.get("source_key") in default_map:
+                    a["image_url"] = default_map[a["source_key"]]
+                    fallback_count += 1
+        if fallback_count:
+            print(f"  [fetch] 기본 이미지 적용 {fallback_count}개")
