@@ -904,14 +904,15 @@ def ranker_node(state: NewsGraphState) -> dict:
 
     _epoch = datetime(2000, 1, 1, tzinfo=_KST)
     def _day_key(c: dict):
-        """KST 날짜(일) 기준 키 — 같은 날짜끼리 묶임"""
         dt = _parse_published(c.get("published", "")) or _epoch
         return _to_kst_date(dt)
+    def _time_key(c: dict):
+        return _parse_published(c.get("published", "")) or _epoch
 
     # 점수순으로 Top 3 선정
     by_score = sorted(
         today_all,
-        key=lambda c: (c.get("_total_score", 0), _day_key(c)),
+        key=lambda c: (c.get("_total_score", 0), _time_key(c)),
         reverse=True,
     )
 
@@ -924,10 +925,10 @@ def ranker_node(state: NewsGraphState) -> dict:
             continue
         selected.append(c)
 
-    # 날짜(일) 최신순 → 같은 날짜면 점수 높은순
+    # 날짜(일) 최신순 → 같은 날짜+점수 같으면 시간 최신순
     selected = sorted(
         selected,
-        key=lambda c: (_day_key(c), c.get("_total_score", 0)),
+        key=lambda c: (_day_key(c), c.get("_total_score", 0), _time_key(c)),
         reverse=True,
     )
 
@@ -1016,6 +1017,8 @@ def _select_category_top_n(articles: list[dict], n: int = CATEGORY_TOP_N, today_
     def _day_key(a: dict):
         dt = _parse_published(a.get("published", "")) or _epoch
         return _to_kst_date(dt)
+    def _time_key(a: dict):
+        return _parse_published(a.get("published", "")) or _epoch
 
     today = sorted([a for a in articles if a.get("_is_today")],
                    key=lambda a: a.get("_total_score", 0), reverse=True)
@@ -1047,8 +1050,8 @@ def _select_category_top_n(articles: list[dict], n: int = CATEGORY_TOP_N, today_
             selected.append(a)
             used.add(id(a))
 
-    # 3) 날짜(일) 최신순 → 같은 날짜면 점수 높은순
-    selected.sort(key=lambda a: (_day_key(a), a.get("_total_score", 0)), reverse=True)
+    # 3) 날짜(일) 최신순 → 같은 날짜+점수 같으면 시간 최신순
+    selected.sort(key=lambda a: (_day_key(a), a.get("_total_score", 0), _time_key(a)), reverse=True)
     return selected
 
 
