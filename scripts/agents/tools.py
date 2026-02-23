@@ -135,7 +135,7 @@ SOURCES = [
         "rss_url": "https://www.marktechpost.com/feed/",
         "max_items": 30,
         "lang": "en",
-        "rss_image_field": "media_thumbnail",
+        "rss_image_field": "media_content",
     },
     {
         "key": "openai_blog",
@@ -257,6 +257,18 @@ def _extract_rss_image(entry: dict, rss_image_field: str = "") -> str:
             for m in media:
                 if m.get("url") and m.get("medium") == "image":
                     return m["url"]
+
+    # media:content 우선 (MarkTechPost 등 고해상도 이미지)
+    if rss_image_field == "media_content":
+        media = entry.get("media_content", [])
+        if media and isinstance(media, list):
+            for m in media:
+                if m.get("url") and m.get("medium") == "image":
+                    return m["url"]
+        # fallback: media:thumbnail
+        thumbs = entry.get("media_thumbnail", [])
+        if thumbs and isinstance(thumbs, list) and thumbs[0].get("url"):
+            return thumbs[0]["url"]
 
     # content에서 <img src="..."> 추출 (The Verge)
     if rss_image_field == "content_image":
