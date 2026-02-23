@@ -479,6 +479,14 @@ def _safe_node(node_name: str):
 def collector_node(state: NewsGraphState) -> dict:
     """모든 소스 수집 + 이미지/본문 통합 스크래핑 + 이미지 필터 + LLM AI 필터"""
     sources = fetch_all_sources()
+    # 소스별 당일 기사 수집 현황
+    print("\n  ─── 소스별 당일 기사 현황 ───")
+    total_today = 0
+    for key, articles in sources.items():
+        today_count = sum(1 for a in articles if _is_today(a))
+        total_today += today_count
+        print(f"    [{key}] 전체 {len(articles)}개 / 당일 {today_count}개")
+    print(f"  ─── 당일 기사 합계: {total_today}개 ───\n")
     enrich_and_scrape(sources)
     filter_imageless(sources)
     _llm_filter_sources(sources)
