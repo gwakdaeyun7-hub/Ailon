@@ -7,8 +7,8 @@ export type Language = 'ko' | 'en';
 const translations: Record<string, Record<Language, string>> = {
   // ─── 탭 이름 ───
   'tab.news': { ko: 'AI 트렌드', en: 'AI Trends' },
-  'tab.snaps': { ko: '학문 스낵', en: 'Snaps' },
-  'tab.ideas': { ko: '시너지 랩', en: 'Synergy Lab' },
+  'tab.snaps': { ko: '학문 스낵', en: 'Snacks' },
+  'tab.ideas': { ko: '시너지 랩', en: 'Synergy' },
   'tab.saved': { ko: '저장', en: 'Saved' },
   'tab.profile': { ko: '프로필', en: 'Profile' },
 
@@ -99,10 +99,15 @@ const translations: Record<string, Record<Language, string>> = {
   'saved.type_idea': { ko: '아이디어', en: 'Ideas' },
 
   // ─── 스낵/아이디어 ───
-  'snaps.title': { ko: '학문 스낵', en: 'Academic Snaps' },
-  'ideas.title': { ko: '시너지 랩', en: 'Synergy Lab' },
+  'snaps.title': { ko: '학문 스낵', en: 'Snacks' },
+  'ideas.title': { ko: '시너지 랩', en: 'Synergy' },
   'placeholder.preparing': { ko: '준비 중이에요', en: 'Coming soon' },
   'placeholder.preparing_desc': { ko: '새로운 콘텐츠를 준비하고 있어요', en: 'New content is being prepared' },
+
+  // ─── 소스 이름 ───
+  'source.aitimes': { ko: 'AI타임스', en: 'AI Times' },
+  'source.zdnet_ai_editor': { ko: 'ZDNet AI 에디터', en: 'ZDNet AI Editor' },
+  'source.yozm_ai': { ko: '요즘IT AI', en: 'Yozm IT AI' },
 
   // ─── 사이드 드로어 ───
   'drawer.title': { ko: 'AI News', en: 'AI News' },

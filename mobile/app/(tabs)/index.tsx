@@ -67,11 +67,15 @@ const SOURCE_NAMES: Record<string, string> = {
   deepmind_blog: 'Google DeepMind',
   nvidia_blog: 'NVIDIA AI',
   huggingface_blog: 'Hugging Face',
-  aitimes: 'AI타임스',
   geeknews: 'GeekNews',
-  zdnet_ai_editor: 'ZDNet AI 에디터',
-  yozm_ai: '요즘IT AI',
 };
+
+const TRANSLATABLE_SOURCES = ['aitimes', 'zdnet_ai_editor', 'yozm_ai'];
+
+function getSourceName(key: string, t?: (k: string) => string): string {
+  if (TRANSLATABLE_SOURCES.includes(key) && t) return t(`source.${key}`);
+  return SOURCE_NAMES[key] || key;
+}
 
 // CATEGORY_NAMES는 t() 기반으로 대체 — getCategoryName() 헬퍼 사용
 
@@ -149,7 +153,8 @@ const ArticleStats = React.memo(function ArticleStats({ likes, views }: { likes?
 // ─── 소스 뱃지 ──────────────────────────────────────────────────────────
 const SourceBadge = React.memo(function SourceBadge({ sourceKey }: { sourceKey?: string }) {
   if (!sourceKey) return null;
-  const name = SOURCE_NAMES[sourceKey] || sourceKey;
+  const { t } = useLanguage();
+  const name = getSourceName(sourceKey, t);
   const color = SOURCE_COLORS[sourceKey] || TEXT_SECONDARY;
   return (
     <View style={{
@@ -265,7 +270,7 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
 
   if (!article) return null;
 
-  const sourceName = SOURCE_NAMES[article.source_key || ''] || article.source_key || '';
+  const sourceName = getSourceName(article.source_key || '', t);
   const sourceColor = SOURCE_COLORS[article.source_key || ''] || TEXT_SECONDARY;
 
   const handleOpenOriginal = () => {
@@ -793,7 +798,7 @@ function SourceHScrollSection({
 
   if (!articles || articles.length === 0) return null;
 
-  const name = SOURCE_NAMES[sourceKey] || sourceKey;
+  const name = getSourceName(sourceKey, t);
   const color = SOURCE_COLORS[sourceKey] || TEXT_SECONDARY;
   const first5 = articles.slice(0, 5);
   const more5 = articles.slice(5, 10);
