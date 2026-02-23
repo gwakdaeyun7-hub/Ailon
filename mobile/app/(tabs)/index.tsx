@@ -56,6 +56,11 @@ const SOURCE_COLORS: Record<string, string> = {
   geeknews: '#FF6B35',
   zdnet_ai_editor: '#D32F2F',
   yozm_ai: '#6366F1',
+  the_decoder: '#1A1A2E',
+  marktechpost: '#0D47A1',
+  openai_blog: '#10A37F',
+  arstechnica_ai: '#FF4611',
+  the_rundown_ai: '#6C5CE7',
 };
 
 const SOURCE_NAMES: Record<string, string> = {
@@ -68,6 +73,11 @@ const SOURCE_NAMES: Record<string, string> = {
   nvidia_blog: 'NVIDIA AI',
   huggingface_blog: 'Hugging Face',
   geeknews: 'GeekNews',
+  the_decoder: 'The Decoder',
+  marktechpost: 'MarkTechPost',
+  openai_blog: 'OpenAI Blog',
+  arstechnica_ai: 'Ars Technica AI',
+  the_rundown_ai: 'The Rundown AI',
 };
 
 const TRANSLATABLE_SOURCES = ['aitimes', 'zdnet_ai_editor', 'yozm_ai'];
@@ -86,7 +96,10 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 const DEFAULT_CATEGORY_ORDER = ['model_research', 'product_tools', 'industry_business'];
-const DEFAULT_SOURCE_ORDER = ['aitimes', 'geeknews', 'zdnet_ai_editor', 'yozm_ai'];
+const DEFAULT_SOURCE_ORDER = [
+  'aitimes', 'geeknews', 'zdnet_ai_editor', 'yozm_ai',
+  'the_decoder', 'marktechpost', 'openai_blog', 'arstechnica_ai', 'the_rundown_ai',
+];
 
 // ─── 헬퍼 ───────────────────────────────────────────────────────────────
 function formatDate(str?: string) {

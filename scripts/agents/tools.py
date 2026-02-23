@@ -1,9 +1,10 @@
 """
-뉴스 수집 도구 — 12개 소스 RSS/스크래핑 기반 수집
+뉴스 수집 도구 — 17개 소스 RSS/스크래핑 기반 수집
 
 [Tier 1] 영어 AI 전문 뉴스 — Wired AI / The Verge AI / TechCrunch AI / MIT Tech Review / VentureBeat
 [Tier 2] AI 기업 공식 블로그 — Google DeepMind / NVIDIA / HuggingFace
 [Tier 3] 한국 소스 — AI타임스 / GeekNews / ZDNet AI 에디터 / 요즘IT AI
+[Tier 4] 영어 섹션 소스 — The Decoder / MarkTechPost / OpenAI Blog / Ars Technica AI / The Rundown AI
 """
 
 import os
@@ -119,6 +120,44 @@ SOURCES = [
         "lang": "ko",
         "rss_image_field": "content_image",
     },
+    # Tier 4: 영어 섹션 소스 (개별 가로스크롤 섹션으로 표시)
+    {
+        "key": "the_decoder",
+        "name": "The Decoder",
+        "rss_url": "https://the-decoder.com/feed/",
+        "max_items": 30,
+        "lang": "en",
+        "rss_image_field": "content_image",
+    },
+    {
+        "key": "marktechpost",
+        "name": "MarkTechPost",
+        "rss_url": "https://www.marktechpost.com/feed/",
+        "max_items": 30,
+        "lang": "en",
+        "rss_image_field": "media_thumbnail",
+    },
+    {
+        "key": "openai_blog",
+        "name": "OpenAI Blog",
+        "rss_url": "https://openai.com/news/rss.xml",
+        "max_items": 30,
+        "lang": "en",
+    },
+    {
+        "key": "arstechnica_ai",
+        "name": "Ars Technica AI",
+        "rss_url": "https://arstechnica.com/ai/feed/",
+        "max_items": 30,
+        "lang": "en",
+    },
+    {
+        "key": "the_rundown_ai",
+        "name": "The Rundown AI",
+        "rss_url": "https://rss.beehiiv.com/feeds/2R3C6Bt5wj.xml",
+        "max_items": 30,
+        "lang": "en",
+    },
 ]
 
 # AI 키워드 — 정규식 단어 경계 매칭 (ai_filter=True인 소스에서 사용)
@@ -161,8 +200,15 @@ SOURCE_SECTION_SOURCES = {
     "aitimes", "geeknews", "zdnet_ai_editor", "yozm_ai",
 }
 
+# 영어 소스별 섹션 (Tier 4: 개별 가로스크롤로 표시, 카테고리 분류 안 함)
+EN_SECTION_SOURCES = {
+    "the_decoder", "marktechpost", "openai_blog", "arstechnica_ai", "the_rundown_ai",
+}
+
 assert CATEGORY_SOURCES.isdisjoint(SOURCE_SECTION_SOURCES), \
     "CATEGORY_SOURCES와 SOURCE_SECTION_SOURCES는 겹치면 안 됩니다"
+assert CATEGORY_SOURCES.isdisjoint(EN_SECTION_SOURCES), \
+    "CATEGORY_SOURCES와 EN_SECTION_SOURCES는 겹치면 안 됩니다"
 
 
 # ─── 날짜 유틸 ───────────────────────────────────────────────────────────
