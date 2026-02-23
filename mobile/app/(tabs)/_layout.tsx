@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
 import { View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Cpu, BookOpen, FlaskConical, Bookmark, User } from 'lucide-react-native';
 
 function TabIcon({ Icon, color, focused }: { Icon: any; color: string; focused: boolean }) {
@@ -22,6 +23,8 @@ function TabIcon({ Icon, color, focused }: { Icon: any; color: string; focused: 
 }
 
 export default function TabLayout() {
+  const insets = useSafeAreaInsets();
+
   return (
     <Tabs
       screenOptions={{
@@ -30,9 +33,9 @@ export default function TabLayout() {
           backgroundColor: '#FFFFFF',
           borderTopColor: '#F0F0F0',
           borderTopWidth: 1,
-          height: 64,
-          paddingBottom: 10,
-          paddingTop: 10,
+          height: 54 + insets.bottom,
+          paddingBottom: insets.bottom,
+          paddingTop: 8,
           elevation: 8,
           shadowColor: '#000',
           shadowOffset: { width: 0, height: -2 },
