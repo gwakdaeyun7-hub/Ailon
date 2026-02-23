@@ -357,15 +357,17 @@ def _process_articles(articles: list[dict], translate: bool, batch_size: int, ma
 
 
 # ─── LLM AI 관련성 필터 ───
-def _llm_ai_filter_batch(articles: list[dict]) -> set[int]:
+def _llm_ai_filter_batch(articles: list[dict], source_key: str = "") -> set[int]:
     """기사 목록에서 AI 관련 기사 인덱스를 LLM으로 판별"""
+    is_ko = source_key in SOURCE_SECTION_SOURCES
     article_text = ""
     for i, a in enumerate(articles):
         title = a.get("title", "")
         desc = (a.get("description", "") or "")[:120]
         article_text += f"\n[{i}] {title} | {desc}"
 
-    prompt = f"""IMPORTANT: Output ONLY a valid JSON array of integers. No thinking, no markdown.
+    if is_ko:
+        prompt = f"""IMPORTANT: Output ONLY a valid JSON array of integers. No thinking, no markdown.
 
 You are filtering news articles. Return indices of articles that are RELATED to AI.
 
@@ -396,6 +398,35 @@ Articles:
 
 Return the indices of AI-related articles as a JSON array:
 [0, 2, 5]"""
+    else:
+        prompt = f"""IMPORTANT: Output ONLY a valid JSON array of integers. No thinking, no markdown.
+
+You are filtering news articles from international tech media. These sources already focus on tech/AI, so apply a VERY lenient filter. Include almost everything unless it is clearly unrelated to technology.
+
+Decision rule: Ask "Could this article be even slightly interesting to someone who follows AI and tech?" If yes, include.
+
+When in doubt, ALWAYS INCLUDE.
+
+INCLUDE -- be very generous:
+- Anything about AI, ML, LLMs, deep learning, neural networks
+- Tech company news (Google, OpenAI, Meta, Microsoft, Apple, etc.)
+- Software engineering, cloud, data, developer tools
+- Hardware, chips, GPUs, computing infrastructure
+- Tech regulation, policy, digital rights
+- Startups, funding, acquisitions in tech/AI
+- Science and research that could relate to AI
+- Any tech product or service
+
+EXCLUDE -- only if clearly irrelevant:
+- Pure lifestyle, cooking, sports, celebrity gossip
+- Non-tech politics or social issues
+- Articles with zero tech or AI connection
+
+Articles:
+{article_text}
+
+Return the indices as a JSON array:
+[0, 2, 5]"""
 
     try:
         llm = get_llm(temperature=0.1, max_tokens=2048, thinking=False, json_mode=True)
@@ -418,7 +449,7 @@ def _llm_filter_sources(sources: dict[str, list[dict]]) -> None:
     tasks = [(key, articles) for key, articles in sources.items() if articles]
 
     def _filter_one(key: str, articles: list[dict]) -> tuple[str, list[dict], int, int, int]:
-        ai_indices = _llm_ai_filter_batch(articles)
+        ai_indices = _llm_ai_filter_batch(articles, source_key=key)
         filtered = [a for i, a in enumerate(articles) if i in ai_indices]
         removed_articles = [a for i, a in enumerate(articles) if i not in ai_indices]
         removed = len(removed_articles)
