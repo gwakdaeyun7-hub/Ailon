@@ -116,12 +116,10 @@ const ArticleStats = React.memo(function ArticleStats({ likes, views }: { likes?
         <ThumbsUp size={11} color={TEXT_LIGHT} />
         <Text style={{ fontSize: 11, color: TEXT_LIGHT, fontWeight: '600' }}>{likes ?? 0}</Text>
       </View>
-      {(views ?? 0) > 0 && (
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-          <Eye size={11} color={TEXT_LIGHT} />
-          <Text style={{ fontSize: 11, color: TEXT_LIGHT, fontWeight: '600' }}>{views}</Text>
-        </View>
-      )}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+        <Eye size={11} color={TEXT_LIGHT} />
+        <Text style={{ fontSize: 11, color: TEXT_LIGHT, fontWeight: '600' }}>{views ?? 0}</Text>
+      </View>
     </View>
   );
 });
