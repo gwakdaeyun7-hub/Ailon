@@ -210,16 +210,17 @@ def _summarize_batch(batch: list[dict], batch_idx: int, translate: bool = True) 
     if translate:
         task_desc = f"Translate and summarize {len(batch)} English AI news articles into Korean."
         title_rule = (
-            "display_title: 한국 뉴스 헤드라인 스타일 제목 (15~35자)\n"
+            "display_title: 한국 뉴스 헤드라인 스타일 제목\n"
             "  - 직역 금지. 한국 뉴스 데스크가 실제로 쓸 법한 자연스러운 제목\n"
             "  - 고유명사(회사명·제품명·모델명)는 영어 유지 (Google, OpenAI, GPT-4, Claude)\n"
             "  - 예: 'Google Releases New AI Model' -> 'Google, 새 AI 모델 전격 공개'\n"
             "  - 예: 'Anthropic Raises $2B at $60B Valuation' -> 'Anthropic, 60조 가치에 2조 원 투자 유치'\n"
-            "  - 핵심 행위자 + 핵심 사건을 압축. 쉼표·능동형 서술어 활용"
+            "  - 핵심 행위자 + 핵심 사건을 압축. 쉼표·능동형 서술어 활용\n"
+            "  - 글자 수 제한 없음. 축약하지 말 것"
         )
     else:
         task_desc = f"Summarize {len(batch)} Korean AI news articles."
-        title_rule = "display_title: 원래 한국어 제목을 그대로 사용 (35자 초과 시 핵심만 남겨 축약)"
+        title_rule = "display_title: 원래 한국어 제목을 그대로 사용 (축약 금지, 원본 그대로)"
 
     prompt = f"""IMPORTANT: Output ONLY a valid JSON array. No thinking, no markdown. Start with '[' and end with ']'.
 
