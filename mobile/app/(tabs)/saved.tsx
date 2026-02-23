@@ -7,7 +7,8 @@
  */
 
 import React from 'react';
-import { View, Text, ScrollView, SafeAreaView, Pressable, Linking } from 'react-native';
+import { View, Text, ScrollView, Pressable, Linking } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Bookmark, ExternalLink, Trash2, Newspaper, BookOpen, Lightbulb } from 'lucide-react-native';
 import { useAuth } from '@/hooks/useAuth';
 import { useBookmarks } from '@/hooks/useBookmarks';
@@ -116,7 +117,7 @@ export default function SavedScreen() {
   const ideaCount = bookmarks.filter((b) => b.type === 'idea').length;
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <SafeAreaView className="flex-1 bg-background" edges={['top']}>
       {/* Header */}
       <View className="px-5 pt-5 pb-3">
         <View className="flex-row items-center justify-between">

@@ -52,7 +52,7 @@ export default function ProfileScreen() {
 
   if (!user) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#FAFAFA' }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#FAFAFA' }} edges={['top']}>
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
           <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: '#FFEBEE', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
             <UserIcon size={32} color="#E53935" />
@@ -73,7 +73,7 @@ export default function ProfileScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#FAFAFA' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#FAFAFA' }} edges={['top']}>
       {/* Header */}
       <View style={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 12 }}>
         <Text style={{ color: '#212121', fontSize: 24, fontWeight: '800' }}>프로필</Text>
