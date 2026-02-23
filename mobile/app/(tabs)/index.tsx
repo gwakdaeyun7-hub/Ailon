@@ -981,14 +981,14 @@ export default function NewsScreen() {
     setRefreshing(false);
   };
 
-  // ─── 정렬: 날짜 최신순, 같은 날짜면 점수 높은순 ───
+  // ─── 정렬: KST 날짜(일) 최신순, 같은 날짜면 점수 높은순 ───
   const sortByDateThenScore = useCallback((articles: Article[]) => {
+    const KST_OFFSET = 9 * 60 * 60 * 1000; // UTC+9
+    const toKSTDay = (pub: string) => Math.floor((new Date(pub || 0).getTime() + KST_OFFSET) / 86400000);
     return [...articles].sort((a, b) => {
-      const da = new Date(a.published || 0).getTime();
-      const db = new Date(b.published || 0).getTime();
-      const dayA = Math.floor(da / 86400000);
-      const dayB = Math.floor(db / 86400000);
-      if (dayA !== dayB) return db - da;  // 날짜 최신순
+      const dayA = toKSTDay(a.published);
+      const dayB = toKSTDay(b.published);
+      if (dayA !== dayB) return dayB - dayA;  // 날짜(일) 최신순
       return (b.score ?? 0) - (a.score ?? 0);  // 같은 날짜면 점수순
     });
   }, []);

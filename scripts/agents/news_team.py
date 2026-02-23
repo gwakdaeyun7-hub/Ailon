@@ -27,7 +27,7 @@ collector --> [en_process, ko_process] (병렬 Send) --> scorer --> ranker --> c
 import json
 import re
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from difflib import SequenceMatcher
 from typing import Annotated, TypedDict
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -99,14 +99,27 @@ def _parse_published(published: str) -> datetime | None:
     return None
 
 
+_KST = timezone(timedelta(hours=9))
+
+
+def _to_kst_date(dt: datetime) -> datetime:
+    """datetime을 KST 날짜(시간 제거)로 변환"""
+    return dt.astimezone(_KST).replace(hour=0, minute=0, second=0, microsecond=0)
+
+
 def _is_today(article: dict) -> bool:
+    """KST 기준 오늘 또는 어제 기사인지 판별"""
     pub = article.get("published", "")
     if not pub:
         return False
     dt = _parse_published(pub)
     if not dt:
         return False
-    return (datetime.now(timezone.utc) - dt).total_seconds() <= 86400
+    now_kst = datetime.now(_KST)
+    article_date = _to_kst_date(dt)
+    today_date = _to_kst_date(now_kst)
+    yesterday_date = today_date - timedelta(days=1)
+    return article_date >= yesterday_date
 
 
 # ─── JSON 파싱 유틸리티 ───
@@ -885,18 +898,20 @@ def ranker_node(state: NewsGraphState) -> dict:
     if not candidates:
         return {"highlights": [], "category_pool": []}
 
-    # 하이라이트: 모든 소스의 당일 기사
+    # 하이라이트: 모든 소스의 당일(어제+오늘) 기사
     today_all = [c for c in candidates if c.get("_is_today")]
     print(f"  [랭킹] 당일 기사 {len(today_all)}/{len(candidates)}개")
 
-    _epoch = datetime(2000, 1, 1, tzinfo=timezone.utc)
-    def _pub_key(c: dict):
-        return _parse_published(c.get("published", "")) or _epoch
+    _epoch = datetime(2000, 1, 1, tzinfo=_KST)
+    def _day_key(c: dict):
+        """KST 날짜(일) 기준 키 — 같은 날짜끼리 묶임"""
+        dt = _parse_published(c.get("published", "")) or _epoch
+        return _to_kst_date(dt)
 
     # 점수순으로 Top 3 선정
     by_score = sorted(
         today_all,
-        key=lambda c: (c.get("_total_score", 0), _pub_key(c)),
+        key=lambda c: (c.get("_total_score", 0), _day_key(c)),
         reverse=True,
     )
 
@@ -909,10 +924,10 @@ def ranker_node(state: NewsGraphState) -> dict:
             continue
         selected.append(c)
 
-    # 날짜 최신순 → 점수 높은순으로 정렬
+    # 날짜(일) 최신순 → 같은 날짜면 점수 높은순
     selected = sorted(
         selected,
-        key=lambda c: (_pub_key(c), c.get("_total_score", 0)),
+        key=lambda c: (_day_key(c), c.get("_total_score", 0)),
         reverse=True,
     )
 
@@ -996,10 +1011,11 @@ Output exactly {len(articles)} items:
 
 
 def _select_category_top_n(articles: list[dict], n: int = CATEGORY_TOP_N, today_min: int = 3) -> list[dict]:
-    """당일 기사 today_min개 보장 + 나머지 점수순 채움 + 날짜 최신순 정렬"""
-    _epoch = datetime(2000, 1, 1, tzinfo=timezone.utc)
-    def _pub_key(a: dict):
-        return _parse_published(a.get("published", "")) or _epoch
+    """당일 기사 today_min개 보장 + 나머지 점수순 채움 + 날짜(일) 최신순 정렬"""
+    _epoch = datetime(2000, 1, 1, tzinfo=_KST)
+    def _day_key(a: dict):
+        dt = _parse_published(a.get("published", "")) or _epoch
+        return _to_kst_date(dt)
 
     today = sorted([a for a in articles if a.get("_is_today")],
                    key=lambda a: a.get("_total_score", 0), reverse=True)
@@ -1031,8 +1047,8 @@ def _select_category_top_n(articles: list[dict], n: int = CATEGORY_TOP_N, today_
             selected.append(a)
             used.add(id(a))
 
-    # 3) 날짜 최신순 → 점수 높은순 정렬
-    selected.sort(key=lambda a: (_pub_key(a), a.get("_total_score", 0)), reverse=True)
+    # 3) 날짜(일) 최신순 → 같은 날짜면 점수 높은순
+    selected.sort(key=lambda a: (_day_key(a), a.get("_total_score", 0)), reverse=True)
     return selected
 
 
