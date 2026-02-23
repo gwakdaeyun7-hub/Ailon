@@ -366,31 +366,34 @@ def _llm_ai_filter_batch(articles: list[dict]) -> set[int]:
 
     prompt = f"""IMPORTANT: Output ONLY a valid JSON array of integers. No thinking, no markdown.
 
-You are filtering news articles. Return indices of articles where AI TECHNOLOGY is the CORE subject.
+You are filtering news articles. Return indices of articles that are RELATED to AI.
 
-Decision rule: Ask "Is this article primarily ABOUT an AI system, model, tool, or technical advance?" If yes, include. If AI is merely mentioned as context, buzzword, or one of many topics, exclude.
+Decision rule: Ask "Does this article have a meaningful connection to AI?" If yes, include. Only exclude articles that have NO relevance to AI at all.
 
-When in doubt, EXCLUDE.
+When in doubt, INCLUDE.
 
-INCLUDE -- AI technology is the main topic:
+INCLUDE -- any meaningful AI connection:
 - Model releases, benchmarks, architecture advances
 - AI research papers and technical breakthroughs
 - AI-powered products/tools and their features
 - AI frameworks/libraries (PyTorch, LangChain, etc.)
-- AI regulation that directly affects AI development
+- AI regulation, policy, ethics discussions
+- AI industry news (funding, M&A, partnerships involving AI companies)
+- AI adoption stories in any industry
+- Hardware/semiconductors related to AI (GPUs, NPUs, AI chips)
+- AI's impact on society, jobs, education
+- Tutorials, guides, opinions about AI
 
-EXCLUDE -- AI is not the main topic, even if "AI" appears:
-- Business/investment news (funding, M&A, stock, market forecasts)
-- Non-tech subjects using AI as a buzzword (real estate, food, self-help)
-- Celebrity, entertainment, politics, social issues
+EXCLUDE -- no real AI connection:
+- Non-tech subjects using AI as a passing buzzword (real estate, food, self-help)
+- Celebrity, entertainment, politics with no AI substance
 - Government PR, tourism, regional marketing
-- Hardware/semiconductor business (unless specifically about AI training/inference)
-- Section tags like "[AI 브리핑]" do NOT make an article AI-tech -- judge by actual content
+- Articles where "AI" only appears in a section tag but content is unrelated
 
 Articles:
 {article_text}
 
-Return the indices of AI-technology articles as a JSON array:
+Return the indices of AI-related articles as a JSON array:
 [0, 2, 5]"""
 
     try:
