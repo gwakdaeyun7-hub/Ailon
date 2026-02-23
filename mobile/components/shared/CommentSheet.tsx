@@ -15,6 +15,7 @@ import { router } from 'expo-router';
 import { X, Send, MessageCircle, CornerDownRight } from 'lucide-react-native';
 import { useComments, type Comment } from '@/hooks/useComments';
 import { useAuth } from '@/hooks/useAuth';
+import { useLanguage } from '@/context/LanguageContext';
 import type { ItemType } from '@/hooks/useReactions';
 
 interface ReplyTo {
@@ -31,8 +32,9 @@ function CommentItem({
   isReply?: boolean;
   onReply?: (target: ReplyTo) => void;
 }) {
+  const { lang, t } = useLanguage();
   const initials = comment.authorName.slice(0, 2).toUpperCase();
-  const date = new Date(comment.createdAt).toLocaleDateString('ko-KR', {
+  const date = new Date(comment.createdAt).toLocaleDateString(lang === 'en' ? 'en-US' : 'ko-KR', {
     month: 'numeric',
     day: 'numeric',
     hour: '2-digit',
@@ -58,7 +60,7 @@ function CommentItem({
             onPress={() => onReply({ id: comment.id, authorName: comment.authorName })}
             style={{ marginTop: 6, alignSelf: 'flex-start' }}
           >
-            <Text style={{ color: '#9E9E9E', fontSize: 12, fontWeight: '600' }}>답글</Text>
+            <Text style={{ color: '#9E9E9E', fontSize: 12, fontWeight: '600' }}>{t('comment.reply')}</Text>
           </Pressable>
         )}
       </View>
@@ -81,6 +83,7 @@ interface CommentSheetProps {
 export function CommentSheet({ visible, onClose, itemType, itemId }: CommentSheetProps) {
   const { comments, loading, addComment } = useComments(itemType, itemId);
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [text, setText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [replyTo, setReplyTo] = useState<ReplyTo | null>(null);
@@ -137,7 +140,7 @@ export function CommentSheet({ visible, onClose, itemType, itemId }: CommentShee
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#F0F0F0' }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <MessageCircle size={18} color="#E53935" />
-            <Text style={{ color: '#212121', fontSize: 17, fontWeight: '700' }}>댓글</Text>
+            <Text style={{ color: '#212121', fontSize: 17, fontWeight: '700' }}>{t('comment.title')}</Text>
             {comments.length > 0 && (
               <View style={{ backgroundColor: '#FFEBEE', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 }}>
                 <Text style={{ color: '#E53935', fontSize: 12, fontWeight: '700' }}>{comments.length}</Text>
@@ -164,8 +167,8 @@ export function CommentSheet({ visible, onClose, itemType, itemId }: CommentShee
               <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: '#FFEBEE', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
                 <MessageCircle size={24} color="#E53935" />
               </View>
-              <Text style={{ color: '#424242', fontSize: 15, fontWeight: '600', marginBottom: 4 }}>첫 댓글을 남겨보세요</Text>
-              <Text style={{ color: '#BDBDBD', fontSize: 13 }}>여러분의 생각이 궁금해요</Text>
+              <Text style={{ color: '#424242', fontSize: 15, fontWeight: '600', marginBottom: 4 }}>{t('comment.first')}</Text>
+              <Text style={{ color: '#BDBDBD', fontSize: 13 }}>{t('comment.curious')}</Text>
             </View>
           ) : (
             <FlatList
@@ -189,7 +192,7 @@ export function CommentSheet({ visible, onClose, itemType, itemId }: CommentShee
             <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8, backgroundColor: '#FFF8E1', borderTopWidth: 1, borderTopColor: '#FFE082' }}>
               <CornerDownRight size={14} color="#F57C00" />
               <Text style={{ flex: 1, fontSize: 13, color: '#F57C00', fontWeight: '600', marginLeft: 8 }}>
-                @{replyTo.authorName} 에게 답글
+                @{replyTo.authorName} {t('comment.reply_to')}
               </Text>
               <Pressable onPress={cancelReply} style={{ padding: 4 }}>
                 <X size={14} color="#F57C00" />
@@ -205,7 +208,7 @@ export function CommentSheet({ visible, onClose, itemType, itemId }: CommentShee
                   ref={inputRef}
                   value={text}
                   onChangeText={setText}
-                  placeholder={replyTo ? `@${replyTo.authorName} 에게 답글...` : '댓글을 입력하세요...'}
+                  placeholder={replyTo ? `@${replyTo.authorName} ${t('comment.reply_placeholder')}` : t('comment.placeholder')}
                   placeholderTextColor="#BDBDBD"
                   multiline
                   maxLength={300}
@@ -225,12 +228,12 @@ export function CommentSheet({ visible, onClose, itemType, itemId }: CommentShee
               </>
             ) : (
               <View style={{ flex: 1, alignItems: 'center', paddingVertical: 8, gap: 8 }}>
-                <Text style={{ color: '#9E9E9E', fontSize: 13 }}>댓글을 작성하려면 로그인이 필요해요</Text>
+                <Text style={{ color: '#9E9E9E', fontSize: 13 }}>{t('comment.login_required')}</Text>
                 <Pressable
                   onPress={() => { onClose(); router.push('/auth'); }}
                   style={{ paddingHorizontal: 16, paddingVertical: 8, backgroundColor: '#FFEBEE', borderRadius: 8 }}
                 >
-                  <Text style={{ color: '#E53935', fontSize: 13, fontWeight: '700' }}>로그인하기</Text>
+                  <Text style={{ color: '#E53935', fontSize: 13, fontWeight: '700' }}>{t('comment.login')}</Text>
                 </Pressable>
               </View>
             )}

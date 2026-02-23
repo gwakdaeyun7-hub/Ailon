@@ -3,9 +3,11 @@ import { View, Text, Pressable, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { X } from 'lucide-react-native';
 import { useDrawer, DRAWER_WIDTH } from '@/context/DrawerContext';
+import { useLanguage } from '@/context/LanguageContext';
 
 export function SideDrawer() {
   const { isOpen, closeDrawer, translateX, overlayOpacity } = useDrawer();
+  const { t } = useLanguage();
 
   if (!isOpen) return null;
 
@@ -38,7 +40,7 @@ export function SideDrawer() {
             paddingHorizontal: 20, paddingVertical: 16,
             borderBottomWidth: 1, borderBottomColor: '#F0F0F0',
           }}>
-            <Text style={{ color: '#212121', fontSize: 18, fontWeight: '800' }}>AI News</Text>
+            <Text style={{ color: '#212121', fontSize: 18, fontWeight: '800' }}>{t('drawer.title')}</Text>
             <Pressable
               onPress={closeDrawer}
               style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#FAFAFA', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#F0F0F0' }}
@@ -49,7 +51,7 @@ export function SideDrawer() {
 
           <View style={{ flex: 1, padding: 20 }}>
             <Text style={{ color: '#757575', fontSize: 13, lineHeight: 20 }}>
-              14개 소스에서 최신 AI 뉴스를 수집합니다.
+              {t('drawer.desc')}
             </Text>
           </View>
         </SafeAreaView>

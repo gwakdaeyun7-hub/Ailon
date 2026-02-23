@@ -208,7 +208,7 @@ def _summarize_batch(batch: list[dict], batch_idx: int, translate: bool = True) 
         batch_text += f"\n[{i+1}] 제목: {a['title']}\n    본문: {content}\n"
 
     if translate:
-        task_desc = f"Translate and summarize {len(batch)} English AI news articles into Korean."
+        task_desc = f"Translate and summarize {len(batch)} English AI news articles into Korean, and also produce English summary fields."
         title_rule = (
             "display_title: 한국 뉴스 헤드라인 스타일 제목\n"
             "  - 직역 금지. 한국 뉴스 데스크가 실제로 쓸 법한 자연스러운 제목\n"
@@ -218,9 +218,23 @@ def _summarize_batch(batch: list[dict], batch_idx: int, translate: bool = True) 
             "  - 핵심 행위자 + 핵심 사건을 압축. 쉼표·능동형 서술어 활용\n"
             "  - 글자 수 제한 없음. 축약하지 말 것"
         )
+        en_fields_rule = (
+            "\nAlso produce these English fields:\n"
+            "- display_title_en: concise English headline (news-style, not a literal back-translation)\n"
+            "- one_line_en: 1-sentence English summary of what happened\n"
+            "- key_points_en: 3 key facts in English (array of strings)\n"
+            "- why_important_en: 1-2 sentence English explanation of impact"
+        )
     else:
-        task_desc = f"Summarize {len(batch)} Korean AI news articles."
+        task_desc = f"Summarize {len(batch)} Korean AI news articles, and also produce English summary fields."
         title_rule = "display_title: 원래 한국어 제목을 그대로 사용 (축약 금지, 원본 그대로)"
+        en_fields_rule = (
+            "\nAlso produce these English fields (translate the Korean summaries to English):\n"
+            "- display_title_en: concise English headline for this article\n"
+            "- one_line_en: 1-sentence English summary of what happened\n"
+            "- key_points_en: 3 key facts in English (array of strings)\n"
+            "- why_important_en: 1-2 sentence English explanation of impact"
+        )
 
     prompt = f"""IMPORTANT: Output ONLY a valid JSON array. No thinking, no markdown. Start with '[' and end with ']'.
 
@@ -243,19 +257,20 @@ For each article, produce:
 - why_important: 업계/개발자에게 미치는 영향 -- 1~2문장, ~이에요/~해요 체
   - one_line·key_points에 나온 내용 반복 금지
   - "~에 영향을 줄 수 있어요", "~가 바뀔 수 있어요" 등 시사점 중심
+{en_fields_rule}
 
-문체 규칙:
+문체 규칙 (한국어 필드만 해당):
 - 종결어미: ~이에요/~해요/~있어요 (해요체). ~입니다/~합니다(합쇼체) 사용 금지
 - 기술 용어 영어 병기: "미세 조정(fine-tuning)", "검색 증강 생성(RAG)"
 
 Return exactly {len(batch)} items:
-[{{"index":1,"display_title":"...","one_line":"...","key_points":["...","...","..."],"why_important":"..."}}]
+[{{"index":1,"display_title":"...","one_line":"...","key_points":["..."],"why_important":"...","display_title_en":"...","one_line_en":"...","key_points_en":["..."],"why_important_en":"..."}}]
 
 Articles:
 {batch_text}"""
 
     try:
-        llm = get_llm(temperature=0.3, max_tokens=8192, thinking=False, json_mode=True)
+        llm = get_llm(temperature=0.3, max_tokens=12288, thinking=False, json_mode=True)
         content = _llm_invoke_with_retry(llm, prompt, max_retries=2)
         results = _parse_llm_json(content)
         if isinstance(results, dict):
@@ -304,6 +319,16 @@ def _apply_batch_results(batch: list[dict], results: list[dict]) -> int:
             elif r.get("summary"):
                 batch[ridx]["summary"] = r["summary"]
                 done += 1
+            # _en 필드 추출
+            if r.get("display_title_en"):
+                batch[ridx]["display_title_en"] = r["display_title_en"]
+            if r.get("one_line_en"):
+                batch[ridx]["one_line_en"] = r["one_line_en"]
+            kp_en = r.get("key_points_en", [])
+            if kp_en:
+                batch[ridx]["key_points_en"] = kp_en if isinstance(kp_en, list) else []
+            if r.get("why_important_en"):
+                batch[ridx]["why_important_en"] = r["why_important_en"]
     return done
 
 
@@ -351,6 +376,16 @@ def _process_articles(articles: list[dict], translate: bool, batch_size: int, ma
             a["display_title"] = a["title"]
         if not a.get("summary"):
             a["summary"] = a["description"][:300] if a.get("description") else ""
+        # _en 필드 폴백
+        if not a.get("display_title_en"):
+            # EN 기사: 원문 title 사용, KO 기사: 빈 문자열
+            a["display_title_en"] = a["title"] if a.get("lang") != "ko" else ""
+        if not a.get("one_line_en"):
+            a["one_line_en"] = ""
+        if not a.get("key_points_en"):
+            a["key_points_en"] = []
+        if not a.get("why_important_en"):
+            a["why_important_en"] = ""
 
     success = len([a for a in articles if a.get("summary") and len(a["summary"]) > 50])
     print(f"  [{label}] 최종 {success}/{len(articles)}개 완료")

@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, Pressable, ActivityIndicator, SafeAreaView } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
+import { useLanguage } from '@/context/LanguageContext';
 import { Zap } from 'lucide-react-native';
 
 export default function AuthScreen() {
   const { user, signInWithGoogle } = useAuth();
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,7 +25,7 @@ export default function AuthScreen() {
       await signInWithGoogle();
       // OAuth는 비동기 — user 상태 변화로 자동 이동
     } catch (err: any) {
-      setError('로그인에 실패했어요. 다시 시도해주세요.');
+      setError(t('auth.login_failed'));
       console.error(err);
     } finally {
       setLoading(false);
@@ -61,7 +63,7 @@ export default function AuthScreen() {
             Ailon
           </Text>
           <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)', textAlign: 'center', lineHeight: 20 }}>
-            AI 트렌드 / 학문 원리 / 융합 아이디어
+            {t('auth.tagline')}
           </Text>
         </View>
       </View>
@@ -69,10 +71,10 @@ export default function AuthScreen() {
       {/* Bottom white section */}
       <View className="flex-1 items-center justify-center px-8">
         <Text className="text-text text-xl font-bold mb-2 text-center">
-          매일 새로운 인사이트를 발견하세요
+          {t('auth.discover')}
         </Text>
         <Text className="text-text-muted text-sm text-center mb-10 leading-relaxed">
-          AI 뉴스, 다양한 학문의 핵심 원리, 그리고{'\n'}AI와 학문이 만나는 융합 아이디어까지
+          {t('auth.discover_desc')}
         </Text>
 
         {/* Google Sign-In Button */}
@@ -103,7 +105,7 @@ export default function AuthScreen() {
           ) : (
             <>
               <Text style={{ fontSize: 20, fontWeight: '700', color: '#4285F4' }}>G</Text>
-              <Text style={{ color: '#212121', fontWeight: '600', fontSize: 16 }}>Google로 시작하기</Text>
+              <Text style={{ color: '#212121', fontWeight: '600', fontSize: 16 }}>{t('auth.google_start')}</Text>
             </>
           )}
         </Pressable>
@@ -115,7 +117,7 @@ export default function AuthScreen() {
         )}
 
         <Text className="text-text-dim text-xs mt-10 text-center leading-relaxed">
-          로그인하면 이용약관 및 개인정보처리방침에{'\n'}동의하는 것으로 간주됩니다.
+          {t('auth.terms')}
         </Text>
       </View>
     </SafeAreaView>

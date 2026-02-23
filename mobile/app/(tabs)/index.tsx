@@ -26,12 +26,14 @@ import {
 } from 'lucide-react-native';
 import { useNews } from '@/hooks/useNews';
 import { useDrawer } from '@/context/DrawerContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { useReactions } from '@/hooks/useReactions';
 import { useArticleViews } from '@/hooks/useArticleViews';
 import { useBatchStats } from '@/hooks/useBatchStats';
 import { NewsCardSkeleton } from '@/components/shared/LoadingSkeleton';
 import { CommentSheet } from '@/components/shared/CommentSheet';
 import type { Article } from '@/lib/types';
+import type { Language } from '@/lib/translations';
 
 // ─── 색상 ───────────────────────────────────────────────────────────────
 const BG = '#F9FAFB';
@@ -71,11 +73,7 @@ const SOURCE_NAMES: Record<string, string> = {
   yozm_ai: '요즘IT AI',
 };
 
-const CATEGORY_NAMES: Record<string, string> = {
-  model_research: '모델/연구',
-  product_tools: '제품/도구',
-  industry_business: '산업/비즈니스',
-};
+// CATEGORY_NAMES는 t() 기반으로 대체 — getCategoryName() 헬퍼 사용
 
 const CATEGORY_COLORS: Record<string, string> = {
   model_research: '#7C3AED',
@@ -106,6 +104,30 @@ function formatDate(str?: string) {
 
 function getTitle(a: Article) {
   return a.display_title || a.title;
+}
+
+function getLocalizedTitle(a: Article, lang: Language) {
+  if (lang === 'en' && a.display_title_en) return a.display_title_en;
+  return a.display_title || a.title;
+}
+
+function getLocalizedOneLine(a: Article, lang: Language) {
+  if (lang === 'en' && a.one_line_en) return a.one_line_en;
+  return a.one_line || '';
+}
+
+function getLocalizedKeyPoints(a: Article, lang: Language): string[] {
+  if (lang === 'en' && a.key_points_en && a.key_points_en.length > 0) return a.key_points_en;
+  return a.key_points || [];
+}
+
+function getLocalizedWhyImportant(a: Article, lang: Language) {
+  if (lang === 'en' && a.why_important_en) return a.why_important_en;
+  return a.why_important || '';
+}
+
+function getCategoryName(catKey: string, t: (key: string) => string) {
+  return t(`cat.${catKey}`);
 }
 
 // ─── 좋아요+뷰 카운트 (정적 — 피드 카드에서 리스너 폭발 방지) ──────────
@@ -149,6 +171,7 @@ const HighlightScrollCard = React.memo(function HighlightScrollCard({
 }: {
   article: Article; onToggle?: () => void; likes?: number; views?: number;
 }) {
+  const { lang } = useLanguage();
   const handlePress = () => {
     if (onToggle) {
       onToggle();
@@ -160,7 +183,7 @@ const HighlightScrollCard = React.memo(function HighlightScrollCard({
   return (
     <Pressable
       onPress={handlePress}
-      accessibilityLabel={getTitle(article)}
+      accessibilityLabel={getLocalizedTitle(article, lang)}
       accessibilityRole="button"
       style={({ pressed }) => ({
         width: HIGHLIGHT_CARD_WIDTH,
@@ -199,7 +222,7 @@ const HighlightScrollCard = React.memo(function HighlightScrollCard({
             numberOfLines={2}
             ellipsizeMode="tail"
           >
-            {getTitle(article)}
+            {getLocalizedTitle(article, lang)}
           </Text>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
@@ -214,6 +237,7 @@ const HighlightScrollCard = React.memo(function HighlightScrollCard({
 function SummaryModal({ article, onClose, onOpenComments }: { article: Article | null; onClose: () => void; onOpenComments: () => void }) {
   const { views, trackView } = useArticleViews(article?.link ?? '');
   const { likes, liked, toggleLike } = useReactions('news', article?.link ?? '');
+  const { lang, t } = useLanguage();
   const viewTracked = useRef(false);
   const insets = useSafeAreaInsets();
   const [toastMsg, setToastMsg] = useState('');
@@ -251,26 +275,29 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
   const handleLike = async () => {
     const result = await toggleLike();
     if (result === 'no_user') {
-      showToast('로그인이 필요합니다');
+      showToast(t('auth.login_required_toast'));
     }
   };
 
   const handleShare = async () => {
     try {
+      const oneLine = getLocalizedOneLine(article, lang);
+      const keyPoints = getLocalizedKeyPoints(article, lang);
+      const whyImportant = getLocalizedWhyImportant(article, lang);
       let body = '';
-      if (article.one_line) {
-        body += `💡 핵심 한줄\n${article.one_line}`;
-        if (article.key_points && article.key_points.length > 0) {
-          body += `\n\n📌 주요 포인트\n${article.key_points.map((p, i) => `${i + 1}. ${p}`).join('\n')}`;
+      if (oneLine) {
+        body += `${t('share.one_line_label')}\n${oneLine}`;
+        if (keyPoints.length > 0) {
+          body += `\n\n${t('share.key_points_label')}\n${keyPoints.map((p, i) => `${i + 1}. ${p}`).join('\n')}`;
         }
-        if (article.why_important) {
-          body += `\n\n⚡ 왜 중요해요?\n${article.why_important}`;
+        if (whyImportant) {
+          body += `\n\n${t('share.why_important_label')}\n${whyImportant}`;
         }
       } else if (article.summary) {
         body = article.summary;
       }
       await Share.share({
-        message: `${getTitle(article)}\n\n${body}\n\n— Ailon AI 뉴스`,
+        message: `${getLocalizedTitle(article, lang)}\n\n${body}\n\n${t('share.footer')}`,
       });
     } catch {}
   };
@@ -300,7 +327,7 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
             <View style={{ flex: 1, alignItems: 'flex-end' }}>
               <Pressable
                 onPress={onClose}
-                accessibilityLabel="닫기"
+                accessibilityLabel={t('modal.close')}
                 accessibilityRole="button"
                 style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center' }}
               >
@@ -349,69 +376,80 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
               marginTop: 14, marginBottom: 14,
               paddingHorizontal: 20,
             }}>
-              {getTitle(article)}
+              {getLocalizedTitle(article, lang)}
             </Text>
 
             {/* 구분선 */}
             <View style={{ height: 1, backgroundColor: BORDER, marginBottom: 18, marginHorizontal: 20 }} />
 
             {/* 3-파트 요약 */}
-            {article.one_line ? (
-              <View style={{ paddingHorizontal: 20, marginBottom: 16 }}>
-                {/* 핵심 한줄 */}
-                <View style={{ backgroundColor: '#F0F4FF', borderRadius: 10, padding: 14, marginBottom: 16 }}>
-                  <Text style={{ fontSize: 11, fontWeight: '600', color: '#6366F1', marginBottom: 6 }}>핵심 한줄</Text>
-                  <Text style={{ fontSize: 16, color: TEXT_PRIMARY, lineHeight: 26, fontWeight: '700' }}>
-                    {article.one_line}
-                  </Text>
-                </View>
+            {(() => {
+              const oneLine = getLocalizedOneLine(article, lang);
+              const keyPoints = getLocalizedKeyPoints(article, lang);
+              const whyImportant = getLocalizedWhyImportant(article, lang);
+              if (oneLine) {
+                return (
+                  <View style={{ paddingHorizontal: 20, marginBottom: 16 }}>
+                    {/* 핵심 한줄 */}
+                    <View style={{ backgroundColor: '#F0F4FF', borderRadius: 10, padding: 14, marginBottom: 16 }}>
+                      <Text style={{ fontSize: 11, fontWeight: '600', color: '#6366F1', marginBottom: 6 }}>{t('modal.one_line')}</Text>
+                      <Text style={{ fontSize: 16, color: TEXT_PRIMARY, lineHeight: 26, fontWeight: '700' }}>
+                        {oneLine}
+                      </Text>
+                    </View>
 
-                {/* 주요 포인트 */}
-                {article.key_points && article.key_points.length > 0 && (
-                  <View style={{ marginBottom: 16 }}>
-                    <Text style={{ fontSize: 13, fontWeight: '700', color: '#0891B2', marginBottom: 8 }}>주요 포인트</Text>
-                    {article.key_points.map((point, idx) => (
-                      <View key={idx} style={{ flexDirection: 'row', marginBottom: 12, paddingRight: 4 }}>
-                        <Text style={{ fontSize: 13, color: '#0891B2', marginRight: 8, lineHeight: 22, fontWeight: '700' }}>{idx + 1}.</Text>
-                        <Text style={{ fontSize: 14, color: '#374151', lineHeight: 22, flex: 1 }}>{point}</Text>
+                    {/* 주요 포인트 */}
+                    {keyPoints.length > 0 && (
+                      <View style={{ marginBottom: 16 }}>
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: '#0891B2', marginBottom: 8 }}>{t('modal.key_points')}</Text>
+                        {keyPoints.map((point, idx) => (
+                          <View key={idx} style={{ flexDirection: 'row', marginBottom: 12, paddingRight: 4 }}>
+                            <Text style={{ fontSize: 13, color: '#0891B2', marginRight: 8, lineHeight: 22, fontWeight: '700' }}>{idx + 1}.</Text>
+                            <Text style={{ fontSize: 14, color: '#374151', lineHeight: 22, flex: 1 }}>{point}</Text>
+                          </View>
+                        ))}
                       </View>
-                    ))}
-                  </View>
-                )}
+                    )}
 
-                {/* 왜 중요해요? */}
-                {article.why_important ? (
-                  <View style={{ backgroundColor: '#FFFBEB', borderRadius: 10, padding: 14 }}>
-                    <Text style={{ fontSize: 13, fontWeight: '700', color: '#D97706', marginBottom: 4 }}>왜 중요해요?</Text>
-                    <Text style={{ fontSize: 14, color: '#374151', lineHeight: 24 }}>
-                      {article.why_important}
-                    </Text>
+                    {/* 왜 중요해요? */}
+                    {whyImportant ? (
+                      <View style={{ backgroundColor: '#FFFBEB', borderRadius: 10, padding: 14 }}>
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: '#D97706', marginBottom: 4 }}>{t('modal.why_important')}</Text>
+                        <Text style={{ fontSize: 14, color: '#374151', lineHeight: 24 }}>
+                          {whyImportant}
+                        </Text>
+                      </View>
+                    ) : null}
                   </View>
-                ) : null}
-              </View>
-            ) : article.summary ? (
-              <Text style={{
-                fontSize: 15, color: '#374151', lineHeight: 28, letterSpacing: 0.2, marginBottom: 16,
-                paddingHorizontal: 20,
-              }}>
-                {article.summary}
-              </Text>
-            ) : (
-              <View style={{ alignItems: 'center', paddingVertical: 24, paddingHorizontal: 20 }}>
-                <Text style={{ fontSize: 14, fontWeight: '600', color: TEXT_SECONDARY, marginBottom: 4 }}>
-                  아직 AI 요약이 준비되지 않았어요
-                </Text>
-                <Text style={{ fontSize: 13, color: TEXT_LIGHT, marginBottom: 12 }}>
-                  원문을 직접 확인해보세요
-                </Text>
-                <Pressable
-                  onPress={handleOpenOriginal}
-                  style={{ paddingHorizontal: 20, paddingVertical: 10, backgroundColor: '#000', borderRadius: 8 }}
-                >
-                  <Text style={{ color: '#FFF', fontSize: 13, fontWeight: '700' }}>원문 보기</Text>
-                </Pressable>
-              </View>
-            )}
+                );
+              }
+              if (article.summary) {
+                return (
+                  <Text style={{
+                    fontSize: 15, color: '#374151', lineHeight: 28, letterSpacing: 0.2, marginBottom: 16,
+                    paddingHorizontal: 20,
+                  }}>
+                    {article.summary}
+                  </Text>
+                );
+              }
+              return (
+                <View style={{ alignItems: 'center', paddingVertical: 24, paddingHorizontal: 20 }}>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: TEXT_SECONDARY, marginBottom: 4 }}>
+                    {t('modal.no_summary')}
+                  </Text>
+                  <Text style={{ fontSize: 13, color: TEXT_LIGHT, marginBottom: 12 }}>
+                    {t('modal.check_original')}
+                  </Text>
+                  <Pressable
+                    onPress={handleOpenOriginal}
+                    style={{ paddingHorizontal: 20, paddingVertical: 10, backgroundColor: '#000', borderRadius: 8 }}
+                  >
+                    <Text style={{ color: '#FFF', fontSize: 13, fontWeight: '700' }}>{t('modal.view_original')}</Text>
+                  </Pressable>
+                </View>
+              );
+            })()}
 
           </ScrollView>
 
@@ -426,7 +464,7 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
             {/* 원문 보기 버튼 */}
             <Pressable
               onPress={handleOpenOriginal}
-              accessibilityLabel="원문 보기"
+              accessibilityLabel={t('modal.view_original')}
               accessibilityRole="link"
               style={({ pressed }) => ({
                 flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5,
@@ -435,14 +473,14 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
               })}
             >
               <ExternalLink size={15} color="#FFF" />
-              <Text style={{ color: '#FFF', fontSize: 14, fontWeight: '700' }}>원문 보기</Text>
+              <Text style={{ color: '#FFF', fontSize: 14, fontWeight: '700' }}>{t('modal.view_original')}</Text>
             </Pressable>
 
             {/* 좋아요 | 댓글 | 공유 — 오른쪽 정렬 */}
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Pressable
                 onPress={handleLike}
-                accessibilityLabel={liked ? '좋아요 취소' : '좋아요'}
+                accessibilityLabel={liked ? t('modal.unlike') : t('modal.like')}
                 accessibilityRole="button"
                 style={({ pressed }) => ({
                   alignItems: 'center', justifyContent: 'center',
@@ -457,7 +495,7 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
 
               <Pressable
                 onPress={onOpenComments}
-                accessibilityLabel="댓글"
+                accessibilityLabel={t('modal.comment')}
                 accessibilityRole="button"
                 style={({ pressed }) => ({
                   alignItems: 'center', justifyContent: 'center',
@@ -471,7 +509,7 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
 
               <Pressable
                 onPress={handleShare}
-                accessibilityLabel="공유"
+                accessibilityLabel={t('modal.share')}
                 accessibilityRole="button"
                 style={({ pressed }) => ({
                   alignItems: 'center', justifyContent: 'center',
@@ -504,6 +542,7 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
 function HighlightSection({ highlights, onArticlePress }: { highlights: Article[]; onArticlePress: (article: Article) => void }) {
   const links = React.useMemo(() => highlights.map(a => a.link).filter(Boolean), [highlights]);
   const stats = useBatchStats(links);
+  const { t } = useLanguage();
 
   if (!highlights || highlights.length === 0) return null;
 
@@ -511,7 +550,7 @@ function HighlightSection({ highlights, onArticlePress }: { highlights: Article[
     <View style={{ paddingTop: 12, paddingBottom: 20, backgroundColor: '#F0F4FF' }}>
       {/* 섹션 헤더 */}
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 14 }}>
-        <Text style={{ fontSize: 17, fontWeight: '800', color: TEXT_PRIMARY }}>오늘의 하이라이트</Text>
+        <Text style={{ fontSize: 17, fontWeight: '800', color: TEXT_PRIMARY }}>{t('news.highlight_title')}</Text>
         <Text style={{ fontSize: 11, color: TEXT_LIGHT, marginLeft: 8 }}>Top {highlights.length}</Text>
       </View>
 
@@ -544,6 +583,7 @@ const HScrollCard = React.memo(function HScrollCard({
 }: {
   article: Article; showSourceBadge?: boolean; onToggle?: () => void; likes?: number; views?: number;
 }) {
+  const { lang } = useLanguage();
   const handlePress = () => {
     if (onToggle) {
       onToggle();
@@ -555,7 +595,7 @@ const HScrollCard = React.memo(function HScrollCard({
   return (
     <Pressable
       onPress={handlePress}
-      accessibilityLabel={getTitle(article)}
+      accessibilityLabel={getLocalizedTitle(article, lang)}
       accessibilityRole="button"
       style={({ pressed }) => ({
         width: CARD_WIDTH,
@@ -594,7 +634,7 @@ const HScrollCard = React.memo(function HScrollCard({
             numberOfLines={2}
             ellipsizeMode="tail"
           >
-            {getTitle(article)}
+            {getLocalizedTitle(article, lang)}
           </Text>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
@@ -614,6 +654,7 @@ function CategoryTabSection({
 }) {
   const [activeTab, setActiveTab] = useState(categoryOrder[0] || 'model_research');
   const [showMore, setShowMore] = useState(false);
+  const { lang, t } = useLanguage();
 
   const articles = categorizedArticles[activeTab] || [];
   const links = React.useMemo(() => articles.map(a => a.link).filter(Boolean), [articles]);
@@ -631,7 +672,7 @@ function CategoryTabSection({
     <View style={{ marginBottom: 24 }}>
       {/* 섹션 헤더 + 카테고리 탭 */}
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 16 }}>
-        <Text style={{ fontSize: 17, fontWeight: '800', color: TEXT_PRIMARY, marginRight: 12 }}>카테고리별 뉴스</Text>
+        <Text style={{ fontSize: 17, fontWeight: '800', color: TEXT_PRIMARY, marginRight: 12 }}>{t('news.category_title')}</Text>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -641,11 +682,12 @@ function CategoryTabSection({
           {categoryOrder.map(catKey => {
             const isActive = catKey === activeTab;
             const color = CATEGORY_COLORS[catKey] || TEXT_SECONDARY;
+            const catName = getCategoryName(catKey, t);
             return (
               <Pressable
                 key={catKey}
                 onPress={() => handleTabChange(catKey)}
-                accessibilityLabel={CATEGORY_NAMES[catKey] || catKey}
+                accessibilityLabel={catName}
                 accessibilityRole="tab"
                 accessibilityState={{ selected: isActive }}
                 style={{
@@ -660,7 +702,7 @@ function CategoryTabSection({
                   fontSize: 12, fontWeight: '700',
                   color: isActive ? '#FFF' : TEXT_SECONDARY,
                 }}>
-                  {CATEGORY_NAMES[catKey] || catKey}
+                  {catName}
                 </Text>
               </Pressable>
             );
@@ -674,7 +716,7 @@ function CategoryTabSection({
           <Pressable
             key={`cat-${activeTab}-${i}-${a.link}`}
             onPress={() => onArticlePress(a)}
-            accessibilityLabel={getTitle(a)}
+            accessibilityLabel={getLocalizedTitle(a, lang)}
             accessibilityRole="button"
             style={({ pressed }) => ({
               height: 120,
@@ -706,7 +748,7 @@ function CategoryTabSection({
                     numberOfLines={2}
                     ellipsizeMode="tail"
                   >
-                    {getTitle(a)}
+                    {getLocalizedTitle(a, lang)}
                   </Text>
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -723,13 +765,13 @@ function CategoryTabSection({
       {more5.length > 0 && !showMore && (
         <Pressable
           onPress={() => setShowMore(true)}
-          accessibilityLabel={`${more5.length}개 더 보기`}
+          accessibilityLabel={`+${more5.length}${t('news.more')}`}
           accessibilityRole="button"
           style={{ alignItems: 'center', paddingVertical: 12, marginHorizontal: 16 }}
         >
           <View style={{ paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10, backgroundColor: BORDER, borderWidth: 1, borderColor: '#E5E7EB' }}>
             <Text style={{ fontSize: 13, fontWeight: '700', color: TEXT_SECONDARY }}>
-              +{more5.length}개 더보기
+              +{more5.length}{t('news.more')}
             </Text>
           </View>
         </Pressable>
@@ -747,6 +789,7 @@ function SourceHScrollSection({
   const [showMore, setShowMore] = useState(false);
   const links = React.useMemo(() => articles.map(a => a.link).filter(Boolean), [articles]);
   const stats = useBatchStats(links);
+  const { lang, t } = useLanguage();
 
   if (!articles || articles.length === 0) return null;
 
@@ -795,7 +838,7 @@ function SourceHScrollSection({
             }}
           >
             <Text style={{ fontSize: 12, fontWeight: '700', color: TEXT_SECONDARY, textAlign: 'center' }}>
-              +{more5.length}개{'\n'}더보기
+              +{more5.length}{'\n'}{t('news.show_more')}
             </Text>
           </Pressable>
         )}
@@ -809,6 +852,7 @@ function GeekNewsSection({ articles, onArticlePress }: { articles: Article[]; on
   const [showMore, setShowMore] = useState(false);
   const links = React.useMemo(() => articles.map(a => a.link).filter(Boolean), [articles]);
   const stats = useBatchStats(links);
+  const { lang, t } = useLanguage();
   if (!articles || articles.length === 0) return null;
 
   const first5 = articles.slice(0, 5);
@@ -829,7 +873,7 @@ function GeekNewsSection({ articles, onArticlePress }: { articles: Article[]; on
           <React.Fragment key={`geeknews-${i}-${a.link}`}>
             <Pressable
               onPress={() => onArticlePress(a)}
-              accessibilityLabel={getTitle(a)}
+              accessibilityLabel={getLocalizedTitle(a, lang)}
               accessibilityRole="button"
               style={({ pressed }) => ({
                 backgroundColor: CARD,
@@ -847,7 +891,7 @@ function GeekNewsSection({ articles, onArticlePress }: { articles: Article[]; on
                 numberOfLines={2}
                 ellipsizeMode="tail"
               >
-                {getTitle(a)}
+                {getLocalizedTitle(a, lang)}
               </Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
                 <Text style={{ fontSize: 11, color: TEXT_LIGHT }}>{formatDate(a.published)}</Text>
@@ -863,7 +907,7 @@ function GeekNewsSection({ articles, onArticlePress }: { articles: Article[]; on
 
       {!showMore && more5.length > 0 && (
         <Pressable onPress={() => setShowMore(true)} style={{ alignItems: 'center', paddingVertical: 12 }}>
-          <Text style={{ fontSize: 12, color: TEXT_LIGHT }}>더보기 ({more5.length}개)</Text>
+          <Text style={{ fontSize: 12, color: TEXT_LIGHT }}>{t('news.show_more')} ({more5.length})</Text>
         </Pressable>
       )}
     </View>
@@ -876,6 +920,7 @@ export default function NewsScreen() {
   const [modalArticle, setModalArticle] = useState<Article | null>(null);
   const [commentArticleLink, setCommentArticleLink] = useState<string | null>(null);
   const { openDrawer, setActiveTab } = useDrawer();
+  const { lang, t } = useLanguage();
   const { newsData, loading, error, refresh } = useNews();
 
   const handleArticlePress = useCallback((article: Article) => {
@@ -945,16 +990,16 @@ export default function NewsScreen() {
           <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '800' }}>A</Text>
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 18, fontWeight: '800', color: TEXT_PRIMARY }}>AI 트렌드</Text>
+          <Text style={{ fontSize: 18, fontWeight: '800', color: TEXT_PRIMARY }}>{t('news.header')}</Text>
           {totalArticles > 0 && (
             <Text style={{ fontSize: 12, color: TEXT_LIGHT }}>
               {newsData?.updated_at
-                ? `${new Date(newsData.updated_at.seconds ? newsData.updated_at.seconds * 1000 : newsData.updated_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })} 업데이트`
-                : `${totalArticles}개 기사`}
+                ? `${new Date(newsData.updated_at.seconds ? newsData.updated_at.seconds * 1000 : newsData.updated_at).toLocaleTimeString(lang === 'en' ? 'en-US' : 'ko-KR', { hour: '2-digit', minute: '2-digit' })} ${t('news.updated')}`
+                : `${totalArticles}${t('news.articles_count')}`}
             </Text>
           )}
         </View>
-        <Pressable onPress={openDrawer} accessibilityLabel="메뉴 열기" accessibilityRole="button" style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
+        <Pressable onPress={openDrawer} accessibilityLabel={t('menu.open')} accessibilityRole="button" style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
           <Menu size={22} color={TEXT_SECONDARY} />
         </Pressable>
       </View>
@@ -974,15 +1019,15 @@ export default function NewsScreen() {
             <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: '#FEE2E2', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
               <RefreshCw size={28} color="#DC2626" />
             </View>
-            <Text style={{ color: TEXT_PRIMARY, fontWeight: '700', fontSize: 16, marginBottom: 8 }}>연결에 문제가 있어요</Text>
+            <Text style={{ color: TEXT_PRIMARY, fontWeight: '700', fontSize: 16, marginBottom: 8 }}>{t('news.connection_error')}</Text>
             <Text style={{ color: TEXT_LIGHT, fontSize: 14, textAlign: 'center', marginBottom: 20 }}>{error}</Text>
             <Pressable onPress={refresh} style={{ backgroundColor: '#000', paddingHorizontal: 28, paddingVertical: 12, borderRadius: 12 }}>
-              <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 15 }}>다시 시도</Text>
+              <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 15 }}>{t('news.retry')}</Text>
             </Pressable>
           </View>
         ) : totalArticles === 0 ? (
           <View style={{ alignItems: 'center', paddingVertical: 60 }}>
-            <Text style={{ color: TEXT_LIGHT, fontSize: 14 }}>아직 뉴스가 없어요</Text>
+            <Text style={{ color: TEXT_LIGHT, fontSize: 14 }}>{t('news.no_news')}</Text>
           </View>
         ) : isLegacy ? (
           <>
@@ -1013,10 +1058,10 @@ export default function NewsScreen() {
               <View style={{ paddingHorizontal: 16, marginBottom: 20, marginTop: 16 }}>
                 <View style={{ height: 8, backgroundColor: '#F3F4F6', borderRadius: 4, marginBottom: 20 }} />
                 <Text style={{ fontSize: 16, fontWeight: '800', color: TEXT_PRIMARY }}>
-                  소스별 뉴스
+                  {t('news.source_title')}
                 </Text>
                 <Text style={{ fontSize: 12, color: TEXT_SECONDARY, marginTop: 4 }}>
-                  한국 AI 미디어 소식
+                  {t('news.source_subtitle')}
                 </Text>
               </View>
             )}

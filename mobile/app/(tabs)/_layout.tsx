@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
 import { Platform, View } from 'react-native';
 import { Cpu, BookOpen, FlaskConical, Bookmark, User } from 'lucide-react-native';
+import { useLanguage } from '@/context/LanguageContext';
 
 function TabIcon({ Icon, color, focused }: { Icon: any; color: string; focused: boolean }) {
   return (
@@ -22,6 +23,7 @@ function TabIcon({ Icon, color, focused }: { Icon: any; color: string; focused: 
 }
 
 export default function TabLayout() {
+  const { t } = useLanguage();
   return (
     <Tabs
       screenOptions={{
@@ -48,35 +50,35 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'AI 트렌드',
+          title: t('tab.news'),
           tabBarIcon: ({ color, focused }) => <TabIcon Icon={Cpu} color={color} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="snaps"
         options={{
-          title: '학문 스낵',
+          title: t('tab.snaps'),
           tabBarIcon: ({ color, focused }) => <TabIcon Icon={BookOpen} color={color} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="ideas"
         options={{
-          title: '시너지 랩',
+          title: t('tab.ideas'),
           tabBarIcon: ({ color, focused }) => <TabIcon Icon={FlaskConical} color={color} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="saved"
         options={{
-          title: '저장',
+          title: t('tab.saved'),
           tabBarIcon: ({ color, focused }) => <TabIcon Icon={Bookmark} color={color} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: '프로필',
+          title: t('tab.profile'),
           tabBarIcon: ({ color, focused }) => <TabIcon Icon={User} color={color} focused={focused} />,
         }}
       />
