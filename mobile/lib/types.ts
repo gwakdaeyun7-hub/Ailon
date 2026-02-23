@@ -24,6 +24,9 @@ export interface Article {
   source_key?: string;
   image_url?: string;
   score?: number;
+  score_significance?: number;
+  score_relevance?: number;
+  score_freshness?: number;
 }
 
 export interface DailyNews {

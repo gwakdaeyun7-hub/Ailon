@@ -72,6 +72,9 @@ def save_news_to_firestore(result: dict):
                 "source_key": a.get("source_key", ""),
                 "image_url": a.get("image_url", ""),
                 "score": a.get("_total_score", 0),
+                "score_significance": a.get("_score_significance", 0),
+                "score_relevance": a.get("_score_relevance", 0),
+                "score_freshness": a.get("_score_freshness", 0),
             }
             for a in articles
         ]

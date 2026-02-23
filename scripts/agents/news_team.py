@@ -5,7 +5,7 @@ collector --> [en_process, ko_process] (병렬 Send) --> scorer --> ranker --> c
                                                         ^  |
                                                         +--+ (커버리지 < 60% 시 재시도)
 
-1. collector:     17개 소스 수집 + 이미지/본문 통합 스크래핑 + LLM AI 필터
+1. collector:     16개 소스 수집 + 이미지/본문 통합 스크래핑 + LLM AI 필터
 2. en_process:    영어 기사 번역+요약 (thinking 비활성화, 배치 5)  -- 병렬
 3. ko_process:    한국어 기사 요약 (thinking 비활성화, 배치 2)     -- 병렬
 4. scorer:        3차원 LLM 평가 (significance*4 + relevance*3 + freshness*3, 만점 100)
@@ -38,7 +38,7 @@ from agents.config import get_llm
 from agents.tools import (
     SOURCES,
     fetch_all_sources, enrich_and_scrape, filter_imageless, _is_ai_related,
-    HIGHLIGHT_SOURCES, CATEGORY_SOURCES, SOURCE_SECTION_SOURCES, EN_SECTION_SOURCES,
+    HIGHLIGHT_SOURCES, CATEGORY_SOURCES, SOURCE_SECTION_SOURCES,
 )
 
 
@@ -570,7 +570,7 @@ def en_process_node(state: NewsGraphState) -> dict:
     """
     en_articles: list[dict] = []
     en_source_keys: set[str] = set()
-    for key in CATEGORY_SOURCES | EN_SECTION_SOURCES:
+    for key in CATEGORY_SOURCES:
         for a in state["sources"].get(key, []):
             if a.get("lang") != "ko":
                 en_articles.append(a)
@@ -1103,7 +1103,7 @@ def assembler_node(state: NewsGraphState) -> dict:
 
     for s in SOURCES:
         key = s["key"]
-        if key in (SOURCE_SECTION_SOURCES | EN_SECTION_SOURCES) and sources.get(key):
+        if key in SOURCE_SECTION_SOURCES and sources.get(key):
             sorted_articles = sorted(sources[key], key=_pub_key, reverse=True)
             source_articles[key] = sorted_articles[:10]
             source_order.append(key)

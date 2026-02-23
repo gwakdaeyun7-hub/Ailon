@@ -1,10 +1,9 @@
 """
-뉴스 수집 도구 — 17개 소스 RSS/스크래핑 기반 수집
+뉴스 수집 도구 — 16개 소스 RSS/스크래핑 기반 수집
 
-[Tier 1] 영어 AI 전문 뉴스 — Wired AI / The Verge AI / TechCrunch AI / MIT Tech Review / VentureBeat
-[Tier 2] AI 기업 공식 블로그 — Google DeepMind / NVIDIA / HuggingFace
+[Tier 1] 영어 AI 전문 뉴스 — Wired AI / The Verge AI / TechCrunch AI / MIT Tech Review / VentureBeat / The Decoder / MarkTechPost
+[Tier 2] AI 기업·매체 — Google DeepMind / NVIDIA / HuggingFace / Ars Technica AI / The Rundown AI
 [Tier 3] 한국 소스 — AI타임스 / GeekNews / ZDNet AI 에디터 / 요즘IT AI
-[Tier 4] 영어 섹션 소스 — The Decoder / MarkTechPost / OpenAI Blog / Ars Technica AI / The Rundown AI
 """
 
 import os
@@ -60,7 +59,23 @@ SOURCES = [
 
         "lang": "en",
     },
-    # Tier 2: AI 기업 공식 블로그
+    {
+        "key": "the_decoder",
+        "name": "The Decoder",
+        "rss_url": "https://the-decoder.com/feed/",
+        "max_items": 30,
+        "lang": "en",
+        "rss_image_field": "content_image",
+    },
+    {
+        "key": "marktechpost",
+        "name": "MarkTechPost",
+        "rss_url": "https://www.marktechpost.com/feed/",
+        "max_items": 30,
+        "lang": "en",
+        "rss_image_field": "media_content",
+    },
+    # Tier 2: AI 기업·매체
     {
         "key": "deepmind_blog",
         "name": "Google DeepMind",
@@ -84,6 +99,20 @@ SOURCES = [
         "rss_url": "https://huggingface.co/blog/feed.xml",
         "max_items": 40,
 
+        "lang": "en",
+    },
+    {
+        "key": "arstechnica_ai",
+        "name": "Ars Technica AI",
+        "rss_url": "https://arstechnica.com/ai/feed/",
+        "max_items": 30,
+        "lang": "en",
+    },
+    {
+        "key": "the_rundown_ai",
+        "name": "The Rundown AI",
+        "rss_url": "https://rss.beehiiv.com/feeds/2R3C6Bt5wj.xml",
+        "max_items": 30,
         "lang": "en",
     },
     # Tier 3: 한국 소스
@@ -120,45 +149,6 @@ SOURCES = [
         "lang": "ko",
         "rss_image_field": "content_image",
     },
-    # Tier 4: 영어 섹션 소스 (개별 가로스크롤 섹션으로 표시)
-    {
-        "key": "the_decoder",
-        "name": "The Decoder",
-        "rss_url": "https://the-decoder.com/feed/",
-        "max_items": 30,
-        "lang": "en",
-        "rss_image_field": "content_image",
-    },
-    {
-        "key": "marktechpost",
-        "name": "MarkTechPost",
-        "rss_url": "https://www.marktechpost.com/feed/",
-        "max_items": 30,
-        "lang": "en",
-        "rss_image_field": "media_content",
-    },
-    {
-        "key": "openai_blog",
-        "name": "OpenAI Blog",
-        "rss_url": "https://openai.com/news/rss.xml",
-        "max_items": 30,
-        "lang": "en",
-        "default_image": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/OpenAI_Logo.svg/1200px-OpenAI_Logo.svg.png",
-    },
-    {
-        "key": "arstechnica_ai",
-        "name": "Ars Technica AI",
-        "rss_url": "https://arstechnica.com/ai/feed/",
-        "max_items": 30,
-        "lang": "en",
-    },
-    {
-        "key": "the_rundown_ai",
-        "name": "The Rundown AI",
-        "rss_url": "https://rss.beehiiv.com/feeds/2R3C6Bt5wj.xml",
-        "max_items": 30,
-        "lang": "en",
-    },
 ]
 
 # AI 키워드 — 정규식 단어 경계 매칭 (ai_filter=True인 소스에서 사용)
@@ -188,12 +178,17 @@ _PLAIN_KEYWORDS = [
 
 # ─── 소스별 역할 분류 ─────────────────────────────────────────────────────
 # 하이라이트 후보 소스 (Tier 1: 에디토리얼 영어 매체)
-HIGHLIGHT_SOURCES = {"wired_ai", "the_verge_ai", "techcrunch_ai", "mit_tech_review", "venturebeat"}
+HIGHLIGHT_SOURCES = {
+    "wired_ai", "the_verge_ai", "techcrunch_ai", "mit_tech_review",
+    "venturebeat", "the_decoder", "marktechpost",
+}
 
-# 카테고리 분류 대상 소스 (Tier 1 + Tier 2 기업 블로그)
+# 카테고리 분류 대상 소스 (Tier 1 + Tier 2)
 CATEGORY_SOURCES = {
     "wired_ai", "the_verge_ai", "techcrunch_ai", "mit_tech_review",
-    "venturebeat", "deepmind_blog", "nvidia_blog", "huggingface_blog",
+    "venturebeat", "the_decoder", "marktechpost",
+    "deepmind_blog", "nvidia_blog", "huggingface_blog",
+    "arstechnica_ai", "the_rundown_ai",
 }
 
 # 소스별 섹션 (한국 소스)
@@ -201,15 +196,8 @@ SOURCE_SECTION_SOURCES = {
     "aitimes", "geeknews", "zdnet_ai_editor", "yozm_ai",
 }
 
-# 영어 소스별 섹션 (Tier 4: 개별 가로스크롤로 표시, 카테고리 분류 안 함)
-EN_SECTION_SOURCES = {
-    "the_decoder", "marktechpost", "openai_blog", "arstechnica_ai", "the_rundown_ai",
-}
-
 assert CATEGORY_SOURCES.isdisjoint(SOURCE_SECTION_SOURCES), \
     "CATEGORY_SOURCES와 SOURCE_SECTION_SOURCES는 겹치면 안 됩니다"
-assert CATEGORY_SOURCES.isdisjoint(EN_SECTION_SOURCES), \
-    "CATEGORY_SOURCES와 EN_SECTION_SOURCES는 겹치면 안 됩니다"
 
 
 # ─── 날짜 유틸 ───────────────────────────────────────────────────────────
@@ -557,15 +545,3 @@ def enrich_and_scrape(sources: dict[str, list[dict]]) -> None:
                 article["body"] = ""
 
     print(f"  [fetch] 본문 {body_found}/{len(tasks)}개, 이미지 보강 {img_enriched}개")
-
-    # default_image 적용 (og:image 차단되는 소스용)
-    default_map = {s["key"]: s["default_image"] for s in SOURCES if s.get("default_image")}
-    if default_map:
-        fallback_count = 0
-        for articles in sources.values():
-            for a in articles:
-                if not a.get("image_url") and a.get("source_key") in default_map:
-                    a["image_url"] = default_map[a["source_key"]]
-                    fallback_count += 1
-        if fallback_count:
-            print(f"  [fetch] 기본 이미지 적용 {fallback_count}개")

@@ -58,7 +58,6 @@ const SOURCE_COLORS: Record<string, string> = {
   yozm_ai: '#6366F1',
   the_decoder: '#1A1A2E',
   marktechpost: '#0D47A1',
-  openai_blog: '#10A37F',
   arstechnica_ai: '#FF4611',
   the_rundown_ai: '#6C5CE7',
 };
@@ -75,7 +74,6 @@ const SOURCE_NAMES: Record<string, string> = {
   geeknews: 'GeekNews',
   the_decoder: 'The Decoder',
   marktechpost: 'MarkTechPost',
-  openai_blog: 'OpenAI Blog',
   arstechnica_ai: 'Ars Technica AI',
   the_rundown_ai: 'The Rundown AI',
 };
@@ -96,10 +94,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 const DEFAULT_CATEGORY_ORDER = ['model_research', 'product_tools', 'industry_business'];
-const DEFAULT_SOURCE_ORDER = [
-  'aitimes', 'geeknews', 'zdnet_ai_editor', 'yozm_ai',
-  'the_decoder', 'marktechpost', 'openai_blog', 'arstechnica_ai', 'the_rundown_ai',
-];
+const DEFAULT_SOURCE_ORDER = ['aitimes', 'geeknews', 'zdnet_ai_editor', 'yozm_ai'];
 
 // ─── 헬퍼 ───────────────────────────────────────────────────────────────
 function formatDate(str?: string) {
@@ -181,10 +176,16 @@ const SourceBadge = React.memo(function SourceBadge({ sourceKey }: { sourceKey?:
 });
 
 // ─── 점수 뱃지 ─────────────────────────────────────────────────────────
-function ScoreBadge({ score }: { score?: number }) {
+function ScoreBadge({ article }: { article: Article }) {
+  const { score, score_significance: sig, score_relevance: rel, score_freshness: fresh } = article;
   if (!score) return null;
   return (
-    <Text style={{ fontSize: 11, color: '#9333EA', fontWeight: '700' }}>{score}pt</Text>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+      <Text style={{ fontSize: 11, color: '#9333EA', fontWeight: '700' }}>{score}</Text>
+      {(sig || rel || fresh) ? (
+        <Text style={{ fontSize: 9, color: '#A78BFA' }}>S{sig} R{rel} F{fresh}</Text>
+      ) : null}
+    </View>
   );
 }
 
@@ -254,7 +255,7 @@ const HighlightScrollCard = React.memo(function HighlightScrollCard({
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             <Text style={{ fontSize: 11, color: TEXT_LIGHT }}>{formatDate(article.published)}</Text>
-            <ScoreBadge score={article.score} />
+            <ScoreBadge article={article} />
           </View>
           <ArticleStats likes={likes} views={views} />
         </View>
@@ -669,7 +670,7 @@ const HScrollCard = React.memo(function HScrollCard({
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             <Text style={{ fontSize: 11, color: TEXT_LIGHT }}>{formatDate(article.published)}</Text>
-            <ScoreBadge score={article.score} />
+            <ScoreBadge article={article} />
           </View>
           <ArticleStats likes={likes} views={views} />
         </View>
@@ -786,7 +787,7 @@ function CategoryTabSection({
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <Text style={{ fontSize: 11, color: TEXT_LIGHT }}>{formatDate(a.published)}</Text>
-                    <ScoreBadge score={a.score} />
+                    <ScoreBadge article={a} />
                   </View>
                   <ArticleStats likes={stats[a.link]?.likes} views={stats[a.link]?.views} />
                 </View>
@@ -980,9 +981,29 @@ export default function NewsScreen() {
     setRefreshing(false);
   };
 
+  // ─── 정렬: 날짜 최신순, 같은 날짜면 점수 높은순 ───
+  const sortByDateThenScore = useCallback((articles: Article[]) => {
+    return [...articles].sort((a, b) => {
+      const da = new Date(a.published || 0).getTime();
+      const db = new Date(b.published || 0).getTime();
+      const dayA = Math.floor(da / 86400000);
+      const dayB = Math.floor(db / 86400000);
+      if (dayA !== dayB) return db - da;  // 날짜 최신순
+      return (b.score ?? 0) - (a.score ?? 0);  // 같은 날짜면 점수순
+    });
+  }, []);
+
   // ─── 새 구조 (3-Section) ───
-  const highlights = newsData?.highlights ?? [];
-  const categorizedArticles = newsData?.categorized_articles ?? {};
+  const rawHighlights = newsData?.highlights ?? [];
+  const highlights = React.useMemo(() => sortByDateThenScore(rawHighlights), [rawHighlights, sortByDateThenScore]);
+  const rawCategorized = newsData?.categorized_articles ?? {};
+  const categorizedArticles = React.useMemo(() => {
+    const sorted: Record<string, Article[]> = {};
+    for (const [cat, articles] of Object.entries(rawCategorized)) {
+      sorted[cat] = sortByDateThenScore(articles);
+    }
+    return sorted;
+  }, [rawCategorized, sortByDateThenScore]);
   const categoryOrder = newsData?.category_order ?? DEFAULT_CATEGORY_ORDER;
   const sourceArticles = newsData?.source_articles ?? {};
   const sourceOrder = newsData?.source_order ?? DEFAULT_SOURCE_ORDER;
