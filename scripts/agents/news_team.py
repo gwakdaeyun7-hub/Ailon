@@ -960,7 +960,7 @@ def _scorer_throttle():
         _scorer_call_ts.append(time.time())
 
 
-CLASSIFY_BATCH_SIZE = 12
+CLASSIFY_BATCH_SIZE = 6
 
 
 def _classify_batch(batch: list[dict], offset: int) -> list[dict]:
@@ -1301,9 +1301,10 @@ def scorer_node(state: NewsGraphState) -> dict:
 
                 applied = 0
                 for s in scores:
-                    local_idx = s.get("_global_idx", -1)
-                    if 0 <= local_idx < len(b_articles):
-                        unscored_local = b_indices[local_idx]
+                    global_idx = s.get("_global_idx", -1)
+                    batch_local = global_idx - b_offset
+                    if 0 <= batch_local < len(b_articles):
+                        unscored_local = b_indices[batch_local]
                         gi = unscored_indices[unscored_local]
                         candidates[gi]["_llm_category"] = cat
                         _apply_scores_to_candidate(candidates[gi], s, cat)
