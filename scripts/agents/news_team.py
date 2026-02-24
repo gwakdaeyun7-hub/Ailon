@@ -493,7 +493,7 @@ Return the indices as a JSON array:
 [0, 2, 5]"""
 
     try:
-        llm = get_llm(temperature=0.1, max_tokens=2048, thinking=False, json_mode=True)
+        llm = get_llm(temperature=0.0, max_tokens=2048, thinking=False, json_mode=True)
         content = _llm_invoke_with_retry(llm, prompt, max_retries=1)
         result = _parse_llm_json(content)
         if isinstance(result, list):
@@ -725,15 +725,15 @@ You are an AI news scoring engine. First classify each article, then score using
 - 4-7: Useful improvement, moderate community interest, specific subfield
 - 1-3: Niche/minor update, no broad relevance
 
-**adv (Advancement):** How likely is this to tangibly advance real-world life or research?
-- 9-10: Transformative enablement — directly solves a hard real-world problem or removes a major research bottleneck
-- 7-8: Strong practical uplift — clear, near-term path to improving daily life or accelerating research
-- 5-6: Moderate potential — plausible benefits but requires further steps, integration, or scaling
-- 3-4: Marginal or indirect — benefits are speculative, narrow, or far-off
-- 1-2: No tangible advancement — purely theoretical, internal tooling, or solves no real problem
-Boost for: healthcare/education/accessibility applications, open-source releases that democratize capability, tools that reduce cost or barrier to entry.
+**adv (Advancement):** How much potential does this have to improve real-world life or advance research?
+- 9-10: High-potential enablement — opens a realistic path to solving hard real-world problems, or could significantly accelerate research progress
+- 7-8: Clear improvement potential — likely to enhance daily life, lower meaningful barriers, or introduce methods/tools that push research forward
+- 5-6: Moderate potential — plausible benefits to life or research, but path is indirect, requires further validation, or depends on adoption
+- 3-4: Low potential — benefits are speculative, narrow in scope, or unlikely to materialize without major additional breakthroughs
+- 1-2: No tangible potential — purely theoretical with no foreseeable path to improving life or research
+Boost for: new research methodologies or paradigms that could unlock follow-on discoveries, tools accessible to non-experts that improve quality of life, healthcare/education/accessibility applications, open-source releases that democratize capability, anything that reduces cost or barrier to entry for broad populations.
 Penalize for: benchmark-only gains with no deployment path, improvements only relevant at extreme scale, internal infra with no external benefit.
-NOTE: Do NOT double-count industry disruption (Impact) or newness (Novelty). Advancement = real-world and research progress potential only.
+NOTE: Score based on POTENTIAL to improve life or research, not only proven results. A promising new method with clear applicability deserves a high score even before deployment. Do NOT double-count industry disruption (Impact) or newness (Novelty). Advancement = real-world and research progress potential only.
 
 ### For industry_business → use mag, sig, brd
 
@@ -800,7 +800,7 @@ def _score_batch(batch: list[dict], offset: int) -> list[dict]:
     prompt = _SCORER_PROMPT.format(article_text=article_text, count=len(batch))
     try:
         _scorer_throttle()  # 레이트리밋 방지
-        llm = get_llm(temperature=0.1, max_tokens=4096, thinking=False, json_mode=True)
+        llm = get_llm(temperature=0.0, max_tokens=4096, thinking=False, json_mode=True)
         content = _llm_invoke_with_retry(llm, prompt, max_retries=2)
         scores = _parse_llm_json(content)
         if not isinstance(scores, list):
@@ -1077,7 +1077,7 @@ Output exactly {len(articles)} items:
 [{{"i":0,"cat":"model_research"}}]"""
 
     try:
-        llm = get_llm(temperature=0.1, max_tokens=1024, thinking=False, json_mode=True)
+        llm = get_llm(temperature=0.0, max_tokens=1024, thinking=False, json_mode=True)
         content = _llm_invoke_with_retry(llm, prompt, max_retries=1)
         results = _parse_llm_json(content)
         if not isinstance(results, list):
