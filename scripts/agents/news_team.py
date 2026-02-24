@@ -369,7 +369,11 @@ def _process_articles(articles: list[dict], translate: bool, batch_size: int, ma
         }
         for future in as_completed(futures):
             batch, idx = futures[future]
-            results = future.result()
+            try:
+                results = future.result()
+            except Exception as e:
+                print(f"    [WARN] {label} 배치 {idx + 1} future 실패: {e}")
+                continue
             done = _apply_batch_results(batch, results)
             if results:
                 print(f"    {label} 배치 {idx + 1}/{len(batches)}: {done}/{len(batch)}개")
@@ -386,7 +390,11 @@ def _process_articles(articles: list[dict], translate: bool, batch_size: int, ma
             retry_ok = 0
             for future in as_completed(futures):
                 a = futures[future]
-                results = future.result()
+                try:
+                    results = future.result()
+                except Exception as e:
+                    print(f"    [WARN] {label} 개별 재시도 실패: {e}")
+                    continue
                 if _apply_batch_results([a], results):
                     retry_ok += 1
         print(f"  [재시도] {retry_ok}/{len(failed)}개 복구")
@@ -523,7 +531,12 @@ def _llm_filter_sources(sources: dict[str, list[dict]]) -> None:
     with ThreadPoolExecutor(max_workers=4) as executor:
         futures = {executor.submit(_filter_one, key, articles): key for key, articles in tasks}
         for future in as_completed(futures):
-            key, filtered, removed, today_removed, today_kept = future.result()
+            try:
+                key, filtered, removed, today_removed, today_kept = future.result()
+            except Exception as e:
+                key = futures[future]
+                print(f"    [WARN] [{key}] LLM AI 필터 future 실패: {e}")
+                continue
             sources[key] = filtered
             total_removed += removed
             total_today_removed += today_removed
@@ -548,9 +561,15 @@ def _safe_node(node_name: str):
                 result = fn(state)
             except Exception as e:
                 elapsed = time.time() - t0
+                import traceback
                 print(f"  [ERROR] {node_name} 노드 실패 ({elapsed:.1f}s): {e}")
+                traceback.print_exc()
                 result = {"errors": [f"{node_name}: {e}"]}
             elapsed = time.time() - t0
+            # 방어: 노드가 None이나 비-dict를 반환한 경우 빈 dict로 대체
+            if not isinstance(result, dict):
+                print(f"  [WARN] {node_name} 노드가 dict가 아닌 {type(result).__name__}을 반환 -> 빈 dict로 대체")
+                result = {"errors": [f"{node_name}: returned {type(result).__name__} instead of dict"]}
             print(f"  [{node_name}] {elapsed:.1f}s")
             result.setdefault("node_timings", {})
             result["node_timings"][node_name] = round(elapsed, 1)
@@ -874,14 +893,32 @@ def scorer_node(state: NewsGraphState) -> dict:
             }
             for future in as_completed(future_to_batch):
                 batch, batch_idx = future_to_batch[future]
-                scores = future.result()
+                try:
+                    scores = future.result()
+                except Exception as e:
+                    print(f"    [SCORER ERROR] 배치 {batch_idx+1} future 실패: {e}")
+                    continue
 
                 for s in scores:
-                    local_idx = s["_global_idx"]
+                    local_idx = s.get("_global_idx", -1)
                     if 0 <= local_idx < len(unscored):
                         gi = unscored_indices[local_idx]
                         cat = s.get("category", "")
                         candidates[gi]["_llm_category"] = cat
+
+                        # 카테고리에 따라 올바른 키가 있는지 확인 후 파싱
+                        # LLM이 잘못된 키를 반환한 경우 카테고리를 키 기반으로 교정
+                        has_biz_keys = any(s.get(k) is not None for k in ("mag", "sig", "brd"))
+                        has_tech_keys = any(s.get(k) is not None for k in ("nov", "imp", "apl"))
+
+                        if cat == "industry_business" and not has_biz_keys and has_tech_keys:
+                            # LLM이 biz 카테고리인데 tech 키를 반환 -> tech로 교정
+                            cat = "product_tools"
+                            candidates[gi]["_llm_category"] = cat
+                        elif cat != "industry_business" and has_biz_keys and not has_tech_keys:
+                            # LLM이 tech 카테고리인데 biz 키를 반환 -> biz로 교정
+                            cat = "industry_business"
+                            candidates[gi]["_llm_category"] = cat
 
                         if cat == "industry_business":
                             mag = min(10, max(1, s.get("mag", 5)))
@@ -890,6 +927,9 @@ def scorer_node(state: NewsGraphState) -> dict:
                             candidates[gi]["_score_market"] = mag
                             candidates[gi]["_score_signal"] = sig
                             candidates[gi]["_score_breadth"] = brd
+                            candidates[gi]["_score_novelty"] = 0
+                            candidates[gi]["_score_impact"] = 0
+                            candidates[gi]["_score_appeal"] = 0
                             candidates[gi]["_total_score"] = (
                                 mag * W_MARKET + sig * W_SIGNAL + brd * W_BREADTH
                             )
@@ -900,6 +940,9 @@ def scorer_node(state: NewsGraphState) -> dict:
                             candidates[gi]["_score_novelty"] = novelty
                             candidates[gi]["_score_impact"] = impact
                             candidates[gi]["_score_appeal"] = appeal
+                            candidates[gi]["_score_market"] = 0
+                            candidates[gi]["_score_signal"] = 0
+                            candidates[gi]["_score_breadth"] = 0
                             candidates[gi]["_total_score"] = (
                                 novelty * W_NOVELTY
                                 + impact * W_IMPACT
@@ -911,11 +954,15 @@ def scorer_node(state: NewsGraphState) -> dict:
                 print(f"    배치 {batch_idx+1}/{len(batches)}: {scored}/{len(batch)}개")
 
     # 폴백: 미평가 기사에 낮은 기본 점수 (LLM 평가 기사 우선)
+    # 카테고리 무관하게 tech 기본 점수 사용 (총점 동일: 3*4+3*3+3*3 = 30)
     for c in candidates:
         if "_total_score" not in c:
             c["_score_novelty"] = 3
             c["_score_impact"] = 3
             c["_score_appeal"] = 3
+            c["_score_market"] = 0
+            c["_score_signal"] = 0
+            c["_score_breadth"] = 0
             c["_llm_category"] = ""
             c["_total_score"] = 3 * W_NOVELTY + 3 * W_IMPACT + 3 * W_APPEAL
 
