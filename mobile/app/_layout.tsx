@@ -6,11 +6,14 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { DrawerProvider } from '@/context/DrawerContext';
 import { LanguageProvider } from '@/context/LanguageContext';
 import { SideDrawer } from '@/components/shared/SideDrawer';
+import { useNotifications } from '@/hooks/useNotifications';
 import '../global.css';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  useNotifications();
+
   useEffect(() => {
     SplashScreen.hideAsync();
   }, []);

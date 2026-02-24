@@ -85,6 +85,16 @@ const translations: Record<string, Record<Language, string>> = {
   'profile.language': { ko: '언어', en: 'Language' },
   'profile.error': { ko: '오류', en: 'Error' },
 
+  // ─── 알림 설정 ───
+  'notification.title': { ko: '알림 설정', en: 'Notifications' },
+  'notification.news_alerts': { ko: '뉴스 알림', en: 'News Alerts' },
+  'notification.comment_replies': { ko: '댓글 답글 알림', en: 'Comment Replies' },
+  'notification.likes': { ko: '좋아요 알림', en: 'Like Notifications' },
+  'notification.enable': { ko: '알림 활성화', en: 'Enable Notifications' },
+  'notification.enable_desc': { ko: '푸시 알림을 받으려면 권한을 허용해주세요', en: 'Allow permissions to receive push notifications' },
+  'notification.denied': { ko: '알림이 차단되어 있어요', en: 'Notifications are blocked' },
+  'notification.open_settings': { ko: '설정에서 알림 켜기', en: 'Open Settings' },
+
   // ─── 저장 화면 ───
   'saved.title': { ko: '저장한 항목', en: 'Saved Items' },
   'saved.total': { ko: '개 저장됨', en: ' saved' },

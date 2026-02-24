@@ -37,7 +37,7 @@ interface UseReactionsReturn {
   toggleDislike: () => Promise<void>;
 }
 
-export function useReactions(itemType: ItemType, itemId: string): UseReactionsReturn {
+export function useReactions(itemType: ItemType, itemId: string, contentAuthorUid?: string): UseReactionsReturn {
   const { user } = useAuth();
   const [data, setData] = useState<ReactionData>({ likes: 0, likedBy: [], dislikes: 0, dislikedBy: [] });
 
@@ -79,15 +79,19 @@ export function useReactions(itemType: ItemType, itemId: string): UseReactionsRe
       // 좋아요 누르면 싫어요 자동 해제
       const newDislikedBy = cur.dislikedBy.filter((id) => id !== user.uid);
 
-      tx.set(ref, {
+      const update: Record<string, any> = {
         likes: newLikedBy.length,
         likedBy: newLikedBy,
         dislikes: newDislikedBy.length,
         dislikedBy: newDislikedBy,
-      }, { merge: true });
+      };
+      // 좋아요 알림용 콘텐츠 작성자 UID (최초 1회만 기록)
+      if (contentAuthorUid && !snap.exists()) update.contentAuthorUid = contentAuthorUid;
+
+      tx.set(ref, update, { merge: true });
     });
     return 'done';
-  }, [user, docId]);
+  }, [user, docId, contentAuthorUid]);
 
   const toggleDislike = useCallback(async () => {
     if (!user) return;

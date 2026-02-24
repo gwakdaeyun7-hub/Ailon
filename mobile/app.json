@@ -32,7 +32,8 @@
       "expo-router",
       "expo-asset",
       "expo-dev-client",
-      "@react-native-google-signin/google-signin"
+      "@react-native-google-signin/google-signin",
+      ["expo-notifications", { "color": "#E53935" }]
     ],
     "scheme": "ailon",
     "extra": {
