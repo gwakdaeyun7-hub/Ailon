@@ -706,49 +706,78 @@ W_MARKET = 4        # 시장 규모 (industry_business)
 W_SIGNAL = 3        # 전략적 시그널 (industry_business)
 W_BREADTH = 3       # 이해관계자 범위 (industry_business)
 SCORER_BATCH_SIZE = 5
+VALID_CATEGORIES = {"research", "models_products", "industry_business"}
 
-_SCORER_PROMPT = """Output ONLY a single-line compact JSON array with NO extra whitespace, NO newlines between items, NO markdown fences. Start directly with '[' and end with ']'.
-CRITICAL: All objects on ONE line. Example: [{{"i":0,...}},{{"i":1,...}}]
+# --- 분류 전용 프롬프트 (classification only) ---
+_CLASSIFY_PROMPT = """Output ONLY a JSON array. No markdown, no explanation. Start with '['.
 
-You are an AI news scoring engine. First classify each article, then score using the criteria for that category. Use ONLY the provided title and description.
+Classify each article into exactly ONE category: research, models_products, industry_business.
 
-## Step 1: Category (pick one)
-Core question: "Can a user USE this right now?" — if the article is about technology:
-  YES (usable/downloadable/integratable) → models_products
-  NO (paper/theory/benchmark with no release) → research
-  Not about technology → industry_business
+## Decision tree (follow top-to-bottom, stop at first match)
 
-- "research": PURE RESEARCH — papers, benchmarks, theory, academic results that users CANNOT directly use yet.
-  Core question: "Is this about advancing scientific understanding, without a usable artifact?"
-  Includes: research papers, benchmark studies, theoretical breakthroughs, novel algorithms (paper-only), dataset contributions (academic), scaling law analyses, survey papers, academic competition results.
-  YES examples: "DeepMind paper: new diffusion architecture beats SOTA", "Scaling laws study reveals emergent abilities at 10B params", "New MMLU benchmark results comparing 20 models"
-  NO examples: "Meta releases Llama 4 open-weights" (downloadable model → models_products), "OpenAI raises $6B" (business → industry_business)
+1. Is the article primarily about MONEY, DEALS, CORPORATE STRATEGY, REGULATION, or MARKET DYNAMICS?
+   → industry_business
+   Signal words: raises/funding/투자/인수/M&A, revenue/earnings/실적, IPO, regulation/규제, partnership/제휴, layoffs/해고, exec hire, market entry/시장 진출, acquisition/인수합병, valuation/기업가치, antitrust/독점, event/conference ticket/행사
 
-- "models_products": MODELS + PRODUCTS + TOOLS — everything a user can USE, DOWNLOAD, or INTEGRATE right now.
-  Core question: "Can someone go use, download, or integrate this today (or soon)?"
-  Includes: model releases (open-weight or API), product launches, feature updates, API services, SDKs, frameworks, developer tools, platform integrations, app releases, open-source library releases, fine-tuned model releases.
-  YES examples: "Meta releases Llama 4 open-weights model", "Cursor adds AI code review", "ChatGPT gets memory feature", "LangChain 0.3 released", "GitHub Copilot now supports Rust"
-  NO examples: "Novel attention mechanism paper" (paper-only → research), "Anthropic raises $2B" (business → industry_business)
+2. Does the article describe something a user can USE, DOWNLOAD, or ACCESS right now (or imminently)?
+   → models_products
+   Signal words: releases/출시/공개, launches/런칭, open-source/오픈소스, API available, download, update/업데이트, new feature/신기능, SDK, framework, app, tool, platform, weights released, fine-tuned model
 
-- "industry_business": MONEY, POWER, OR MARKET DYNAMICS — organizational and economic events.
-  Core question: "Is this primarily about who owns what, who pays whom, or how markets/regulations shift?"
-  Includes: funding rounds, M&A, IPOs, earnings reports, layoffs, executive changes, partnerships, government regulation, antitrust actions, market analysis, corporate strategy.
-  YES examples: "Anthropic raises $2B Series C", "EU AI Act enforcement begins", "NVIDIA reports record $35B revenue", "Google acquires AI startup for $500M"
-  NO examples: "Anthropic releases Claude 4" (usable model → models_products), "New attention paper from Google" (research → research)
+3. Everything else (papers, benchmarks, theory, algorithms without released artifact)
+   → research
+   Signal words: paper/논문, study/연구, benchmark, SOTA, architecture proposed, scaling law, survey, dataset (academic), novel method, theoretical
 
-Tiebreak rules (apply in order when an article spans multiple categories):
-1. research vs models_products — apply the core test: "Can a user use it now?" Paper + code release → models_products. Paper only → research.
-2. Model announcement + API access → models_products (users can access it)
-3. Open-source model release → models_products (downloadable artifact is the news)
-4. Paper with no released artifact → research (even if from a major lab)
-5. Existing product adds new AI capabilities → models_products (the product update is the news)
-6. New model + funding in same article → decide by the TITLE focus: if title emphasizes model/capability → models_products; if title emphasizes deal/amount → industry_business
-7. Acquisition of an AI company → industry_business (the deal is the news)
-8. Still ambiguous → choose the category whose scoring dimensions would produce MORE meaningful differentiation
+## Contrast examples (title → category, WHY)
 
-## Step 2: Score by category (each 1-10, integers only)
+"OpenAI, GPT-5.2로 입자 물리학 난제 해결" → research (used a model FOR research, no product release)
+"Guide Labs, Steerling-8B 오픈소스 공개" → models_products (오픈소스 공개 = downloadable release)
+"ByteDance AI, Long CoT 연구 발표" → research (연구 발표 = research publication, no usable artifact)
+"OpenAI와 Jony Ive, 하드웨어 시장 진출" → industry_business (시장 진출 = market entry, corporate strategy)
+"TechCrunch Disrupt 2026 티켓" → industry_business (event/conference = market dynamics)
+"DeepMind paper: new diffusion architecture beats SOTA" → research (paper, no release)
+"Meta releases Llama 4 open-weights" → models_products (downloadable model)
+"Anthropic raises $2B Series C" → industry_business (funding round)
+"ChatGPT gets memory feature" → models_products (product feature update)
+"EU AI Act enforcement begins" → industry_business (regulation)
+"Scaling laws study on emergent abilities" → research (study, no artifact)
+"LangChain 0.3 released" → models_products (framework release)
+"NVIDIA reports record $35B revenue" → industry_business (earnings)
+"Google acquires AI startup for $500M" → industry_business (acquisition)
 
-### For research → use rig, nov, pot
+## Tiebreak rules (apply in order)
+1. Company name in title does NOT determine category. Focus on WHAT happened, not WHO did it.
+2. "Company X uses AI model to solve Y" → research (the FINDING is the news, not a product)
+3. Paper + code/model release → models_products (usable artifact exists)
+4. Paper only → research (even from a top lab)
+5. Model announcement + API access → models_products
+6. Title mentions deal amount/funding → industry_business
+7. Title mentions release/launch/open-source → models_products
+8. Still ambiguous → industry_business (safe default for non-technical content)
+
+Articles:
+{article_text}
+
+Output exactly {count} items:
+[{{"i":0,"cat":"research"}},{{"i":1,"cat":"models_products"}},{{"i":2,"cat":"industry_business"}}]"""
+
+# --- 스코어링 전용 프롬프트 (scoring only, category pre-assigned) ---
+_SCORE_PROMPT = """Output ONLY a single-line compact JSON array. No markdown, no explanation. Start with '['.
+
+Score each article on its ASSIGNED category dimensions (1-10 integers). Use ONLY the provided text. If vague, score conservatively. Use the FULL 1-10 range; avoid clustering around 5-6.
+
+{scoring_rubric}
+
+## Calibration
+{calibration_examples}
+
+Articles:
+{article_text}
+
+Output exactly {count} items as a single-line compact JSON array:
+{output_example}"""
+
+# --- 카테고리별 스코어링 루브릭 ---
+_RUBRIC_RESEARCH = """### Category: research → score rig, nov, pot
 
 **rig (Rigor):** How methodologically sound and well-evidenced is this research?
 - 10: Landmark paper with comprehensive experiments, ablations, multi-dataset validation, and formal proofs where applicable (e.g., "Attention Is All You Need" level)
@@ -791,9 +820,9 @@ NOTE: Judge novelty of the METHOD, not the result. A known method achieving a ne
 - 2: Dead-end or highly constrained; unlikely to lead anywhere new
 - 1: No foreseeable research impact
 Boost for: general-purpose methods applicable across domains, work that removes key bottlenecks, results that challenge prevailing assumptions.
-Penalize for: task-specific solutions with no generalization path, improvements only at extreme scale, results dependent on proprietary data/compute.
+Penalize for: task-specific solutions with no generalization path, improvements only at extreme scale, results dependent on proprietary data/compute."""
 
-### For models_products → use uti, imp, acc
+_RUBRIC_MODELS_PRODUCTS = """### Category: models_products → score uti, imp, acc
 
 **uti (Utility):** How practically useful is this for real users right now?
 - 10: Transforms a major workflow for millions of users (e.g., ChatGPT-level impact on daily work)
@@ -835,9 +864,9 @@ Penalize for: me-too product in crowded space, improvement too small to change u
 - 2: Effectively inaccessible to most; requires top-tier compute or special agreements
 - 1: Not yet available; announced but no access path exists
 Boost for: open-source with permissive license, free tier available, cross-platform support, active community.
-Penalize for: closed-source with no API, prohibitive pricing, requires cutting-edge GPU, vendor lock-in.
+Penalize for: closed-source with no API, prohibitive pricing, requires cutting-edge GPU, vendor lock-in."""
 
-### For industry_business → use mag, sig, brd
+_RUBRIC_INDUSTRY_BUSINESS = """### Category: industry_business → score mag, sig, brd
 
 **mag (Magnitude):** Scale of the event.
 - 10: $50B+ deal or event reshaping the global tech economy (e.g., mega-merger of top AI companies)
@@ -879,26 +908,38 @@ Penalize for: expected moves already priced in, copycat strategies, announcement
 - 2: Single company and its immediate stakeholders
 - 1: Internal to one organization; no external impact
 Boost for: cross-industry effects, impacts on open-source community, effects on AI talent market.
-Penalize for: single geography with no global relevance, single vertical with no spillover.
+Penalize for: single geography with no global relevance, single vertical with no spillover."""
 
-## Rules
-- AVOID middle-ground clustering. Use the full 1-10 range.
-- Score ONLY from provided text. If vague, score conservatively.
+# 카테고리 → 루브릭 매핑
+_RUBRIC_MAP = {
+    "research": _RUBRIC_RESEARCH,
+    "models_products": _RUBRIC_MODELS_PRODUCTS,
+    "industry_business": _RUBRIC_INDUSTRY_BUSINESS,
+}
 
-## Calibration
-"DeepMind paper: new diffusion architecture beats SOTA on 5 benchmarks" → {{"i":0,"category":"research","rig":8,"nov":8,"pot":7}}
-"Survey paper comparing 30 LLMs on reasoning tasks" → {{"i":1,"category":"research","rig":7,"nov":2,"pot":3}}
-"Meta releases Llama 4 open-weights model with 1T parameters" → {{"i":2,"category":"models_products","uti":9,"imp":9,"acc":9}}
-"ChatGPT gets memory feature for persistent context" → {{"i":3,"category":"models_products","uti":7,"imp":6,"acc":8}}
-"MLflow 2.16 released with improved artifact storage" → {{"i":4,"category":"models_products","uti":4,"imp":2,"acc":8}}
-"NVIDIA reports record $35B quarterly revenue" → {{"i":5,"category":"industry_business","mag":9,"sig":9,"brd":9}}
-"AI startup raises $8M seed round" → {{"i":6,"category":"industry_business","mag":2,"sig":2,"brd":1}}
+# 카테고리별 캘리브레이션 예시
+_CALIBRATION_MAP = {
+    "research": (
+        '"DeepMind paper: new diffusion architecture beats SOTA on 5 benchmarks" → {{"i":0,"rig":8,"nov":8,"pot":7}}\n'
+        '"Survey paper comparing 30 LLMs on reasoning tasks" → {{"i":1,"rig":7,"nov":2,"pot":3}}'
+    ),
+    "models_products": (
+        '"Meta releases Llama 4 open-weights model with 1T parameters" → {{"i":0,"uti":9,"imp":9,"acc":9}}\n'
+        '"ChatGPT gets memory feature for persistent context" → {{"i":1,"uti":7,"imp":6,"acc":8}}\n'
+        '"MLflow 2.16 released with improved artifact storage" → {{"i":2,"uti":4,"imp":2,"acc":8}}'
+    ),
+    "industry_business": (
+        '"NVIDIA reports record $35B quarterly revenue" → {{"i":0,"mag":9,"sig":9,"brd":9}}\n'
+        '"AI startup raises $8M seed round" → {{"i":1,"mag":2,"sig":2,"brd":1}}'
+    ),
+}
 
-Articles:
-{article_text}
-
-Output exactly {count} items as a single-line compact JSON array (no pretty-printing). Use rig/nov/pot for research. Use uti/imp/acc for models_products. Use mag/sig/brd for industry_business.
-[{{"i":0,"category":"research","rig":7,"nov":6,"pot":5}},{{"i":1,"category":"models_products","uti":8,"imp":7,"acc":6}},{{"i":2,"category":"industry_business","mag":4,"sig":3,"brd":5}}]"""
+# 카테고리별 출력 예시
+_OUTPUT_EXAMPLE_MAP = {
+    "research": '[{{"i":0,"rig":7,"nov":6,"pot":5}},{{"i":1,"rig":8,"nov":4,"pot":6}}]',
+    "models_products": '[{{"i":0,"uti":8,"imp":7,"acc":6}},{{"i":1,"uti":5,"imp":3,"acc":9}}]',
+    "industry_business": '[{{"i":0,"mag":4,"sig":3,"brd":5}},{{"i":1,"mag":7,"sig":6,"brd":8}}]',
+}
 
 
 _scorer_lock = __import__("threading").Lock()
@@ -919,7 +960,105 @@ def _scorer_throttle():
         _scorer_call_ts.append(time.time())
 
 
-def _score_batch(batch: list[dict], offset: int) -> list[dict]:
+CLASSIFY_BATCH_SIZE = 12
+
+
+def _classify_batch(batch: list[dict], offset: int) -> list[dict]:
+    """분류 전용 LLM 호출. 각 기사의 카테고리를 결정하여 반환.
+
+    Returns list of dicts with keys: _global_idx, cat
+    """
+    article_text = ""
+    for i, a in enumerate(batch):
+        title = a.get("display_title") or a.get("title", "")
+        body = a.get("body", "")
+        context = body[:500] if body else (a.get("description", "") or "")[:200]
+        article_text += f"\n[{i}] {title} | {context}"
+
+    prompt = _CLASSIFY_PROMPT.format(article_text=article_text, count=len(batch))
+    try:
+        _scorer_throttle()
+        llm = get_llm(temperature=0.0, max_tokens=2048, thinking=False, json_mode=True)
+        content = _llm_invoke_with_retry(llm, prompt, max_retries=2)
+        results = _parse_llm_json(content)
+        if not isinstance(results, list):
+            results = next((v for v in results.values() if isinstance(v, list)), [])
+
+        if not results:
+            preview = str(content)[:150] if content else "EMPTY"
+            print(f"    [CLASSIFY 빈 응답] offset={offset}, size={len(batch)}, raw={preview}")
+            return []
+
+        valid = []
+        for r in results:
+            if not isinstance(r, dict):
+                continue
+            raw_idx = r.get("i", r.get("index", -1))
+            try:
+                idx = int(raw_idx)
+            except (ValueError, TypeError):
+                continue
+            cat = r.get("cat", "")
+            if 0 <= idx < len(batch) and cat in VALID_CATEGORIES:
+                valid.append({"_global_idx": offset + idx, "cat": cat})
+
+        # 폴백: "i" 필드 없지만 개수가 맞으면 순서대로 매핑
+        if not valid:
+            dicts_only = [r for r in results if isinstance(r, dict)]
+            if len(dicts_only) == len(batch):
+                print(f"    [CLASSIFY 폴백] i값 없음 → 순서 매핑 (offset={offset}, {len(batch)}개)")
+                for idx, r in enumerate(dicts_only):
+                    cat = r.get("cat", "")
+                    if cat in VALID_CATEGORIES:
+                        valid.append({"_global_idx": offset + idx, "cat": cat})
+
+        if len(valid) < len(batch):
+            print(f"    [CLASSIFY 진단] offset={offset}, 요청={len(batch)}개, 유효={len(valid)}개")
+        return valid
+    except Exception as e:
+        print(f"    [CLASSIFY ERROR] 배치 offset={offset}, size={len(batch)}: {type(e).__name__}: {e}")
+        return []
+
+
+def _classify_batch_with_retry(batch: list[dict], offset: int) -> list[dict]:
+    """분류 배치 재시도: 실패 시 배치 분할."""
+    results = _classify_batch(batch, offset)
+    if not results:
+        if len(batch) <= 1:
+            return []
+        mid = len(batch) // 2
+        print(f"    [CLASSIFY RETRY] 배치 분할: {len(batch)}개 -> {mid} + {len(batch) - mid}")
+        left = _classify_batch(batch[:mid], offset)
+        right = _classify_batch(batch[mid:], offset + mid)
+        results = left + right
+    # 부분 누락 개별 재시도
+    if 0 < len(results) < len(batch):
+        classified_offsets = {r["_global_idx"] for r in results}
+        missing = [(i, batch[i]) for i in range(len(batch)) if (offset + i) not in classified_offsets]
+        if missing:
+            print(f"    [CLASSIFY RETRY] 부분 누락 {len(missing)}개 개별 재시도")
+            for mi, article in missing:
+                single = _classify_batch([article], offset + mi)
+                results.extend(single)
+    return results
+
+
+def _score_batch(batch: list[dict], offset: int, category: str = "") -> list[dict]:
+    """스코어링 전용 LLM 호출. 카테고리가 확정된 기사 배치를 받아 점수만 반환.
+
+    Args:
+        batch: 기사 리스트 (모두 같은 카테고리)
+        offset: 글로벌 인덱스 오프셋
+        category: 확정된 카테고리 (research / models_products / industry_business)
+    """
+    if not category:
+        print(f"    [SCORER ERROR] category 미지정, offset={offset}")
+        return []
+
+    scoring_rubric = _RUBRIC_MAP.get(category, _RUBRIC_MAP["models_products"])
+    calibration_examples = _CALIBRATION_MAP.get(category, _CALIBRATION_MAP["models_products"])
+    output_example = _OUTPUT_EXAMPLE_MAP.get(category, _OUTPUT_EXAMPLE_MAP["models_products"])
+
     article_text = ""
     for i, a in enumerate(batch):
         title = a.get("display_title") or a.get("title", "")
@@ -927,7 +1066,13 @@ def _score_batch(batch: list[dict], offset: int) -> list[dict]:
         context = body[:500] if body else a.get("description", "")[:200]
         article_text += f"\n[{i}] {title} | {context}"
 
-    prompt = _SCORER_PROMPT.format(article_text=article_text, count=len(batch))
+    prompt = _SCORE_PROMPT.format(
+        scoring_rubric=scoring_rubric,
+        calibration_examples=calibration_examples,
+        article_text=article_text,
+        count=len(batch),
+        output_example=output_example,
+    )
     try:
         _scorer_throttle()  # 레이트리밋 방지
         llm = get_llm(temperature=0.0, max_tokens=4096, thinking=False, json_mode=True)
@@ -939,7 +1084,7 @@ def _score_batch(batch: list[dict], offset: int) -> list[dict]:
         # 빈 응답 진단 (레이트리밋으로 [] 또는 {} 반환 시)
         if not scores:
             preview = str(content)[:150] if content else "EMPTY"
-            print(f"    [SCORER 빈 응답] offset={offset}, size={len(batch)}, raw={preview}")
+            print(f"    [SCORER 빈 응답] offset={offset}, cat={category}, size={len(batch)}, raw={preview}")
             return []
 
         for s in scores:
@@ -961,22 +1106,23 @@ def _score_batch(batch: list[dict], offset: int) -> list[dict]:
 
         if len(valid) < len(batch):
             raw_indices = [s.get("i", s.get("index", "MISSING")) for s in scores if isinstance(s, dict)]
-            print(f"    [SCORER 진단] offset={offset}, 요청={len(batch)}개, 파싱={len(scores)}개, 유효={len(valid)}개, i값={raw_indices}")
+            print(f"    [SCORER 진단] offset={offset}, cat={category}, 요청={len(batch)}개, 파싱={len(scores)}개, 유효={len(valid)}개, i값={raw_indices}")
         return valid
     except Exception as e:
-        print(f"    [SCORER ERROR] 배치 offset={offset}, size={len(batch)}: {type(e).__name__}: {e}")
+        print(f"    [SCORER ERROR] 배치 offset={offset}, cat={category}, size={len(batch)}: {type(e).__name__}: {e}")
         return []
 
 
-def _score_batch_with_retry(batch: list[dict], offset: int) -> list[dict]:
-    scores = _score_batch(batch, offset)
+def _score_batch_with_retry(batch: list[dict], offset: int, category: str = "") -> list[dict]:
+    """스코어링 배치 재시도: 실패 시 배치 분할."""
+    scores = _score_batch(batch, offset, category)
     if not scores:
         if len(batch) <= 1:
             return []
         mid = len(batch) // 2
         print(f"    [RETRY] 배치 분할: {len(batch)}개 -> {mid} + {len(batch) - mid}")
-        left = _score_batch(batch[:mid], offset)
-        right = _score_batch(batch[mid:], offset + mid)
+        left = _score_batch(batch[:mid], offset, category)
+        right = _score_batch(batch[mid:], offset + mid, category)
         scores = left + right
     # 부분 성공: 누락된 기사 개별 재시도
     if 0 < len(scores) < len(batch):
@@ -985,14 +1131,58 @@ def _score_batch_with_retry(batch: list[dict], offset: int) -> list[dict]:
         if missing:
             print(f"    [RETRY] 부분 누락 {len(missing)}개 개별 재시도")
             for mi, article in missing:
-                single = _score_batch([article], offset + mi)
+                single = _score_batch([article], offset + mi, category)
                 scores.extend(single)
     return scores
 
 
+def _apply_scores_to_candidate(candidate: dict, score_dict: dict, category: str) -> None:
+    """스코어링 결과를 기사 dict에 적용. 카테고리에 맞는 점수만 설정."""
+    # 모든 점수 필드 초기화
+    candidate["_score_rigor"] = 0
+    candidate["_score_novelty"] = 0
+    candidate["_score_potential"] = 0
+    candidate["_score_utility"] = 0
+    candidate["_score_impact"] = 0
+    candidate["_score_access"] = 0
+    candidate["_score_market"] = 0
+    candidate["_score_signal"] = 0
+    candidate["_score_breadth"] = 0
+
+    if category == "industry_business":
+        mag = min(10, max(1, score_dict.get("mag", 5)))
+        sig = min(10, max(1, score_dict.get("sig", 5)))
+        brd = min(10, max(1, score_dict.get("brd", 5)))
+        candidate["_score_market"] = mag
+        candidate["_score_signal"] = sig
+        candidate["_score_breadth"] = brd
+        candidate["_total_score"] = mag * W_MARKET + sig * W_SIGNAL + brd * W_BREADTH
+    elif category == "research":
+        rigor = min(10, max(1, score_dict.get("rig", 5)))
+        novelty = min(10, max(1, score_dict.get("nov", 5)))
+        potential = min(10, max(1, score_dict.get("pot", 5)))
+        candidate["_score_rigor"] = rigor
+        candidate["_score_novelty"] = novelty
+        candidate["_score_potential"] = potential
+        candidate["_total_score"] = rigor * W_RIGOR + novelty * W_NOVELTY + potential * W_POTENTIAL
+    else:  # models_products
+        utility = min(10, max(1, score_dict.get("uti", 5)))
+        impact = min(10, max(1, score_dict.get("imp", 5)))
+        access = min(10, max(1, score_dict.get("acc", 5)))
+        candidate["_score_utility"] = utility
+        candidate["_score_impact"] = impact
+        candidate["_score_access"] = access
+        candidate["_total_score"] = utility * W_UTILITY + impact * W_IMPACT + access * W_ACCESS
+    candidate["_llm_scored"] = True
+
+
 @_safe_node("scorer")
 def scorer_node(state: NewsGraphState) -> dict:
-    """CATEGORY_SOURCES(Tier 1+2) 기사 3차원 점수 부여 (병렬 배치)"""
+    """분류 → 스코어링 2단계 파이프라인.
+
+    Step 1: _classify_batch로 카테고리 분류 (병렬)
+    Step 2: 카테고리별 그룹화 후 _score_batch로 스코어링 (병렬)
+    """
     retry_count = state.get("scorer_retry_count", 0)
 
     if retry_count == 0:
@@ -1023,111 +1213,103 @@ def scorer_node(state: NewsGraphState) -> dict:
 
     if unscored:
         unscored.sort(key=lambda a: (a.get("link", ""), a.get("title", "")))
-        batch_size = SCORER_BATCH_SIZE if retry_count == 0 else max(2, SCORER_BATCH_SIZE // 2)
-        batches = [unscored[i:i + batch_size] for i in range(0, len(unscored), batch_size)]
 
-        # 병렬 스코어링 (throttle로 Gemini 레이트리밋 방지)
+        # ── Step 1: 분류 (병렬 배치) ──
+        # 이미 카테고리가 있는 기사는 분류 건너뜀
+        need_classify = [(i, a) for i, a in enumerate(unscored) if not a.get("_llm_category")]
+        already_classified = sum(1 for a in unscored if a.get("_llm_category"))
+        if already_classified:
+            print(f"    [분류] {already_classified}개 이미 분류됨, {len(need_classify)}개 분류 필요")
+
+        if need_classify:
+            classify_articles = [a for _, a in need_classify]
+            classify_offsets = [i for i, _ in need_classify]
+            cls_batch_size = CLASSIFY_BATCH_SIZE
+            cls_batches = [classify_articles[i:i + cls_batch_size] for i in range(0, len(classify_articles), cls_batch_size)]
+            print(f"    [분류] {len(classify_articles)}개 → {len(cls_batches)}개 배치 (배치 크기 {cls_batch_size})")
+
+            with ThreadPoolExecutor(max_workers=3) as executor:
+                future_to_cls = {
+                    executor.submit(_classify_batch_with_retry, batch, idx * cls_batch_size): (batch, idx)
+                    for idx, batch in enumerate(cls_batches)
+                }
+                cls_results: list[dict] = []
+                for future in as_completed(future_to_cls):
+                    batch, batch_idx = future_to_cls[future]
+                    try:
+                        results = future.result()
+                        cls_results.extend(results)
+                    except Exception as e:
+                        print(f"    [CLASSIFY ERROR] 배치 {batch_idx+1} future 실패: {e}")
+
+                # 분류 결과를 unscored 기사에 적용
+                for r in cls_results:
+                    local_idx = r["_global_idx"]
+                    if 0 <= local_idx < len(classify_articles):
+                        original_idx = classify_offsets[local_idx]
+                        unscored[original_idx]["_llm_category"] = r["cat"]
+
+            classified = sum(1 for a in unscored if a.get("_llm_category"))
+            print(f"    [분류] 완료: {classified}/{len(unscored)}개 분류됨")
+
+        # 미분류 기사에 기본 카테고리 부여
+        for a in unscored:
+            if not a.get("_llm_category") or a["_llm_category"] not in VALID_CATEGORIES:
+                a["_llm_category"] = "models_products"
+
+        # ── Step 2: 카테고리별 그룹화 ──
+        cat_groups: dict[str, list[tuple[int, dict]]] = {cat: [] for cat in VALID_CATEGORIES}
+        for i, a in enumerate(unscored):
+            cat = a["_llm_category"]
+            cat_groups[cat].append((i, a))
+
+        for cat, group in cat_groups.items():
+            print(f"    [그룹] {cat}: {len(group)}개")
+
+        # ── Step 3: 카테고리별 스코어링 (병렬 배치) ──
+        batch_size = SCORER_BATCH_SIZE if retry_count == 0 else max(2, SCORER_BATCH_SIZE // 2)
+
+        # 모든 카테고리의 배치를 평탄화하여 병렬 제출
+        all_score_tasks: list[tuple[list[dict], list[int], int, str]] = []  # (batch_articles, batch_local_indices, offset, category)
+        for cat, group in cat_groups.items():
+            if not group:
+                continue
+            group_articles = [a for _, a in group]
+            group_local_indices = [i for i, _ in group]
+            for b_start in range(0, len(group_articles), batch_size):
+                b_articles = group_articles[b_start:b_start + batch_size]
+                b_indices = group_local_indices[b_start:b_start + batch_size]
+                all_score_tasks.append((b_articles, b_indices, b_start, cat))
+
+        print(f"    [스코어링] {len(all_score_tasks)}개 배치 병렬 실행")
+
         with ThreadPoolExecutor(max_workers=3) as executor:
-            future_to_batch = {
-                executor.submit(_score_batch_with_retry, batch, idx * batch_size): (batch, idx)
-                for idx, batch in enumerate(batches)
+            future_to_score = {
+                executor.submit(_score_batch_with_retry, task[0], task[2], task[3]): task
+                for task in all_score_tasks
             }
-            for future in as_completed(future_to_batch):
-                batch, batch_idx = future_to_batch[future]
+            batch_done = 0
+            for future in as_completed(future_to_score):
+                task = future_to_score[future]
+                b_articles, b_indices, b_offset, cat = task
+                batch_done += 1
                 try:
                     scores = future.result()
                 except Exception as e:
-                    print(f"    [SCORER ERROR] 배치 {batch_idx+1} future 실패: {e}")
+                    print(f"    [SCORER ERROR] {cat} 배치 future 실패: {e}")
                     continue
 
+                applied = 0
                 for s in scores:
                     local_idx = s.get("_global_idx", -1)
-                    if 0 <= local_idx < len(unscored):
-                        gi = unscored_indices[local_idx]
-                        cat = s.get("category", "")
+                    if 0 <= local_idx < len(b_articles):
+                        unscored_local = b_indices[local_idx]
+                        gi = unscored_indices[unscored_local]
                         candidates[gi]["_llm_category"] = cat
+                        _apply_scores_to_candidate(candidates[gi], s, cat)
+                        applied += 1
 
-                        # 카테고리에 따라 올바른 키가 있는지 확인 후 파싱
-                        # LLM이 잘못된 키를 반환한 경우 카테고리를 키 기반으로 교정
-                        has_biz_keys = any(s.get(k) is not None for k in ("mag", "sig", "brd"))
-                        has_research_keys = any(s.get(k) is not None for k in ("rig", "nov", "pot"))
-                        has_mp_keys = any(s.get(k) is not None for k in ("uti", "imp", "acc"))
-
-                        if cat == "industry_business" and not has_biz_keys:
-                            if has_research_keys:
-                                cat = "research"
-                            elif has_mp_keys:
-                                cat = "models_products"
-                            candidates[gi]["_llm_category"] = cat
-                        elif cat == "research" and not has_research_keys:
-                            if has_biz_keys:
-                                cat = "industry_business"
-                            elif has_mp_keys:
-                                cat = "models_products"
-                            candidates[gi]["_llm_category"] = cat
-                        elif cat == "models_products" and not has_mp_keys:
-                            if has_biz_keys:
-                                cat = "industry_business"
-                            elif has_research_keys:
-                                cat = "research"
-                            candidates[gi]["_llm_category"] = cat
-
-                        if cat == "industry_business":
-                            mag = min(10, max(1, s.get("mag", 5)))
-                            sig = min(10, max(1, s.get("sig", 5)))
-                            brd = min(10, max(1, s.get("brd", 5)))
-                            candidates[gi]["_score_market"] = mag
-                            candidates[gi]["_score_signal"] = sig
-                            candidates[gi]["_score_breadth"] = brd
-                            candidates[gi]["_score_rigor"] = 0
-                            candidates[gi]["_score_novelty"] = 0
-                            candidates[gi]["_score_potential"] = 0
-                            candidates[gi]["_score_utility"] = 0
-                            candidates[gi]["_score_impact"] = 0
-                            candidates[gi]["_score_access"] = 0
-                            candidates[gi]["_total_score"] = (
-                                mag * W_MARKET + sig * W_SIGNAL + brd * W_BREADTH
-                            )
-                        elif cat == "research":
-                            rigor = min(10, max(1, s.get("rig", 5)))
-                            novelty = min(10, max(1, s.get("nov", 5)))
-                            potential = min(10, max(1, s.get("pot", 5)))
-                            candidates[gi]["_score_rigor"] = rigor
-                            candidates[gi]["_score_novelty"] = novelty
-                            candidates[gi]["_score_potential"] = potential
-                            candidates[gi]["_score_utility"] = 0
-                            candidates[gi]["_score_impact"] = 0
-                            candidates[gi]["_score_access"] = 0
-                            candidates[gi]["_score_market"] = 0
-                            candidates[gi]["_score_signal"] = 0
-                            candidates[gi]["_score_breadth"] = 0
-                            candidates[gi]["_total_score"] = (
-                                rigor * W_RIGOR
-                                + novelty * W_NOVELTY
-                                + potential * W_POTENTIAL
-                            )
-                        else:  # models_products
-                            utility = min(10, max(1, s.get("uti", 5)))
-                            impact = min(10, max(1, s.get("imp", 5)))
-                            access = min(10, max(1, s.get("acc", 5)))
-                            candidates[gi]["_score_utility"] = utility
-                            candidates[gi]["_score_impact"] = impact
-                            candidates[gi]["_score_access"] = access
-                            candidates[gi]["_score_rigor"] = 0
-                            candidates[gi]["_score_novelty"] = 0
-                            candidates[gi]["_score_potential"] = 0
-                            candidates[gi]["_score_market"] = 0
-                            candidates[gi]["_score_signal"] = 0
-                            candidates[gi]["_score_breadth"] = 0
-                            candidates[gi]["_total_score"] = (
-                                utility * W_UTILITY
-                                + impact * W_IMPACT
-                                + access * W_ACCESS
-                            )
-                        candidates[gi]["_llm_scored"] = True
-
-                scored = len([c for c in batch if c.get("_llm_scored")])
-                print(f"    배치 {batch_idx+1}/{len(batches)}: {scored}/{len(batch)}개")
+                print(f"    스코어 배치 {batch_done}/{len(all_score_tasks)} ({cat}): {applied}/{len(b_articles)}개")
 
     # 폴백: 미평가 기사에 낮은 기본 점수 (LLM 평가 기사 우선)
     # 카테고리 무관하게 models_products 기본 점수 사용 (총점 동일: 3*4+3*3+3*3 = 30)
@@ -1142,7 +1324,8 @@ def scorer_node(state: NewsGraphState) -> dict:
             c["_score_market"] = 0
             c["_score_signal"] = 0
             c["_score_breadth"] = 0
-            c["_llm_category"] = ""
+            if not c.get("_llm_category"):
+                c["_llm_category"] = ""
             c["_total_score"] = 3 * W_UTILITY + 3 * W_IMPACT + 3 * W_ACCESS
 
     llm_count = len([c for c in candidates if c.get("_llm_scored")])
@@ -1214,7 +1397,6 @@ def ranker_node(state: NewsGraphState) -> dict:
 
 
 # ─── Node 5: classifier (카테고리 분류 + Top 10 선정 + 품질 검증) ───
-VALID_CATEGORIES = {"research", "models_products", "industry_business"}
 CATEGORY_TOP_N = 25
 
 
@@ -1227,56 +1409,18 @@ def _classify_article(a: dict) -> str | None:
 
 
 def _llm_classify_batch(articles: list[dict], categorized: dict[str, list[dict]]):
+    """classifier_node에서 사용하는 LLM 배치 분류. _CLASSIFY_PROMPT 상수 사용."""
     article_text = ""
     for i, a in enumerate(articles):
         title = a.get("display_title") or a.get("title", "")
         body = a.get("body", "")
-        context = body[:500] if body else a.get("description", "")[:200]
+        context = body[:500] if body else (a.get("description", "") or "")[:200]
         article_text += f"\n[{i}] {title} | {context}"
 
-    prompt = f"""IMPORTANT: Output ONLY a valid JSON array. No thinking, no markdown. Start with '['.
-
-Classify each AI news article into exactly ONE category.
-Core question: "Can a user USE this right now?" — if tech-related: YES → models_products, NO → research. Not tech → industry_business.
-
-## Categories
-
-- "research": PURE RESEARCH — papers, benchmarks, theory, academic results users CANNOT directly use.
-  Core test: "Is this about advancing scientific understanding, without a usable artifact?"
-  Scope: papers, benchmarks, theoretical breakthroughs, algorithms (paper-only), academic datasets, scaling analyses, surveys.
-  YES: "DeepMind paper: new diffusion architecture beats SOTA", "Scaling laws study on emergent abilities", "Survey comparing 30 LLMs"
-  NO: "Meta releases Llama 4 open-weights" (downloadable → models_products), "OpenAI raises $6B" (business)
-
-- "models_products": MODELS + PRODUCTS + TOOLS — everything users can USE, DOWNLOAD, or INTEGRATE now.
-  Core test: "Can someone go use, download, or integrate this today (or soon)?"
-  Scope: model releases (open-weight/API), product launches, feature updates, APIs, SDKs, frameworks, developer tools, apps.
-  YES: "Meta releases Llama 4", "Cursor adds AI code review", "ChatGPT gets memory", "LangChain 0.3 released"
-  NO: "Novel attention mechanism paper" (paper-only → research), "Anthropic raises $2B" (business)
-
-- "industry_business": MONEY, POWER, OR MARKET DYNAMICS — organizational and economic events.
-  Core test: "Is this primarily about who owns what, who pays whom, or how markets/regulations shift?"
-  Scope: funding, M&A, IPOs, earnings, layoffs, exec changes, partnerships, regulation, antitrust, market analysis.
-  YES: "Anthropic raises $2B", "EU AI Act enforcement begins", "NVIDIA reports record revenue"
-  NO: "Anthropic releases Claude 4" (usable model → models_products), "New attention paper" (research)
-
-## Tiebreak (apply in order)
-1. Paper + code/model release → models_products (usable artifact exists)
-2. Paper only, no released artifact → research
-3. Model announcement + API access → models_products (users can access it)
-4. Open-source model release → models_products (downloadable)
-5. Existing product adds AI features → models_products (product update is the news)
-6. New model + funding → if title emphasizes model/capability → models_products; if title emphasizes deal/amount → industry_business
-7. Acquisition of AI company → industry_business (the deal is the news)
-8. Still ambiguous → choose whichever category would produce more meaningful score differentiation
-
-Articles:
-{article_text}
-
-Output exactly {len(articles)} items:
-[{{"i":0,"cat":"research"}}]"""
+    prompt = _CLASSIFY_PROMPT.format(article_text=article_text, count=len(articles))
 
     try:
-        llm = get_llm(temperature=0.0, max_tokens=1024, thinking=False, json_mode=True)
+        llm = get_llm(temperature=0.0, max_tokens=2048, thinking=False, json_mode=True)
         content = _llm_invoke_with_retry(llm, prompt, max_retries=1)
         results = _parse_llm_json(content)
         if not isinstance(results, list):
@@ -1293,21 +1437,22 @@ Output exactly {len(articles)} items:
             if 0 <= idx < len(articles) and cat in categorized:
                 categorized[cat].append(articles[idx])
                 classified.add(idx)
+        # 미분류 기사: scorer에서 이미 _llm_category가 설정되었으면 사용
         for i, a in enumerate(articles):
             if i not in classified:
-                # 점수 키 기반 카테고리 추론
-                has_research = any(a.get(k) for k in ("_score_rigor", "_score_novelty", "_score_potential"))
-                has_mp = any(a.get(k) for k in ("_score_utility", "_score_impact", "_score_access"))
-                has_biz = any(a.get(k) for k in ("_score_market", "_score_signal", "_score_breadth"))
-                if has_research and not has_mp and not has_biz:
-                    categorized["research"].append(a)
-                elif has_mp and not has_biz:
-                    categorized["models_products"].append(a)
+                llm_cat = a.get("_llm_category", "")
+                if llm_cat in VALID_CATEGORIES:
+                    categorized[llm_cat].append(a)
                 else:
                     categorized["industry_business"].append(a)
     except Exception:
+        # 실패 시 scorer에서 부여한 _llm_category 활용, 없으면 industry_business
         for a in articles:
-            categorized["industry_business"].append(a)
+            llm_cat = a.get("_llm_category", "")
+            if llm_cat in VALID_CATEGORIES:
+                categorized[llm_cat].append(a)
+            else:
+                categorized["industry_business"].append(a)
 
 
 def _select_category_top_n(articles: list[dict], n: int = CATEGORY_TOP_N, today_min: int = 3) -> list[dict]:
