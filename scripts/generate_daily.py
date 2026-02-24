@@ -129,7 +129,8 @@ def cleanup_old_data(keep_days: int = 30):
 
     for col_name in collections:
         col_ref = db.collection(col_name)
-        old_docs = col_ref.where("date", "<", cutoff_date).stream()
+        from google.cloud.firestore_v1.base_query import FieldFilter
+        old_docs = col_ref.where(filter=FieldFilter("date", "<", cutoff_date)).stream()
 
         deleted = 0
         for doc in old_docs:

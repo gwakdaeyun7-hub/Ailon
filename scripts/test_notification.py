@@ -23,7 +23,8 @@ if not firebase_admin._apps:
 db = firestore.client()
 
 # Firestore에서 expoPushToken이 있는 유저 조회
-users = db.collection("users").where("expoPushToken", "!=", "").stream()
+from google.cloud.firestore_v1.base_query import FieldFilter
+users = db.collection("users").where(filter=FieldFilter("expoPushToken", "!=", "")).stream()
 tokens = []
 for u in users:
     data = u.to_dict()
