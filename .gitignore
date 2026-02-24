@@ -51,6 +51,7 @@ ENV/
 firebase-credentials.json
 serviceAccountKey.json
 *-firebase-adminsdk-*.json
+google-services.json
 
 # IDEs
 .vscode/
