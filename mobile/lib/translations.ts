@@ -86,7 +86,8 @@ const translations: Record<string, Record<Language, string>> = {
   'profile.error': { ko: '오류', en: 'Error' },
 
   // ─── 알림 설정 ───
-  'notification.title': { ko: '알림 설정', en: 'Notifications' },
+  'notification.title': { ko: '알림', en: 'Notifications' },
+  'notification.empty': { ko: '아직 받은 알림이 없어요', en: 'No notifications yet' },
   'notification.news_alerts': { ko: '뉴스 알림', en: 'News Alerts' },
   'notification.comment_replies': { ko: '댓글 답글 알림', en: 'Comment Replies' },
   'notification.likes': { ko: '좋아요 알림', en: 'Like Notifications' },

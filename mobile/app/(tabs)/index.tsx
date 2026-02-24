@@ -22,7 +22,7 @@ import { Image } from 'expo-image';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import {
-  Menu, RefreshCw, ThumbsUp, Eye, Share2, ExternalLink, MessageCircle, X,
+  Bell, RefreshCw, ThumbsUp, Eye, Share2, ExternalLink, MessageCircle, X,
 } from 'lucide-react-native';
 import { useNews } from '@/hooks/useNews';
 import { useDrawer } from '@/context/DrawerContext';
@@ -992,6 +992,8 @@ export default function NewsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [modalArticle, setModalArticle] = useState<Article | null>(null);
   const [commentArticleLink, setCommentArticleLink] = useState<string | null>(null);
+  const [notifModalVisible, setNotifModalVisible] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
   const { openDrawer, setActiveTab } = useDrawer();
   const { lang, t } = useLanguage();
   const { newsData, loading, error, refresh } = useNews();
@@ -1011,6 +1013,19 @@ export default function NewsScreen() {
       setActiveTab('news');
     }, [setActiveTab])
   );
+
+  const openNotifications = useCallback(async () => {
+    try {
+      const Notif = require('expo-notifications');
+      const delivered = await Notif.getPresentedNotificationsAsync();
+      setNotifications(delivered.sort((a: any, b: any) =>
+        (b.date ?? 0) - (a.date ?? 0)
+      ));
+    } catch {
+      setNotifications([]);
+    }
+    setNotifModalVisible(true);
+  }, []);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -1095,8 +1110,8 @@ export default function NewsScreen() {
             </Text>
           )}
         </View>
-        <Pressable onPress={openDrawer} accessibilityLabel={t('menu.open')} accessibilityRole="button" style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
-          <Menu size={22} color={TEXT_SECONDARY} />
+        <Pressable onPress={openNotifications} accessibilityLabel={t('notification.title')} accessibilityRole="button" style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
+          <Bell size={22} color={TEXT_SECONDARY} />
         </Pressable>
       </View>
 
@@ -1190,6 +1205,49 @@ export default function NewsScreen() {
         itemType="news"
         itemId={commentArticleLink ?? ''}
       />
+
+      {/* 알림 내역 모달 */}
+      <Modal visible={notifModalVisible} animationType="slide" transparent onRequestClose={() => setNotifModalVisible(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <Pressable style={{ flex: 0.15 }} onPress={() => setNotifModalVisible(false)} />
+          <View style={{ flex: 0.85, backgroundColor: BG, borderTopLeftRadius: 20, borderTopRightRadius: 20, overflow: 'hidden' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: BORDER }}>
+              <Bell size={20} color={TEXT_PRIMARY} />
+              <Text style={{ flex: 1, fontSize: 17, fontWeight: '700', color: TEXT_PRIMARY, marginLeft: 8 }}>{t('notification.title')}</Text>
+              <Pressable onPress={() => setNotifModalVisible(false)} style={{ width: 36, height: 36, alignItems: 'center', justifyContent: 'center' }}>
+                <X size={20} color={TEXT_SECONDARY} />
+              </Pressable>
+            </View>
+            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+              {notifications.length === 0 ? (
+                <View style={{ alignItems: 'center', paddingTop: 60 }}>
+                  <Bell size={48} color={BORDER} />
+                  <Text style={{ color: TEXT_SECONDARY, fontSize: 15, marginTop: 16 }}>{t('notification.empty')}</Text>
+                </View>
+              ) : (
+                notifications.map((n, i) => (
+                  <View key={n.request?.identifier ?? i} style={{
+                    backgroundColor: CARD, borderRadius: 12, padding: 14, marginBottom: 10,
+                    borderWidth: 1, borderColor: BORDER,
+                  }}>
+                    <Text style={{ fontSize: 15, fontWeight: '600', color: TEXT_PRIMARY }} numberOfLines={2}>
+                      {n.request?.content?.title ?? 'Ailon'}
+                    </Text>
+                    <Text style={{ fontSize: 13, color: TEXT_SECONDARY, marginTop: 4 }} numberOfLines={3}>
+                      {n.request?.content?.body ?? ''}
+                    </Text>
+                    {n.date ? (
+                      <Text style={{ fontSize: 11, color: TEXT_LIGHT, marginTop: 6 }}>
+                        {new Date(n.date).toLocaleDateString(lang === 'en' ? 'en-US' : 'ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </Text>
+                    ) : null}
+                  </View>
+                ))
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
