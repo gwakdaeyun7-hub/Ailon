@@ -8,7 +8,7 @@ collector --> [en_process, ko_process] (병렬 Send) --> scorer --> ranker --> c
 1. collector:     16개 소스 수집 + 이미지/본문 통합 스크래핑 + LLM AI 필터
 2. en_process:    영어 기사 번역+요약 (thinking 비활성화, 배치 5)  -- 병렬
 3. ko_process:    한국어 기사 요약 (thinking 비활성화, 배치 2)     -- 병렬
-4. scorer:        카테고리별 LLM 평가 (tech: nov*4+imp*3+pra*3, biz: mag*4+sig*3+brd*3, 만점 100)
+4. scorer:        카테고리별 LLM 평가 (tech: nov*4+imp*3+apl*3, biz: mag*4+sig*3+brd*3, 만점 100)
 5. ranker:        당일 우선 Top 3 하이라이트 (미번역 차단)
 6. classifier:    3개 카테고리 * Top 10 + 품질 검증 (quality_gate 통합)
 7. assembler:     한국 소스별 분리 + 최종 결과 + 타이밍 리포트
@@ -21,7 +21,7 @@ collector --> [en_process, ko_process] (병렬 Send) --> scorer --> ranker --> c
 - 노드별 소요 시간 측정
 - sources Annotated 리듀서로 EN/KO 결과 안전 머지
 
-점수 체계: 카테고리별 차등 (tech: nov*4+imp*3+pra*3, biz: mag*4+sig*3+brd*3, 만점 100)
+점수 체계: 카테고리별 차등 (tech: nov*4+imp*3+apl*3, biz: mag*4+sig*3+brd*3, 만점 100)
 """
 
 import json
@@ -669,7 +669,7 @@ def _deduplicate_candidates(candidates: list[dict]) -> list[dict]:
 # ─── Node 3: scorer (3 LLM차원, 병렬 배치) ───
 W_NOVELTY = 4       # 신규성 (model_research, product_tools)
 W_IMPACT = 3        # 영향력 (model_research, product_tools)
-W_PRACTICALITY = 3  # 실용성 (model_research, product_tools)
+W_APPEAL = 3        # 어필력 (model_research, product_tools)
 W_MARKET = 4        # 시장 규모 (industry_business)
 W_SIGNAL = 3        # 전략적 시그널 (industry_business)
 W_BREADTH = 3       # 이해관계자 범위 (industry_business)
@@ -686,7 +686,7 @@ You are an AI news scoring engine. First classify each article, then score using
 
 ## Step 2: Score by category (each 1-10, integers only)
 
-### For model_research / product_tools → use nov, imp, pra
+### For model_research / product_tools → use nov, imp, apl
 
 **nov (Novelty):** Is this about something NEW?
 - 8-10: First announcement of new model/architecture, new open-source release, new research paper with novel results
@@ -698,10 +698,15 @@ You are an AI news scoring engine. First classify each article, then score using
 - 4-7: Useful improvement, moderate community interest, specific subfield
 - 1-3: Niche/minor update, no broad relevance
 
-**pra (Practicality):** Can developers/researchers directly use this?
-- 8-10: Open-source code/weights, public API, reproducible method
-- 4-7: Partially open, API waitlist, tutorial without code
-- 1-3: Closed/proprietary, pure theory, vague announcement
+**apl (Appeal):** How compelling is this to a reader scrolling a feed?
+- 9-10: Jaw-dropping — viral demo, shocking benchmark, impossible to scroll past
+- 7-8: Very compelling — impressive numbers, famous entity surprise, "wait, really?" hook
+- 5-6: Interesting — clear hook but not scroll-stopping
+- 3-4: Mildly interesting — relevant but dry, no concrete hook
+- 1-2: Bland/boring — routine changelog, dense jargon, no visual or surprise
+Boost for: visual demos, surprising numbers, counterintuitive findings, before/after comparisons.
+Penalize for: version bumps, backend-only infra, heavy jargon.
+NOTE: Do NOT double-count newness (Novelty) or importance (Impact). Appeal = reader magnetism only.
 
 ### For industry_business → use mag, sig, brd
 
@@ -725,16 +730,17 @@ You are an AI news scoring engine. First classify each article, then score using
 - Score ONLY from provided text. If vague, score conservatively.
 
 ## Calibration
-"Meta releases Llama 4 open-weights model" → {{"i":0,"category":"model_research","nov":9,"imp":9,"pra":9}}
-"DeepMind paper: new diffusion architecture beats SOTA" → {{"i":1,"category":"model_research","nov":9,"imp":8,"pra":5}}
-"NVIDIA reports record $35B quarterly revenue" → {{"i":2,"category":"industry_business","mag":10,"sig":10,"brd":9}}
-"AI startup raises $8M seed round" → {{"i":3,"category":"industry_business","mag":1,"sig":1,"brd":1}}
+"Meta releases Llama 4 open-weights model with 1T parameters" → {{"i":0,"category":"model_research","nov":9,"imp":9,"apl":9}}
+"DeepMind paper: new diffusion architecture beats SOTA" → {{"i":1,"category":"model_research","nov":9,"imp":8,"apl":7}}
+"MLflow 2.16 released with improved artifact storage" → {{"i":2,"category":"product_tools","nov":3,"imp":2,"apl":2}}
+"NVIDIA reports record $35B quarterly revenue" → {{"i":3,"category":"industry_business","mag":10,"sig":10,"brd":9}}
+"AI startup raises $8M seed round" → {{"i":4,"category":"industry_business","mag":1,"sig":1,"brd":1}}
 
 Articles:
 {article_text}
 
-Output exactly {count} items. Use nov/imp/pra for model_research and product_tools. Use mag/sig/brd for industry_business.
-[{{"i":0,"category":"model_research","nov":6,"imp":7,"pra":5}}]"""
+Output exactly {count} items. Use nov/imp/apl for model_research and product_tools. Use mag/sig/brd for industry_business.
+[{{"i":0,"category":"model_research","nov":6,"imp":7,"apl":5}}]"""
 
 
 _scorer_lock = __import__("threading").Lock()
@@ -882,14 +888,14 @@ def scorer_node(state: NewsGraphState) -> dict:
                         else:
                             novelty = min(10, max(1, s.get("nov", 5)))
                             impact = min(10, max(1, s.get("imp", 5)))
-                            practicality = min(10, max(1, s.get("pra", 5)))
+                            appeal = min(10, max(1, s.get("apl", 5)))
                             candidates[gi]["_score_novelty"] = novelty
                             candidates[gi]["_score_impact"] = impact
-                            candidates[gi]["_score_practicality"] = practicality
+                            candidates[gi]["_score_appeal"] = appeal
                             candidates[gi]["_total_score"] = (
                                 novelty * W_NOVELTY
                                 + impact * W_IMPACT
-                                + practicality * W_PRACTICALITY
+                                + appeal * W_APPEAL
                             )
                         candidates[gi]["_llm_scored"] = True
 
@@ -901,9 +907,9 @@ def scorer_node(state: NewsGraphState) -> dict:
         if "_total_score" not in c:
             c["_score_novelty"] = 3
             c["_score_impact"] = 3
-            c["_score_practicality"] = 3
+            c["_score_appeal"] = 3
             c["_llm_category"] = ""
-            c["_total_score"] = 3 * W_NOVELTY + 3 * W_IMPACT + 3 * W_PRACTICALITY
+            c["_total_score"] = 3 * W_NOVELTY + 3 * W_IMPACT + 3 * W_APPEAL
 
     llm_count = len([c for c in candidates if c.get("_llm_scored")])
     print(f"  [스코어링] LLM 평가: {llm_count}/{len(candidates)}개")
