@@ -119,8 +119,8 @@ function getTitle(a: Article) {
 }
 
 function getLocalizedTitle(a: Article, lang: Language) {
-  const raw = (lang === 'en' && a.display_title_en) ? a.display_title_en : (a.display_title || a.title);
-  return raw.replace(/\.{3,}/g, '…');
+  if (lang === 'en' && a.display_title_en) return a.display_title_en;
+  return a.display_title || a.title;
 }
 
 function getLocalizedOneLine(a: Article, lang: Language) {
@@ -251,7 +251,7 @@ const HighlightScrollCard = React.memo(function HighlightScrollCard({
           <Text
             style={{ fontSize: 15, fontWeight: '800', color: TEXT_PRIMARY, lineHeight: 21, marginTop: 6 }}
             numberOfLines={2}
-            ellipsizeMode="tail"
+            ellipsizeMode="clip"
           >
             {getLocalizedTitle(article, lang)}
           </Text>
@@ -666,7 +666,7 @@ const HScrollCard = React.memo(function HScrollCard({
           <Text
             style={{ fontSize: 13, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 18, marginTop: showSourceBadge ? 6 : 0 }}
             numberOfLines={2}
-            ellipsizeMode="tail"
+            ellipsizeMode="clip"
           >
             {getLocalizedTitle(article, lang)}
           </Text>
@@ -783,7 +783,7 @@ function CategoryTabSection({
                   <Text
                     style={{ fontSize: 14, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 20, marginTop: 6 }}
                     numberOfLines={2}
-                    ellipsizeMode="tail"
+                    ellipsizeMode="clip"
                   >
                     {getLocalizedTitle(a, lang)}
                   </Text>
@@ -929,7 +929,7 @@ function GeekNewsSection({ articles, onArticlePress }: { articles: Article[]; on
               <Text
                 style={{ fontSize: 13, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 20 }}
                 numberOfLines={2}
-                ellipsizeMode="tail"
+                ellipsizeMode="clip"
               >
                 {getLocalizedTitle(a, lang)}
               </Text>
