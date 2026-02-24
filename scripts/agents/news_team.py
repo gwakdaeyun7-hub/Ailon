@@ -707,21 +707,33 @@ CRITICAL: All objects on ONE line. Example: [{{"i":0,...}},{{"i":1,...}}]
 You are an AI news scoring engine. First classify each article, then score using the criteria for that category. Use ONLY the provided title and description.
 
 ## Step 1: Category (pick one)
-Decide by the CORE subject of the headline — what is the primary news?
+Ask: "What is this article FUNDAMENTALLY about?" — not surface keywords, but the core substance.
 
-- "model_research": A NEW model, architecture, training method, research paper, or benchmark result is the headline.
-  Keywords: "model", "paper", "benchmark", "SOTA", "parameters", "weights", "open-source model", "architecture", "training"
-- "product_tools": A user-facing product, tool, feature update, API service, framework, or library is the headline.
-  Keywords: "app", "feature", "update", "plugin", "SDK", "framework", "platform", "integration", "release" (of a tool)
-- "industry_business": Money, organizations, or policy (funding, M&A, regulation, earnings, partnerships, hiring, restructuring) is the headline.
-  Keywords: "$", "raises", "acquires", "revenue", "valuation", "regulation", "policy", "partnership", "IPO", "layoffs"
+- "model_research": The article is about THE TECHNOLOGY ITSELF — how AI works or could work.
+  Core question: "Does this advance our understanding or capability of AI as a technology?"
+  Includes: new model releases, architectures, training methods, research papers, benchmark results, scaling studies, theoretical breakthroughs, novel algorithms, dataset contributions.
+  Typical examples: "GPT-5 achieves human-level reasoning", "Novel attention mechanism reduces compute 10x", "New SOTA on MMLU benchmark", "Scaling laws paper from DeepMind"
+  Boundary: A company releasing a new model → model_research (the model is the news). A research team publishing about a new training technique → model_research.
 
-Tiebreak rules (apply in order):
-1. "New model + API available" → model_research (the model is the news, API is the delivery method)
-2. "Existing product adds AI features" → product_tools (the product is the news)
-3. "Company releases new model + raises $XB" → if dollar amount or funding is in the title → industry_business; if model name is in the title → model_research
-4. "Company acquires AI startup that built X" → industry_business (acquisition is the news)
-5. When still ambiguous, pick the category matching the FIRST noun phrase in the title
+- "product_tools": The article is about SOMETHING USERS CAN USE — a deployable product, service, or tool.
+  Core question: "Can someone go use, download, or integrate this today (or soon)?"
+  Includes: product launches, feature updates, API services, SDKs, frameworks, developer tools, platform integrations, app releases, UX improvements.
+  Typical examples: "Cursor adds AI code review", "ChatGPT gets memory feature", "LangChain 0.3 released", "GitHub Copilot now supports Rust"
+  Boundary: An existing product adding AI-powered features → product_tools (the product update is the news). A framework/library release → product_tools.
+
+- "industry_business": The article is about MONEY, POWER, OR MARKET DYNAMICS — organizational and economic events.
+  Core question: "Is this primarily about who owns what, who pays whom, or how markets/regulations shift?"
+  Includes: funding rounds, M&A, IPOs, earnings reports, layoffs, executive changes, partnerships, government regulation, antitrust actions, market analysis, corporate strategy.
+  Typical examples: "Anthropic raises $2B Series C", "EU AI Act enforcement begins", "NVIDIA reports record $35B revenue", "Google acquires AI startup for $500M"
+  Boundary: Company restructuring its AI division → industry_business. An industry trend analysis → industry_business.
+
+Tiebreak rules (apply in order when an article spans multiple categories):
+1. Model announcement + API access → model_research (the model is the news; API is delivery mechanism)
+2. Existing product adds new AI capabilities → product_tools (the product evolution is the news)
+3. New model + funding in same article → decide by the TITLE focus: if the title emphasizes the model name/capability → model_research; if the title emphasizes the deal/amount → industry_business
+4. Acquisition of an AI company → industry_business (the deal is the news, regardless of what the acquired company built)
+5. Open-source release of a model → model_research (the technical contribution is the news, even though it's also a "product")
+6. Still ambiguous → choose the category whose scoring dimensions (nov/imp/adv vs mag/sig/brd) would produce MORE meaningful differentiation for this article
 
 ## Step 2: Score by category (each 1-10, integers only)
 
@@ -1097,24 +1109,35 @@ def _llm_classify_batch(articles: list[dict], categorized: dict[str, list[dict]]
 
     prompt = f"""IMPORTANT: Output ONLY a valid JSON array. No thinking, no markdown. Start with '['.
 
-Classify each AI news article into exactly ONE category based on the CORE subject of the headline.
+Classify each AI news article into exactly ONE category. Ask: "What is this article FUNDAMENTALLY about?"
 
-- "model_research": A NEW model, architecture, training method, research paper, or benchmark result is the headline.
-  Keywords: "model", "paper", "benchmark", "SOTA", "parameters", "weights", "architecture", "training"
-  Examples: "GPT-5 released", "New SOTA on MMLU", "Scaling laws paper", "Novel attention mechanism"
-- "product_tools": A user-facing product, tool, feature update, API service, framework, or library is the headline.
-  Keywords: "app", "feature", "update", "plugin", "SDK", "framework", "platform", "integration"
-  Examples: "Cursor adds AI code review", "LangChain 0.3 released", "ChatGPT gets memory feature"
-- "industry_business": Money, organizations, or policy (funding, M&A, regulation, earnings, partnerships, hiring) is the headline.
-  Keywords: "$", "raises", "acquires", "revenue", "valuation", "regulation", "policy", "IPO", "layoffs"
-  Examples: "Anthropic raises $2B", "EU AI Act takes effect", "Google restructures AI team"
+## Categories
 
-Tiebreak rules (apply in order):
-1. "New model + API available" → model_research (model is the news, API is delivery)
-2. "Existing product adds AI features" → product_tools (product is the news)
-3. "Company + new model + $XB funding" → if dollar/funding in title → industry_business; if model name in title → model_research
-4. "Company acquires AI startup" → industry_business (acquisition is the news)
-5. When still ambiguous → pick the category matching the FIRST noun phrase in the title
+- "model_research": THE TECHNOLOGY ITSELF — how AI works or could work.
+  Core test: "Does this advance our understanding or capability of AI as a technology?"
+  Scope: new models, architectures, training methods, papers, benchmarks, scaling studies, algorithms, datasets.
+  YES: "GPT-5 achieves human-level reasoning", "Novel attention mechanism reduces compute 10x", "New SOTA on MMLU"
+  NO: "ChatGPT gets memory feature" (that's a product update), "OpenAI raises $6B" (that's business)
+
+- "product_tools": SOMETHING USERS CAN USE — a deployable product, service, or tool.
+  Core test: "Can someone go use, download, or integrate this today (or soon)?"
+  Scope: product launches, feature updates, API services, SDKs, frameworks, developer tools, platform integrations.
+  YES: "Cursor adds AI code review", "LangChain 0.3 released", "GitHub Copilot now supports Rust"
+  NO: "New diffusion architecture paper" (that's research), "Anthropic raises $2B" (that's business)
+
+- "industry_business": MONEY, POWER, OR MARKET DYNAMICS — organizational and economic events.
+  Core test: "Is this primarily about who owns what, who pays whom, or how markets/regulations shift?"
+  Scope: funding, M&A, IPOs, earnings, layoffs, exec changes, partnerships, regulation, antitrust, market analysis.
+  YES: "Anthropic raises $2B", "EU AI Act enforcement begins", "NVIDIA reports record revenue"
+  NO: "Anthropic releases Claude 4" (that's a model), "Claude adds tool use" (that's a product)
+
+## Tiebreak (apply in order)
+1. Model announcement + API access → model_research (model is the news)
+2. Existing product adds AI features → product_tools (product update is the news)
+3. New model + funding in same article → if title emphasizes model/capability → model_research; if title emphasizes deal/amount → industry_business
+4. Acquisition of AI company → industry_business (the deal is the news)
+5. Open-source model release → model_research (technical contribution is the news)
+6. Still ambiguous → choose whichever category would produce more meaningful score differentiation
 
 Articles:
 {article_text}
