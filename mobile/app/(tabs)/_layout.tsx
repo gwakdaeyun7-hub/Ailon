@@ -1,7 +1,8 @@
 import { Tabs } from 'expo-router';
-import { Platform, View } from 'react-native';
+import { View } from 'react-native';
 import { Cpu, BookOpen, FlaskConical, Bookmark, User } from 'lucide-react-native';
 import { useLanguage } from '@/context/LanguageContext';
+import { Colors } from '@/lib/colors';
 
 function TabIcon({ Icon, color, focused }: { Icon: any; color: string; focused: boolean }) {
   return (
@@ -13,7 +14,7 @@ function TabIcon({ Icon, color, focused }: { Icon: any; color: string; focused: 
             width: 5,
             height: 5,
             borderRadius: 2.5,
-            backgroundColor: '#E53935',
+            backgroundColor: Colors.primary,
             marginTop: 4,
           }}
         />
@@ -29,8 +30,8 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#FFFFFF',
-          borderTopColor: '#F0F0F0',
+          backgroundColor: Colors.card,
+          borderTopColor: Colors.border,
           borderTopWidth: 1,
           elevation: 8,
           shadowColor: '#000',
@@ -38,8 +39,8 @@ export default function TabLayout() {
           shadowOpacity: 0.06,
           shadowRadius: 8,
         },
-        tabBarActiveTintColor: '#E53935',
-        tabBarInactiveTintColor: '#BDBDBD',
+        tabBarActiveTintColor: Colors.primary,
+        tabBarInactiveTintColor: Colors.textDim,
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '600',

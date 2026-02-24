@@ -6,19 +6,20 @@
  * - 삭제: 각 카드 우측 휴지통 버튼
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, ScrollView, Pressable, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Bookmark, ExternalLink, Trash2, Newspaper, BookOpen, Lightbulb } from 'lucide-react-native';
 import { useAuth } from '@/hooks/useAuth';
 import { useBookmarks } from '@/hooks/useBookmarks';
 import { useLanguage } from '@/context/LanguageContext';
+import { Colors } from '@/lib/colors';
 import type { Bookmark as BookmarkType } from '@/lib/types';
 
 function useTypeConfig() {
   const { t } = useLanguage();
   return {
-    news: { label: t('saved.type_news'), color: '#E53935', bgColor: '#FFEBEE', Icon: Newspaper },
+    news: { label: t('saved.type_news'), color: Colors.primary, bgColor: '#FFEBEE', Icon: Newspaper },
     snap: { label: t('saved.type_principle'), color: '#3b82f6', bgColor: '#EFF6FF', Icon: BookOpen },
     principle: { label: t('saved.type_principle'), color: '#3b82f6', bgColor: '#EFF6FF', Icon: BookOpen },
     idea: { label: t('saved.type_idea'), color: '#FF7043', bgColor: '#FFF3E0', Icon: Lightbulb },
@@ -98,7 +99,7 @@ function SavedItemCard({
             className="active:opacity-70"
             style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
           >
-            <Text style={{ color: '#E53935', fontSize: 12, fontWeight: '600' }}>{t('saved.view_original')}</Text>
+            <Text style={{ color: Colors.primary, fontSize: 12, fontWeight: '600' }}>{t('saved.view_original')}</Text>
             <ExternalLink size={12} color="#E53935" />
           </Pressable>
         )}
@@ -114,11 +115,11 @@ export default function SavedScreen() {
   const typeConfig = useTypeConfig();
 
   // 최신순 정렬
-  const sorted = [...bookmarks].sort((a, b) => {
+  const sorted = useMemo(() => [...bookmarks].sort((a, b) => {
     const da = typeof a.createdAt === 'string' ? new Date(a.createdAt).getTime() : 0;
-    const db = typeof b.createdAt === 'string' ? new Date(b.createdAt).getTime() : 0;
-    return db - da;
-  });
+    const db_ = typeof b.createdAt === 'string' ? new Date(b.createdAt).getTime() : 0;
+    return db_ - da;
+  }), [bookmarks]);
 
   const newsCount = bookmarks.filter((b) => b.type === 'news').length;
   const snapCount = bookmarks.filter((b) => b.type === 'snap' || b.type === 'principle').length;
@@ -127,7 +128,7 @@ export default function SavedScreen() {
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
       {/* Header */}
-      <View className="px-5 pt-5 pb-3">
+      <View className="px-4 pt-5 pb-3">
         <View className="flex-row items-center justify-between">
           <View>
             <Text className="text-text text-2xl font-bold">{t('saved.title')}</Text>
@@ -135,20 +136,20 @@ export default function SavedScreen() {
               {sorted.length > 0 ? `${sorted.length}${t('saved.total')}` : t('saved.empty')}
             </Text>
           </View>
-          <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#FFEBEE', alignItems: 'center', justifyContent: 'center' }}>
+          <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.primaryLight, alignItems: 'center', justifyContent: 'center' }}>
             <Bookmark size={20} color="#E53935" />
           </View>
         </View>
-        <View style={{ width: 40, height: 3, backgroundColor: '#E53935', borderRadius: 2, marginTop: 12 }} />
+        <View style={{ width: 40, height: 3, backgroundColor: Colors.primary, borderRadius: 2, marginTop: 12 }} />
       </View>
 
       {/* 타입별 통계 카드 */}
       {sorted.length > 0 && (
         <View style={{ flexDirection: 'row', marginHorizontal: 16, marginBottom: 12, gap: 8 }}>
           {newsCount > 0 && (
-            <View style={{ flex: 1, backgroundColor: '#FFEBEE', borderRadius: 14, paddingVertical: 10, alignItems: 'center' }}>
-              <Text style={{ color: '#E53935', fontSize: 20, fontWeight: '800' }}>{newsCount}</Text>
-              <Text style={{ color: '#E53935', fontSize: 11, fontWeight: '600' }}>{t('saved.type_news')}</Text>
+            <View style={{ flex: 1, backgroundColor: Colors.primaryLight, borderRadius: 14, paddingVertical: 10, alignItems: 'center' }}>
+              <Text style={{ color: Colors.primary, fontSize: 20, fontWeight: '800' }}>{newsCount}</Text>
+              <Text style={{ color: Colors.primary, fontSize: 11, fontWeight: '600' }}>{t('saved.type_news')}</Text>
             </View>
           )}
           {snapCount > 0 && (
@@ -169,7 +170,7 @@ export default function SavedScreen() {
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         {!user ? (
           <View className="items-center justify-center py-20 px-8">
-            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: '#FFEBEE', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: Colors.primaryLight, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
               <Bookmark size={28} color="#E53935" />
             </View>
             <Text className="text-text font-semibold text-base mb-1">{t('auth.login_required')}</Text>
@@ -179,7 +180,7 @@ export default function SavedScreen() {
           </View>
         ) : sorted.length === 0 ? (
           <View className="items-center justify-center py-20 px-8">
-            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: '#FFEBEE', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: Colors.primaryLight, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
               <Bookmark size={28} color="#E53935" />
             </View>
             <Text className="text-text font-semibold text-base mb-1">{t('saved.no_items_yet')}</Text>

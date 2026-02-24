@@ -147,7 +147,7 @@ export function CommentSheet({ visible, onClose, itemType, itemId }: CommentShee
               </View>
             )}
           </View>
-          <Pressable onPress={onClose} style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: '#FAFAFA', alignItems: 'center', justifyContent: 'center' }}>
+          <Pressable onPress={onClose} accessibilityLabel={t('modal.close')} accessibilityRole="button" style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#FAFAFA', alignItems: 'center', justifyContent: 'center' }}>
             <X size={16} color="#757575" />
           </Pressable>
         </View>
@@ -194,7 +194,7 @@ export function CommentSheet({ visible, onClose, itemType, itemId }: CommentShee
               <Text style={{ flex: 1, fontSize: 13, color: '#F57C00', fontWeight: '600', marginLeft: 8 }}>
                 @{replyTo.authorName} {t('comment.reply_to')}
               </Text>
-              <Pressable onPress={cancelReply} style={{ padding: 4 }}>
+              <Pressable onPress={cancelReply} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} style={{ padding: 10 }}>
                 <X size={14} color="#F57C00" />
               </Pressable>
             </View>

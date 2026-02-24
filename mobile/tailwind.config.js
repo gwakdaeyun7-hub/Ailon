@@ -1,4 +1,5 @@
 /** @type {import('tailwindcss').Config} */
+// Color values synced with mobile/lib/colors.ts
 module.exports = {
   content: ["./app/**/*.{js,jsx,ts,tsx}", "./components/**/*.{js,jsx,ts,tsx}"],
   presets: [require("nativewind/preset")],
@@ -6,7 +7,7 @@ module.exports = {
     extend: {
       colors: {
         background: "#FAFAFA",
-        surface: "#FFFFFF",
+        surface: "#F5F5F5",
         card: "#FFFFFF",
         border: "#F0F0F0",
         primary: "#E53935",

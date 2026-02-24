@@ -33,15 +33,17 @@ import { useBatchStats } from '@/hooks/useBatchStats';
 import { NewsCardSkeleton } from '@/components/shared/LoadingSkeleton';
 import { CommentSheet } from '@/components/shared/CommentSheet';
 import type { Article } from '@/lib/types';
+import { Colors } from '@/lib/colors';
 import type { Language } from '@/lib/translations';
+import type { BatchStats } from '@/hooks/useBatchStats';
 
 // ─── 색상 ───────────────────────────────────────────────────────────────
-const BG = '#F9FAFB';
-const CARD = '#FFFFFF';
-const TEXT_PRIMARY = '#111827';
-const TEXT_SECONDARY = '#6B7280';
-const TEXT_LIGHT = '#636B78';
-const BORDER = '#F3F4F6';
+const BG = Colors.bg;
+const CARD = Colors.card;
+const TEXT_PRIMARY = Colors.textPrimary;
+const TEXT_SECONDARY = Colors.textSecondary;
+const TEXT_LIGHT = Colors.textSecondary;
+const BORDER = Colors.border;
 
 const SOURCE_COLORS: Record<string, string> = {
   wired_ai: '#000000',
@@ -609,9 +611,8 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
   );
 }
 
-function HighlightSection({ highlights, onArticlePress }: { highlights: Article[]; onArticlePress: (article: Article) => void }) {
-  const links = React.useMemo(() => highlights.map(a => a.link).filter(Boolean), [highlights]);
-  const stats = useBatchStats(links);
+function HighlightSection({ highlights, onArticlePress, allStats }: { highlights: Article[]; onArticlePress: (article: Article) => void; allStats: Record<string, BatchStats> }) {
+  const stats = allStats;
   const { t } = useLanguage();
 
   if (!highlights || highlights.length === 0) return null;
@@ -720,17 +721,16 @@ const HScrollCard = React.memo(function HScrollCard({
 
 // ─── Section 2: 카테고리 탭 + 세로 리스트 ──────────────────────────────
 function CategoryTabSection({
-  categorizedArticles, categoryOrder, onArticlePress,
+  categorizedArticles, categoryOrder, onArticlePress, allStats,
 }: {
-  categorizedArticles: Record<string, Article[]>; categoryOrder: string[]; onArticlePress: (article: Article) => void;
+  categorizedArticles: Record<string, Article[]>; categoryOrder: string[]; onArticlePress: (article: Article) => void; allStats: Record<string, BatchStats>;
 }) {
   const [activeTab, setActiveTab] = useState(categoryOrder[0] || 'research');
   const [expandLevel, setExpandLevel] = useState(0); // 0=5개, 1=10개, 2=15개
   const { lang, t } = useLanguage();
 
   const articles = categorizedArticles[activeTab] || [];
-  const links = React.useMemo(() => articles.map(a => a.link).filter(Boolean), [articles]);
-  const stats = useBatchStats(links);
+  const stats = allStats;
   const visibleCount = Math.min(5 + expandLevel * 5, articles.length);
   const visible = articles.slice(0, visibleCount);
   const remaining = articles.length - visibleCount;
@@ -856,13 +856,12 @@ function CategoryTabSection({
 
 // ─── Section 3: 소스별 가로 스크롤 (한국 소스) ──────────────────────────
 function SourceHScrollSection({
-  sourceKey, articles, onArticlePress,
+  sourceKey, articles, onArticlePress, allStats,
 }: {
-  sourceKey: string; articles: Article[]; onArticlePress: (article: Article) => void;
+  sourceKey: string; articles: Article[]; onArticlePress: (article: Article) => void; allStats: Record<string, BatchStats>;
 }) {
   const [showMore, setShowMore] = useState(false);
-  const links = React.useMemo(() => articles.map(a => a.link).filter(Boolean), [articles]);
-  const stats = useBatchStats(links);
+  const stats = allStats;
   const { lang, t } = useLanguage();
 
   if (!articles || articles.length === 0) return null;
@@ -880,7 +879,7 @@ function SourceHScrollSection({
         <Text style={{ fontSize: 15, fontWeight: '800', color: TEXT_PRIMARY, flex: 1 }}>
           {name}
         </Text>
-        <Text style={{ fontSize: 11, color: TEXT_LIGHT }}>{articles.length}개</Text>
+        <Text style={{ fontSize: 11, color: TEXT_LIGHT }}>{articles.length}{t('news.articles_suffix')}</Text>
       </View>
 
       <ScrollView
@@ -922,10 +921,9 @@ function SourceHScrollSection({
 }
 
 // ─── GeekNews 세로 리스트 ────────────────────────────────────────────────
-function GeekNewsSection({ articles, onArticlePress }: { articles: Article[]; onArticlePress: (article: Article) => void }) {
+function GeekNewsSection({ articles, onArticlePress, allStats }: { articles: Article[]; onArticlePress: (article: Article) => void; allStats: Record<string, BatchStats> }) {
   const [showMore, setShowMore] = useState(false);
-  const links = React.useMemo(() => articles.map(a => a.link).filter(Boolean), [articles]);
-  const stats = useBatchStats(links);
+  const stats = allStats;
   const { lang, t } = useLanguage();
   if (!articles || articles.length === 0) return null;
 
@@ -939,7 +937,7 @@ function GeekNewsSection({ articles, onArticlePress }: { articles: Article[]; on
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 14 }}>
         <View style={{ width: 4, height: 18, borderRadius: 2, backgroundColor: color, marginRight: 8 }} />
         <Text style={{ fontSize: 15, fontWeight: '800', color: TEXT_PRIMARY, flex: 1 }}>GeekNews</Text>
-        <Text style={{ fontSize: 11, color: TEXT_LIGHT }}>{articles.length}개</Text>
+        <Text style={{ fontSize: 11, color: TEXT_LIGHT }}>{articles.length}{t('news.articles_suffix')}</Text>
       </View>
 
       <View style={{ paddingHorizontal: 16 }}>
@@ -1079,6 +1077,24 @@ export default function NewsScreen() {
     'aitimes', 'geeknews',
   ];
 
+  // ─── 모든 article link를 모아 1회만 useBatchStats 호출 ───
+  const allArticleLinks = React.useMemo(() => {
+    const links = new Set<string>();
+    for (const a of highlights) { if (a.link) links.add(a.link); }
+    for (const articles of Object.values(categorizedArticles)) {
+      for (const a of articles) { if (a.link) links.add(a.link); }
+    }
+    for (const articles of Object.values(sourceArticles)) {
+      for (const a of articles) { if (a.link) links.add(a.link); }
+    }
+    if (newsData?.articles) {
+      for (const a of newsData.articles) { if (a.link) links.add(a.link); }
+    }
+    return Array.from(links);
+  }, [highlights, categorizedArticles, sourceArticles, newsData?.articles]);
+
+  const allStats = useBatchStats(allArticleLinks);
+
   const totalArticles = newsData?.total_count
     ?? ((highlights.length
       + Object.values(categorizedArticles).reduce((s, a) => s + a.length, 0)
@@ -1149,19 +1165,21 @@ export default function NewsScreen() {
                 sourceKey={key}
                 articles={legacyGrouped[key] || []}
                 onArticlePress={handleArticlePress}
+                allStats={allStats}
               />
             ))}
           </>
         ) : (
           <>
             {/* Section 1: 하이라이트 */}
-            <HighlightSection highlights={highlights} onArticlePress={handleArticlePress} />
+            <HighlightSection highlights={highlights} onArticlePress={handleArticlePress} allStats={allStats} />
 
             {/* Section 2: 카테고리 탭 + 세로 리스트 */}
             <CategoryTabSection
               categorizedArticles={categorizedArticles}
               categoryOrder={categoryOrder}
               onArticlePress={handleArticlePress}
+              allStats={allStats}
             />
 
             {/* 구분선: 카테고리 → 소스별 */}
@@ -1184,11 +1202,12 @@ export default function NewsScreen() {
                 sourceKey={key}
                 articles={sourceArticles[key] || []}
                 onArticlePress={handleArticlePress}
+                allStats={allStats}
               />
             ))}
 
             {/* Section 4: GeekNews 세로 리스트 */}
-            <GeekNewsSection articles={sourceArticles['geeknews'] || []} onArticlePress={handleArticlePress} />
+            <GeekNewsSection articles={sourceArticles['geeknews'] || []} onArticlePress={handleArticlePress} allStats={allStats} />
           </>
         )}
 

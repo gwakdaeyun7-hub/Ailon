@@ -137,6 +137,15 @@ const translations: Record<string, Record<Language, string>> = {
 
   // ─── 메뉴 ───
   'menu.open': { ko: '메뉴 열기', en: 'Open menu' },
+
+  // ─── 리액션/피드백/북마크 ───
+  'reaction.comment': { ko: '댓글', en: 'Comments' },
+  'reaction.share': { ko: '공유', en: 'Share' },
+  'feedback.like': { ko: '좋아요', en: 'Like' },
+  'feedback.dislike': { ko: '별로예요', en: 'Not great' },
+  'bookmark.remove': { ko: '북마크 제거', en: 'Remove bookmark' },
+  'bookmark.add': { ko: '북마크 추가', en: 'Add bookmark' },
+  'news.articles_suffix': { ko: '개', en: '' },
 };
 
 export default translations;

@@ -3,6 +3,7 @@ import { View, Pressable, Text } from 'react-native';
 import { ThumbsUp, ThumbsDown } from 'lucide-react-native';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface FeedbackButtonsProps {
   userId: string | null;
@@ -14,6 +15,7 @@ interface FeedbackButtonsProps {
 export function FeedbackButtons({ userId, itemType, itemId, initialReaction = null }: FeedbackButtonsProps) {
   const [reaction, setReaction] = useState<'like' | 'dislike' | null>(initialReaction);
   const [saving, setSaving] = useState(false);
+  const { t } = useLanguage();
 
   const handleFeedback = async (type: 'like' | 'dislike') => {
     if (!userId || saving) return;
@@ -50,7 +52,7 @@ export function FeedbackButtons({ userId, itemType, itemId, initialReaction = nu
         className={`flex-row items-center gap-1 px-3 py-1.5 rounded-full ${
           reaction === 'like' ? 'bg-green-500/20' : 'bg-surface'
         }`}
-        accessibilityLabel="좋아요"
+        accessibilityLabel={t('feedback.like')}
       >
         <ThumbsUp
           size={14}
@@ -58,7 +60,7 @@ export function FeedbackButtons({ userId, itemType, itemId, initialReaction = nu
           strokeWidth={2}
         />
         <Text className={`text-xs ${reaction === 'like' ? 'text-green-400' : 'text-text-muted'}`}>
-          좋아요
+          {t('feedback.like')}
         </Text>
       </Pressable>
 
@@ -67,7 +69,7 @@ export function FeedbackButtons({ userId, itemType, itemId, initialReaction = nu
         className={`flex-row items-center gap-1 px-3 py-1.5 rounded-full ${
           reaction === 'dislike' ? 'bg-red-500/20' : 'bg-surface'
         }`}
-        accessibilityLabel="별로예요"
+        accessibilityLabel={t('feedback.dislike')}
       >
         <ThumbsDown
           size={14}
@@ -75,7 +77,7 @@ export function FeedbackButtons({ userId, itemType, itemId, initialReaction = nu
           strokeWidth={2}
         />
         <Text className={`text-xs ${reaction === 'dislike' ? 'text-red-400' : 'text-text-muted'}`}>
-          별로예요
+          {t('feedback.dislike')}
         </Text>
       </Pressable>
     </View>

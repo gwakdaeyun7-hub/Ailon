@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, Pressable, Share } from 'react-native';
 import { Heart, MessageCircle, Share2 } from 'lucide-react-native';
 import { useReactions, type ItemType } from '@/hooks/useReactions';
+import { useLanguage } from '@/context/LanguageContext';
 import { CommentSheet } from '@/components/shared/CommentSheet';
 
 interface ReactionBarProps {
@@ -14,6 +15,7 @@ interface ReactionBarProps {
 export function ReactionBar({ itemType, itemId, shareText, shareTitle }: ReactionBarProps) {
   const { likes, liked, toggleLike } = useReactions(itemType, itemId);
   const [commentOpen, setCommentOpen] = useState(false);
+  const { t } = useLanguage();
 
   const handleShare = () => {
     Share.share({
@@ -37,6 +39,8 @@ export function ReactionBar({ itemType, itemId, shareText, shareTitle }: Reactio
         {/* Like */}
         <Pressable
           onPress={toggleLike}
+          accessibilityLabel={t('feedback.like')}
+          accessibilityRole="button"
           style={{
             flexDirection: 'row',
             alignItems: 'center',
@@ -70,6 +74,8 @@ export function ReactionBar({ itemType, itemId, shareText, shareTitle }: Reactio
         {/* Comment */}
         <Pressable
           onPress={() => setCommentOpen(true)}
+          accessibilityLabel={t('reaction.comment')}
+          accessibilityRole="button"
           style={{
             flexDirection: 'row',
             alignItems: 'center',
@@ -83,12 +89,14 @@ export function ReactionBar({ itemType, itemId, shareText, shareTitle }: Reactio
           }}
         >
           <MessageCircle size={15} color="#BDBDBD" />
-          <Text style={{ color: '#BDBDBD', fontSize: 12, fontWeight: '600' }}>댓글</Text>
+          <Text style={{ color: '#BDBDBD', fontSize: 12, fontWeight: '600' }}>{t('reaction.comment')}</Text>
         </Pressable>
 
         {/* Share */}
         <Pressable
           onPress={handleShare}
+          accessibilityLabel={t('reaction.share')}
+          accessibilityRole="button"
           style={{
             flexDirection: 'row',
             alignItems: 'center',
@@ -102,7 +110,7 @@ export function ReactionBar({ itemType, itemId, shareText, shareTitle }: Reactio
           }}
         >
           <Share2 size={15} color="#BDBDBD" />
-          <Text style={{ color: '#BDBDBD', fontSize: 12, fontWeight: '600' }}>공유</Text>
+          <Text style={{ color: '#BDBDBD', fontSize: 12, fontWeight: '600' }}>{t('reaction.share')}</Text>
         </Pressable>
       </View>
 
