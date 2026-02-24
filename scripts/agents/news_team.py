@@ -702,7 +702,8 @@ W_SIGNAL = 3        # 전략적 시그널 (industry_business)
 W_BREADTH = 3       # 이해관계자 범위 (industry_business)
 SCORER_BATCH_SIZE = 5
 
-_SCORER_PROMPT = """IMPORTANT: Output ONLY a valid JSON array. No thinking, no markdown. Start with '['.
+_SCORER_PROMPT = """Output ONLY a single-line compact JSON array with NO extra whitespace, NO newlines between items, NO markdown fences. Start directly with '[' and end with ']'.
+CRITICAL: All objects on ONE line. Example: [{{"i":0,...}},{{"i":1,...}}]
 
 You are an AI news scoring engine. First classify each article, then score using the criteria for that category. Use ONLY the provided title and description.
 
@@ -767,8 +768,8 @@ NOTE: Score based on POTENTIAL to improve life or research, not only proven resu
 Articles:
 {article_text}
 
-Output exactly {count} items. Use nov/imp/adv for model_research and product_tools. Use mag/sig/brd for industry_business.
-[{{"i":0,"category":"model_research","nov":6,"imp":7,"adv":5}}]"""
+Output exactly {count} items as a single-line compact JSON array (no pretty-printing). Use nov/imp/adv for model_research and product_tools. Use mag/sig/brd for industry_business.
+[{{"i":0,"category":"model_research","nov":6,"imp":7,"adv":5}},{{"i":1,"category":"industry_business","mag":4,"sig":3,"brd":5}}]"""
 
 
 _scorer_lock = __import__("threading").Lock()
@@ -840,15 +841,24 @@ def _score_batch(batch: list[dict], offset: int) -> list[dict]:
 
 def _score_batch_with_retry(batch: list[dict], offset: int) -> list[dict]:
     scores = _score_batch(batch, offset)
-    if scores:
-        return scores
-    if len(batch) <= 1:
-        return []
-    mid = len(batch) // 2
-    print(f"    [RETRY] 배치 분할: {len(batch)}개 -> {mid} + {len(batch) - mid}")
-    left = _score_batch(batch[:mid], offset)
-    right = _score_batch(batch[mid:], offset + mid)
-    return left + right
+    if not scores:
+        if len(batch) <= 1:
+            return []
+        mid = len(batch) // 2
+        print(f"    [RETRY] 배치 분할: {len(batch)}개 -> {mid} + {len(batch) - mid}")
+        left = _score_batch(batch[:mid], offset)
+        right = _score_batch(batch[mid:], offset + mid)
+        scores = left + right
+    # 부분 성공: 누락된 기사 개별 재시도
+    if 0 < len(scores) < len(batch):
+        scored_indices = {s.get("_global_idx", -1) - offset for s in scores}
+        missing = [(i, batch[i]) for i in range(len(batch)) if i not in scored_indices]
+        if missing:
+            print(f"    [RETRY] 부분 누락 {len(missing)}개 개별 재시도")
+            for mi, article in missing:
+                single = _score_batch([article], offset + mi)
+                scores.extend(single)
+    return scores
 
 
 @_safe_node("scorer")
@@ -1096,7 +1106,13 @@ Output exactly {len(articles)} items:
                 classified.add(idx)
         for i, a in enumerate(articles):
             if i not in classified:
-                categorized["industry_business"].append(a)
+                # 점수 키 기반 카테고리 추론
+                has_tech = any(a.get(k) for k in ("_score_novelty", "_score_impact", "_score_advance"))
+                has_biz = any(a.get(k) for k in ("_score_market", "_score_signal", "_score_breadth"))
+                if has_tech and not has_biz:
+                    categorized.get("product_tools", categorized.get("industry_business", [])).append(a)
+                else:
+                    categorized["industry_business"].append(a)
     except Exception:
         for a in articles:
             categorized["industry_business"].append(a)
@@ -1272,8 +1288,8 @@ def _route_after_scorer(state: NewsGraphState) -> str:
         return "ranker"
     llm_scored = len([c for c in candidates if c.get("_llm_scored")])
     coverage = llm_scored / len(candidates)
-    if coverage < 0.6 and retry_count < 2:
-        print(f"  [라우팅] 스코어 커버리지 {coverage:.0%} < 60% -> 재시도")
+    if coverage < 0.9 and retry_count < 2:
+        print(f"  [라우팅] 스코어 커버리지 {coverage:.0%} < 90% -> 재시도")
         return "scorer"
     return "ranker"
 
