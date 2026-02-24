@@ -209,17 +209,22 @@ const SourceBadge = React.memo(function SourceBadge({ sourceKey }: { sourceKey?:
 
 // ─── 점수 뱃지 ─────────────────────────────────────────────────────────
 function ScoreBadge({ article }: { article: Article }) {
-  const { score, score_novelty: nov, score_impact: imp, score_advance: adv,
+  const { score, score_rigor: rig, score_novelty: nov, score_potential: pot,
+    score_utility: uti, score_impact: imp, score_access: acc,
     score_market: mag, score_signal: sig, score_breadth: brd } = article;
   if (!score) return null;
   const isBiz = !!(mag || sig || brd);
+  const isResearch = !!(rig || nov || pot);
+  const isMP = !!(uti || imp || acc);
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-      <Text style={{ fontSize: 11, color: isBiz ? '#D97706' : '#9333EA', fontWeight: '700' }}>{score}</Text>
+      <Text style={{ fontSize: 11, color: isBiz ? '#D97706' : isResearch ? '#2563EB' : '#9333EA', fontWeight: '700' }}>{score}</Text>
       {isBiz ? (
         <Text style={{ fontSize: 9, color: '#F59E0B' }}>M{mag} S{sig} B{brd}</Text>
-      ) : (nov || imp || adv) ? (
-        <Text style={{ fontSize: 9, color: '#A78BFA' }}>N{nov} I{imp} A{adv}</Text>
+      ) : isResearch ? (
+        <Text style={{ fontSize: 9, color: '#60A5FA' }}>R{rig} N{nov} P{pot}</Text>
+      ) : isMP ? (
+        <Text style={{ fontSize: 9, color: '#A78BFA' }}>U{uti} I{imp} A{acc}</Text>
       ) : null}
     </View>
   );
