@@ -177,13 +177,13 @@ const SourceBadge = React.memo(function SourceBadge({ sourceKey }: { sourceKey?:
 
 // ─── 점수 뱃지 ─────────────────────────────────────────────────────────
 function ScoreBadge({ article }: { article: Article }) {
-  const { score, score_significance: sig, score_relevance: rel, score_freshness: fresh } = article;
+  const { score, score_technicality: tech, score_actionability: act, score_novelty: nov } = article;
   if (!score) return null;
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
       <Text style={{ fontSize: 11, color: '#9333EA', fontWeight: '700' }}>{score}</Text>
-      {(sig || rel || fresh) ? (
-        <Text style={{ fontSize: 9, color: '#A78BFA' }}>S{sig} R{rel} F{fresh}</Text>
+      {(tech || act || nov) ? (
+        <Text style={{ fontSize: 9, color: '#A78BFA' }}>T{tech} A{act} N{nov}</Text>
       ) : null}
     </View>
   );

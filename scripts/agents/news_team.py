@@ -8,7 +8,7 @@ collector --> [en_process, ko_process] (병렬 Send) --> scorer --> ranker --> c
 1. collector:     16개 소스 수집 + 이미지/본문 통합 스크래핑 + LLM AI 필터
 2. en_process:    영어 기사 번역+요약 (thinking 비활성화, 배치 5)  -- 병렬
 3. ko_process:    한국어 기사 요약 (thinking 비활성화, 배치 2)     -- 병렬
-4. scorer:        3차원 LLM 평가 (significance*4 + relevance*3 + freshness*3, 만점 100)
+4. scorer:        3차원 LLM 평가 (technicality*5 + actionability*3 + novelty*2, 만점 100)
 5. ranker:        당일 우선 Top 3 하이라이트 (미번역 차단)
 6. classifier:    3개 카테고리 * Top 10 + 품질 검증 (quality_gate 통합)
 7. assembler:     한국 소스별 분리 + 최종 결과 + 타이밍 리포트
@@ -21,7 +21,7 @@ collector --> [en_process, ko_process] (병렬 Send) --> scorer --> ranker --> c
 - 노드별 소요 시간 측정
 - sources Annotated 리듀서로 EN/KO 결과 안전 머지
 
-점수 체계: significance*4 + relevance*3 + freshness*3 (만점 100, 전부 LLM 평가)
+점수 체계: technicality*5 + actionability*3 + novelty*2 (만점 100, 전부 LLM 평가)
 """
 
 import json
@@ -667,51 +667,54 @@ def _deduplicate_candidates(candidates: list[dict]) -> list[dict]:
 
 
 # ─── Node 3: scorer (3 LLM차원, 병렬 배치) ───
-W_SIGNIFICANCE = 4  # 중요도 (LLM 평가)
-W_RELEVANCE = 3     # 개발자 관련성 (LLM 평가)
-W_FRESHNESS = 3     # 정보 신선도 (LLM 평가 -- novelty, NOT recency)
+W_TECHNICALITY = 5  # 기술 실체 (LLM 평가 -- 구체적 모델/도구/코드가 있는가)
+W_ACTIONABILITY = 3 # 실용 가치 (LLM 평가 -- 개발자가 바로 써볼 수 있는가)
+W_NOVELTY = 2       # 정보 신선도 (LLM 평가 -- 새로운 정보인가, 반복인가)
 SCORER_BATCH_SIZE = 5
 
 _SCORER_PROMPT = """IMPORTANT: Output ONLY a valid JSON array. No thinking, no markdown. Start with '['.
 
+You are scoring AI news for developers who want to discover NEW tools, models, and tech they can try.
 Score each article on 3 dimensions (1-10 integer). Use the FULL range: 5 is average. Most articles should score 3-7. Reserve 9-10 for genuinely exceptional news.
 
-1. significance (중요도): AI 기술 발전에 얼마나 중요한 사건인가?
-   10: 패러다임 전환 -- 업계 전체가 바뀜 (예: Transformer 논문, ChatGPT 최초 공개)
-    9: 역대급 발전 -- 해당 분야의 판도가 바뀜 (예: GPT-4 출시)
-    8: 주요 발전 -- 새 SOTA 달성, 중요 오픈소스 공개
-    7: 유의미한 기술 진전 -- 주목할 만한 연구 결과, 주요 API/기능 추가
-    6: 의미 있는 소식 -- 주요 기업의 AI 전략 발표, 중요 업데이트
-    5: 평균적 뉴스 -- 일반적인 제품 업데이트, 보통 수준의 연구
-    4: 마이너 업데이트 -- 작은 버전업, 후속 연구
-    3: 단순 소식 -- 반복 보도, 의견 기사
-    2: 관심도 낮음 -- 사소한 변경, 루머
-    1: 무의미 -- 뉴스 가치 없음
+1. technicality (기술 실체): 이 뉴스에 구체적인 기술·모델·도구·코드가 있는가?
+   "구체적 기술"이란: 이름이 있는 모델, 다운로드/설치 가능한 도구, 실행 가능한 코드, 측정 가능한 벤치마크 등 실체가 있는 것.
+   10: 새로운 패러다임 기술 공개 (예: Transformer 논문+코드, ChatGPT 최초 출시)
+    9: 주요 모델/프레임워크 최초 공개 (예: GPT-4 출시, PyTorch 2.0)
+    8: 중요 오픈소스 공개, 새 SOTA, 새 아키텍처 논문+구현체
+    7: 주요 도구 업데이트(새 기능 추가), 주목할 연구 결과+재현 코드
+    6: 의미 있는 제품 업데이트, API 변경, 벤치마크 결과
+    5: 일반적 도구/제품 업데이트, 보통 수준의 연구
+    4: 마이너 버전업, 후속 연구, 기술 튜토리얼
+    3: 기술 언급은 있으나 구체적 산출물 없음 (전략 발표, 로드맵)
+    2: 기술 내용 거의 없음 (투자, 인수, 인사 이동)
+    1: 기술 실체 전무 (의견, 루머, 비즈니스 전략만)
 
-2. relevance (개발자 관련성): AI 개발자/실무자가 실제로 활용하거나 알아야 할 내용인가?
-   10: 즉시 적용 필수 -- 개발자 워크플로우가 바뀜 (새 프레임워크 출시, breaking API 변경)
-    9: 당장 적용 가능 -- 중요 도구/라이브러리의 메이저 업데이트
-    8: 곧 실무에 영향 -- 주요 라이브러리 업데이트, 새 개발 도구 출시
-    7: 실무에 유용 -- 새 API 기능, 유용한 오픈소스 프로젝트, 실전 적용 사례
-    6: 기술 이해에 도움 -- 연구 논문, 벤치마크 결과, 기술 분석
-    5: 알아두면 좋은 수준 -- 일반적인 기술 동향, 배경 지식
-    4: 간접적 관련 -- 투자, 인수, 정책 등 비기술적이지만 업계에 영향
-    3: 관련 낮음 -- 일반 산업 동향, 개발자에게 먼 이야기
-    2: 거의 무관 -- AI 언급되지만 기술적 내용 없음
-    1: 무관 -- 개발자/실무자와 관련 없는 내용
+2. actionability (실용 가치): 개발자가 이 뉴스를 읽고 바로 무언가를 해볼 수 있는가?
+   "해볼 수 있다"란: API 호출, 라이브러리 설치, 모델 다운로드, 설정 변경, 코드 작성 등 구체적 행동.
+   10: 즉시 사용 가능한 새 도구/프레임워크 출시 (예: 새 프레임워크 공개+설치 가이드)
+    9: 주요 도구의 중요 신기능 -- 바로 적용 가능 (예: 새 API 엔드포인트 공개)
+    8: 새 모델 공개+API/가중치 제공 (예: 오픈소스 모델 릴리스+HuggingFace 배포)
+    7: 유용한 오픈소스 프로젝트, 실전 적용 가이드, 사용 가능한 새 기능
+    6: 기술적 인사이트를 실무에 참고할 수 있음 (벤치마크, 아키텍처 비교)
+    5: 알아두면 도움 -- 직접 적용은 어렵지만 기술 이해에 유용
+    4: 간접적 참고 -- 연구 단계, 아직 공개 안 됨, 향후 적용 가능성
+    3: 적용 불가 -- 전략/정책/투자 뉴스지만 기술 맥락 있음
+    2: 개발자 행동과 무관 -- 시장 분석, 인수, 규제
+    1: 실용 가치 없음 -- 의견, 전망, 루머
 
-3. freshness (정보 신선도): 이 뉴스가 새로운 정보인가, 이미 알려진 내용의 반복인가?
+3. novelty (정보 신선도): 이 뉴스가 새로운 정보인가, 이미 알려진 내용의 반복인가?
    NOTE: This is about NOVELTY of information, NOT recency of publication date.
-   10: 최초 보도 / 독점 정보 -- 이전에 전혀 알려지지 않은 사실 (예: 신모델 최초 공개, 미공개 연구 발표)
-    9: 거의 최초 -- 극소수만 보도한 새로운 사실 (예: 비공개 베타 첫 리뷰)
-    8: 새로운 1차 정보 -- 공식 발표 직후 원문 보도, 새로운 벤치마크/데이터 포함
-    7: 의미 있는 새 관점 -- 기존 사건에 대한 독자적 분석, 새로운 각도의 해석
-    6: 새 정보 일부 포함 -- 알려진 소식이지만 추가 디테일/후속 정보 있음
-    5: 보통 -- 공식 발표의 일반적 보도, 특별한 추가 정보 없음
-    4: 대부분 기존 정보 -- 이미 보도된 내용 + 약간의 새 코멘트
-    3: 재탕 -- 다른 매체가 이미 보도한 내용을 거의 그대로 반복
-    2: 명백한 반복 -- 새로운 정보 없이 기존 보도 요약/재구성
-    1: 완전한 중복 -- 동일 사건의 단순 재게시, 정보 가치 없음
+   10: 최초 보도 / 독점 정보 (예: 신모델 최초 공개, 미공개 연구 발표)
+    9: 거의 최초 -- 극소수만 보도한 새로운 사실
+    8: 새로운 1차 정보 -- 공식 발표 직후 원문 보도, 새 벤치마크/데이터 포함
+    7: 의미 있는 새 관점 -- 독자적 분석, 새로운 각도의 해석
+    6: 새 정보 일부 포함 -- 알려진 소식 + 추가 디테일
+    5: 보통 -- 공식 발표의 일반적 보도
+    4: 대부분 기존 정보 -- 이미 보도된 내용 + 약간의 코멘트
+    3: 재탕 -- 다른 매체 보도를 거의 그대로 반복
+    2: 명백한 반복 -- 새 정보 없이 기존 보도 요약
+    1: 완전한 중복 -- 동일 사건의 단순 재게시
 
 4. category: 아래 3개 중 하나를 선택
    - "model_research": 새로운 모델, 연구 논문, 벤치마크, 학습 기법, 아키텍처
@@ -723,7 +726,7 @@ Articles:
 {article_text}
 
 Output exactly {count} items:
-[{{"i":0,"significance":6,"relevance":7,"freshness":5,"category":"model_research"}}]"""
+[{{"i":0,"tech":6,"act":7,"nov":5,"category":"model_research"}}]"""
 
 
 _scorer_lock = __import__("threading").Lock()
@@ -855,17 +858,17 @@ def scorer_node(state: NewsGraphState) -> dict:
                     local_idx = s["_global_idx"]
                     if 0 <= local_idx < len(unscored):
                         gi = unscored_indices[local_idx]
-                        significance = min(10, max(1, s.get("significance", 5)))
-                        relevance = min(10, max(1, s.get("relevance", 5)))
-                        freshness = min(10, max(1, s.get("freshness", 5)))
-                        candidates[gi]["_score_significance"] = significance
-                        candidates[gi]["_score_relevance"] = relevance
-                        candidates[gi]["_score_freshness"] = freshness
+                        technicality = min(10, max(1, s.get("tech", 5)))
+                        actionability = min(10, max(1, s.get("act", 5)))
+                        novelty = min(10, max(1, s.get("nov", 5)))
+                        candidates[gi]["_score_technicality"] = technicality
+                        candidates[gi]["_score_actionability"] = actionability
+                        candidates[gi]["_score_novelty"] = novelty
                         candidates[gi]["_llm_category"] = s.get("category", "")
                         candidates[gi]["_total_score"] = (
-                            significance * W_SIGNIFICANCE
-                            + relevance * W_RELEVANCE
-                            + freshness * W_FRESHNESS
+                            technicality * W_TECHNICALITY
+                            + actionability * W_ACTIONABILITY
+                            + novelty * W_NOVELTY
                         )
                         candidates[gi]["_llm_scored"] = True
 
@@ -875,11 +878,11 @@ def scorer_node(state: NewsGraphState) -> dict:
     # 폴백: 미평가 기사에 낮은 기본 점수 (LLM 평가 기사 우선)
     for c in candidates:
         if "_total_score" not in c:
-            c["_score_significance"] = 3
-            c["_score_relevance"] = 3
-            c["_score_freshness"] = 3
+            c["_score_technicality"] = 3
+            c["_score_actionability"] = 3
+            c["_score_novelty"] = 3
             c["_llm_category"] = ""
-            c["_total_score"] = 3 * W_SIGNIFICANCE + 3 * W_RELEVANCE + 3 * W_FRESHNESS
+            c["_total_score"] = 3 * W_TECHNICALITY + 3 * W_ACTIONABILITY + 3 * W_NOVELTY
 
     llm_count = len([c for c in candidates if c.get("_llm_scored")])
     print(f"  [스코어링] LLM 평가: {llm_count}/{len(candidates)}개")
