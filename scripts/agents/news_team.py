@@ -662,7 +662,7 @@ DEDUP_THRESHOLD = 0.65
 
 
 def _deduplicate_candidates(candidates: list[dict]) -> list[dict]:
-    """display_title 유사도 기반 중복 제거. 발행일 최신 기사 유지."""
+    """display_title 유사도 기반 중복 제거. 발행일 가장 오래된(원본) 기사 유지."""
     if len(candidates) <= 1:
         return candidates
 
@@ -670,7 +670,6 @@ def _deduplicate_candidates(candidates: list[dict]) -> list[dict]:
     sorted_cands = sorted(
         candidates,
         key=lambda c: _parse_published(c.get("published", "")) or _epoch,
-        reverse=True,
     )
 
     kept: list[dict] = []
