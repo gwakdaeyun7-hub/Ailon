@@ -120,7 +120,7 @@ function getTitle(a: Article) {
 
 function getLocalizedTitle(a: Article, lang: Language) {
   const raw = (lang === 'en' && a.display_title_en) ? a.display_title_en : (a.display_title || a.title);
-  return raw.replace(/\.{2,}$/, '').replace(/…$/, '');
+  return raw.replace(/\.{3,}/g, '…');
 }
 
 function getLocalizedOneLine(a: Article, lang: Language) {
