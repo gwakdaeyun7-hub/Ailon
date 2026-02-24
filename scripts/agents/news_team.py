@@ -923,8 +923,9 @@ def _score_batch(batch: list[dict], offset: int) -> list[dict]:
     article_text = ""
     for i, a in enumerate(batch):
         title = a.get("display_title") or a.get("title", "")
-        desc = a.get("description", "")[:200]
-        article_text += f"\n[{i}] {title} | {desc}"
+        body = a.get("body", "")
+        context = body[:500] if body else a.get("description", "")[:200]
+        article_text += f"\n[{i}] {title} | {context}"
 
     prompt = _SCORER_PROMPT.format(article_text=article_text, count=len(batch))
     try:
@@ -1229,8 +1230,9 @@ def _llm_classify_batch(articles: list[dict], categorized: dict[str, list[dict]]
     article_text = ""
     for i, a in enumerate(articles):
         title = a.get("display_title") or a.get("title", "")
-        desc = a.get("description", "")[:100]
-        article_text += f"\n[{i}] {title} | {desc}"
+        body = a.get("body", "")
+        context = body[:500] if body else a.get("description", "")[:200]
+        article_text += f"\n[{i}] {title} | {context}"
 
     prompt = f"""IMPORTANT: Output ONLY a valid JSON array. No thinking, no markdown. Start with '['.
 
