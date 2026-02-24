@@ -690,19 +690,19 @@ function CategoryTabSection({
   categorizedArticles: Record<string, Article[]>; categoryOrder: string[]; onArticlePress: (article: Article) => void;
 }) {
   const [activeTab, setActiveTab] = useState(categoryOrder[0] || 'model_research');
-  const [showMore, setShowMore] = useState(false);
+  const [expandLevel, setExpandLevel] = useState(0); // 0=5개, 1=10개, 2=15개
   const { lang, t } = useLanguage();
 
   const articles = categorizedArticles[activeTab] || [];
   const links = React.useMemo(() => articles.map(a => a.link).filter(Boolean), [articles]);
   const stats = useBatchStats(links);
-  const first5 = articles.slice(0, 5);
-  const more5 = articles.slice(5, 10);
-  const visible = showMore ? [...first5, ...more5] : first5;
+  const visibleCount = Math.min(5 + expandLevel * 5, articles.length);
+  const visible = articles.slice(0, visibleCount);
+  const remaining = articles.length - visibleCount;
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
-    setShowMore(false);
+    setExpandLevel(0);
   };
 
   return (
@@ -802,16 +802,16 @@ function CategoryTabSection({
       </View>
 
       {/* 더보기 */}
-      {more5.length > 0 && !showMore && (
+      {remaining > 0 && (
         <Pressable
-          onPress={() => setShowMore(true)}
-          accessibilityLabel={`+${more5.length}${t('news.more')}`}
+          onPress={() => setExpandLevel(prev => prev + 1)}
+          accessibilityLabel={`+${Math.min(remaining, 5)}${t('news.more')}`}
           accessibilityRole="button"
           style={{ alignItems: 'center', paddingVertical: 12, marginHorizontal: 16 }}
         >
           <View style={{ paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10, backgroundColor: BORDER, borderWidth: 1, borderColor: '#E5E7EB' }}>
             <Text style={{ fontSize: 13, fontWeight: '700', color: TEXT_SECONDARY }}>
-              +{more5.length}{t('news.more')}
+              +{Math.min(remaining, 5)}{t('news.more')}
             </Text>
           </View>
         </Pressable>
