@@ -17,6 +17,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from agents.config import initialize_firebase, get_firestore_client
 from agents.news_team import run_news_pipeline
+from notifications import send_news_notification
 
 
 def _validate_output(result: dict) -> list[str]:
@@ -72,9 +73,9 @@ def save_news_to_firestore(result: dict):
                 "source_key": a.get("source_key", ""),
                 "image_url": a.get("image_url", ""),
                 "score": a.get("_total_score", 0),
-                "score_technicality": a.get("_score_technicality", 0),
-                "score_actionability": a.get("_score_actionability", 0),
                 "score_novelty": a.get("_score_novelty", 0),
+                "score_impact": a.get("_score_impact", 0),
+                "score_practicality": a.get("_score_practicality", 0),
             }
             for a in articles
         ]
@@ -165,6 +166,12 @@ def main():
             print(f"    - {w}")
 
     save_news_to_firestore(news_result)
+
+    # ─── 뉴스 알림 발송 ───
+    try:
+        send_news_notification(article_count=news_result.get("total_count", 0))
+    except Exception as e:
+        print(f"  [알림 실패] {e} — 파이프라인은 계속 진행")
 
     # ─── 오래된 데이터 정리 ───
     print("\n" + "-" * 40)

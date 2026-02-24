@@ -8,7 +8,7 @@ collector --> [en_process, ko_process] (병렬 Send) --> scorer --> ranker --> c
 1. collector:     16개 소스 수집 + 이미지/본문 통합 스크래핑 + LLM AI 필터
 2. en_process:    영어 기사 번역+요약 (thinking 비활성화, 배치 5)  -- 병렬
 3. ko_process:    한국어 기사 요약 (thinking 비활성화, 배치 2)     -- 병렬
-4. scorer:        3차원 LLM 평가 (technicality*5 + actionability*3 + novelty*2, 만점 100)
+4. scorer:        3차원 LLM 평가 (novelty*4 + impact*3 + practicality*3, 만점 100)
 5. ranker:        당일 우선 Top 3 하이라이트 (미번역 차단)
 6. classifier:    3개 카테고리 * Top 10 + 품질 검증 (quality_gate 통합)
 7. assembler:     한국 소스별 분리 + 최종 결과 + 타이밍 리포트
@@ -21,7 +21,7 @@ collector --> [en_process, ko_process] (병렬 Send) --> scorer --> ranker --> c
 - 노드별 소요 시간 측정
 - sources Annotated 리듀서로 EN/KO 결과 안전 머지
 
-점수 체계: technicality*5 + actionability*3 + novelty*2 (만점 100, 전부 LLM 평가)
+점수 체계: novelty*4 + impact*3 + practicality*3 (만점 100, 전부 LLM 평가)
 """
 
 import json
@@ -667,66 +667,53 @@ def _deduplicate_candidates(candidates: list[dict]) -> list[dict]:
 
 
 # ─── Node 3: scorer (3 LLM차원, 병렬 배치) ───
-W_TECHNICALITY = 5  # 기술 실체 (LLM 평가 -- 구체적 모델/도구/코드가 있는가)
-W_ACTIONABILITY = 3 # 실용 가치 (LLM 평가 -- 개발자가 바로 써볼 수 있는가)
-W_NOVELTY = 2       # 정보 신선도 (LLM 평가 -- 새로운 정보인가, 반복인가)
+W_NOVELTY = 4       # 신규성 (LLM 평가 -- 새로운 기술/모델/연구/제품인가)
+W_IMPACT = 3        # 영향력 (LLM 평가 -- 업계에 미칠 영향이 큰가)
+W_PRACTICALITY = 3  # 실용성 (LLM 평가 -- 개발자가 직접 써볼 수 있는가)
 SCORER_BATCH_SIZE = 5
 
 _SCORER_PROMPT = """IMPORTANT: Output ONLY a valid JSON array. No thinking, no markdown. Start with '['.
 
-You are scoring AI news for developers who want to discover NEW tools, models, and tech they can try.
-Score each article on 3 dimensions (1-10 integer). Use the FULL range: 5 is average. Most articles should score 3-7. Reserve 9-10 for genuinely exceptional news.
+You are an AI news scoring engine. Score each article strictly based on the provided title and description. Do NOT use external knowledge or assume information not present.
 
-1. technicality (기술 실체): 이 뉴스에 구체적인 기술·모델·도구·코드가 있는가?
-   "구체적 기술"이란: 이름이 있는 모델, 다운로드/설치 가능한 도구, 실행 가능한 코드, 측정 가능한 벤치마크 등 실체가 있는 것.
-   10: 새로운 패러다임 기술 공개 (예: Transformer 논문+코드, ChatGPT 최초 출시)
-    9: 주요 모델/프레임워크 최초 공개 (예: GPT-4 출시, PyTorch 2.0)
-    8: 중요 오픈소스 공개, 새 SOTA, 새 아키텍처 논문+구현체
-    7: 주요 도구 업데이트(새 기능 추가), 주목할 연구 결과+재현 코드
-    6: 의미 있는 제품 업데이트, API 변경, 벤치마크 결과
-    5: 일반적 도구/제품 업데이트, 보통 수준의 연구
-    4: 마이너 버전업, 후속 연구, 기술 튜토리얼
-    3: 기술 언급은 있으나 구체적 산출물 없음 (전략 발표, 로드맵)
-    2: 기술 내용 거의 없음 (투자, 인수, 인사 이동)
-    1: 기술 실체 전무 (의견, 루머, 비즈니스 전략만)
+## Scoring Dimensions (each 1-10, integers only)
 
-2. actionability (실용 가치): 개발자가 이 뉴스를 읽고 바로 무언가를 해볼 수 있는가?
-   "해볼 수 있다"란: API 호출, 라이브러리 설치, 모델 다운로드, 설정 변경, 코드 작성 등 구체적 행동.
-   10: 즉시 사용 가능한 새 도구/프레임워크 출시 (예: 새 프레임워크 공개+설치 가이드)
-    9: 주요 도구의 중요 신기능 -- 바로 적용 가능 (예: 새 API 엔드포인트 공개)
-    8: 새 모델 공개+API/가중치 제공 (예: 오픈소스 모델 릴리스+HuggingFace 배포)
-    7: 유용한 오픈소스 프로젝트, 실전 적용 가이드, 사용 가능한 새 기능
-    6: 기술적 인사이트를 실무에 참고할 수 있음 (벤치마크, 아키텍처 비교)
-    5: 알아두면 도움 -- 직접 적용은 어렵지만 기술 이해에 유용
-    4: 간접적 참고 -- 연구 단계, 아직 공개 안 됨, 향후 적용 가능성
-    3: 적용 불가 -- 전략/정책/투자 뉴스지만 기술 맥락 있음
-    2: 개발자 행동과 무관 -- 시장 분석, 인수, 규제
-    1: 실용 가치 없음 -- 의견, 전망, 루머
+**nov (Novelty):** Is this about something NEW?
+- 8-10: First announcement of new model/architecture, new open-source release, new research paper with novel results, new technique or method
+- 4-7: Incremental updates to existing tools, new benchmarks on known methods, notable but expected releases
+- 1-3: Business news (funding/M&A/IPO), policy/regulation, opinion/editorial, trend roundups, listicles, event recaps
 
-3. novelty (정보 신선도): 이 뉴스가 새로운 정보인가, 이미 알려진 내용의 반복인가?
-   NOTE: This is about NOVELTY of information, NOT recency of publication date.
-   10: 최초 보도 / 독점 정보 (예: 신모델 최초 공개, 미공개 연구 발표)
-    9: 거의 최초 -- 극소수만 보도한 새로운 사실
-    8: 새로운 1차 정보 -- 공식 발표 직후 원문 보도, 새 벤치마크/데이터 포함
-    7: 의미 있는 새 관점 -- 독자적 분석, 새로운 각도의 해석
-    6: 새 정보 일부 포함 -- 알려진 소식 + 추가 디테일
-    5: 보통 -- 공식 발표의 일반적 보도
-    4: 대부분 기존 정보 -- 이미 보도된 내용 + 약간의 코멘트
-    3: 재탕 -- 다른 매체 보도를 거의 그대로 반복
-    2: 명백한 반복 -- 새 정보 없이 기존 보도 요약
-    1: 완전한 중복 -- 동일 사건의 단순 재게시
+**imp (Impact):** How much will this affect the AI field?
+- 8-10: Paradigm shift, major framework update used by millions, breakthrough changing standard practice
+- 4-7: Useful improvement, moderate community interest, affects a specific subfield
+- 1-3: Niche/minor update, company-internal change, local/regional news, no broad relevance
 
-4. category: 아래 3개 중 하나를 선택
-   - "model_research": 새로운 모델, 연구 논문, 벤치마크, 학습 기법, 아키텍처
-   - "product_tools": 사용자가 쓸 수 있는 제품, 도구, API, 프레임워크, 라이브러리
-   - "industry_business": 투자, 인수, 규제, 기업 전략, 산업 동향
-   경계 사례: "새 모델 출시 + API 제공" -> model_research (기술이 핵심). "기존 제품에 AI 기능 추가" -> product_tools
+**pra (Practicality):** Can developers/researchers directly use this?
+- 8-10: Open-source code/weights available, public API, reproducible method with implementation details
+- 4-7: Partially open, API waitlist, reproducible but complex setup, tutorial without code
+- 1-3: Closed/proprietary with no access, pure theory without implementation, vague announcement with no timeline
+
+## Rules
+- Score each dimension INDEPENDENTLY. High novelty does not imply high impact.
+- AVOID middle-ground clustering. Use the full 1-10 range. If an article is clearly business news, give nov=1 or 2, not 5.
+- Base scores ONLY on the provided title and description. If description is vague, score conservatively.
+
+## Calibration Examples
+"Meta releases Llama 4 open-weights model with 1T parameters" → {{"nov":9,"imp":9,"pra":9}}
+"Google DeepMind paper introduces new diffusion architecture beating SOTA on ImageNet" → {{"nov":9,"imp":8,"pra":5}}
+"OpenAI raises $10B in new funding round led by SoftBank" → {{"nov":1,"imp":3,"pra":1}}
+"Top 10 AI tools every developer should try in 2026" → {{"nov":1,"imp":2,"pra":3}}
+
+## Category (pick one)
+- "model_research": new model, research paper, benchmark, architecture
+- "product_tools": product, tool, API, framework, library
+- "industry_business": funding, M&A, regulation, strategy, market
 
 Articles:
 {article_text}
 
 Output exactly {count} items:
-[{{"i":0,"tech":6,"act":7,"nov":5,"category":"model_research"}}]"""
+[{{"i":0,"nov":6,"imp":7,"pra":5,"category":"model_research"}}]"""
 
 
 _scorer_lock = __import__("threading").Lock()
@@ -858,17 +845,17 @@ def scorer_node(state: NewsGraphState) -> dict:
                     local_idx = s["_global_idx"]
                     if 0 <= local_idx < len(unscored):
                         gi = unscored_indices[local_idx]
-                        technicality = min(10, max(1, s.get("tech", 5)))
-                        actionability = min(10, max(1, s.get("act", 5)))
                         novelty = min(10, max(1, s.get("nov", 5)))
-                        candidates[gi]["_score_technicality"] = technicality
-                        candidates[gi]["_score_actionability"] = actionability
+                        impact = min(10, max(1, s.get("imp", 5)))
+                        practicality = min(10, max(1, s.get("pra", 5)))
                         candidates[gi]["_score_novelty"] = novelty
+                        candidates[gi]["_score_impact"] = impact
+                        candidates[gi]["_score_practicality"] = practicality
                         candidates[gi]["_llm_category"] = s.get("category", "")
                         candidates[gi]["_total_score"] = (
-                            technicality * W_TECHNICALITY
-                            + actionability * W_ACTIONABILITY
-                            + novelty * W_NOVELTY
+                            novelty * W_NOVELTY
+                            + impact * W_IMPACT
+                            + practicality * W_PRACTICALITY
                         )
                         candidates[gi]["_llm_scored"] = True
 
@@ -878,11 +865,11 @@ def scorer_node(state: NewsGraphState) -> dict:
     # 폴백: 미평가 기사에 낮은 기본 점수 (LLM 평가 기사 우선)
     for c in candidates:
         if "_total_score" not in c:
-            c["_score_technicality"] = 3
-            c["_score_actionability"] = 3
             c["_score_novelty"] = 3
+            c["_score_impact"] = 3
+            c["_score_practicality"] = 3
             c["_llm_category"] = ""
-            c["_total_score"] = 3 * W_TECHNICALITY + 3 * W_ACTIONABILITY + 3 * W_NOVELTY
+            c["_total_score"] = 3 * W_NOVELTY + 3 * W_IMPACT + 3 * W_PRACTICALITY
 
     llm_count = len([c for c in candidates if c.get("_llm_scored")])
     print(f"  [스코어링] LLM 평가: {llm_count}/{len(candidates)}개")
