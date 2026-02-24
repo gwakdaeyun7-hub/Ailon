@@ -1036,7 +1036,7 @@ def ranker_node(state: NewsGraphState) -> dict:
 
 # ─── Node 5: classifier (카테고리 분류 + Top 10 선정 + 품질 검증) ───
 VALID_CATEGORIES = {"model_research", "product_tools", "industry_business"}
-CATEGORY_TOP_N = 15
+CATEGORY_TOP_N = 25
 
 
 def _classify_article(a: dict) -> str | None:
