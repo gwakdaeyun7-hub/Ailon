@@ -8,7 +8,7 @@ collector --> [en_process, ko_process] (병렬 Send) --> scorer --> ranker --> c
 1. collector:     16개 소스 수집 + 이미지/본문 통합 스크래핑 + LLM AI 필터
 2. en_process:    영어 기사 번역+요약 (thinking 비활성화, 배치 5)  -- 병렬
 3. ko_process:    한국어 기사 요약 (thinking 비활성화, 배치 2)     -- 병렬
-4. scorer:        카테고리별 LLM 평가 (tech: nov*4+imp*3+adv*3, biz: mag*4+sig*3+brd*3, 만점 100)
+4. scorer:        카테고리별 LLM 평가 (research: rig*4+nov*3+pot*3, models_products: uti*4+imp*3+acc*3, industry_business: mag*4+sig*3+brd*3, 만점 100)
 5. ranker:        당일 우선 Top 3 하이라이트 (미번역 차단)
 6. classifier:    3개 카테고리 * Top 10 + 품질 검증 (quality_gate 통합)
 7. assembler:     한국 소스별 분리 + 최종 결과 + 타이밍 리포트
@@ -21,7 +21,7 @@ collector --> [en_process, ko_process] (병렬 Send) --> scorer --> ranker --> c
 - 노드별 소요 시간 측정
 - sources Annotated 리듀서로 EN/KO 결과 안전 머지
 
-점수 체계: 카테고리별 차등 (tech: nov*4+imp*3+adv*3, biz: mag*4+sig*3+brd*3, 만점 100)
+점수 체계: 카테고리별 차등 (research: rig*4+nov*3+pot*3, models_products: uti*4+imp*3+acc*3, industry_business: mag*4+sig*3+brd*3, 만점 100)
 """
 
 import json
@@ -693,9 +693,15 @@ def _deduplicate_candidates(candidates: list[dict]) -> list[dict]:
 
 
 # ─── Node 3: scorer (3 LLM차원, 병렬 배치) ───
-W_NOVELTY = 4       # 신규성 (model_research, product_tools)
-W_IMPACT = 3        # 영향력 (model_research, product_tools)
-W_ADVANCE = 3       # 실질적 발전 기여도 (model_research, product_tools)
+# research 가중치
+W_RIGOR = 4         # 엄밀성 (research)
+W_NOVELTY = 3       # 방법론 새로움 (research)
+W_POTENTIAL = 3     # 잠재력 (research)
+# models_products 가중치
+W_UTILITY = 4       # 실용성 (models_products)
+W_IMPACT = 3        # 생태계 영향 (models_products)
+W_ACCESS = 3        # 접근성 (models_products)
+# industry_business 가중치
 W_MARKET = 4        # 시장 규모 (industry_business)
 W_SIGNAL = 3        # 전략적 시그널 (industry_business)
 W_BREADTH = 3       # 이해관계자 범위 (industry_business)
@@ -707,111 +713,192 @@ CRITICAL: All objects on ONE line. Example: [{{"i":0,...}},{{"i":1,...}}]
 You are an AI news scoring engine. First classify each article, then score using the criteria for that category. Use ONLY the provided title and description.
 
 ## Step 1: Category (pick one)
-Ask: "What is this article FUNDAMENTALLY about?" — not surface keywords, but the core substance.
+Core question: "Can a user USE this right now?" — if the article is about technology:
+  YES (usable/downloadable/integratable) → models_products
+  NO (paper/theory/benchmark with no release) → research
+  Not about technology → industry_business
 
-- "model_research": The article is about THE TECHNOLOGY ITSELF — how AI works or could work.
-  Core question: "Does this advance our understanding or capability of AI as a technology?"
-  Includes: new model releases, architectures, training methods, research papers, benchmark results, scaling studies, theoretical breakthroughs, novel algorithms, dataset contributions.
-  Typical examples: "GPT-5 achieves human-level reasoning", "Novel attention mechanism reduces compute 10x", "New SOTA on MMLU benchmark", "Scaling laws paper from DeepMind"
-  Boundary: A company releasing a new model → model_research (the model is the news). A research team publishing about a new training technique → model_research.
+- "research": PURE RESEARCH — papers, benchmarks, theory, academic results that users CANNOT directly use yet.
+  Core question: "Is this about advancing scientific understanding, without a usable artifact?"
+  Includes: research papers, benchmark studies, theoretical breakthroughs, novel algorithms (paper-only), dataset contributions (academic), scaling law analyses, survey papers, academic competition results.
+  YES examples: "DeepMind paper: new diffusion architecture beats SOTA", "Scaling laws study reveals emergent abilities at 10B params", "New MMLU benchmark results comparing 20 models"
+  NO examples: "Meta releases Llama 4 open-weights" (downloadable model → models_products), "OpenAI raises $6B" (business → industry_business)
 
-- "product_tools": The article is about SOMETHING USERS CAN USE — a deployable product, service, or tool.
+- "models_products": MODELS + PRODUCTS + TOOLS — everything a user can USE, DOWNLOAD, or INTEGRATE right now.
   Core question: "Can someone go use, download, or integrate this today (or soon)?"
-  Includes: product launches, feature updates, API services, SDKs, frameworks, developer tools, platform integrations, app releases, UX improvements.
-  Typical examples: "Cursor adds AI code review", "ChatGPT gets memory feature", "LangChain 0.3 released", "GitHub Copilot now supports Rust"
-  Boundary: An existing product adding AI-powered features → product_tools (the product update is the news). A framework/library release → product_tools.
+  Includes: model releases (open-weight or API), product launches, feature updates, API services, SDKs, frameworks, developer tools, platform integrations, app releases, open-source library releases, fine-tuned model releases.
+  YES examples: "Meta releases Llama 4 open-weights model", "Cursor adds AI code review", "ChatGPT gets memory feature", "LangChain 0.3 released", "GitHub Copilot now supports Rust"
+  NO examples: "Novel attention mechanism paper" (paper-only → research), "Anthropic raises $2B" (business → industry_business)
 
-- "industry_business": The article is about MONEY, POWER, OR MARKET DYNAMICS — organizational and economic events.
+- "industry_business": MONEY, POWER, OR MARKET DYNAMICS — organizational and economic events.
   Core question: "Is this primarily about who owns what, who pays whom, or how markets/regulations shift?"
   Includes: funding rounds, M&A, IPOs, earnings reports, layoffs, executive changes, partnerships, government regulation, antitrust actions, market analysis, corporate strategy.
-  Typical examples: "Anthropic raises $2B Series C", "EU AI Act enforcement begins", "NVIDIA reports record $35B revenue", "Google acquires AI startup for $500M"
-  Boundary: Company restructuring its AI division → industry_business. An industry trend analysis → industry_business.
+  YES examples: "Anthropic raises $2B Series C", "EU AI Act enforcement begins", "NVIDIA reports record $35B revenue", "Google acquires AI startup for $500M"
+  NO examples: "Anthropic releases Claude 4" (usable model → models_products), "New attention paper from Google" (research → research)
 
 Tiebreak rules (apply in order when an article spans multiple categories):
-1. Model announcement + API access → model_research (the model is the news; API is delivery mechanism)
-2. Existing product adds new AI capabilities → product_tools (the product evolution is the news)
-3. New model + funding in same article → decide by the TITLE focus: if the title emphasizes the model name/capability → model_research; if the title emphasizes the deal/amount → industry_business
-4. Acquisition of an AI company → industry_business (the deal is the news, regardless of what the acquired company built)
-5. Open-source release of a model → model_research (the technical contribution is the news, even though it's also a "product")
-6. Still ambiguous → choose the category whose scoring dimensions (nov/imp/adv vs mag/sig/brd) would produce MORE meaningful differentiation for this article
+1. research vs models_products — apply the core test: "Can a user use it now?" Paper + code release → models_products. Paper only → research.
+2. Model announcement + API access → models_products (users can access it)
+3. Open-source model release → models_products (downloadable artifact is the news)
+4. Paper with no released artifact → research (even if from a major lab)
+5. Existing product adds new AI capabilities → models_products (the product update is the news)
+6. New model + funding in same article → decide by the TITLE focus: if title emphasizes model/capability → models_products; if title emphasizes deal/amount → industry_business
+7. Acquisition of an AI company → industry_business (the deal is the news)
+8. Still ambiguous → choose the category whose scoring dimensions would produce MORE meaningful differentiation
 
 ## Step 2: Score by category (each 1-10, integers only)
 
-### For model_research / product_tools → use nov, imp, adv
+### For research → use rig, nov, pot
 
-**nov (Novelty):** Is this about something NEW?
-- 10: World-first capability nobody predicted (e.g., AGI-level demo, entirely new paradigm)
-- 9: First announcement of major new model/architecture from top lab
-- 8: New open-source release with novel results, or first paper on a new technique
-- 7: Significant update to existing model/tool with meaningful new capabilities
-- 6: New benchmarks or evaluations revealing unexpected findings
-- 5: Expected release now official, or known method applied to new domain
-- 4: Incremental version update with minor new features
-- 3: Re-analysis of known results, or survey/roundup of existing work
-- 2: Opinion/editorial on well-known topic, trend commentary
-- 1: Pure rehash, repost, or listicle with no new information
+**rig (Rigor):** How methodologically sound and well-evidenced is this research?
+- 10: Landmark paper with comprehensive experiments, ablations, multi-dataset validation, and formal proofs where applicable (e.g., "Attention Is All You Need" level)
+- 9: Top-venue paper with thorough experimental design, strong baselines, and clear reproducibility
+- 8: Well-designed study with solid methodology across multiple benchmarks, minor gaps only
+- 7: Sound methodology with good experimental coverage; some ablations or baselines missing
+- 6: Adequate methodology; results are credible but experimental scope is limited
+- 5: Mixed rigor; some claims well-supported, others lack sufficient evidence
+- 4: Noticeable methodological gaps; limited baselines or questionable evaluation setup
+- 3: Weak methodology; key claims unsupported or experiments poorly designed
+- 2: Minimal evidence; mostly claims without substantiation
+- 1: No methodology; opinion piece or pure speculation disguised as research
+Boost for: reproducibility artifacts (code/data released), peer-reviewed venue, comprehensive ablation studies.
+Penalize for: cherry-picked benchmarks, no comparison to baselines, unreproducible setup, preprint with extraordinary claims but no verification.
 
-**imp (Impact):** How much will this affect the AI field?
-- 10: Paradigm shift redefining how the entire field operates (e.g., transformer-level change)
-- 9: Breakthrough changing standard practice across multiple subfields
-- 8: Major framework/library update adopted by most practitioners
-- 7: Important advance that will influence a broad subfield's direction
-- 6: Useful improvement with clear adoption path in several teams/orgs
-- 5: Moderate community interest; relevant to one subfield but not beyond
-- 4: Minor quality-of-life improvement for existing workflows
-- 3: Niche update affecting a small research group or narrow use case
-- 2: Marginal change with no measurable effect on practice
-- 1: No relevance to the broader AI field
+**nov (Novelty):** How new is the METHODOLOGY or APPROACH? (Not "is this the first time" — LLMs cannot verify world-firsts.)
+- 10: Introduces an entirely new paradigm or framework that redefines how a problem class is approached
+- 9: Proposes a fundamentally different method combining ideas never joined before
+- 8: Novel architecture or algorithm with a clearly original core mechanism
+- 7: Creative adaptation combining known techniques in a meaningfully new way
+- 6: Extends existing work with a non-obvious modification that yields new insights
+- 5: Applies known methods to a new domain or problem setting with moderate adaptation
+- 4: Incremental improvement on existing method; the delta is small but real
+- 3: Standard approach applied with minor tweaks; limited originality
+- 2: Replication, survey, or re-analysis of known results with no new method
+- 1: Pure rehash or re-statement of established knowledge
+Boost for: interdisciplinary approach, counter-intuitive findings from a new method, new formalization of a previously informal problem.
+Penalize for: obvious next-step experiments, hyperparameter tuning presented as novelty, "we applied X to Y" with no methodological insight.
+NOTE: Judge novelty of the METHOD, not the result. A known method achieving a new SOTA is low novelty. A new method with modest results can be high novelty.
 
-**adv (Advancement):** How much potential does this have to improve real-world life or advance research?
-- 10: Transformative potential to solve a major global challenge (e.g., disease, climate, poverty)
-- 9: Opens a realistic path to breakthroughs in healthcare, education, or critical infrastructure
-- 8: Could significantly accelerate research progress or broadly improve daily life quality
-- 7: Introduces methods/tools that meaningfully lower barriers for researchers or end-users
-- 6: Plausible real-world benefits with a clear but unvalidated deployment path
-- 5: Moderate potential; useful if adopted, but requires further development or integration
-- 4: Narrow benefits limited to specific populations or controlled settings
-- 3: Speculative improvement; unlikely without major additional breakthroughs
-- 2: Purely academic interest with no foreseeable practical application path
-- 1: No tangible potential to improve life or advance any research direction
-Boost for: new research methodologies or paradigms that could unlock follow-on discoveries, tools accessible to non-experts that improve quality of life, healthcare/education/accessibility applications, open-source releases that democratize capability, anything that reduces cost or barrier to entry for broad populations.
-Penalize for: benchmark-only gains with no deployment path, improvements only relevant at extreme scale, internal infra with no external benefit.
-NOTE: Score based on POTENTIAL to improve life or research, not only proven results. A promising new method with clear applicability deserves a high score even before deployment. Do NOT double-count industry disruption (Impact) or newness (Novelty). Advancement = real-world and research progress potential only.
+**pot (Potential):** How much could this research unlock future progress?
+- 10: Opens an entirely new research direction with broad implications across AI and beyond (e.g., attention mechanism enabling transformers)
+- 9: Provides foundations that could enable breakthroughs in multiple subfields
+- 8: High potential to significantly accelerate progress in a major research area
+- 7: Could meaningfully influence research direction in its subfield for years
+- 6: Useful contribution that will likely inspire follow-up work in a focused area
+- 5: Moderate potential; relevant to current work but unlikely to shift directions
+- 4: Narrow applicability; may help a few research groups
+- 3: Limited potential; mostly confirms what was already suspected
+- 2: Dead-end or highly constrained; unlikely to lead anywhere new
+- 1: No foreseeable research impact
+Boost for: general-purpose methods applicable across domains, work that removes key bottlenecks, results that challenge prevailing assumptions.
+Penalize for: task-specific solutions with no generalization path, improvements only at extreme scale, results dependent on proprietary data/compute.
+
+### For models_products → use uti, imp, acc
+
+**uti (Utility):** How practically useful is this for real users right now?
+- 10: Transforms a major workflow for millions of users (e.g., ChatGPT-level impact on daily work)
+- 9: Dramatically improves productivity or capability for a large professional community
+- 8: Highly useful tool/model that many practitioners will adopt into daily workflows
+- 7: Solid practical value; clearly useful for a well-defined user segment
+- 6: Useful for specific tasks; good but not essential
+- 5: Moderate utility; helpful in some contexts, ignorable in others
+- 4: Minor convenience improvement; nice to have, not need to have
+- 3: Limited practical use; edge-case utility only
+- 2: Barely functional or so niche that almost no one benefits
+- 1: No practical use to any real user
+Boost for: solves a pain point many users actively complain about, works out-of-the-box with minimal setup, significant cost/time savings.
+Penalize for: requires extensive fine-tuning to be useful, demo-only without production readiness, duplicates existing well-established tools.
+
+**imp (Impact):** How much will this affect the broader AI ecosystem?
+- 10: Reshapes the entire AI ecosystem (e.g., new foundation model that becomes the default baseline)
+- 9: Changes standard practice across multiple communities (researchers, developers, enterprises)
+- 8: Major shift in a large segment; most practitioners in that area will be affected
+- 7: Important influence on a broad subfield's direction or tooling landscape
+- 6: Clear adoption in several organizations; noticeable market effect
+- 5: Moderate community interest; relevant to one segment but not beyond
+- 4: Minor effect on existing ecosystem; adopted by a small group
+- 3: Niche impact; affects a small community or narrow use case
+- 2: Marginal change; no measurable ecosystem effect
+- 1: No ecosystem impact whatsoever
+Boost for: sets new standard that others must respond to, enables entirely new categories of applications, shifts competitive dynamics.
+Penalize for: me-too product in crowded space, improvement too small to change user behavior, locked to a single platform.
+
+**acc (Accessibility):** How easy is it for users to access and use this?
+- 10: Free, open-source, works everywhere, excellent docs, no setup required
+- 9: Free or very low cost, open-source, easy installation, good documentation
+- 8: Accessible to most developers; open API or downloadable with reasonable requirements
+- 7: Available to developers with moderate effort; some cost or hardware requirements
+- 6: Usable but requires significant setup, cost, or specialized knowledge
+- 5: Limited access; waitlist, high cost, or enterprise-only
+- 4: Restricted access; requires application, significant cost, or rare hardware
+- 3: Highly restricted; only available to select partners or requires extreme resources
+- 2: Effectively inaccessible to most; requires top-tier compute or special agreements
+- 1: Not yet available; announced but no access path exists
+Boost for: open-source with permissive license, free tier available, cross-platform support, active community.
+Penalize for: closed-source with no API, prohibitive pricing, requires cutting-edge GPU, vendor lock-in.
 
 ### For industry_business → use mag, sig, brd
 
 **mag (Magnitude):** Scale of the event.
-- 8-10: $10B+ deal, top-5 company earnings, global regulation enforcement
-- 4-7: $1B+ deal, top-50 company move, national policy
-- 1-3: Seed round <$20M, single hire, local/niche scope
+- 10: $50B+ deal or event reshaping the global tech economy (e.g., mega-merger of top AI companies)
+- 9: $10B-50B deal, top-3 company earnings that signal market direction
+- 8: $5B-10B deal, global regulation with enforcement teeth, top-5 company strategic pivot
+- 7: $1B-5B deal, major country's national AI policy, top-10 company significant move
+- 6: $500M-1B deal, important regulatory proposal, major partnership between large players
+- 5: $100M-500M deal, notable corporate restructuring, significant policy announcement
+- 4: $20M-100M deal, mid-size company move, regional regulation
+- 3: $5M-20M funding, single executive change at notable company, industry report
+- 2: Seed round <$5M, minor hire, small partnership announcement
+- 1: Trivial event; single small company internal change, no financial significance
+Boost for: events involving multiple top-5 AI companies, cross-border regulatory actions, precedent-setting legal decisions.
+Penalize for: routine quarterly reports with no surprises, announced plans without execution, minor organizational changes.
 
-**sig (Signal):** Does this reshape competitive landscape?
-- 8-10: New market leader, paradigm regulatory shift, industry pivot
-- 4-7: Strategic repositioning, major partnership
-- 1-3: Routine operations, no strategic implication
+**sig (Signal):** Does this reshape the competitive landscape or signal a strategic shift?
+- 10: Fundamentally redraws market boundaries (e.g., new monopoly formation, paradigm regulatory shift)
+- 9: Creates a new market leader or destroys an existing competitive advantage
+- 8: Major strategic pivot by a top player that forces industry-wide response
+- 7: Significant repositioning that will change competitive dynamics in a segment
+- 6: Notable strategic move; competitors will need to take notice
+- 5: Moderate signal; suggests a trend but no immediate competitive impact
+- 4: Minor strategic implication; one company's internal decision
+- 3: Weak signal; could mean something but likely noise
+- 2: No strategic implication; routine business operation
+- 1: Zero signal value; purely administrative or procedural
+Boost for: first-mover actions that others must follow, regulatory precedents, unexpected alliances or rivalries.
+Penalize for: expected moves already priced in, copycat strategies, announcements without execution.
 
-**brd (Breadth):** How many stakeholders affected?
-- 8-10: Entire AI ecosystem + adjacent sectors
-- 4-7: Multiple segments (all startups, all chip buyers)
-- 1-3: Single company or narrow niche
+**brd (Breadth):** How many stakeholders are affected?
+- 10: Entire global tech ecosystem + adjacent industries (healthcare, finance, education, etc.)
+- 9: All AI companies + major adjacent sectors (cloud, chips, enterprise software)
+- 8: Entire AI ecosystem (startups, enterprises, researchers, developers)
+- 7: Multiple major segments (e.g., all LLM providers + all enterprise AI buyers)
+- 6: A large segment (e.g., all AI startups, or all cloud AI users)
+- 5: Several companies and their customers in a specific niche
+- 4: A handful of direct competitors and their immediate ecosystem
+- 3: Two or three companies directly involved + limited spillover
+- 2: Single company and its immediate stakeholders
+- 1: Internal to one organization; no external impact
+Boost for: cross-industry effects, impacts on open-source community, effects on AI talent market.
+Penalize for: single geography with no global relevance, single vertical with no spillover.
 
 ## Rules
 - AVOID middle-ground clustering. Use the full 1-10 range.
 - Score ONLY from provided text. If vague, score conservatively.
 
 ## Calibration
-"Meta releases Llama 4 open-weights model with 1T parameters" → {{"i":0,"category":"model_research","nov":9,"imp":9,"adv":8}}
-"DeepMind paper: new diffusion architecture beats SOTA" → {{"i":1,"category":"model_research","nov":9,"imp":8,"adv":4}}
-"AI-powered sign language real-time translation app launched" → {{"i":2,"category":"product_tools","nov":5,"imp":3,"adv":9}}
-"MLflow 2.16 released with improved artifact storage" → {{"i":3,"category":"product_tools","nov":3,"imp":2,"adv":2}}
-"NVIDIA reports record $35B quarterly revenue" → {{"i":4,"category":"industry_business","mag":10,"sig":10,"brd":9}}
-"AI startup raises $8M seed round" → {{"i":5,"category":"industry_business","mag":1,"sig":1,"brd":1}}
+"DeepMind paper: new diffusion architecture beats SOTA on 5 benchmarks" → {{"i":0,"category":"research","rig":8,"nov":8,"pot":7}}
+"Survey paper comparing 30 LLMs on reasoning tasks" → {{"i":1,"category":"research","rig":7,"nov":2,"pot":3}}
+"Meta releases Llama 4 open-weights model with 1T parameters" → {{"i":2,"category":"models_products","uti":9,"imp":9,"acc":9}}
+"ChatGPT gets memory feature for persistent context" → {{"i":3,"category":"models_products","uti":7,"imp":6,"acc":8}}
+"MLflow 2.16 released with improved artifact storage" → {{"i":4,"category":"models_products","uti":4,"imp":2,"acc":8}}
+"NVIDIA reports record $35B quarterly revenue" → {{"i":5,"category":"industry_business","mag":9,"sig":9,"brd":9}}
+"AI startup raises $8M seed round" → {{"i":6,"category":"industry_business","mag":2,"sig":2,"brd":1}}
 
 Articles:
 {article_text}
 
-Output exactly {count} items as a single-line compact JSON array (no pretty-printing). Use nov/imp/adv for model_research and product_tools. Use mag/sig/brd for industry_business.
-[{{"i":0,"category":"model_research","nov":6,"imp":7,"adv":5}},{{"i":1,"category":"industry_business","mag":4,"sig":3,"brd":5}}]"""
+Output exactly {count} items as a single-line compact JSON array (no pretty-printing). Use rig/nov/pot for research. Use uti/imp/acc for models_products. Use mag/sig/brd for industry_business.
+[{{"i":0,"category":"research","rig":7,"nov":6,"pot":5}},{{"i":1,"category":"models_products","uti":8,"imp":7,"acc":6}},{{"i":2,"category":"industry_business","mag":4,"sig":3,"brd":5}}]"""
 
 
 _scorer_lock = __import__("threading").Lock()
@@ -962,15 +1049,26 @@ def scorer_node(state: NewsGraphState) -> dict:
                         # 카테고리에 따라 올바른 키가 있는지 확인 후 파싱
                         # LLM이 잘못된 키를 반환한 경우 카테고리를 키 기반으로 교정
                         has_biz_keys = any(s.get(k) is not None for k in ("mag", "sig", "brd"))
-                        has_tech_keys = any(s.get(k) is not None for k in ("nov", "imp", "adv"))
+                        has_research_keys = any(s.get(k) is not None for k in ("rig", "nov", "pot"))
+                        has_mp_keys = any(s.get(k) is not None for k in ("uti", "imp", "acc"))
 
-                        if cat == "industry_business" and not has_biz_keys and has_tech_keys:
-                            # LLM이 biz 카테고리인데 tech 키를 반환 -> tech로 교정
-                            cat = "product_tools"
+                        if cat == "industry_business" and not has_biz_keys:
+                            if has_research_keys:
+                                cat = "research"
+                            elif has_mp_keys:
+                                cat = "models_products"
                             candidates[gi]["_llm_category"] = cat
-                        elif cat != "industry_business" and has_biz_keys and not has_tech_keys:
-                            # LLM이 tech 카테고리인데 biz 키를 반환 -> biz로 교정
-                            cat = "industry_business"
+                        elif cat == "research" and not has_research_keys:
+                            if has_biz_keys:
+                                cat = "industry_business"
+                            elif has_mp_keys:
+                                cat = "models_products"
+                            candidates[gi]["_llm_category"] = cat
+                        elif cat == "models_products" and not has_mp_keys:
+                            if has_biz_keys:
+                                cat = "industry_business"
+                            elif has_research_keys:
+                                cat = "research"
                             candidates[gi]["_llm_category"] = cat
 
                         if cat == "industry_business":
@@ -980,26 +1078,50 @@ def scorer_node(state: NewsGraphState) -> dict:
                             candidates[gi]["_score_market"] = mag
                             candidates[gi]["_score_signal"] = sig
                             candidates[gi]["_score_breadth"] = brd
+                            candidates[gi]["_score_rigor"] = 0
                             candidates[gi]["_score_novelty"] = 0
+                            candidates[gi]["_score_potential"] = 0
+                            candidates[gi]["_score_utility"] = 0
                             candidates[gi]["_score_impact"] = 0
-                            candidates[gi]["_score_advance"] = 0
+                            candidates[gi]["_score_access"] = 0
                             candidates[gi]["_total_score"] = (
                                 mag * W_MARKET + sig * W_SIGNAL + brd * W_BREADTH
                             )
-                        else:
+                        elif cat == "research":
+                            rigor = min(10, max(1, s.get("rig", 5)))
                             novelty = min(10, max(1, s.get("nov", 5)))
-                            impact = min(10, max(1, s.get("imp", 5)))
-                            advance = min(10, max(1, s.get("adv", 5)))
+                            potential = min(10, max(1, s.get("pot", 5)))
+                            candidates[gi]["_score_rigor"] = rigor
                             candidates[gi]["_score_novelty"] = novelty
-                            candidates[gi]["_score_impact"] = impact
-                            candidates[gi]["_score_advance"] = advance
+                            candidates[gi]["_score_potential"] = potential
+                            candidates[gi]["_score_utility"] = 0
+                            candidates[gi]["_score_impact"] = 0
+                            candidates[gi]["_score_access"] = 0
                             candidates[gi]["_score_market"] = 0
                             candidates[gi]["_score_signal"] = 0
                             candidates[gi]["_score_breadth"] = 0
                             candidates[gi]["_total_score"] = (
-                                novelty * W_NOVELTY
+                                rigor * W_RIGOR
+                                + novelty * W_NOVELTY
+                                + potential * W_POTENTIAL
+                            )
+                        else:  # models_products
+                            utility = min(10, max(1, s.get("uti", 5)))
+                            impact = min(10, max(1, s.get("imp", 5)))
+                            access = min(10, max(1, s.get("acc", 5)))
+                            candidates[gi]["_score_utility"] = utility
+                            candidates[gi]["_score_impact"] = impact
+                            candidates[gi]["_score_access"] = access
+                            candidates[gi]["_score_rigor"] = 0
+                            candidates[gi]["_score_novelty"] = 0
+                            candidates[gi]["_score_potential"] = 0
+                            candidates[gi]["_score_market"] = 0
+                            candidates[gi]["_score_signal"] = 0
+                            candidates[gi]["_score_breadth"] = 0
+                            candidates[gi]["_total_score"] = (
+                                utility * W_UTILITY
                                 + impact * W_IMPACT
-                                + advance * W_ADVANCE
+                                + access * W_ACCESS
                             )
                         candidates[gi]["_llm_scored"] = True
 
@@ -1007,17 +1129,20 @@ def scorer_node(state: NewsGraphState) -> dict:
                 print(f"    배치 {batch_idx+1}/{len(batches)}: {scored}/{len(batch)}개")
 
     # 폴백: 미평가 기사에 낮은 기본 점수 (LLM 평가 기사 우선)
-    # 카테고리 무관하게 tech 기본 점수 사용 (총점 동일: 3*4+3*3+3*3 = 30)
+    # 카테고리 무관하게 models_products 기본 점수 사용 (총점 동일: 3*4+3*3+3*3 = 30)
     for c in candidates:
         if "_total_score" not in c:
-            c["_score_novelty"] = 3
+            c["_score_rigor"] = 0
+            c["_score_novelty"] = 0
+            c["_score_potential"] = 0
+            c["_score_utility"] = 3
             c["_score_impact"] = 3
-            c["_score_advance"] = 3
+            c["_score_access"] = 3
             c["_score_market"] = 0
             c["_score_signal"] = 0
             c["_score_breadth"] = 0
             c["_llm_category"] = ""
-            c["_total_score"] = 3 * W_NOVELTY + 3 * W_IMPACT + 3 * W_ADVANCE
+            c["_total_score"] = 3 * W_UTILITY + 3 * W_IMPACT + 3 * W_ACCESS
 
     llm_count = len([c for c in candidates if c.get("_llm_scored")])
     print(f"  [스코어링] LLM 평가: {llm_count}/{len(candidates)}개")
@@ -1036,14 +1161,14 @@ def ranker_node(state: NewsGraphState) -> dict:
     if not candidates:
         return {"highlights": [], "category_pool": []}
 
-    # 하이라이트: model_research + product_tools 카테고리의 당일(어제+오늘) 기사만
-    HIGHLIGHT_CATEGORIES = {"model_research", "product_tools"}
+    # 하이라이트: research + models_products 카테고리의 당일(어제+오늘) 기사만
+    HIGHLIGHT_CATEGORIES = {"research", "models_products"}
     today_all = [
         c for c in candidates
         if c.get("_is_today") and c.get("_llm_category", "") in HIGHLIGHT_CATEGORIES
     ]
     today_total = sum(1 for c in candidates if c.get("_is_today"))
-    print(f"  [랭킹] 당일 기사 {today_total}개 중 하이라이트 후보 {len(today_all)}개 (model_research + product_tools)")
+    print(f"  [랭킹] 당일 기사 {today_total}개 중 하이라이트 후보 {len(today_all)}개 (research + models_products)")
 
     _epoch = datetime(2000, 1, 1, tzinfo=_KST)
     def _day_key(c: dict):
@@ -1088,7 +1213,7 @@ def ranker_node(state: NewsGraphState) -> dict:
 
 
 # ─── Node 5: classifier (카테고리 분류 + Top 10 선정 + 품질 검증) ───
-VALID_CATEGORIES = {"model_research", "product_tools", "industry_business"}
+VALID_CATEGORIES = {"research", "models_products", "industry_business"}
 CATEGORY_TOP_N = 25
 
 
@@ -1109,41 +1234,44 @@ def _llm_classify_batch(articles: list[dict], categorized: dict[str, list[dict]]
 
     prompt = f"""IMPORTANT: Output ONLY a valid JSON array. No thinking, no markdown. Start with '['.
 
-Classify each AI news article into exactly ONE category. Ask: "What is this article FUNDAMENTALLY about?"
+Classify each AI news article into exactly ONE category.
+Core question: "Can a user USE this right now?" — if tech-related: YES → models_products, NO → research. Not tech → industry_business.
 
 ## Categories
 
-- "model_research": THE TECHNOLOGY ITSELF — how AI works or could work.
-  Core test: "Does this advance our understanding or capability of AI as a technology?"
-  Scope: new models, architectures, training methods, papers, benchmarks, scaling studies, algorithms, datasets.
-  YES: "GPT-5 achieves human-level reasoning", "Novel attention mechanism reduces compute 10x", "New SOTA on MMLU"
-  NO: "ChatGPT gets memory feature" (that's a product update), "OpenAI raises $6B" (that's business)
+- "research": PURE RESEARCH — papers, benchmarks, theory, academic results users CANNOT directly use.
+  Core test: "Is this about advancing scientific understanding, without a usable artifact?"
+  Scope: papers, benchmarks, theoretical breakthroughs, algorithms (paper-only), academic datasets, scaling analyses, surveys.
+  YES: "DeepMind paper: new diffusion architecture beats SOTA", "Scaling laws study on emergent abilities", "Survey comparing 30 LLMs"
+  NO: "Meta releases Llama 4 open-weights" (downloadable → models_products), "OpenAI raises $6B" (business)
 
-- "product_tools": SOMETHING USERS CAN USE — a deployable product, service, or tool.
+- "models_products": MODELS + PRODUCTS + TOOLS — everything users can USE, DOWNLOAD, or INTEGRATE now.
   Core test: "Can someone go use, download, or integrate this today (or soon)?"
-  Scope: product launches, feature updates, API services, SDKs, frameworks, developer tools, platform integrations.
-  YES: "Cursor adds AI code review", "LangChain 0.3 released", "GitHub Copilot now supports Rust"
-  NO: "New diffusion architecture paper" (that's research), "Anthropic raises $2B" (that's business)
+  Scope: model releases (open-weight/API), product launches, feature updates, APIs, SDKs, frameworks, developer tools, apps.
+  YES: "Meta releases Llama 4", "Cursor adds AI code review", "ChatGPT gets memory", "LangChain 0.3 released"
+  NO: "Novel attention mechanism paper" (paper-only → research), "Anthropic raises $2B" (business)
 
 - "industry_business": MONEY, POWER, OR MARKET DYNAMICS — organizational and economic events.
   Core test: "Is this primarily about who owns what, who pays whom, or how markets/regulations shift?"
   Scope: funding, M&A, IPOs, earnings, layoffs, exec changes, partnerships, regulation, antitrust, market analysis.
   YES: "Anthropic raises $2B", "EU AI Act enforcement begins", "NVIDIA reports record revenue"
-  NO: "Anthropic releases Claude 4" (that's a model), "Claude adds tool use" (that's a product)
+  NO: "Anthropic releases Claude 4" (usable model → models_products), "New attention paper" (research)
 
 ## Tiebreak (apply in order)
-1. Model announcement + API access → model_research (model is the news)
-2. Existing product adds AI features → product_tools (product update is the news)
-3. New model + funding in same article → if title emphasizes model/capability → model_research; if title emphasizes deal/amount → industry_business
-4. Acquisition of AI company → industry_business (the deal is the news)
-5. Open-source model release → model_research (technical contribution is the news)
-6. Still ambiguous → choose whichever category would produce more meaningful score differentiation
+1. Paper + code/model release → models_products (usable artifact exists)
+2. Paper only, no released artifact → research
+3. Model announcement + API access → models_products (users can access it)
+4. Open-source model release → models_products (downloadable)
+5. Existing product adds AI features → models_products (product update is the news)
+6. New model + funding → if title emphasizes model/capability → models_products; if title emphasizes deal/amount → industry_business
+7. Acquisition of AI company → industry_business (the deal is the news)
+8. Still ambiguous → choose whichever category would produce more meaningful score differentiation
 
 Articles:
 {article_text}
 
 Output exactly {len(articles)} items:
-[{{"i":0,"cat":"model_research"}}]"""
+[{{"i":0,"cat":"research"}}]"""
 
     try:
         llm = get_llm(temperature=0.0, max_tokens=1024, thinking=False, json_mode=True)
@@ -1166,10 +1294,13 @@ Output exactly {len(articles)} items:
         for i, a in enumerate(articles):
             if i not in classified:
                 # 점수 키 기반 카테고리 추론
-                has_tech = any(a.get(k) for k in ("_score_novelty", "_score_impact", "_score_advance"))
+                has_research = any(a.get(k) for k in ("_score_rigor", "_score_novelty", "_score_potential"))
+                has_mp = any(a.get(k) for k in ("_score_utility", "_score_impact", "_score_access"))
                 has_biz = any(a.get(k) for k in ("_score_market", "_score_signal", "_score_breadth"))
-                if has_tech and not has_biz:
-                    categorized.get("product_tools", categorized.get("industry_business", [])).append(a)
+                if has_research and not has_mp and not has_biz:
+                    categorized["research"].append(a)
+                elif has_mp and not has_biz:
+                    categorized["models_products"].append(a)
                 else:
                     categorized["industry_business"].append(a)
     except Exception:
@@ -1226,7 +1357,7 @@ def classifier_node(state: NewsGraphState) -> dict:
     """3개 카테고리 분류 + 당일 3개 보장 + 점수순 Top 10 + 날짜순 정렬 + 품질 검증"""
     category_pool = state.get("category_pool", [])
 
-    category_order = ["model_research", "product_tools", "industry_business"]
+    category_order = ["research", "models_products", "industry_business"]
     categorized: dict[str, list[dict]] = {k: [] for k in category_order}
 
     if not category_pool:

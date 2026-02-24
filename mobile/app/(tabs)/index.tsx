@@ -88,12 +88,12 @@ function getSourceName(key: string, t?: (k: string) => string): string {
 // CATEGORY_NAMES는 t() 기반으로 대체 — getCategoryName() 헬퍼 사용
 
 const CATEGORY_COLORS: Record<string, string> = {
-  model_research: '#7C3AED',
-  product_tools: '#0891B2',
+  research: '#7C3AED',
+  models_products: '#0891B2',
   industry_business: '#D97706',
 };
 
-const DEFAULT_CATEGORY_ORDER = ['model_research', 'product_tools', 'industry_business'];
+const DEFAULT_CATEGORY_ORDER = ['research', 'models_products', 'industry_business'];
 const DEFAULT_SOURCE_ORDER = ['aitimes', 'geeknews', 'zdnet_ai_editor', 'yozm_ai'];
 
 // ─── 헬퍼 ───────────────────────────────────────────────────────────────
@@ -719,7 +719,7 @@ function CategoryTabSection({
 }: {
   categorizedArticles: Record<string, Article[]>; categoryOrder: string[]; onArticlePress: (article: Article) => void;
 }) {
-  const [activeTab, setActiveTab] = useState(categoryOrder[0] || 'model_research');
+  const [activeTab, setActiveTab] = useState(categoryOrder[0] || 'research');
   const [expandLevel, setExpandLevel] = useState(0); // 0=5개, 1=10개, 2=15개
   const { lang, t } = useLanguage();
 

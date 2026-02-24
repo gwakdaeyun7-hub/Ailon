@@ -27,8 +27,8 @@ const translations: Record<string, Record<Language, string>> = {
   'news.retry': { ko: '다시 시도', en: 'Retry' },
 
   // ─── 카테고리 ───
-  'cat.model_research': { ko: '모델/연구', en: 'Models & Research' },
-  'cat.product_tools': { ko: '제품/도구', en: 'Products & Tools' },
+  'cat.research': { ko: '연구', en: 'Research' },
+  'cat.models_products': { ko: '모델/제품', en: 'Models & Products' },
   'cat.industry_business': { ko: '산업/비즈니스', en: 'Industry & Business' },
 
   // ─── 요약 모달 ───

@@ -1,6 +1,6 @@
 """
 공통 설정 모듈 - LLM, Firebase 초기화 및 공유 상수
-뉴스 카테고리: model_research / product_tools / industry_business (3개)
+뉴스 카테고리: research / models_products / industry_business (3개)
 가로 스크롤: official_announcements / korean_ai / curation (3개)
 """
 
@@ -16,8 +16,8 @@ load_dotenv()
 
 # ─── 뉴스 카테고리 정의 ───
 NEWS_CATEGORIES = {
-    "model_research":    "모델/연구",
-    "product_tools":     "제품/도구",
+    "research":          "연구",
+    "models_products":   "모델/제품",
     "industry_business": "산업/비즈니스",
 }
 

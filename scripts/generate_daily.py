@@ -33,7 +33,7 @@ def _validate_output(result: dict) -> list[str]:
         if not h.get("image_url"):
             warnings.append(f"하이라이트 {i+1} 썸네일 없음")
 
-    for cat in ["model_research", "product_tools", "industry_business"]:
+    for cat in ["research", "models_products", "industry_business"]:
         count = len(categorized.get(cat, []))
         if count < 5:
             warnings.append(f"카테고리 {cat}: {count}/10개 (최소 5)")
