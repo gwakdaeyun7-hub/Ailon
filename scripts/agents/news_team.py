@@ -291,7 +291,7 @@ Articles:
 {batch_text}"""
 
     try:
-        llm = get_llm(temperature=0.3, max_tokens=12288, thinking=False, json_mode=True)
+        llm = get_llm(temperature=0.0, max_tokens=12288, thinking=False, json_mode=True)
         content = _llm_invoke_with_retry(llm, prompt, max_retries=2)
         results = _parse_llm_json(content)
         if isinstance(results, dict):
@@ -717,14 +717,28 @@ You are an AI news scoring engine. First classify each article, then score using
 ### For model_research / product_tools → use nov, imp, adv
 
 **nov (Novelty):** Is this about something NEW?
-- 8-10: First announcement of new model/architecture, new open-source release, new research paper with novel results
-- 4-7: Incremental updates, new benchmarks on known methods, expected releases
-- 1-3: Rehashed content, opinion/editorial, trend roundups, listicles
+- 10: World-first capability nobody predicted (e.g., AGI-level demo, entirely new paradigm)
+- 9: First announcement of major new model/architecture from top lab
+- 8: New open-source release with novel results, or first paper on a new technique
+- 7: Significant update to existing model/tool with meaningful new capabilities
+- 6: New benchmarks or evaluations revealing unexpected findings
+- 5: Expected release now official, or known method applied to new domain
+- 4: Incremental version update with minor new features
+- 3: Re-analysis of known results, or survey/roundup of existing work
+- 2: Opinion/editorial on well-known topic, trend commentary
+- 1: Pure rehash, repost, or listicle with no new information
 
 **imp (Impact):** How much will this affect the AI field?
-- 8-10: Paradigm shift, major framework update, breakthrough changing standard practice
-- 4-7: Useful improvement, moderate community interest, specific subfield
-- 1-3: Niche/minor update, no broad relevance
+- 10: Paradigm shift redefining how the entire field operates (e.g., transformer-level change)
+- 9: Breakthrough changing standard practice across multiple subfields
+- 8: Major framework/library update adopted by most practitioners
+- 7: Important advance that will influence a broad subfield's direction
+- 6: Useful improvement with clear adoption path in several teams/orgs
+- 5: Moderate community interest; relevant to one subfield but not beyond
+- 4: Minor quality-of-life improvement for existing workflows
+- 3: Niche update affecting a small research group or narrow use case
+- 2: Marginal change with no measurable effect on practice
+- 1: No relevance to the broader AI field
 
 **adv (Advancement):** How much potential does this have to improve real-world life or advance research?
 - 9-10: High-potential enablement — opens a realistic path to solving hard real-world problems, or could significantly accelerate research progress
@@ -794,8 +808,7 @@ def _score_batch(batch: list[dict], offset: int) -> list[dict]:
     article_text = ""
     for i, a in enumerate(batch):
         title = a.get("display_title") or a.get("title", "")
-        one_line = a.get("one_line", "")
-        desc = one_line if one_line else a.get("description", "")[:120]
+        desc = a.get("description", "")[:200]
         article_text += f"\n[{i}] {title} | {desc}"
 
     prompt = _SCORER_PROMPT.format(article_text=article_text, count=len(batch))
@@ -893,6 +906,7 @@ def scorer_node(state: NewsGraphState) -> dict:
     unscored = [candidates[i] for i in unscored_indices]
 
     if unscored:
+        unscored.sort(key=lambda a: (a.get("link", ""), a.get("title", "")))
         batch_size = SCORER_BATCH_SIZE if retry_count == 0 else max(2, SCORER_BATCH_SIZE // 2)
         batches = [unscored[i:i + batch_size] for i in range(0, len(unscored), batch_size)]
 
