@@ -707,9 +707,21 @@ CRITICAL: All objects on ONE line. Example: [{{"i":0,...}},{{"i":1,...}}]
 You are an AI news scoring engine. First classify each article, then score using the criteria for that category. Use ONLY the provided title and description.
 
 ## Step 1: Category (pick one)
-- "model_research": new model, research paper, benchmark, architecture
-- "product_tools": product, tool, API, framework, library
-- "industry_business": funding, M&A, regulation, strategy, market
+Decide by the CORE subject of the headline — what is the primary news?
+
+- "model_research": A NEW model, architecture, training method, research paper, or benchmark result is the headline.
+  Keywords: "model", "paper", "benchmark", "SOTA", "parameters", "weights", "open-source model", "architecture", "training"
+- "product_tools": A user-facing product, tool, feature update, API service, framework, or library is the headline.
+  Keywords: "app", "feature", "update", "plugin", "SDK", "framework", "platform", "integration", "release" (of a tool)
+- "industry_business": Money, organizations, or policy (funding, M&A, regulation, earnings, partnerships, hiring, restructuring) is the headline.
+  Keywords: "$", "raises", "acquires", "revenue", "valuation", "regulation", "policy", "partnership", "IPO", "layoffs"
+
+Tiebreak rules (apply in order):
+1. "New model + API available" → model_research (the model is the news, API is the delivery method)
+2. "Existing product adds AI features" → product_tools (the product is the news)
+3. "Company releases new model + raises $XB" → if dollar amount or funding is in the title → industry_business; if model name is in the title → model_research
+4. "Company acquires AI startup that built X" → industry_business (acquisition is the news)
+5. When still ambiguous, pick the category matching the FIRST noun phrase in the title
 
 ## Step 2: Score by category (each 1-10, integers only)
 
@@ -1085,18 +1097,24 @@ def _llm_classify_batch(articles: list[dict], categorized: dict[str, list[dict]]
 
     prompt = f"""IMPORTANT: Output ONLY a valid JSON array. No thinking, no markdown. Start with '['.
 
-Classify each AI news article into exactly ONE category:
+Classify each AI news article into exactly ONE category based on the CORE subject of the headline.
 
-- "model_research": The article is primarily about a NEW model, research paper, benchmark, training technique, or architecture.
+- "model_research": A NEW model, architecture, training method, research paper, or benchmark result is the headline.
+  Keywords: "model", "paper", "benchmark", "SOTA", "parameters", "weights", "architecture", "training"
   Examples: "GPT-5 released", "New SOTA on MMLU", "Scaling laws paper", "Novel attention mechanism"
-- "product_tools": The article is primarily about a user-facing product, tool, API, framework, or library that developers/users can use NOW.
+- "product_tools": A user-facing product, tool, feature update, API service, framework, or library is the headline.
+  Keywords: "app", "feature", "update", "plugin", "SDK", "framework", "platform", "integration"
   Examples: "Cursor adds AI code review", "LangChain 0.3 released", "ChatGPT gets memory feature"
-- "industry_business": The article is primarily about money, organizations, or policy (funding, M&A, regulation, partnerships, market analysis).
+- "industry_business": Money, organizations, or policy (funding, M&A, regulation, earnings, partnerships, hiring) is the headline.
+  Keywords: "$", "raises", "acquires", "revenue", "valuation", "regulation", "policy", "IPO", "layoffs"
   Examples: "Anthropic raises $2B", "EU AI Act takes effect", "Google restructures AI team"
 
-Tiebreak: If an article spans two categories, pick the one closer to the CORE announcement.
-  "New model released + available via API" -> model_research (the model is the news)
-  "Existing product adds AI features" -> product_tools (the product is the news)
+Tiebreak rules (apply in order):
+1. "New model + API available" → model_research (model is the news, API is delivery)
+2. "Existing product adds AI features" → product_tools (product is the news)
+3. "Company + new model + $XB funding" → if dollar/funding in title → industry_business; if model name in title → model_research
+4. "Company acquires AI startup" → industry_business (acquisition is the news)
+5. When still ambiguous → pick the category matching the FIRST noun phrase in the title
 
 Articles:
 {article_text}
