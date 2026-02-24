@@ -49,9 +49,10 @@ export function FeedbackButtons({ userId, itemType, itemId, initialReaction = nu
     <View className="flex-row gap-2">
       <Pressable
         onPress={() => handleFeedback('like')}
-        className={`flex-row items-center gap-1 px-3 py-1.5 rounded-full ${
+        className={`flex-row items-center gap-1 px-3 py-2.5 rounded-full ${
           reaction === 'like' ? 'bg-green-500/20' : 'bg-surface'
         }`}
+        style={{ minHeight: 44 }}
         accessibilityLabel={t('feedback.like')}
       >
         <ThumbsUp
@@ -66,9 +67,10 @@ export function FeedbackButtons({ userId, itemType, itemId, initialReaction = nu
 
       <Pressable
         onPress={() => handleFeedback('dislike')}
-        className={`flex-row items-center gap-1 px-3 py-1.5 rounded-full ${
+        className={`flex-row items-center gap-1 px-3 py-2.5 rounded-full ${
           reaction === 'dislike' ? 'bg-red-500/20' : 'bg-surface'
         }`}
+        style={{ minHeight: 44 }}
         accessibilityLabel={t('feedback.dislike')}
       >
         <ThumbsDown

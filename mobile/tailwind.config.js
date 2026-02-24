@@ -16,7 +16,7 @@ module.exports = {
         accent: "#FF7043",
         text: "#212121",
         "text-muted": "#757575",
-        "text-dim": "#BDBDBD",
+        "text-dim": "#757575",
         success: "#43A047",
         warning: "#FB8C00",
         danger: "#E53935",

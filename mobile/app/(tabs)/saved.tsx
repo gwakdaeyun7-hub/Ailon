@@ -6,14 +6,15 @@
  * - 삭제: 각 카드 우측 휴지통 버튼
  */
 
-import React, { useMemo } from 'react';
-import { View, Text, ScrollView, Pressable, Linking } from 'react-native';
+import React, { useMemo, useCallback } from 'react';
+import { View, Text, FlatList, Pressable, Linking, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Bookmark, ExternalLink, Trash2, Newspaper, BookOpen, Lightbulb } from 'lucide-react-native';
 import { useAuth } from '@/hooks/useAuth';
 import { useBookmarks } from '@/hooks/useBookmarks';
 import { useLanguage } from '@/context/LanguageContext';
 import { Colors } from '@/lib/colors';
+import { cardShadow } from '@/lib/theme';
 import type { Bookmark as BookmarkType } from '@/lib/types';
 
 function useTypeConfig() {
@@ -25,14 +26,6 @@ function useTypeConfig() {
     idea: { label: t('saved.type_idea'), color: '#FF7043', bgColor: '#FFF3E0', Icon: Lightbulb },
   } as const;
 }
-
-const cardShadow = {
-  elevation: 2,
-  shadowColor: '#000',
-  shadowOffset: { width: 0, height: 1 },
-  shadowOpacity: 0.06,
-  shadowRadius: 4,
-};
 
 function SavedItemCard({
   bookmark,
@@ -63,10 +56,10 @@ function SavedItemCard({
         <Pressable
           onPress={onDelete}
           className="active:opacity-70"
-          style={{ padding: 6 }}
+          style={{ padding: 14 }}
           accessibilityLabel={t('saved.delete')}
         >
-          <Trash2 size={15} color="#BDBDBD" />
+          <Trash2 size={15} color={Colors.textDim} />
         </Pressable>
       </View>
 
@@ -125,6 +118,56 @@ export default function SavedScreen() {
   const snapCount = bookmarks.filter((b) => b.type === 'snap' || b.type === 'principle').length;
   const ideaCount = bookmarks.filter((b) => b.type === 'idea').length;
 
+  const handleDelete = useCallback((bookmark: BookmarkType) => {
+    Alert.alert(
+      t('saved.delete'),
+      t('saved.delete_confirm'),
+      [
+        { text: t('saved.delete_cancel'), style: 'cancel' },
+        {
+          text: t('saved.delete_action'),
+          style: 'destructive',
+          onPress: () => toggleBookmark(bookmark.type, bookmark.itemId),
+        },
+      ],
+    );
+  }, [t, toggleBookmark]);
+
+  const renderItem = useCallback(({ item }: { item: BookmarkType }) => (
+    <SavedItemCard
+      bookmark={item}
+      onDelete={() => handleDelete(item)}
+      typeConfig={typeConfig}
+    />
+  ), [handleDelete, typeConfig]);
+
+  const keyExtractor = useCallback(
+    (item: BookmarkType, index: number) => `${item.type}_${item.itemId}_${index}`,
+    [],
+  );
+
+  const ListEmptyComponent = !user ? (
+    <View className="items-center justify-center py-20 px-8">
+      <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: Colors.primaryLight, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+        <Bookmark size={28} color="#E53935" />
+      </View>
+      <Text className="text-text font-semibold text-base mb-1">{t('auth.login_required')}</Text>
+      <Text className="text-text-muted text-sm text-center" style={{ lineHeight: 20 }}>
+        {t('saved.bookmark_login')}
+      </Text>
+    </View>
+  ) : (
+    <View className="items-center justify-center py-20 px-8">
+      <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: Colors.primaryLight, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+        <Bookmark size={28} color="#E53935" />
+      </View>
+      <Text className="text-text font-semibold text-base mb-1">{t('saved.no_items_yet')}</Text>
+      <Text className="text-text-muted text-sm text-center" style={{ lineHeight: 20 }}>
+        {t('saved.bookmark_hint')}
+      </Text>
+    </View>
+  );
+
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
       {/* Header */}
@@ -167,39 +210,14 @@ export default function SavedScreen() {
         </View>
       )}
 
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-        {!user ? (
-          <View className="items-center justify-center py-20 px-8">
-            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: Colors.primaryLight, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-              <Bookmark size={28} color="#E53935" />
-            </View>
-            <Text className="text-text font-semibold text-base mb-1">{t('auth.login_required')}</Text>
-            <Text className="text-text-muted text-sm text-center" style={{ lineHeight: 20 }}>
-              {t('saved.bookmark_login')}
-            </Text>
-          </View>
-        ) : sorted.length === 0 ? (
-          <View className="items-center justify-center py-20 px-8">
-            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: Colors.primaryLight, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-              <Bookmark size={28} color="#E53935" />
-            </View>
-            <Text className="text-text font-semibold text-base mb-1">{t('saved.no_items_yet')}</Text>
-            <Text className="text-text-muted text-sm text-center" style={{ lineHeight: 20 }}>
-              {t('saved.bookmark_hint')}
-            </Text>
-          </View>
-        ) : (
-          sorted.map((bookmark, i) => (
-            <SavedItemCard
-              key={`${bookmark.type}_${bookmark.itemId}_${i}`}
-              bookmark={bookmark}
-              onDelete={() => toggleBookmark(bookmark.type, bookmark.itemId)}
-              typeConfig={typeConfig}
-            />
-          ))
-        )}
-        <View className="h-6" />
-      </ScrollView>
+      <FlatList
+        data={sorted}
+        renderItem={renderItem}
+        keyExtractor={keyExtractor}
+        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={ListEmptyComponent}
+        ListFooterComponent={<View style={{ height: 24 }} />}
+      />
     </SafeAreaView>
   );
 }

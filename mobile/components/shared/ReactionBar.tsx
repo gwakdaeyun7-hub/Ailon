@@ -4,6 +4,7 @@ import { Heart, MessageCircle, Share2 } from 'lucide-react-native';
 import { useReactions, type ItemType } from '@/hooks/useReactions';
 import { useLanguage } from '@/context/LanguageContext';
 import { CommentSheet } from '@/components/shared/CommentSheet';
+import { Colors } from '@/lib/colors';
 
 interface ReactionBarProps {
   itemType: ItemType;
@@ -32,7 +33,7 @@ export function ReactionBar({ itemType, itemId, shareText, shareTitle }: Reactio
           alignItems: 'center',
           paddingTop: 10,
           borderTopWidth: 1,
-          borderTopColor: '#F5F5F5',
+          borderTopColor: Colors.surface,
           gap: 4,
         }}
       >
@@ -46,22 +47,22 @@ export function ReactionBar({ itemType, itemId, shareText, shareTitle }: Reactio
             alignItems: 'center',
             gap: 5,
             paddingHorizontal: 12,
-            paddingVertical: 7,
+            paddingVertical: 12,
             borderRadius: 20,
-            backgroundColor: liked ? '#FFEBEE' : '#FAFAFA',
+            backgroundColor: liked ? Colors.primaryLight : Colors.bg,
             borderWidth: 1,
-            borderColor: liked ? '#FFCDD2' : '#F0F0F0',
+            borderColor: liked ? '#FFCDD2' : Colors.border,
           }}
         >
           <Heart
             size={15}
-            color={liked ? '#E53935' : '#BDBDBD'}
-            fill={liked ? '#E53935' : 'none'}
+            color={liked ? Colors.primary : Colors.textDim}
+            fill={liked ? Colors.primary : 'none'}
           />
           {likes > 0 && (
             <Text
               style={{
-                color: liked ? '#E53935' : '#BDBDBD',
+                color: liked ? Colors.primary : Colors.textDim,
                 fontSize: 12,
                 fontWeight: '600',
               }}
@@ -81,15 +82,15 @@ export function ReactionBar({ itemType, itemId, shareText, shareTitle }: Reactio
             alignItems: 'center',
             gap: 5,
             paddingHorizontal: 12,
-            paddingVertical: 7,
+            paddingVertical: 12,
             borderRadius: 20,
-            backgroundColor: '#FAFAFA',
+            backgroundColor: Colors.bg,
             borderWidth: 1,
-            borderColor: '#F0F0F0',
+            borderColor: Colors.border,
           }}
         >
-          <MessageCircle size={15} color="#BDBDBD" />
-          <Text style={{ color: '#BDBDBD', fontSize: 12, fontWeight: '600' }}>{t('reaction.comment')}</Text>
+          <MessageCircle size={15} color={Colors.textDim} />
+          <Text style={{ color: Colors.textDim, fontSize: 12, fontWeight: '600' }}>{t('reaction.comment')}</Text>
         </Pressable>
 
         {/* Share */}
@@ -102,15 +103,15 @@ export function ReactionBar({ itemType, itemId, shareText, shareTitle }: Reactio
             alignItems: 'center',
             gap: 5,
             paddingHorizontal: 12,
-            paddingVertical: 7,
+            paddingVertical: 12,
             borderRadius: 20,
-            backgroundColor: '#FAFAFA',
+            backgroundColor: Colors.bg,
             borderWidth: 1,
-            borderColor: '#F0F0F0',
+            borderColor: Colors.border,
           }}
         >
-          <Share2 size={15} color="#BDBDBD" />
-          <Text style={{ color: '#BDBDBD', fontSize: 12, fontWeight: '600' }}>{t('reaction.share')}</Text>
+          <Share2 size={15} color={Colors.textDim} />
+          <Text style={{ color: Colors.textDim, fontSize: 12, fontWeight: '600' }}>{t('reaction.share')}</Text>
         </Pressable>
       </View>
 

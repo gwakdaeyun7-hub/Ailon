@@ -20,14 +20,7 @@ import { useNotificationSettings } from '@/hooks/useNotificationSettings';
 import { useLanguage } from '@/context/LanguageContext';
 import { useRouter } from 'expo-router';
 import { Colors } from '@/lib/colors';
-
-const cardShadow = {
-  elevation: 2,
-  shadowColor: '#000',
-  shadowOffset: { width: 0, height: 1 },
-  shadowOpacity: 0.06,
-  shadowRadius: 4,
-};
+import { cardShadow } from '@/lib/theme';
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuth();
@@ -118,6 +111,7 @@ export default function ProfileScreen() {
             <View style={{ flex: 1, flexDirection: 'row', gap: 8 }}>
               <Pressable
                 onPress={() => setLanguage('ko')}
+                accessibilityRole="button"
                 style={{
                   flex: 1, paddingVertical: 10, borderRadius: 12, alignItems: 'center',
                   backgroundColor: lang === 'ko' ? Colors.primary : Colors.surface,
@@ -128,6 +122,7 @@ export default function ProfileScreen() {
               </Pressable>
               <Pressable
                 onPress={() => setLanguage('en')}
+                accessibilityRole="button"
                 style={{
                   flex: 1, paddingVertical: 10, borderRadius: 12, alignItems: 'center',
                   backgroundColor: lang === 'en' ? Colors.primary : Colors.surface,
@@ -187,6 +182,7 @@ export default function ProfileScreen() {
                     onValueChange={(v) => updateSetting(key, v)}
                     trackColor={{ false: Colors.border, true: '#FFCCBC' }}
                     thumbColor={settings[key] ? Colors.primary : Colors.textDim}
+                    accessibilityLabel={label}
                   />
                 </View>
               ))}
@@ -207,6 +203,7 @@ export default function ProfileScreen() {
             </View>
             <Pressable
               onPress={() => router.push('/(tabs)/saved')}
+              accessibilityRole="button"
               style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
             >
               <Text style={{ color: Colors.primary, fontSize: 13, fontWeight: '600' }}>{t('profile.view')}</Text>
@@ -220,6 +217,7 @@ export default function ProfileScreen() {
           <Pressable
             onPress={handleSignOut}
             disabled={signingOut}
+            accessibilityRole="button"
             style={{ backgroundColor: Colors.card, borderRadius: 16, paddingHorizontal: 20, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', gap: 12, ...cardShadow, borderWidth: 1, borderColor: '#FFCDD2' }}
           >
             <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.primaryLight, alignItems: 'center', justifyContent: 'center' }}>

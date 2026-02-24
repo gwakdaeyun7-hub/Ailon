@@ -15,6 +15,7 @@ export function BookmarkButton({ isBookmarked, onToggle, size = 18 }: BookmarkBu
     <Pressable
       onPress={onToggle}
       className="p-1.5 rounded-full active:opacity-70"
+      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       accessibilityLabel={isBookmarked ? t('bookmark.remove') : t('bookmark.add')}
     >
       {isBookmarked ? (

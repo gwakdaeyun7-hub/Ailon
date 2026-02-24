@@ -58,6 +58,7 @@ function CommentItem({
         {!isReply && onReply && (
           <Pressable
             onPress={() => onReply({ id: comment.id, authorName: comment.authorName })}
+            accessibilityRole="button"
             style={{ marginTop: 6, alignSelf: 'flex-start' }}
           >
             <Text style={{ color: '#9E9E9E', fontSize: 12, fontWeight: '600' }}>{t('comment.reply')}</Text>
@@ -135,7 +136,7 @@ export function CommentSheet({ visible, onClose, itemType, itemId }: CommentShee
       animationType="slide"
       onRequestClose={onClose}
     >
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }} accessibilityViewIsModal={true}>
         {/* Header */}
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#F0F0F0' }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -212,11 +213,14 @@ export function CommentSheet({ visible, onClose, itemType, itemId }: CommentShee
                   placeholderTextColor="#BDBDBD"
                   multiline
                   maxLength={300}
+                  accessibilityLabel={replyTo ? t('comment.reply_placeholder') : t('comment.placeholder')}
                   style={{ flex: 1, fontSize: 14, color: '#212121', backgroundColor: '#FAFAFA', borderRadius: 16, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1, borderColor: replyTo ? '#FFE082' : '#F0F0F0', maxHeight: 100 }}
                 />
                 <Pressable
                   onPress={handleSubmit}
                   disabled={!text.trim() || submitting}
+                  accessibilityLabel="Send comment"
+                  accessibilityRole="button"
                   style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: text.trim() ? '#E53935' : '#F0F0F0', alignItems: 'center', justifyContent: 'center' }}
                 >
                   {submitting ? (

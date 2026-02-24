@@ -220,13 +220,13 @@ function ScoreBadge({ article }: { article: Article }) {
   const isMP = !!(uti || imp || acc);
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-      <Text style={{ fontSize: 11, color: isBiz ? '#D97706' : isResearch ? '#2563EB' : '#9333EA', fontWeight: '700' }}>{score}</Text>
+      <Text style={{ fontSize: 11, color: isBiz ? '#B45309' : isResearch ? '#2563EB' : '#7C3AED', fontWeight: '700' }}>{score}</Text>
       {isBiz ? (
-        <Text style={{ fontSize: 9, color: '#F59E0B' }}>M{mag} S{sig} B{brd}</Text>
+        <Text style={{ fontSize: 11, color: '#B45309' }}>M{mag} S{sig} B{brd}</Text>
       ) : isResearch ? (
-        <Text style={{ fontSize: 9, color: '#60A5FA' }}>R{rig} N{nov} P{pot}</Text>
+        <Text style={{ fontSize: 11, color: '#2563EB' }}>R{rig} N{nov} P{pot}</Text>
       ) : isMP ? (
-        <Text style={{ fontSize: 9, color: '#A78BFA' }}>U{uti} I{imp} A{acc}</Text>
+        <Text style={{ fontSize: 11, color: '#7C3AED' }}>U{uti} I{imp} A{acc}</Text>
       ) : null}
     </View>
   );
@@ -392,20 +392,16 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
           borderTopRightRadius: 20,
           maxHeight: '85%',
         }}>
-          {/* 드래그 핸들바 + X 닫기 버튼 */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', paddingTop: 16, paddingBottom: 12, paddingHorizontal: 20 }}>
-            <View style={{ flex: 1 }} />
-            <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: '#D1D5DB' }} />
-            <View style={{ flex: 1, alignItems: 'flex-end' }}>
-              <Pressable
-                onPress={onClose}
-                accessibilityLabel={t('modal.close')}
-                accessibilityRole="button"
-                style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center' }}
-              >
-                <X size={14} color={TEXT_SECONDARY} />
-              </Pressable>
-            </View>
+          {/* X 닫기 버튼 */}
+          <View style={{ flexDirection: 'row', justifyContent: 'flex-end', paddingTop: 16, paddingBottom: 12, paddingHorizontal: 20 }}>
+            <Pressable
+              onPress={onClose}
+              accessibilityLabel={t('modal.close')}
+              accessibilityRole="button"
+              style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <X size={16} color={TEXT_SECONDARY} />
+            </Pressable>
           </View>
 
           <ScrollView
@@ -601,7 +597,7 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
               position: 'absolute', top: 20, left: 20, right: 20,
               backgroundColor: '#1F2937', borderRadius: 10, paddingVertical: 10, paddingHorizontal: 16,
               alignItems: 'center', opacity: toastOpacity,
-            }} pointerEvents="none">
+            }} pointerEvents="none" accessibilityLiveRegion="assertive">
               <Text style={{ color: '#FFF', fontSize: 13, fontWeight: '600' }}>{toastMsg}</Text>
             </Animated.View>
           ) : null}
@@ -618,7 +614,7 @@ function HighlightSection({ highlights, onArticlePress, allStats }: { highlights
   if (!highlights || highlights.length === 0) return null;
 
   return (
-    <View style={{ paddingTop: 12, paddingBottom: 20, backgroundColor: '#F0F4FF' }}>
+    <View style={{ paddingTop: 12, paddingBottom: 24, backgroundColor: '#F0F4FF' }}>
       {/* 섹션 헤더 */}
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 14 }}>
         <Text style={{ fontSize: 17, fontWeight: '800', color: TEXT_PRIMARY }}>{t('news.highlight_title')}</Text>
@@ -750,6 +746,7 @@ function CategoryTabSection({
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ gap: 8 }}
           style={{ flex: 1 }}
+          accessibilityRole="tablist"
         >
           {categoryOrder.map(catKey => {
             const isActive = catKey === activeTab;
@@ -783,7 +780,7 @@ function CategoryTabSection({
       </View>
 
       {/* 세로 기사 리스트 */}
-      <View style={{ paddingHorizontal: 16, gap: 16 }}>
+      <View style={{ paddingHorizontal: 16, gap: 12 }}>
         {visible.map((a, i) => (
           <Pressable
             key={`cat-${activeTab}-${i}-${a.link}`}
@@ -811,7 +808,11 @@ function CategoryTabSection({
                     recyclingKey={a.link}
                   />
                 </View>
-              ) : null}
+              ) : (
+                <View style={{ width: 118, height: 118, backgroundColor: BORDER, borderRadius: 8, alignItems: 'center', justifyContent: 'center' }}>
+                  <Text style={{ fontSize: 24, color: TEXT_LIGHT }}>📰</Text>
+                </View>
+              )}
               <View style={{ flex: 1, padding: 14, justifyContent: 'space-between' }}>
                 <View>
                   <SourceBadge sourceKey={a.source_key} />
@@ -873,7 +874,7 @@ function SourceHScrollSection({
   const visible = showMore ? [...first5, ...more5] : first5;
 
   return (
-    <View style={{ marginBottom: 32 }}>
+    <View style={{ marginBottom: 24 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 14 }}>
         <View style={{ width: 4, height: 18, borderRadius: 2, backgroundColor: color, marginRight: 8 }} />
         <Text style={{ fontSize: 15, fontWeight: '800', color: TEXT_PRIMARY, flex: 1 }}>
@@ -933,7 +934,7 @@ function GeekNewsSection({ articles, onArticlePress, allStats }: { articles: Art
   const color = SOURCE_COLORS['geeknews'] || TEXT_SECONDARY;
 
   return (
-    <View style={{ marginBottom: 32 }}>
+    <View style={{ marginBottom: 24 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 14 }}>
         <View style={{ width: 4, height: 18, borderRadius: 2, backgroundColor: color, marginRight: 8 }} />
         <Text style={{ fontSize: 15, fontWeight: '800', color: TEXT_PRIMARY, flex: 1 }}>GeekNews</Text>
@@ -953,7 +954,7 @@ function GeekNewsSection({ articles, onArticlePress, allStats }: { articles: Art
                 borderWidth: 1,
                 borderColor: BORDER,
                 padding: 16,
-                marginBottom: 14,
+                marginBottom: 12,
                 justifyContent: 'space-between',
                 opacity: pressed ? 0.85 : 1,
               })}
@@ -970,7 +971,7 @@ function GeekNewsSection({ articles, onArticlePress, allStats }: { articles: Art
               </View>
             </Pressable>
             {i < visible.length - 1 && (
-              <View style={{ height: 1, backgroundColor: '#E5E7EB', marginBottom: 14 }} />
+              <View style={{ height: 1, backgroundColor: '#E5E7EB', marginBottom: 12 }} />
             )}
           </React.Fragment>
         ))}
@@ -1125,6 +1126,7 @@ export default function NewsScreen() {
                 : `${totalArticles}${t('news.articles_count')}`}
             </Text>
           )}
+          <View style={{ width: 40, height: 3, backgroundColor: Colors.primary, borderRadius: 2, marginTop: 12 }} />
         </View>
         <Pressable onPress={openNotifications} accessibilityLabel={t('notification.title')} accessibilityRole="button" style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
           <Bell size={22} color={TEXT_SECONDARY} />
@@ -1148,7 +1150,7 @@ export default function NewsScreen() {
             </View>
             <Text style={{ color: TEXT_PRIMARY, fontWeight: '700', fontSize: 16, marginBottom: 8 }}>{t('news.connection_error')}</Text>
             <Text style={{ color: TEXT_LIGHT, fontSize: 14, textAlign: 'center', marginBottom: 20 }}>{error}</Text>
-            <Pressable onPress={refresh} style={{ backgroundColor: '#000', paddingHorizontal: 28, paddingVertical: 12, borderRadius: 12 }}>
+            <Pressable onPress={refresh} style={{ backgroundColor: Colors.primary, paddingHorizontal: 28, paddingVertical: 12, borderRadius: 12 }}>
               <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 15 }}>{t('news.retry')}</Text>
             </Pressable>
           </View>
@@ -1233,14 +1235,14 @@ export default function NewsScreen() {
             <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: BORDER }}>
               <Bell size={20} color={TEXT_PRIMARY} />
               <Text style={{ flex: 1, fontSize: 17, fontWeight: '700', color: TEXT_PRIMARY, marginLeft: 8 }}>{t('notification.title')}</Text>
-              <Pressable onPress={() => setNotifModalVisible(false)} style={{ width: 36, height: 36, alignItems: 'center', justifyContent: 'center' }}>
+              <Pressable onPress={() => setNotifModalVisible(false)} accessibilityLabel={t('modal.close')} accessibilityRole="button" style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
                 <X size={20} color={TEXT_SECONDARY} />
               </Pressable>
             </View>
             <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
               {notifications.length === 0 ? (
                 <View style={{ alignItems: 'center', paddingTop: 60 }}>
-                  <Bell size={48} color={BORDER} />
+                  <Bell size={48} color={TEXT_SECONDARY} />
                   <Text style={{ color: TEXT_SECONDARY, fontSize: 15, marginTop: 16 }}>{t('notification.empty')}</Text>
                 </View>
               ) : (
