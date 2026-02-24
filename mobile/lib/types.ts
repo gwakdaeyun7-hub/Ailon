@@ -27,6 +27,9 @@ export interface Article {
   score_novelty?: number;
   score_impact?: number;
   score_practicality?: number;
+  score_market?: number;
+  score_signal?: number;
+  score_breadth?: number;
 }
 
 export interface DailyNews {

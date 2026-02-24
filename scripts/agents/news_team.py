@@ -8,7 +8,7 @@ collector --> [en_process, ko_process] (병렬 Send) --> scorer --> ranker --> c
 1. collector:     16개 소스 수집 + 이미지/본문 통합 스크래핑 + LLM AI 필터
 2. en_process:    영어 기사 번역+요약 (thinking 비활성화, 배치 5)  -- 병렬
 3. ko_process:    한국어 기사 요약 (thinking 비활성화, 배치 2)     -- 병렬
-4. scorer:        3차원 LLM 평가 (novelty*4 + impact*3 + practicality*3, 만점 100)
+4. scorer:        카테고리별 LLM 평가 (tech: nov*4+imp*3+pra*3, biz: mag*4+sig*3+brd*3, 만점 100)
 5. ranker:        당일 우선 Top 3 하이라이트 (미번역 차단)
 6. classifier:    3개 카테고리 * Top 10 + 품질 검증 (quality_gate 통합)
 7. assembler:     한국 소스별 분리 + 최종 결과 + 타이밍 리포트
@@ -21,7 +21,7 @@ collector --> [en_process, ko_process] (병렬 Send) --> scorer --> ranker --> c
 - 노드별 소요 시간 측정
 - sources Annotated 리듀서로 EN/KO 결과 안전 머지
 
-점수 체계: novelty*4 + impact*3 + practicality*3 (만점 100, 전부 LLM 평가)
+점수 체계: 카테고리별 차등 (tech: nov*4+imp*3+pra*3, biz: mag*4+sig*3+brd*3, 만점 100)
 """
 
 import json
@@ -667,53 +667,74 @@ def _deduplicate_candidates(candidates: list[dict]) -> list[dict]:
 
 
 # ─── Node 3: scorer (3 LLM차원, 병렬 배치) ───
-W_NOVELTY = 4       # 신규성 (LLM 평가 -- 새로운 기술/모델/연구/제품인가)
-W_IMPACT = 3        # 영향력 (LLM 평가 -- 업계에 미칠 영향이 큰가)
-W_PRACTICALITY = 3  # 실용성 (LLM 평가 -- 개발자가 직접 써볼 수 있는가)
+W_NOVELTY = 4       # 신규성 (model_research, product_tools)
+W_IMPACT = 3        # 영향력 (model_research, product_tools)
+W_PRACTICALITY = 3  # 실용성 (model_research, product_tools)
+W_MARKET = 4        # 시장 규모 (industry_business)
+W_SIGNAL = 3        # 전략적 시그널 (industry_business)
+W_BREADTH = 3       # 이해관계자 범위 (industry_business)
 SCORER_BATCH_SIZE = 5
 
 _SCORER_PROMPT = """IMPORTANT: Output ONLY a valid JSON array. No thinking, no markdown. Start with '['.
 
-You are an AI news scoring engine. Score each article strictly based on the provided title and description. Do NOT use external knowledge or assume information not present.
+You are an AI news scoring engine. First classify each article, then score using the criteria for that category. Use ONLY the provided title and description.
 
-## Scoring Dimensions (each 1-10, integers only)
-
-**nov (Novelty):** Is this about something NEW?
-- 8-10: First announcement of new model/architecture, new open-source release, new research paper with novel results, new technique or method
-- 4-7: Incremental updates to existing tools, new benchmarks on known methods, notable but expected releases
-- 1-3: Business news (funding/M&A/IPO), policy/regulation, opinion/editorial, trend roundups, listicles, event recaps
-
-**imp (Impact):** How much will this affect the AI field?
-- 8-10: Paradigm shift, major framework update used by millions, breakthrough changing standard practice
-- 4-7: Useful improvement, moderate community interest, affects a specific subfield
-- 1-3: Niche/minor update, company-internal change, local/regional news, no broad relevance
-
-**pra (Practicality):** Can developers/researchers directly use this?
-- 8-10: Open-source code/weights available, public API, reproducible method with implementation details
-- 4-7: Partially open, API waitlist, reproducible but complex setup, tutorial without code
-- 1-3: Closed/proprietary with no access, pure theory without implementation, vague announcement with no timeline
-
-## Rules
-- Score each dimension INDEPENDENTLY. High novelty does not imply high impact.
-- AVOID middle-ground clustering. Use the full 1-10 range. If an article is clearly business news, give nov=1 or 2, not 5.
-- Base scores ONLY on the provided title and description. If description is vague, score conservatively.
-
-## Calibration Examples
-"Meta releases Llama 4 open-weights model with 1T parameters" → {{"nov":9,"imp":9,"pra":9}}
-"Google DeepMind paper introduces new diffusion architecture beating SOTA on ImageNet" → {{"nov":9,"imp":8,"pra":5}}
-"OpenAI raises $10B in new funding round led by SoftBank" → {{"nov":1,"imp":3,"pra":1}}
-"Top 10 AI tools every developer should try in 2026" → {{"nov":1,"imp":2,"pra":3}}
-
-## Category (pick one)
+## Step 1: Category (pick one)
 - "model_research": new model, research paper, benchmark, architecture
 - "product_tools": product, tool, API, framework, library
 - "industry_business": funding, M&A, regulation, strategy, market
 
+## Step 2: Score by category (each 1-10, integers only)
+
+### For model_research / product_tools → use nov, imp, pra
+
+**nov (Novelty):** Is this about something NEW?
+- 8-10: First announcement of new model/architecture, new open-source release, new research paper with novel results
+- 4-7: Incremental updates, new benchmarks on known methods, expected releases
+- 1-3: Rehashed content, opinion/editorial, trend roundups, listicles
+
+**imp (Impact):** How much will this affect the AI field?
+- 8-10: Paradigm shift, major framework update, breakthrough changing standard practice
+- 4-7: Useful improvement, moderate community interest, specific subfield
+- 1-3: Niche/minor update, no broad relevance
+
+**pra (Practicality):** Can developers/researchers directly use this?
+- 8-10: Open-source code/weights, public API, reproducible method
+- 4-7: Partially open, API waitlist, tutorial without code
+- 1-3: Closed/proprietary, pure theory, vague announcement
+
+### For industry_business → use mag, sig, brd
+
+**mag (Magnitude):** Scale of the event.
+- 8-10: $10B+ deal, top-5 company earnings, global regulation enforcement
+- 4-7: $1B+ deal, top-50 company move, national policy
+- 1-3: Seed round <$20M, single hire, local/niche scope
+
+**sig (Signal):** Does this reshape competitive landscape?
+- 8-10: New market leader, paradigm regulatory shift, industry pivot
+- 4-7: Strategic repositioning, major partnership
+- 1-3: Routine operations, no strategic implication
+
+**brd (Breadth):** How many stakeholders affected?
+- 8-10: Entire AI ecosystem + adjacent sectors
+- 4-7: Multiple segments (all startups, all chip buyers)
+- 1-3: Single company or narrow niche
+
+## Rules
+- AVOID middle-ground clustering. Use the full 1-10 range.
+- Score ONLY from provided text. If vague, score conservatively.
+
+## Calibration
+"Meta releases Llama 4 open-weights model" → {{"i":0,"category":"model_research","nov":9,"imp":9,"pra":9}}
+"DeepMind paper: new diffusion architecture beats SOTA" → {{"i":1,"category":"model_research","nov":9,"imp":8,"pra":5}}
+"NVIDIA reports record $35B quarterly revenue" → {{"i":2,"category":"industry_business","mag":10,"sig":10,"brd":9}}
+"AI startup raises $8M seed round" → {{"i":3,"category":"industry_business","mag":1,"sig":1,"brd":1}}
+
 Articles:
 {article_text}
 
-Output exactly {count} items:
-[{{"i":0,"nov":6,"imp":7,"pra":5,"category":"model_research"}}]"""
+Output exactly {count} items. Use nov/imp/pra for model_research and product_tools. Use mag/sig/brd for industry_business.
+[{{"i":0,"category":"model_research","nov":6,"imp":7,"pra":5}}]"""
 
 
 _scorer_lock = __import__("threading").Lock()
@@ -845,18 +866,31 @@ def scorer_node(state: NewsGraphState) -> dict:
                     local_idx = s["_global_idx"]
                     if 0 <= local_idx < len(unscored):
                         gi = unscored_indices[local_idx]
-                        novelty = min(10, max(1, s.get("nov", 5)))
-                        impact = min(10, max(1, s.get("imp", 5)))
-                        practicality = min(10, max(1, s.get("pra", 5)))
-                        candidates[gi]["_score_novelty"] = novelty
-                        candidates[gi]["_score_impact"] = impact
-                        candidates[gi]["_score_practicality"] = practicality
-                        candidates[gi]["_llm_category"] = s.get("category", "")
-                        candidates[gi]["_total_score"] = (
-                            novelty * W_NOVELTY
-                            + impact * W_IMPACT
-                            + practicality * W_PRACTICALITY
-                        )
+                        cat = s.get("category", "")
+                        candidates[gi]["_llm_category"] = cat
+
+                        if cat == "industry_business":
+                            mag = min(10, max(1, s.get("mag", 5)))
+                            sig = min(10, max(1, s.get("sig", 5)))
+                            brd = min(10, max(1, s.get("brd", 5)))
+                            candidates[gi]["_score_market"] = mag
+                            candidates[gi]["_score_signal"] = sig
+                            candidates[gi]["_score_breadth"] = brd
+                            candidates[gi]["_total_score"] = (
+                                mag * W_MARKET + sig * W_SIGNAL + brd * W_BREADTH
+                            )
+                        else:
+                            novelty = min(10, max(1, s.get("nov", 5)))
+                            impact = min(10, max(1, s.get("imp", 5)))
+                            practicality = min(10, max(1, s.get("pra", 5)))
+                            candidates[gi]["_score_novelty"] = novelty
+                            candidates[gi]["_score_impact"] = impact
+                            candidates[gi]["_score_practicality"] = practicality
+                            candidates[gi]["_total_score"] = (
+                                novelty * W_NOVELTY
+                                + impact * W_IMPACT
+                                + practicality * W_PRACTICALITY
+                            )
                         candidates[gi]["_llm_scored"] = True
 
                 scored = len([c for c in batch if c.get("_llm_scored")])
@@ -888,9 +922,14 @@ def ranker_node(state: NewsGraphState) -> dict:
     if not candidates:
         return {"highlights": [], "category_pool": []}
 
-    # 하이라이트: 모든 소스의 당일(어제+오늘) 기사
-    today_all = [c for c in candidates if c.get("_is_today")]
-    print(f"  [랭킹] 당일 기사 {len(today_all)}/{len(candidates)}개")
+    # 하이라이트: model_research + product_tools 카테고리의 당일(어제+오늘) 기사만
+    HIGHLIGHT_CATEGORIES = {"model_research", "product_tools"}
+    today_all = [
+        c for c in candidates
+        if c.get("_is_today") and c.get("_llm_category", "") in HIGHLIGHT_CATEGORIES
+    ]
+    today_total = sum(1 for c in candidates if c.get("_is_today"))
+    print(f"  [랭킹] 당일 기사 {today_total}개 중 하이라이트 후보 {len(today_all)}개 (model_research + product_tools)")
 
     _epoch = datetime(2000, 1, 1, tzinfo=_KST)
     def _day_key(c: dict):
