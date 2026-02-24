@@ -142,6 +142,38 @@ function getCategoryName(catKey: string, t: (key: string) => string) {
   return t(`cat.${catKey}`);
 }
 
+// ─── 제목 말줄임 처리 (중복 "..." 방지) ─────────────────────────────────
+function TitleText({ children, style, numberOfLines = 2 }: { children: string; style: any; numberOfLines?: number }) {
+  const [display, setDisplay] = React.useState(children);
+  const measured = React.useRef(false);
+
+  React.useEffect(() => {
+    measured.current = false;
+    setDisplay(children);
+  }, [children]);
+
+  return (
+    <Text
+      style={style}
+      numberOfLines={numberOfLines}
+      ellipsizeMode="clip"
+      onTextLayout={(e) => {
+        if (measured.current) return;
+        measured.current = true;
+        const lines = e.nativeEvent.lines;
+        const shown = lines.slice(0, numberOfLines).map((l: any) => l.text).join('');
+        if (shown.length < children.length) {
+          let t = shown.slice(0, -3).trimEnd();
+          t = t.replace(/\.+$/, '').replace(/…+$/, '');
+          setDisplay(t + '...');
+        }
+      }}
+    >
+      {display}
+    </Text>
+  );
+}
+
 // ─── 좋아요+뷰 카운트 (정적 — 피드 카드에서 리스너 폭발 방지) ──────────
 const ArticleStats = React.memo(function ArticleStats({ likes, views }: { likes?: number; views?: number }) {
   return (
@@ -248,13 +280,12 @@ const HighlightScrollCard = React.memo(function HighlightScrollCard({
       <View style={{ padding: 14, flex: 1, justifyContent: 'space-between', width: HIGHLIGHT_CARD_WIDTH }}>
         <View style={{ width: HIGHLIGHT_CARD_WIDTH - 28 }}>
           <SourceBadge sourceKey={article.source_key} />
-          <Text
+          <TitleText
             style={{ fontSize: 15, fontWeight: '800', color: TEXT_PRIMARY, lineHeight: 21, marginTop: 6 }}
             numberOfLines={2}
-            ellipsizeMode="clip"
           >
             {getLocalizedTitle(article, lang)}
-          </Text>
+          </TitleText>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
@@ -663,13 +694,12 @@ const HScrollCard = React.memo(function HScrollCard({
       <View style={{ padding: 14, flex: 1, width: CARD_WIDTH }}>
         <View style={{ width: CARD_WIDTH - 28 }}>
           {showSourceBadge && <SourceBadge sourceKey={article.source_key} />}
-          <Text
+          <TitleText
             style={{ fontSize: 13, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 18, marginTop: showSourceBadge ? 6 : 0 }}
             numberOfLines={2}
-            ellipsizeMode="clip"
           >
             {getLocalizedTitle(article, lang)}
-          </Text>
+          </TitleText>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
@@ -780,13 +810,12 @@ function CategoryTabSection({
               <View style={{ flex: 1, padding: 14, justifyContent: 'space-between' }}>
                 <View>
                   <SourceBadge sourceKey={a.source_key} />
-                  <Text
+                  <TitleText
                     style={{ fontSize: 14, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 20, marginTop: 6 }}
                     numberOfLines={2}
-                    ellipsizeMode="clip"
                   >
                     {getLocalizedTitle(a, lang)}
-                  </Text>
+                  </TitleText>
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
@@ -926,13 +955,12 @@ function GeekNewsSection({ articles, onArticlePress }: { articles: Article[]; on
                 opacity: pressed ? 0.85 : 1,
               })}
             >
-              <Text
+              <TitleText
                 style={{ fontSize: 13, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 20 }}
                 numberOfLines={2}
-                ellipsizeMode="clip"
               >
                 {getLocalizedTitle(a, lang)}
-              </Text>
+              </TitleText>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
                 <Text style={{ fontSize: 11, color: TEXT_LIGHT }}>{formatDate(a.published)}</Text>
                 <ArticleStats likes={stats[a.link]?.likes} views={stats[a.link]?.views} />
