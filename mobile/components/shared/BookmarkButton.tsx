@@ -1,6 +1,6 @@
 import React from 'react';
 import { Pressable } from 'react-native';
-import { Bookmark, BookmarkCheck } from 'lucide-react-native';
+import { Bookmark } from 'lucide-react-native';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
 
@@ -24,11 +24,12 @@ export function BookmarkButton({ isBookmarked, onToggle, size = 18 }: BookmarkBu
       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       accessibilityLabel={isBookmarked ? t('bookmark.remove') : t('bookmark.add')}
     >
-      {isBookmarked ? (
-        <BookmarkCheck size={size} color={colors.primary} strokeWidth={2} />
-      ) : (
-        <Bookmark size={size} color={colors.textLight} strokeWidth={2} />
-      )}
+      <Bookmark
+        size={size}
+        color={isBookmarked ? colors.primary : colors.textLight}
+        fill={isBookmarked ? colors.primary : 'none'}
+        strokeWidth={2}
+      />
     </Pressable>
   );
 }
