@@ -1395,14 +1395,8 @@ def selector_node(state: NewsGraphState) -> dict:
             "category_order": category_order,
         }
 
-    # ── Step 1: 하이라이트 Top 3 선정 (당일 models_products만) ──
+    # ── Step 1: 하이라이트 Top 3 선정 (당일 models_products 우선, 부족 시 최근 날짜에서 보충) ──
     HIGHLIGHT_CATEGORIES = {"models_products"}
-    today_all = [
-        c for c in candidates
-        if c.get("_is_today") and c.get("_llm_category", "") in HIGHLIGHT_CATEGORIES
-    ]
-    today_total = sum(1 for c in candidates if c.get("_is_today"))
-    print(f"  [선정] 당일 기사 {today_total}개 중 하이라이트 후보 {len(today_all)}개 (models_products)")
 
     _epoch = datetime(2000, 1, 1, tzinfo=_KST)
     def _day_key(c: dict):
@@ -1411,20 +1405,37 @@ def selector_node(state: NewsGraphState) -> dict:
     def _time_key(c: dict):
         return _parse_published(c.get("published", "")) or _epoch
 
-    by_score = sorted(
-        today_all,
-        key=lambda c: (c.get("_total_score", 0), _time_key(c)),
-        reverse=True,
-    )
+    # 하이라이트 대상: models_products 카테고리 전체
+    highlight_pool = [
+        c for c in candidates
+        if c.get("_llm_category", "") in HIGHLIGHT_CATEGORIES
+    ]
+    today_all = [c for c in highlight_pool if c.get("_is_today")]
+    rest_all = [c for c in highlight_pool if not c.get("_is_today")]
+    today_total = sum(1 for c in candidates if c.get("_is_today"))
+    print(f"  [선정] 당일 기사 {today_total}개 중 하이라이트 후보 {len(today_all)}개 (models_products)")
+
+    # 당일 기사: 점수순
+    today_by_score = sorted(today_all, key=lambda c: (c.get("_total_score", 0), _time_key(c)), reverse=True)
+    # 이전 기사: 최근 날짜 우선 → 같은 날짜면 점수순
+    rest_by_date_score = sorted(rest_all, key=lambda c: (_day_key(c), c.get("_total_score", 0), _time_key(c)), reverse=True)
 
     highlights: list[dict] = []
-    for c in by_score:
+    # 1) 당일 기사에서 채움
+    for c in today_by_score:
         if len(highlights) >= HIGHLIGHT_COUNT:
             break
-        # 미번역 기사 차단
         if c.get("display_title") == c.get("title") and c.get("lang") != "ko":
             continue
         highlights.append(c)
+    # 2) 부족하면 이전 기사에서 최근 날짜+점수순으로 보충
+    if len(highlights) < HIGHLIGHT_COUNT:
+        for c in rest_by_date_score:
+            if len(highlights) >= HIGHLIGHT_COUNT:
+                break
+            if c.get("display_title") == c.get("title") and c.get("lang") != "ko":
+                continue
+            highlights.append(c)
 
     highlights = sorted(
         highlights,
