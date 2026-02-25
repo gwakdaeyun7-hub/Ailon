@@ -551,62 +551,38 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
 
           </ScrollView>
 
-          {/* 고정 하단 액션 바 — 3등분 컬럼: 좋아요 | 댓글 | 공유 */}
+          {/* 고정 하단 액션 바 — 탭 바와 동일한 균등 배치 */}
           <View style={{
-            width: '100%',
-            borderTopWidth: 1, borderTopColor: colors.border,
             flexDirection: 'row',
-            paddingBottom: Math.max(insets.bottom, 10),
+            borderTopWidth: 1,
+            borderTopColor: colors.border,
             backgroundColor: colors.card,
+            paddingBottom: Math.max(insets.bottom, 10),
           }}>
-            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingLeft: 20 }}>
-              <Pressable
-                onPress={handleLike}
-                accessibilityLabel={liked ? t('modal.unlike') : t('modal.like')}
-                accessibilityRole="button"
-                style={({ pressed }) => ({
-                  alignItems: 'center', justifyContent: 'center',
-                  paddingVertical: 14, minHeight: 52,
-                  opacity: pressed ? 0.5 : 1,
-                })}
-              >
-                <ThumbsUp size={24} color={liked ? colors.likeActiveColor : colors.textSecondary} />
-              </Pressable>
-            </View>
-
-            <View style={{ width: 1, alignSelf: 'stretch', backgroundColor: colors.border, marginVertical: 12 }} />
-
-            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-              <Pressable
-                onPress={onOpenComments}
-                accessibilityLabel={t('modal.comment')}
-                accessibilityRole="button"
-                style={({ pressed }) => ({
-                  alignItems: 'center', justifyContent: 'center',
-                  paddingVertical: 14, minHeight: 52,
-                  opacity: pressed ? 0.5 : 1,
-                })}
-              >
-                <MessageCircle size={24} color={colors.textSecondary} />
-              </Pressable>
-            </View>
-
-            <View style={{ width: 1, alignSelf: 'stretch', backgroundColor: colors.border, marginVertical: 12 }} />
-
-            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingRight: 20 }}>
-              <Pressable
-                onPress={handleShare}
-                accessibilityLabel={t('modal.share')}
-                accessibilityRole="button"
-                style={({ pressed }) => ({
-                  alignItems: 'center', justifyContent: 'center',
-                  paddingVertical: 14, minHeight: 52,
-                  opacity: pressed ? 0.5 : 1,
-                })}
-              >
-                <Share2 size={24} color={colors.textSecondary} />
-              </Pressable>
-            </View>
+            <Pressable
+              onPress={handleLike}
+              accessibilityLabel={liked ? t('modal.unlike') : t('modal.like')}
+              accessibilityRole="button"
+              style={{ flex: 1, alignItems: 'center', paddingVertical: 12 }}
+            >
+              <ThumbsUp size={22} color={liked ? colors.likeActiveColor : colors.textDim} />
+            </Pressable>
+            <Pressable
+              onPress={onOpenComments}
+              accessibilityLabel={t('modal.comment')}
+              accessibilityRole="button"
+              style={{ flex: 1, alignItems: 'center', paddingVertical: 12 }}
+            >
+              <MessageCircle size={22} color={colors.textDim} />
+            </Pressable>
+            <Pressable
+              onPress={handleShare}
+              accessibilityLabel={t('modal.share')}
+              accessibilityRole="button"
+              style={{ flex: 1, alignItems: 'center', paddingVertical: 12 }}
+            >
+              <Share2 size={22} color={colors.textDim} />
+            </Pressable>
           </View>
 
           {/* 인라인 토스트 */}
