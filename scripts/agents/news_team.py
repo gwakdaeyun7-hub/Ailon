@@ -752,50 +752,61 @@ VALID_CATEGORIES = {"research", "models_products", "industry_business"}
 
 _CLASSIFY_PROMPT = """Output ONLY a JSON array. No markdown, no explanation. Start with '['.
 
-Classify each article into exactly ONE category by finding the KEY ACTION in the title.
+Classify each article into exactly ONE category. Apply tests top-to-bottom; first YES wins.
 
-## Step: Find the key action verb/noun, then match below (top-to-bottom, first match wins).
+## Test 1: research (가장 좁음 — 순수 학술/과학만)
+Is this about a SCIENTIFIC PAPER, RESEARCH FINDING, BENCHMARK RESULT, or ALGORITHMIC DISCOVERY?
+YES conditions (ALL must apply):
+- 핵심이 논문/연구/실험/벤치마크/과학적 발견임
+- 사용자가 다운로드/사용할 수 있는 제품이 아님
+- 비즈니스 거래/전략/규제 이야기가 아님
+Signal: 논문, 연구, 발견, 벤치마크, SOTA, scaling law, 방법론, 실험 결과, 알고리즘 제안
 
-### 1) industry_business — 돈·거래·전략·사람·규제
-Signal words: 계약, 인수, 투자, 펀딩, 소송, 승소, 기각, 사임, 해고, 채용, 진출, 규제, 제재, 수출 금지, 지분, 매출, 실적, IPO, 파트너십, 제휴, 티켓, 행사, 시장 분석, 접근 방식, 의혹, 지적, 반발
-English: funding, M&A, lawsuit, regulation, partnership, market, hire, resign, strategy, valuation
-Also: corporate opinions/analysis about the market, geopolitical AI disputes, executive moves.
+## Test 2: models_products (두 번째로 좁음 — 출시/공개/업데이트만)
+Is this about a NEW MODEL, PRODUCT, FEATURE, or TOOL that users can USE/DOWNLOAD/ACCESS?
+YES conditions (ANY one suffices):
+- 새 모델/앱/서비스/플랫폼/도구가 출시·공개·릴리스됨
+- 기존 제품에 기능 업데이트·API 추가됨
+- 오픈소스 웨이트/코드가 공개됨
+Signal: 출시, 공개, 릴리스, 오픈소스, 업데이트, 배포, API, SDK, 서비스, 플랫폼
 
-### 2) models_products — 출시·공개·릴리스·업데이트 (사용 가능한 것)
-Signal words: 출시, 공개, 릴리스, 오픈소스, 업데이트, 발표(제품), 배포, 서비스, 플랫폼, 도구, API, SDK, 모델 시리즈, 기능 추가, 웨이트 공개
-English: release, launch, open-source, update, deploy, available, tool, platform
-Key: someone NEW can be used/downloaded/accessed. Model launches, product updates, tool releases all go here.
+## Test 3: industry_business (나머지 전부 — catch-all)
+위 두 카테고리에 해당하지 않으면 무조건 industry_business.
+투자, M&A, 규제, 소송, 인사, 시장 분석, 파트너십, 전략, 보안, 행사, 가십 등 전부 포함.
 
-### 3) research — 논문·연구·과학적 발견·벤치마크 (가장 좁은 카테고리)
-Signal words: 연구, 논문, 발견, 해결(과학 문제), 벤치마크, 제안(학술), 방법론, 실험, SOTA, scaling law
-English: paper, study, benchmark, discovery, novel method, scientific result
-ONLY pure scientific findings with no released product. This is the NARROWEST category.
+## 경계 판단 규칙
+- 논문 + 코드/모델 동시 공개 → models_products (사용 가능한 것이 있으면 models_products)
+- 논문만, 제품 없음 → research
+- 연구 결과지만 기업 전략/투자 맥락 → industry_business
+- "연구 촉구/우려 제기" → 실제 논문이면 research, 아니면 industry_business
+- 성능 비교/벤치마크 → 학술 실험이면 research, 제품 홍보면 models_products
+- 회사명만으로 판단하지 말 것. 핵심 ACTION으로 판단.
 
-## Critical rules
-- "공개/출시/릴리스" in title → almost always models_products, NOT research.
-- "계약/인수/소송/투자/사임/규제/수출 금지" → almost always industry_business, NOT research.
-- Company opinions, market analysis, strategy commentary → industry_business.
-- "연구 촉구/방법 제안" by a company about ethics/strategy → research ONLY if it's a scientific paper; otherwise industry_business.
-- Company name alone does NOT determine category. Classify by the ACTION.
+## Examples
 
-## Examples (한국어 제목 → 정답)
-
+research:
 "OpenAI, GPT-5.2로 입자 물리학 난제 해결" → research (과학 문제 해결)
-"ByteDance AI, Long CoT 연구 발표" → research (연구 발표)
-"Google DeepMind, 챗봇의 도덕적 행동 진정성 연구 촉구" → research (연구 촉구)
+"ByteDance AI, Long CoT 연구 발표" → research (연구 논문)
+"Google DeepMind, 챗봇의 도덕적 행동 진정성 연구 촉구" → research (학술 연구)
+"MIT, 트랜스포머 대체할 새로운 아키텍처 논문 발표" → research (논문)
+"Anthropic, 대규모 언어 모델 환각 현상 분석 논문 공개" → research (논문/연구 결과)
 
+models_products:
 "Alibaba Qwen 팀, Qwen 3.5 미디엄 모델 시리즈 공개" → models_products (모델 공개)
 "Inception Labs, 확산 기반 언어 추론 모델 'Mercury 2' 공개" → models_products (모델 공개)
 "Anthropic, Claude Cowork 업데이트로 기업 업무 자동화 확장" → models_products (제품 업데이트)
 "Nimble, 기업용 '에이전트 검색 플랫폼' 출시" → models_products (플랫폼 출시)
-"Kilo, OpenClaw 에이전트 60초 만에 배포하는 KiloClaw 서비스 출시" → models_products (서비스 출시)
-"Google Chrome, Auto Browse 에이전트 테스트 결과 공개" → models_products (제품 기능 테스트 결과 공개)
+"Google, Gemma 3n 오픈소스 웨이트 공개" → models_products (오픈소스 릴리스)
+"Google Chrome, Auto Browse 에이전트 테스트 결과 공개" → models_products (제품 기능 공개)
 
-"Meta, AMD와 수십억 달러 규모 칩 계약 체결" → industry_business (거래/계약)
-"Canva, 애니메이션 'Cavalry'·마케팅 AI 'MangoAI' 동시 인수" → industry_business (M&A 인수)
-"OpenAI, xAI의 영업 비밀 침해 소송 기각 결정 받아 승소" → industry_business (소송/법적)
-"Deepseek, 美 수출 금지에도 Nvidia Blackwell 칩으로 AI 모델 훈련" → industry_business (지정학/규제)
-"Anthropic, 중국 AI 기업들의 Claude 무단 활용 의혹 제기" → industry_business (기업 전략/의혹)
+industry_business:
+"Meta, AMD와 수십억 달러 규모 칩 계약 체결" → industry_business (거래)
+"Canva, 애니메이션 'Cavalry'·마케팅 AI 'MangoAI' 동시 인수" → industry_business (M&A)
+"OpenAI, xAI의 영업 비밀 침해 소송 기각 결정 받아 승소" → industry_business (소송)
+"Deepseek, 美 수출 금지에도 Nvidia Blackwell 칩으로 AI 모델 훈련" → industry_business (규제)
+"Anthropic, 중국 AI 기업들의 Claude 무단 활용 의혹 제기" → industry_business (의혹/전략)
+"Sam Altman, AI 안전 정책 방향성 발표" → industry_business (전략/정책)
+"AI 스타트업 투자 2026년 상반기 200억 돌파" → industry_business (시장 분석)
 
 Articles:
 {article_text}
@@ -979,11 +990,11 @@ _CALIBRATION_MAP = {
     ),
 }
 
-# 카테고리별 출력 예시
+# 카테고리별 출력 예시 (배치 1 기준)
 _OUTPUT_EXAMPLE_MAP = {
-    "research": '[{{"i":0,"rig":7,"nov":6,"pot":5}},{{"i":1,"rig":8,"nov":4,"pot":6}}]',
-    "models_products": '[{{"i":0,"uti":8,"imp":7,"acc":6}},{{"i":1,"uti":5,"imp":3,"acc":9}}]',
-    "industry_business": '[{{"i":0,"mag":4,"sig":3,"brd":5}},{{"i":1,"mag":7,"sig":6,"brd":8}}]',
+    "research": '[{{"i":0,"rig":7,"nov":6,"pot":5}}]',
+    "models_products": '[{{"i":0,"uti":8,"imp":7,"acc":6}}]',
+    "industry_business": '[{{"i":0,"mag":4,"sig":3,"brd":5}}]',
 }
 
 
