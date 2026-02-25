@@ -904,7 +904,7 @@ function SourceHScrollSection({
 }
 
 // ─── GeekNews 세로 리스트 ────────────────────────────────────────────────
-function GeekNewsSection({ articles, onArticlePress, allStats }: { articles: Article[]; onArticlePress: (article: Article) => void; allStats: Record<string, BatchStats> }) {
+const GeekNewsSection = React.memo(function GeekNewsSection({ articles, onArticlePress, allStats }: { articles: Article[]; onArticlePress: (article: Article) => void; allStats: Record<string, BatchStats> }) {
   const [showMore, setShowMore] = useState(false);
   const stats = allStats;
   const { lang, t } = useLanguage();
@@ -912,61 +912,71 @@ function GeekNewsSection({ articles, onArticlePress, allStats }: { articles: Art
 
   const first5 = articles.slice(0, 5);
   const more5 = articles.slice(5, 10);
-  const visible = showMore ? [...first5, ...more5] : first5;
+  const visible = React.useMemo(
+    () => (showMore ? [...first5, ...more5] : first5),
+    [showMore, first5, more5],
+  );
   const color = SOURCE_COLORS['geeknews'] || TEXT_SECONDARY;
+  const name = getSourceName('geeknews', t);
 
   return (
     <View style={{ marginBottom: 24 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 14 }}>
+      <View
+        style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 14 }}
+        accessibilityRole="header"
+      >
         <View style={{ width: 4, height: 18, borderRadius: 2, backgroundColor: color, marginRight: 8 }} />
-        <Text style={{ fontSize: 15, fontWeight: '800', color: TEXT_PRIMARY, flex: 1 }}>GeekNews</Text>
+        <Text style={{ fontSize: 15, fontWeight: '800', color: TEXT_PRIMARY, flex: 1 }}>{name}</Text>
         <Text style={{ fontSize: 11, color: TEXT_LIGHT }}>{articles.length}{t('news.articles_suffix')}</Text>
       </View>
 
-      <View style={{ paddingHorizontal: 16 }}>
+      <View style={{ paddingHorizontal: 16, gap: 12 }}>
         {visible.map((a, i) => (
-          <React.Fragment key={`geeknews-${i}-${a.link}`}>
-            <Pressable
-              onPress={() => onArticlePress(a)}
-              accessibilityLabel={getLocalizedTitle(a, lang)}
-              accessibilityRole="button"
-              style={({ pressed }) => ({
-                backgroundColor: CARD,
-                borderRadius: 12,
-                borderWidth: 1,
-                borderColor: BORDER,
-                padding: 16,
-                marginBottom: 12,
-                justifyContent: 'space-between',
-                opacity: pressed ? 0.85 : 1,
-              })}
-            >
+          <Pressable
+            key={`geeknews-${i}-${a.link}`}
+            onPress={() => onArticlePress(a)}
+            accessibilityLabel={getLocalizedTitle(a, lang)}
+            accessibilityRole="button"
+            style={({ pressed }) => ({
+              backgroundColor: CARD,
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: BORDER,
+              padding: 14,
+              justifyContent: 'space-between',
+              opacity: pressed ? 0.85 : 1,
+            })}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
               <TitleText
-                style={{ fontSize: 13, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 20 }}
+                style={{ fontSize: 14, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 20, flex: 1, marginRight: 8 }}
                 numberOfLines={2}
               >
                 {getLocalizedTitle(a, lang)}
               </TitleText>
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
-                <Text style={{ fontSize: 11, color: TEXT_LIGHT }}>{formatDate(a.published)}</Text>
-                <ArticleStats likes={stats[a.link]?.likes} views={stats[a.link]?.views} />
-              </View>
-            </Pressable>
-            {i < visible.length - 1 && (
-              <View style={{ height: 1, backgroundColor: '#E5E7EB', marginBottom: 12 }} />
-            )}
-          </React.Fragment>
+              <ScoreBadge article={a} />
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
+              <Text style={{ fontSize: 11, color: TEXT_LIGHT }}>{formatDate(a.published)}</Text>
+              <ArticleStats likes={stats[a.link]?.likes} views={stats[a.link]?.views} />
+            </View>
+          </Pressable>
         ))}
       </View>
 
       {!showMore && more5.length > 0 && (
-        <Pressable onPress={() => setShowMore(true)} style={{ alignItems: 'center', paddingVertical: 12 }}>
-          <Text style={{ fontSize: 12, color: TEXT_LIGHT }}>{t('news.show_more')} ({more5.length})</Text>
+        <Pressable
+          onPress={() => setShowMore(true)}
+          accessibilityLabel={`${t('news.show_more')} ${more5.length}`}
+          accessibilityRole="button"
+          style={{ alignItems: 'center', paddingVertical: 14, minHeight: 44, justifyContent: 'center' }}
+        >
+          <Text style={{ fontSize: 13, fontWeight: '600', color: Colors.primary }}>{t('news.show_more')} ({more5.length})</Text>
         </Pressable>
       )}
     </View>
   );
-}
+});
 
 // ─── 메인 화면 ──────────────────────────────────────────────────────────
 export default function NewsScreen() {
