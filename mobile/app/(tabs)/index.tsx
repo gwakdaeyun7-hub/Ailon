@@ -555,57 +555,58 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
           <View style={{
             width: '100%',
             borderTopWidth: 1, borderTopColor: colors.border,
-            flexDirection: 'row', alignItems: 'stretch',
+            flexDirection: 'row',
             paddingBottom: Math.max(insets.bottom, 10),
             backgroundColor: colors.card,
           }}>
-            {/* 좋아요 */}
-            <Pressable
-              onPress={handleLike}
-              accessibilityLabel={liked ? t('modal.unlike') : t('modal.like')}
-              accessibilityRole="button"
-              style={({ pressed }) => ({
-                flex: 1, alignItems: 'center', justifyContent: 'center',
-                paddingVertical: 14, minHeight: 52,
-                opacity: pressed ? 0.5 : 1,
-              })}
-            >
-              <ThumbsUp size={24} color={liked ? colors.likeActiveColor : colors.textSecondary} />
-            </Pressable>
+            <View style={{ flex: 1 }}>
+              <Pressable
+                onPress={handleLike}
+                accessibilityLabel={liked ? t('modal.unlike') : t('modal.like')}
+                accessibilityRole="button"
+                style={({ pressed }) => ({
+                  alignItems: 'center', justifyContent: 'center',
+                  paddingVertical: 14, minHeight: 52,
+                  opacity: pressed ? 0.5 : 1,
+                })}
+              >
+                <ThumbsUp size={24} color={liked ? colors.likeActiveColor : colors.textSecondary} />
+              </Pressable>
+            </View>
 
-            {/* 구분선 */}
-            <View style={{ width: 1, backgroundColor: colors.border, marginVertical: 12 }} />
+            <View style={{ width: 1, alignSelf: 'stretch', backgroundColor: colors.border, marginVertical: 12 }} />
 
-            {/* 댓글 */}
-            <Pressable
-              onPress={onOpenComments}
-              accessibilityLabel={t('modal.comment')}
-              accessibilityRole="button"
-              style={({ pressed }) => ({
-                flex: 1, alignItems: 'center', justifyContent: 'center',
-                paddingVertical: 14, minHeight: 52,
-                opacity: pressed ? 0.5 : 1,
-              })}
-            >
-              <MessageCircle size={24} color={colors.textSecondary} />
-            </Pressable>
+            <View style={{ flex: 1 }}>
+              <Pressable
+                onPress={onOpenComments}
+                accessibilityLabel={t('modal.comment')}
+                accessibilityRole="button"
+                style={({ pressed }) => ({
+                  alignItems: 'center', justifyContent: 'center',
+                  paddingVertical: 14, minHeight: 52,
+                  opacity: pressed ? 0.5 : 1,
+                })}
+              >
+                <MessageCircle size={24} color={colors.textSecondary} />
+              </Pressable>
+            </View>
 
-            {/* 구분선 */}
-            <View style={{ width: 1, backgroundColor: colors.border, marginVertical: 12 }} />
+            <View style={{ width: 1, alignSelf: 'stretch', backgroundColor: colors.border, marginVertical: 12 }} />
 
-            {/* 공유 */}
-            <Pressable
-              onPress={handleShare}
-              accessibilityLabel={t('modal.share')}
-              accessibilityRole="button"
-              style={({ pressed }) => ({
-                flex: 1, alignItems: 'center', justifyContent: 'center',
-                paddingVertical: 14, minHeight: 52,
-                opacity: pressed ? 0.5 : 1,
-              })}
-            >
-              <Share2 size={24} color={colors.textSecondary} />
-            </Pressable>
+            <View style={{ flex: 1 }}>
+              <Pressable
+                onPress={handleShare}
+                accessibilityLabel={t('modal.share')}
+                accessibilityRole="button"
+                style={({ pressed }) => ({
+                  alignItems: 'center', justifyContent: 'center',
+                  paddingVertical: 14, minHeight: 52,
+                  opacity: pressed ? 0.5 : 1,
+                })}
+              >
+                <Share2 size={24} color={colors.textSecondary} />
+              </Pressable>
+            </View>
           </View>
 
           {/* 인라인 토스트 */}
