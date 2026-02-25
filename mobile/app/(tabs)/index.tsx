@@ -329,6 +329,16 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
     }
   }, [article, trackView]);
 
+  const bookmarked = useMemo(() => article ? isBookmarked('news', article.link) : false, [isBookmarked, article]);
+  const handleToggleBookmark = useCallback(() => {
+    if (!article) return;
+    toggleBookmark('news', article.link, {
+      title: getLocalizedTitle(article, lang),
+      link: article.link,
+      ...(article.category ? { category: article.category } : {}),
+    });
+  }, [toggleBookmark, article, lang]);
+
   if (!article) return null;
 
   const sourceName = getSourceName(article.source_key || '', t);
@@ -367,15 +377,6 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
       });
     } catch {}
   };
-
-  const bookmarked = useMemo(() => isBookmarked('news', article.link), [isBookmarked, article.link]);
-  const handleToggleBookmark = useCallback(() => {
-    toggleBookmark('news', article.link, {
-      title: getLocalizedTitle(article, lang),
-      link: article.link,
-      ...(article.category ? { category: article.category } : {}),
-    });
-  }, [toggleBookmark, article, lang]);
 
   return (
     <Modal
