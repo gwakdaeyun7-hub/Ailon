@@ -559,7 +559,7 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
             paddingBottom: Math.max(insets.bottom, 10),
             backgroundColor: colors.card,
           }}>
-            <View style={{ flex: 1 }}>
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
               <Pressable
                 onPress={handleLike}
                 accessibilityLabel={liked ? t('modal.unlike') : t('modal.like')}
@@ -576,7 +576,7 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
 
             <View style={{ width: 1, alignSelf: 'stretch', backgroundColor: colors.border, marginVertical: 12 }} />
 
-            <View style={{ flex: 1 }}>
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
               <Pressable
                 onPress={onOpenComments}
                 accessibilityLabel={t('modal.comment')}
@@ -593,7 +593,7 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
 
             <View style={{ width: 1, alignSelf: 'stretch', backgroundColor: colors.border, marginVertical: 12 }} />
 
-            <View style={{ flex: 1 }}>
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
               <Pressable
                 onPress={handleShare}
                 accessibilityLabel={t('modal.share')}
