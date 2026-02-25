@@ -41,11 +41,15 @@ export function useBookmarks(userId: string | null) {
     if (!userId) return;
     try {
       const bookmarkRef = doc(db, 'users', userId, 'bookmarks', safeDocId(type, itemId));
+      // Firestore는 undefined 값을 허용하지 않으므로 제거
+      const cleanMeta = metadata
+        ? Object.fromEntries(Object.entries(metadata).filter(([, v]) => v !== undefined))
+        : undefined;
       await setDoc(bookmarkRef, {
         type,
         itemId,
         createdAt: new Date().toISOString(),
-        ...(metadata ? { metadata } : {}),
+        ...(cleanMeta && Object.keys(cleanMeta).length > 0 ? { metadata: cleanMeta } : {}),
       });
     } catch (err) {
       console.error('Bookmark add error:', err);
