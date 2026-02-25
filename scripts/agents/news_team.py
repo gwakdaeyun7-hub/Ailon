@@ -72,6 +72,7 @@ class NewsGraphState(TypedDict):
     category_order: list[str]
     source_articles: dict[str, list[dict]]
     source_order: list[str]
+    filtered_articles: list[dict]
     total_count: int
     # 노드별 소요 시간 (초)
     node_timings: Annotated[dict[str, float], _merge_dicts]
@@ -544,12 +545,13 @@ Return the indices as a JSON array:
     )
 
 
-def _llm_filter_sources(sources: dict[str, list[dict]]) -> None:
-    """모든 소스를 LLM으로 AI 관련성 필터링 (병렬)"""
+def _llm_filter_sources(sources: dict[str, list[dict]]) -> list[dict]:
+    """모든 소스를 LLM으로 AI 관련성 필터링 (병렬). 제거된 기사 리스트 반환."""
     total_removed = 0
+    all_removed: list[dict] = []
     tasks = [(key, articles) for key, articles in sources.items() if articles]
 
-    def _filter_one(key: str, articles: list[dict]) -> tuple[str, list[dict], int, int, int]:
+    def _filter_one(key: str, articles: list[dict]) -> tuple[str, list[dict], list[dict], int, int]:
         ai_indices = _llm_ai_filter_batch(articles, source_key=key)
         filtered = [a for i, a in enumerate(articles) if i in ai_indices]
         removed_articles = [a for i, a in enumerate(articles) if i not in ai_indices]
@@ -561,7 +563,7 @@ def _llm_filter_sources(sources: dict[str, list[dict]]) -> None:
             if today_removed > 0 or today_kept > 0:
                 msg += f" (당일: {today_kept}개 남음, {today_removed}개 제거)"
             print(msg)
-        return key, filtered, removed, today_removed, today_kept
+        return key, filtered, removed_articles, today_removed, today_kept
 
     total_today_removed = 0
     total_today_kept = 0
@@ -569,13 +571,14 @@ def _llm_filter_sources(sources: dict[str, list[dict]]) -> None:
         futures = {executor.submit(_filter_one, key, articles): key for key, articles in tasks}
         for future in as_completed(futures):
             try:
-                key, filtered, removed, today_removed, today_kept = future.result()
+                key, filtered, removed_articles, today_removed, today_kept = future.result()
             except Exception as e:
                 key = futures[future]
                 print(f"    [WARN] [{key}] LLM AI 필터 future 실패: {e}")
                 continue
             sources[key] = filtered
-            total_removed += removed
+            all_removed.extend(removed_articles)
+            total_removed += len(removed_articles)
             total_today_removed += today_removed
             total_today_kept += today_kept
 
@@ -584,6 +587,8 @@ def _llm_filter_sources(sources: dict[str, list[dict]]) -> None:
         if total_today_removed > 0 or total_today_kept > 0:
             msg += f" (당일 기사: {total_today_kept}개 남음 / {total_today_removed}개 제거)"
         print(msg)
+
+    return all_removed
 
 
 # ─── 노드별 에러 핸들링 + 타이밍 데코레이터 ───
@@ -632,8 +637,8 @@ def collector_node(state: NewsGraphState) -> dict:
     print(f"  ─── 당일 기사 합계: {total_today}개 ───\n")
     enrich_and_scrape(sources)
     filter_imageless(sources)
-    _llm_filter_sources(sources)
-    return {"sources": sources}
+    filtered_out = _llm_filter_sources(sources)
+    return {"sources": sources, "filtered_articles": filtered_out}
 
 
 # ─── Node 2a: en_process (영어 번역+요약) ───
@@ -1566,10 +1571,13 @@ def assembler_node(state: NewsGraphState) -> dict:
         + sum(len(v) for v in source_articles.values())
     )
 
-    print(f"\n[DONE] 뉴스 파이프라인 완료: 총 {total}개")
+    filtered_articles = state.get("filtered_articles", [])
+
+    print(f"\n[DONE] 뉴스 파이프라인 완료: 총 {total}개 (+ AI 필터 제외 {len(filtered_articles)}개)")
     print(f"  하이라이트: {len(state.get('highlights', []))}개")
     print(f"  카테고리별: {sum(len(v) for v in state.get('categorized_articles', {}).values())}개")
     print(f"  소스별 섹션: {sum(len(v) for v in source_articles.values())}개")
+    print(f"  AI 필터 제외: {len(filtered_articles)}개")
 
     # 타이밍 리포트
     timings = state.get("node_timings", {})
@@ -1584,6 +1592,7 @@ def assembler_node(state: NewsGraphState) -> dict:
     return {
         "source_articles": source_articles,
         "source_order": source_order,
+        "filtered_articles": filtered_articles,
         "total_count": total,
     }
 
@@ -1676,6 +1685,7 @@ def run_news_pipeline() -> dict:
         "category_order": [],
         "source_articles": {},
         "source_order": [],
+        "filtered_articles": [],
         "total_count": 0,
         "node_timings": {},
         "errors": [],
@@ -1694,6 +1704,7 @@ def run_news_pipeline() -> dict:
         "category_order": result.get("category_order", []),
         "source_articles": result.get("source_articles", {}),
         "source_order": result.get("source_order", []),
+        "filtered_articles": result.get("filtered_articles", []),
         "total_count": result.get("total_count", 0),
         "errors": errors,
     }

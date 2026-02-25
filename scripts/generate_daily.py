@@ -102,6 +102,20 @@ def save_news_to_firestore(result: dict):
         for src, articles in result.get("source_articles", {}).items()
     }
 
+    # AI 필터 제외 기사 (요약 없이 기본 정보만)
+    filtered_articles = [
+        {
+            "title": a.get("title", ""),
+            "link": a.get("link", ""),
+            "description": (a.get("description", "") or "")[:200],
+            "published": a.get("published", ""),
+            "source": a.get("source", ""),
+            "source_key": a.get("source_key", ""),
+            "image_url": a.get("image_url", ""),
+        }
+        for a in result.get("filtered_articles", [])
+    ]
+
     doc_ref = db.collection("daily_news").document(today)
     doc_data = {
         "date": today,
@@ -110,6 +124,7 @@ def save_news_to_firestore(result: dict):
         "category_order": result.get("category_order", []),
         "source_articles": source_articles,
         "source_order": result.get("source_order", []),
+        "filtered_articles": filtered_articles,
         "total_count": result.get("total_count", 0),
         "updated_at": firestore.SERVER_TIMESTAMP,
     }

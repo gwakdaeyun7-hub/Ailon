@@ -51,6 +51,7 @@ export interface DailyNews {
   category_order?: string[];
   source_articles?: Record<string, Article[]>;
   source_order?: string[];
+  filtered_articles?: Article[];
   total_count?: number;
   updated_at: Timestamp | string | null;
   // 레거시 호환 (기존 데이터 폴백)

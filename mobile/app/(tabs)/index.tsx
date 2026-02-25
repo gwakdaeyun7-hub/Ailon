@@ -823,25 +823,33 @@ const HScrollCard = React.memo(function HScrollCard({
 
 // ─── Section 2: 카테고리 탭 + 세로 리스트 ──────────────────────────────
 function CategoryTabSection({
-  categorizedArticles, categoryOrder, onArticlePress, allStats,
+  categorizedArticles, categoryOrder, onArticlePress, allStats, filteredArticles,
 }: {
-  categorizedArticles: Record<string, Article[]>; categoryOrder: string[]; onArticlePress: (article: Article) => void; allStats: Record<string, BatchStats>;
+  categorizedArticles: Record<string, Article[]>; categoryOrder: string[]; onArticlePress: (article: Article) => void; allStats: Record<string, BatchStats>; filteredArticles?: Article[];
 }) {
   const [activeTab, setActiveTab] = useState(categoryOrder[0] || 'research');
-  const [expanded, setExpanded] = useState(false);
+  // 0=초기 5개, 1=전체 카테고리 기사, 2=AI 필터 제외 기사 포함
+  const [expandLevel, setExpandLevel] = useState(0);
   const { lang, t } = useLanguage();
   const { colors } = useTheme();
 
   const articles = categorizedArticles[activeTab] || [];
+  const filtered = filteredArticles || [];
   const stats = allStats;
-  const visibleCount = expanded ? articles.length : Math.min(5, articles.length);
-  // 이슈 #16: useMemo로 감싸기
-  const visible = useMemo(() => articles.slice(0, visibleCount), [articles, visibleCount]);
-  const remaining = articles.length - visibleCount;
+
+  const visible = useMemo(() => {
+    if (expandLevel === 0) return articles.slice(0, Math.min(5, articles.length));
+    if (expandLevel === 1) return articles;
+    // expandLevel >= 2: 카테고리 기사 + AI 필터 제외 기사
+    return [...articles, ...filtered];
+  }, [articles, filtered, expandLevel]);
+
+  const remaining = expandLevel === 0 ? articles.length - Math.min(5, articles.length) : 0;
+  const hasFiltered = expandLevel === 1 && filtered.length > 0;
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
-    setExpanded(false);
+    setExpandLevel(0);
   };
 
   return (
@@ -946,10 +954,10 @@ function CategoryTabSection({
         ))}
       </View>
 
-      {/* 더보기 — 이슈 #23: 접근성 라벨 "+" 제거, 이슈 #2: 테두리 색상 토큰화 */}
+      {/* 더보기 1단계: 전체 카테고리 기사 */}
       {remaining > 0 && (
         <Pressable
-          onPress={() => setExpanded(true)}
+          onPress={() => setExpandLevel(1)}
           accessibilityLabel={`${remaining}${t('news.more')}`}
           accessibilityRole="button"
           style={{ alignItems: 'center', paddingVertical: 12, marginHorizontal: 16 }}
@@ -957,6 +965,21 @@ function CategoryTabSection({
           <View style={{ paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10, backgroundColor: colors.border, borderWidth: 1, borderColor: colors.border }}>
             <Text style={{ fontSize: 13, fontWeight: '700', color: colors.textSecondary }}>
               +{remaining}{t('news.more')}
+            </Text>
+          </View>
+        </Pressable>
+      )}
+
+      {/* 더보기 2단계: AI 필터 제외 기사 포함 */}
+      {hasFiltered && (
+        <Pressable
+          onPress={() => setExpandLevel(2)}
+          accessibilityRole="button"
+          style={{ alignItems: 'center', paddingVertical: 12, marginHorizontal: 16 }}
+        >
+          <View style={{ paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: colors.textLight }}>
+              {lang === 'en' ? `+${filtered.length} filtered` : `+${filtered.length}개 필터 제외 기사`}
             </Text>
           </View>
         </Pressable>
@@ -1333,6 +1356,7 @@ export default function NewsScreen() {
               categoryOrder={categoryOrder}
               onArticlePress={handleArticlePress}
               allStats={allStats}
+              filteredArticles={newsData?.filtered_articles}
             />
 
             {/* 구분선: 카테고리 → 소스별 */}
