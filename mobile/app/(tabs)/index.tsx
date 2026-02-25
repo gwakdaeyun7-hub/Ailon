@@ -584,20 +584,10 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
               <Share2 size={18} color={colors.textSecondary} />
             </Pressable>
 
-            {/* 북마크 버튼 — 액션 바 스타일과 통일 */}
-            <View style={{
-              alignItems: 'center', justifyContent: 'center',
-              minHeight: 44, minWidth: 44,
-              backgroundColor: bookmarked ? colors.primaryLight : colors.border,
-              borderRadius: 10,
-              borderWidth: bookmarked ? 1 : 0,
-              borderColor: colors.primaryBorder,
-            }}>
-              <BookmarkButton
-                isBookmarked={bookmarked}
-                onToggle={handleToggleBookmark}
-              />
-            </View>
+            <BookmarkButton
+              isBookmarked={bookmarked}
+              onToggle={handleToggleBookmark}
+            />
           </View>
 
           {/* 인라인 토스트 */}
