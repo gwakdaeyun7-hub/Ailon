@@ -1323,7 +1323,7 @@ def scorer_node(state: NewsGraphState) -> dict:
         # 미분류 기사에 기본 카테고리 부여
         for a in unscored:
             if not a.get("_llm_category") or a["_llm_category"] not in VALID_CATEGORIES:
-                a["_llm_category"] = "models_products"
+                a["_llm_category"] = "industry_business"
 
         # ── Step 2: 카테고리별 그룹화 ──
         cat_groups: dict[str, list[tuple[int, dict]]] = {cat: [] for cat in VALID_CATEGORIES}
