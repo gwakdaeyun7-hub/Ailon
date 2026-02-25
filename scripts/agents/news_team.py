@@ -132,6 +132,8 @@ def _parse_llm_json(text: str):
     text = re.sub(r'<think(?:ing)?>.*?</think(?:ing)?>', '', text, flags=re.DOTALL)
     text = re.sub(r'```(?:json)?\s*\n?', '', text)
     text = re.sub(r'\n?```\s*', '', text)
+    # Gemini bold/italic 마크다운 제거 (***text***, **text**, *text*)
+    text = re.sub(r'\*{1,3}', '', text)
     text = text.strip()
 
     if not text:
@@ -781,6 +783,8 @@ Signal: 출시, 공개, 릴리스, 오픈소스, 업데이트, 배포, API, SDK,
 - "연구 촉구/우려 제기" → 실제 논문이면 research, 아니면 industry_business
 - 성능 비교/벤치마크 → 학술 실험이면 research, 제품 홍보면 models_products
 - 회사명만으로 판단하지 말 것. 핵심 ACTION으로 판단.
+- CEO/COO/CTO 등 경영진 발언·분석·의견 → industry_business
+- 인덱스/지표/리포트 발표 → industry_business (논문이 아니면 research 아님)
 
 ## Examples
 
@@ -807,6 +811,8 @@ industry_business:
 "Anthropic, 중국 AI 기업들의 Claude 무단 활용 의혹 제기" → industry_business (의혹/전략)
 "Sam Altman, AI 안전 정책 방향성 발표" → industry_business (전략/정책)
 "AI 스타트업 투자 2026년 상반기 200억 돌파" → industry_business (시장 분석)
+"OpenAI COO, 'AI, 아직 기업에 침투 못 해'" → industry_business (경영진 발언/시장 분석)
+"Anthropic, 'AI Fluency Index' 발표" → industry_business (인덱스/리포트 = 시장 분석)
 
 Articles:
 {article_text}
@@ -1244,6 +1250,10 @@ def _apply_scores_to_candidate(candidate: dict, score_dict: dict, category: str)
         candidate["_total_score"] = utility * W_UTILITY + impact * W_IMPACT + access * W_ACCESS
     candidate["_llm_scored"] = True
 
+    if candidate.get("_total_score", 0) >= 90:
+        title = (candidate.get("display_title") or candidate.get("title", ""))[:40]
+        print(f"    [HIGH SCORE 진단] cat={category}, score={candidate['_total_score']}, raw={score_dict} | {title}")
+
 
 @_safe_node("categorizer")
 def categorizer_node(state: NewsGraphState) -> dict:
@@ -1402,22 +1412,34 @@ def scorer_node(state: NewsGraphState) -> dict:
 
                 print(f"    스코어 배치 {batch_done}/{len(all_score_tasks)} ({cat}): {applied}/{len(b_articles)}개")
 
-    # 폴백: 미평가 기사에 낮은 기본 점수 (LLM 평가 기사 우선)
-    # 카테고리 무관하게 models_products 기본 점수 사용 (총점 동일: 3*4+3*3+3*3 = 30)
+    # 폴백: 미평가 기사에 카테고리별 낮은 기본 점수 (LLM 평가 기사 우선)
     for c in candidates:
         if "_total_score" not in c:
+            cat = c.get("_llm_category", "industry_business")
             c["_score_rigor"] = 0
             c["_score_novelty"] = 0
             c["_score_potential"] = 0
-            c["_score_utility"] = 3
-            c["_score_impact"] = 3
-            c["_score_access"] = 3
+            c["_score_utility"] = 0
+            c["_score_impact"] = 0
+            c["_score_access"] = 0
             c["_score_market"] = 0
             c["_score_signal"] = 0
             c["_score_breadth"] = 0
-            if not c.get("_llm_category"):
-                c["_llm_category"] = ""
-            c["_total_score"] = 3 * W_UTILITY + 3 * W_IMPACT + 3 * W_ACCESS
+            if cat == "research":
+                c["_score_rigor"] = 3
+                c["_score_novelty"] = 3
+                c["_score_potential"] = 3
+                c["_total_score"] = 3 * W_RIGOR + 3 * W_NOVELTY + 3 * W_POTENTIAL
+            elif cat == "models_products":
+                c["_score_utility"] = 3
+                c["_score_impact"] = 3
+                c["_score_access"] = 3
+                c["_total_score"] = 3 * W_UTILITY + 3 * W_IMPACT + 3 * W_ACCESS
+            else:
+                c["_score_market"] = 3
+                c["_score_signal"] = 3
+                c["_score_breadth"] = 3
+                c["_total_score"] = 3 * W_MARKET + 3 * W_SIGNAL + 3 * W_BREADTH
 
     llm_count = len([c for c in candidates if c.get("_llm_scored")])
     print(f"  [스코어링] LLM 평가: {llm_count}/{len(candidates)}개")
