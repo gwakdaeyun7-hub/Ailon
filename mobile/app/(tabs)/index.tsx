@@ -802,20 +802,20 @@ function CategoryTabSection({
   categorizedArticles: Record<string, Article[]>; categoryOrder: string[]; onArticlePress: (article: Article) => void; allStats: Record<string, BatchStats>;
 }) {
   const [activeTab, setActiveTab] = useState(categoryOrder[0] || 'research');
-  const [expandLevel, setExpandLevel] = useState(0); // 0=5개, 1=10개, 2=15개
+  const [expanded, setExpanded] = useState(false);
   const { lang, t } = useLanguage();
   const { colors } = useTheme();
 
   const articles = categorizedArticles[activeTab] || [];
   const stats = allStats;
-  const visibleCount = Math.min(5 + expandLevel * 5, articles.length);
+  const visibleCount = expanded ? articles.length : Math.min(5, articles.length);
   // 이슈 #16: useMemo로 감싸기
   const visible = useMemo(() => articles.slice(0, visibleCount), [articles, visibleCount]);
   const remaining = articles.length - visibleCount;
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
-    setExpandLevel(0);
+    setExpanded(false);
   };
 
   return (
@@ -923,14 +923,14 @@ function CategoryTabSection({
       {/* 더보기 — 이슈 #23: 접근성 라벨 "+" 제거, 이슈 #2: 테두리 색상 토큰화 */}
       {remaining > 0 && (
         <Pressable
-          onPress={() => setExpandLevel(prev => prev + 1)}
-          accessibilityLabel={`${Math.min(remaining, 5)}${t('news.more')}`}
+          onPress={() => setExpanded(true)}
+          accessibilityLabel={`${remaining}${t('news.more')}`}
           accessibilityRole="button"
           style={{ alignItems: 'center', paddingVertical: 12, marginHorizontal: 16 }}
         >
           <View style={{ paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10, backgroundColor: colors.border, borderWidth: 1, borderColor: colors.border }}>
             <Text style={{ fontSize: 13, fontWeight: '700', color: colors.textSecondary }}>
-              +{Math.min(remaining, 5)}{t('news.more')}
+              +{remaining}{t('news.more')}
             </Text>
           </View>
         </Pressable>

@@ -1397,11 +1397,9 @@ def _select_category_top_n(articles: list[dict], n: int = CATEGORY_TOP_N, today_
             selected.append(a)
             used.add(id(a))
 
-    # 2) 나머지 점수순으로 n개까지 채움
+    # 2) 나머지 점수순으로 전부 채움 (제한 없음)
     all_by_score = sorted(articles, key=lambda a: a.get("_total_score", 0), reverse=True)
     for a in all_by_score:
-        if len(selected) >= n:
-            break
         if id(a) not in used:
             selected.append(a)
             used.add(id(a))
