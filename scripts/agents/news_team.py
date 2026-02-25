@@ -1,7 +1,7 @@
 """
-뉴스 수집 파이프라인 -- LangGraph 8-노드 (EN/KO 진정한 병렬 분기)
+뉴스 수집 파이프라인 -- LangGraph 7-노드 (EN/KO 진정한 병렬 분기)
 
-collector --> [en_process, ko_process] (병렬 Send) --> categorizer --> scorer --> ranker --> classifier --> assembler
+collector --> [en_process, ko_process] (병렬 Send) --> categorizer --> scorer --> selector --> assembler
                                                                        ^  |
                                                                        +--+ (커버리지 < 90% 시 재시도)
 
@@ -10,15 +10,15 @@ collector --> [en_process, ko_process] (병렬 Send) --> categorizer --> scorer 
 3. ko_process:    한국어 기사 요약 (thinking 비활성화, 배치 2)     -- 병렬
 4. categorizer:   LLM 카테고리 분류 (research / models_products / industry_business)
 5. scorer:        카테고리별 LLM 평가 (research: rig*4+nov*3+pot*3, models_products: uti*4+imp*3+acc*3, industry_business: mag*4+sig*3+brd*3, 만점 100)
-6. ranker:        당일 우선 Top 3 하이라이트 (미번역 차단)
-7. classifier:    3개 카테고리 * Top 10 + 품질 검증 (quality_gate 통합)
-8. assembler:     한국 소스별 분리 + 최종 결과 + 타이밍 리포트
+6. selector:      하이라이트 Top 3 + 카테고리별 Top 25 + 품질 검증 (기존 ranker+classifier 통합)
+7. assembler:     한국 소스별 분리 + 최종 결과 + 타이밍 리포트
 
 개선 사항:
 - EN/KO Send API 병렬 실행 (순차 -> 병렬, ~2x 속도 개선)
 - 노드별 에러 핸들링 (한 노드 실패 시 파이프라인 전체 중단 방지)
-- 불필요한 state 필드 제거 (en_done, ko_done, quality_retry)
-- quality_gate 를 classifier 에 통합 (실효 없는 노드 제거)
+- 불필요한 state 필드 제거 (en_done, ko_done, quality_retry, category_pool)
+- quality_gate 를 selector 에 통합 (실효 없는 노드 제거)
+- ranker + classifier 를 selector 로 통합 (둘 다 정렬/필터링만 수행, LLM 호출 없음)
 - 노드별 소요 시간 측정
 - sources Annotated 리듀서로 EN/KO 결과 안전 머지
 
@@ -67,7 +67,6 @@ class NewsGraphState(TypedDict):
     sources: Annotated[dict[str, list[dict]], _merge_dicts]
     scored_candidates: list[dict]
     scorer_retry_count: int
-    category_pool: list[dict]
     highlights: list[dict]
     categorized_articles: dict[str, list[dict]]
     category_order: list[str]
@@ -1440,125 +1439,9 @@ def scorer_node(state: NewsGraphState) -> dict:
     return {"scored_candidates": candidates, "scorer_retry_count": retry_count + 1}
 
 
-# ─── Node 6: ranker (하이라이트 선정, 당일 기사 전용) ───
+# ─── Node 6: selector (하이라이트 Top 3 + 카테고리별 Top 25 + 품질 검증) ───
 HIGHLIGHT_COUNT = 3
-
-
-@_safe_node("ranker")
-def ranker_node(state: NewsGraphState) -> dict:
-    """당일 기사 중 점수 상위 Top 3 하이라이트 (소스 제한 없음)"""
-    candidates = state.get("scored_candidates", [])
-    if not candidates:
-        return {"highlights": [], "category_pool": []}
-
-    # 하이라이트: research + models_products 카테고리의 당일(어제+오늘) 기사만
-    HIGHLIGHT_CATEGORIES = {"research", "models_products"}
-    today_all = [
-        c for c in candidates
-        if c.get("_is_today") and c.get("_llm_category", "") in HIGHLIGHT_CATEGORIES
-    ]
-    today_total = sum(1 for c in candidates if c.get("_is_today"))
-    print(f"  [랭킹] 당일 기사 {today_total}개 중 하이라이트 후보 {len(today_all)}개 (research + models_products)")
-
-    _epoch = datetime(2000, 1, 1, tzinfo=_KST)
-    def _day_key(c: dict):
-        dt = _parse_published(c.get("published", "")) or _epoch
-        return _to_kst_date(dt)
-    def _time_key(c: dict):
-        return _parse_published(c.get("published", "")) or _epoch
-
-    # 점수순으로 Top 3 선정
-    by_score = sorted(
-        today_all,
-        key=lambda c: (c.get("_total_score", 0), _time_key(c)),
-        reverse=True,
-    )
-
-    selected: list[dict] = []
-    for c in by_score:
-        if len(selected) >= HIGHLIGHT_COUNT:
-            break
-        # 미번역 기사 차단
-        if c.get("display_title") == c.get("title") and c.get("lang") != "ko":
-            continue
-        selected.append(c)
-
-    # 날짜(일) 최신순 → 같은 날짜+점수 같으면 시간 최신순
-    selected = sorted(
-        selected,
-        key=lambda c: (_day_key(c), c.get("_total_score", 0), _time_key(c)),
-        reverse=True,
-    )
-
-    for rank, c in enumerate(selected):
-        title = (c.get("display_title") or c.get("title", ""))[:40]
-        src = c.get("source_key", "")
-        print(f"    {rank+1}. [{c.get('_total_score', 0)}점] [{src}] {title}")
-
-    # 하이라이트 제외 → 카테고리 분류 대상
-    selected_set = set(id(c) for c in selected)
-    remaining = [c for c in candidates if id(c) not in selected_set]
-
-    return {"highlights": selected, "category_pool": remaining}
-
-
-# ─── Node 7: classifier (카테고리 Top 25 선정 + 품질 검증) ───
 CATEGORY_TOP_N = 25
-
-
-def _classify_article(a: dict) -> str | None:
-    """scorer LLM이 부여한 카테고리만 사용. 없으면 None -> LLM 배치 분류로."""
-    llm_cat = a.get("_llm_category", "")
-    if llm_cat in VALID_CATEGORIES:
-        return llm_cat
-    return None
-
-
-def _llm_classify_batch(articles: list[dict], categorized: dict[str, list[dict]]):
-    """classifier_node에서 사용하는 LLM 배치 분류. _CLASSIFY_PROMPT 상수 사용."""
-    article_text = ""
-    for i, a in enumerate(articles):
-        title = a.get("display_title") or a.get("title", "")
-        body = a.get("body", "")
-        context = body[:500] if body else (a.get("description", "") or "")[:200]
-        article_text += f"\n[{i}] {title} | {context}"
-
-    prompt = _CLASSIFY_PROMPT.format(article_text=article_text, count=len(articles))
-
-    try:
-        llm = get_llm(temperature=0.0, max_tokens=2048, thinking=False, json_mode=True)
-        content = _llm_invoke_with_retry(llm, prompt, max_retries=1)
-        results = _parse_llm_json(content)
-        if not isinstance(results, list):
-            results = next((v for v in results.values() if isinstance(v, list)), [])
-        classified = set()
-        for r in results:
-            if not isinstance(r, dict):
-                continue
-            try:
-                idx = int(r.get("i", r.get("index", -1)))
-            except (ValueError, TypeError):
-                continue
-            cat = r.get("cat", "")
-            if 0 <= idx < len(articles) and cat in categorized:
-                categorized[cat].append(articles[idx])
-                classified.add(idx)
-        # 미분류 기사: scorer에서 이미 _llm_category가 설정되었으면 사용
-        for i, a in enumerate(articles):
-            if i not in classified:
-                llm_cat = a.get("_llm_category", "")
-                if llm_cat in VALID_CATEGORIES:
-                    categorized[llm_cat].append(a)
-                else:
-                    categorized["industry_business"].append(a)
-    except Exception:
-        # 실패 시 scorer에서 부여한 _llm_category 활용, 없으면 industry_business
-        for a in articles:
-            llm_cat = a.get("_llm_category", "")
-            if llm_cat in VALID_CATEGORIES:
-                categorized[llm_cat].append(a)
-            else:
-                categorized["industry_business"].append(a)
 
 
 def _select_category_top_n(articles: list[dict], n: int = CATEGORY_TOP_N, today_min: int = 3) -> list[dict]:
@@ -1605,33 +1488,75 @@ def _select_category_top_n(articles: list[dict], n: int = CATEGORY_TOP_N, today_
     return selected
 
 
-@_safe_node("classifier")
-def classifier_node(state: NewsGraphState) -> dict:
-    """3개 카테고리 분류 + 당일 3개 보장 + 점수순 Top 10 + 날짜순 정렬 + 품질 검증"""
-    category_pool = state.get("category_pool", [])
-
+@_safe_node("selector")
+def selector_node(state: NewsGraphState) -> dict:
+    """하이라이트 Top 3 선정 + 카테고리별 Top 25 + 품질 검증 (기존 ranker+classifier 통합)"""
+    candidates = state.get("scored_candidates", [])
     category_order = ["research", "models_products", "industry_business"]
+
+    if not candidates:
+        return {
+            "highlights": [],
+            "categorized_articles": {k: [] for k in category_order},
+            "category_order": category_order,
+        }
+
+    # ── Step 1: 하이라이트 Top 3 선정 (당일 research + models_products) ──
+    HIGHLIGHT_CATEGORIES = {"research", "models_products"}
+    today_all = [
+        c for c in candidates
+        if c.get("_is_today") and c.get("_llm_category", "") in HIGHLIGHT_CATEGORIES
+    ]
+    today_total = sum(1 for c in candidates if c.get("_is_today"))
+    print(f"  [선정] 당일 기사 {today_total}개 중 하이라이트 후보 {len(today_all)}개 (research + models_products)")
+
+    _epoch = datetime(2000, 1, 1, tzinfo=_KST)
+    def _day_key(c: dict):
+        dt = _parse_published(c.get("published", "")) or _epoch
+        return _to_kst_date(dt)
+    def _time_key(c: dict):
+        return _parse_published(c.get("published", "")) or _epoch
+
+    by_score = sorted(
+        today_all,
+        key=lambda c: (c.get("_total_score", 0), _time_key(c)),
+        reverse=True,
+    )
+
+    highlights: list[dict] = []
+    for c in by_score:
+        if len(highlights) >= HIGHLIGHT_COUNT:
+            break
+        # 미번역 기사 차단
+        if c.get("display_title") == c.get("title") and c.get("lang") != "ko":
+            continue
+        highlights.append(c)
+
+    highlights = sorted(
+        highlights,
+        key=lambda c: (_day_key(c), c.get("_total_score", 0), _time_key(c)),
+        reverse=True,
+    )
+
+    for rank, c in enumerate(highlights):
+        title = (c.get("display_title") or c.get("title", ""))[:40]
+        src = c.get("source_key", "")
+        print(f"    {rank+1}. [{c.get('_total_score', 0)}점] [{src}] {title}")
+
+    # ── Step 2: 하이라이트 제외 → 카테고리별 분류 ──
+    highlight_ids = set(id(c) for c in highlights)
+    remaining = [c for c in candidates if id(c) not in highlight_ids]
+
     categorized: dict[str, list[dict]] = {k: [] for k in category_order}
-
-    if not category_pool:
-        return {"categorized_articles": categorized, "category_order": category_order}
-
-    ambiguous: list[dict] = []
-    classified_count = 0
-    for a in category_pool:
-        cat = _classify_article(a)
-        if cat:
+    for a in remaining:
+        cat = a.get("_llm_category", "")
+        if cat in categorized:
             categorized[cat].append(a)
-            classified_count += 1
         else:
-            ambiguous.append(a)
+            # categorizer에서 전부 분류되지만, 안전 폴백
+            categorized["industry_business"].append(a)
 
-    print(f"  [분류] {classified_count}개 즉시 분류, {len(ambiguous)}개 모호")
-
-    if ambiguous:
-        _llm_classify_batch(ambiguous, categorized)
-
-    # 카테고리별 당일 3개 보장 + 점수순 Top 10 + 날짜순 정렬
+    # ── Step 3: 카테고리별 Top 25 + 당일 3개 보장 ──
     for cat in category_order:
         total = len(categorized[cat])
         today_count = len([a for a in categorized[cat] if a.get("_is_today")])
@@ -1652,8 +1577,7 @@ def classifier_node(state: NewsGraphState) -> dict:
         if len(articles) > 5:
             print(f"    ... 외 {len(articles) - 5}개")
 
-    # 품질 검증 (기존 quality_gate 통합)
-    highlights = state.get("highlights", [])
+    # ── Step 4: 품질 검증 ──
     h_count = len(highlights)
     cat_counts = {cat: len(articles) for cat, articles in categorized.items()}
     min_cat = min(cat_counts.values()) if cat_counts else 0
@@ -1668,7 +1592,11 @@ def classifier_node(state: NewsGraphState) -> dict:
     if issues:
         print(f"  [품질 경고] {', '.join(issues)}")
 
-    return {"categorized_articles": categorized, "category_order": category_order}
+    return {
+        "highlights": highlights,
+        "categorized_articles": categorized,
+        "category_order": category_order,
+    }
 
 
 # ─── Node 8: assembler ───
@@ -1742,13 +1670,13 @@ def _route_after_scorer(state: NewsGraphState) -> str:
     candidates = state.get("scored_candidates", [])
     retry_count = state.get("scorer_retry_count", 0)
     if not candidates:
-        return "ranker"
+        return "selector"
     llm_scored = len([c for c in candidates if c.get("_llm_scored")])
     coverage = llm_scored / len(candidates)
     if coverage < 0.9 and retry_count < 2:
         print(f"  [라우팅] 스코어 커버리지 {coverage:.0%} < 90% -> 재시도")
         return "scorer"
-    return "ranker"
+    return "selector"
 
 
 # ─── 그래프 구성 (EN/KO 진정한 병렬 분기) ───
@@ -1760,8 +1688,7 @@ def _build_graph():
     graph.add_node("ko_process", ko_process_node)
     graph.add_node("categorizer", categorizer_node)
     graph.add_node("scorer", scorer_node)
-    graph.add_node("ranker", ranker_node)
-    graph.add_node("classifier", classifier_node)
+    graph.add_node("selector", selector_node)
     graph.add_node("assembler", assembler_node)
 
     graph.set_entry_point("collector")
@@ -1779,11 +1706,10 @@ def _build_graph():
     # scorer -> 커버리지 부족 시 재시도 루프
     graph.add_conditional_edges("scorer", _route_after_scorer, {
         "scorer": "scorer",
-        "ranker": "ranker",
+        "selector": "selector",
     })
 
-    graph.add_edge("ranker", "classifier")
-    graph.add_edge("classifier", "assembler")
+    graph.add_edge("selector", "assembler")
     graph.add_edge("assembler", END)
 
     return graph.compile()
@@ -1792,7 +1718,7 @@ def _build_graph():
 # ─── 메인 파이프라인 ───
 def run_news_pipeline() -> dict:
     print("=" * 60)
-    print("[START] 뉴스 수집 파이프라인 (LangGraph 8-노드, EN/KO 병렬)")
+    print("[START] 뉴스 수집 파이프라인 (LangGraph 7-노드, EN/KO 병렬)")
     print("=" * 60)
 
     app = _build_graph()
@@ -1800,7 +1726,6 @@ def run_news_pipeline() -> dict:
         "sources": {},
         "scored_candidates": [],
         "scorer_retry_count": 0,
-        "category_pool": [],
         "highlights": [],
         "categorized_articles": {},
         "category_order": [],
