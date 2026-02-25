@@ -706,7 +706,7 @@ W_ACCESS = 3        # 접근성 (models_products)
 W_MARKET = 4        # 시장 규모 (industry_business)
 W_SIGNAL = 3        # 전략적 시그널 (industry_business)
 W_BREADTH = 3       # 이해관계자 범위 (industry_business)
-SCORER_BATCH_SIZE = 5
+SCORER_BATCH_SIZE = 1
 VALID_CATEGORIES = {"research", "models_products", "industry_business"}
 
 # --- 분류 전용 프롬프트 (classification only) ---
@@ -800,8 +800,8 @@ ONLY pure scientific findings with no released product. This is the NARROWEST ca
 Articles:
 {article_text}
 
-Output exactly {count} items:
-[{{"i":0,"cat":"research"}},{{"i":1,"cat":"models_products"}},{{"i":2,"cat":"industry_business"}}]"""
+Output exactly {count} JSON object(s):
+[{{"i":0,"cat":"<category>"}}]"""
 
 # --- 스코어링 전용 프롬프트 (scoring only, category pre-assigned) ---
 _SCORE_PROMPT = """Output ONLY a single-line compact JSON array. No markdown, no explanation. Start with '['.
@@ -816,7 +816,7 @@ Score each article on its ASSIGNED category dimensions (1-10 integers). Use ONLY
 Articles:
 {article_text}
 
-Output exactly {count} items as a single-line compact JSON array:
+Output exactly {count} JSON object(s) as a single-line compact JSON array:
 {output_example}"""
 
 # --- 카테고리별 스코어링 루브릭 ---
@@ -1003,7 +1003,7 @@ def _scorer_throttle():
         _scorer_call_ts.append(time.time())
 
 
-CLASSIFY_BATCH_SIZE = 3
+CLASSIFY_BATCH_SIZE = 1
 
 
 def _classify_batch(batch: list[dict], offset: int) -> list[dict]:
@@ -1345,7 +1345,7 @@ def scorer_node(state: NewsGraphState) -> dict:
             print(f"    [그룹] {cat}: {len(group)}개")
 
         # 카테고리별 스코어링 (병렬 배치)
-        batch_size = SCORER_BATCH_SIZE if retry_count == 0 else max(2, SCORER_BATCH_SIZE // 2)
+        batch_size = SCORER_BATCH_SIZE if retry_count == 0 else max(1, SCORER_BATCH_SIZE // 2)
 
         # 모든 카테고리의 배치를 평탄화하여 병렬 제출
         all_score_tasks: list[tuple[list[dict], list[int], int, str]] = []  # (batch_articles, batch_local_indices, offset, category)
