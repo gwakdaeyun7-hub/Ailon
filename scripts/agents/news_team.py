@@ -764,7 +764,7 @@ Classify each article into exactly ONE category — the best fit.
 "MIT, 트랜스포머 대체 아키텍처 논문 발표" → research
 "Alibaba Qwen 팀, Qwen 3.5 모델 시리즈 공개" → models_products
 "Meta, AMD와 수십억 달러 칩 계약 체결" → industry_business
-"논문 + 코드/모델 동시 공개" → models_products
+"논문 + 코드/모델 동시 공개" → research
 
 Articles:
 {article_text}
