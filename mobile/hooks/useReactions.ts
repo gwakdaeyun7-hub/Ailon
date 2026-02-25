@@ -70,59 +70,84 @@ export function useReactions(itemType: ItemType, itemId: string, contentAuthorUi
   const toggleLike = useCallback(async (): Promise<LikeResult> => {
     if (!user) return 'no_user';
 
-    const ref = doc(db, 'reactions', docId);
-    await runTransaction(db, async (tx) => {
-      const snap = await tx.get(ref);
-      const cur: ReactionData = snap.exists()
-        ? { likes: 0, likedBy: [], dislikes: 0, dislikedBy: [], ...(snap.data() as Partial<ReactionData>) }
-        : { likes: 0, likedBy: [], dislikes: 0, dislikedBy: [] };
-
-      const alreadyLiked = cur.likedBy.includes(user.uid);
-      const newLikedBy = alreadyLiked
-        ? cur.likedBy.filter((id) => id !== user.uid)
-        : [...cur.likedBy, user.uid];
-      // 좋아요 누르면 싫어요 자동 해제
-      const newDislikedBy = cur.dislikedBy.filter((id) => id !== user.uid);
-
-      const update: ReactionUpdate = {
-        likes: newLikedBy.length,
-        likedBy: newLikedBy,
-        dislikes: newDislikedBy.length,
-        dislikedBy: newDislikedBy,
-      };
-      // 좋아요 알림용 콘텐츠 작성자 UID (최초 1회만 기록)
-      if (contentAuthorUid && !snap.exists()) update.contentAuthorUid = contentAuthorUid;
-
-      tx.set(ref, update, { merge: true });
+    // 낙관적 업데이트: 즉시 UI 반영
+    const prev = { ...data };
+    const alreadyLiked = data.likedBy.includes(user.uid);
+    setData({
+      likes: alreadyLiked ? data.likes - 1 : data.likes + 1,
+      likedBy: alreadyLiked ? data.likedBy.filter((id) => id !== user.uid) : [...data.likedBy, user.uid],
+      dislikes: data.dislikedBy.includes(user.uid) ? data.dislikes - 1 : data.dislikes,
+      dislikedBy: data.dislikedBy.filter((id) => id !== user.uid),
     });
+
+    try {
+      const ref = doc(db, 'reactions', docId);
+      await runTransaction(db, async (tx) => {
+        const snap = await tx.get(ref);
+        const cur: ReactionData = snap.exists()
+          ? { likes: 0, likedBy: [], dislikes: 0, dislikedBy: [], ...(snap.data() as Partial<ReactionData>) }
+          : { likes: 0, likedBy: [], dislikes: 0, dislikedBy: [] };
+
+        const serverLiked = cur.likedBy.includes(user.uid);
+        const newLikedBy = serverLiked
+          ? cur.likedBy.filter((id) => id !== user.uid)
+          : [...cur.likedBy, user.uid];
+        const newDislikedBy = cur.dislikedBy.filter((id) => id !== user.uid);
+
+        const update: ReactionUpdate = {
+          likes: newLikedBy.length,
+          likedBy: newLikedBy,
+          dislikes: newDislikedBy.length,
+          dislikedBy: newDislikedBy,
+        };
+        if (contentAuthorUid && !snap.exists()) update.contentAuthorUid = contentAuthorUid;
+
+        tx.set(ref, update, { merge: true });
+      });
+    } catch {
+      // 실패 시 롤백
+      setData(prev);
+    }
     return 'done';
-  }, [user, docId, contentAuthorUid]);
+  }, [user, docId, contentAuthorUid, data]);
 
   const toggleDislike = useCallback(async () => {
     if (!user) return;
 
-    const ref = doc(db, 'reactions', docId);
-    await runTransaction(db, async (tx) => {
-      const snap = await tx.get(ref);
-      const cur: ReactionData = snap.exists()
-        ? { likes: 0, likedBy: [], dislikes: 0, dislikedBy: [], ...(snap.data() as Partial<ReactionData>) }
-        : { likes: 0, likedBy: [], dislikes: 0, dislikedBy: [] };
-
-      const alreadyDisliked = cur.dislikedBy.includes(user.uid);
-      const newDislikedBy = alreadyDisliked
-        ? cur.dislikedBy.filter((id) => id !== user.uid)
-        : [...cur.dislikedBy, user.uid];
-      // 싫어요 누르면 좋아요 자동 해제
-      const newLikedBy = cur.likedBy.filter((id) => id !== user.uid);
-
-      tx.set(ref, {
-        likes: newLikedBy.length,
-        likedBy: newLikedBy,
-        dislikes: newDislikedBy.length,
-        dislikedBy: newDislikedBy,
-      }, { merge: true });
+    const prev = { ...data };
+    const alreadyDisliked = data.dislikedBy.includes(user.uid);
+    setData({
+      likes: data.likedBy.includes(user.uid) ? data.likes - 1 : data.likes,
+      likedBy: data.likedBy.filter((id) => id !== user.uid),
+      dislikes: alreadyDisliked ? data.dislikes - 1 : data.dislikes + 1,
+      dislikedBy: alreadyDisliked ? data.dislikedBy.filter((id) => id !== user.uid) : [...data.dislikedBy, user.uid],
     });
-  }, [user, docId]);
+
+    try {
+      const ref = doc(db, 'reactions', docId);
+      await runTransaction(db, async (tx) => {
+        const snap = await tx.get(ref);
+        const cur: ReactionData = snap.exists()
+          ? { likes: 0, likedBy: [], dislikes: 0, dislikedBy: [], ...(snap.data() as Partial<ReactionData>) }
+          : { likes: 0, likedBy: [], dislikes: 0, dislikedBy: [] };
+
+        const serverDisliked = cur.dislikedBy.includes(user.uid);
+        const newDislikedBy = serverDisliked
+          ? cur.dislikedBy.filter((id) => id !== user.uid)
+          : [...cur.dislikedBy, user.uid];
+        const newLikedBy = cur.likedBy.filter((id) => id !== user.uid);
+
+        tx.set(ref, {
+          likes: newLikedBy.length,
+          likedBy: newLikedBy,
+          dislikes: newDislikedBy.length,
+          dislikedBy: newDislikedBy,
+        }, { merge: true });
+      });
+    } catch {
+      setData(prev);
+    }
+  }, [user, docId, data]);
 
   const liked = user ? data.likedBy.includes(user.uid) : false;
   const disliked = user ? data.dislikedBy.includes(user.uid) : false;
