@@ -368,14 +368,14 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
     } catch {}
   };
 
-  const bookmarked = isBookmarked('news', article.link);
-  const handleToggleBookmark = () => {
+  const bookmarked = useMemo(() => isBookmarked('news', article.link), [isBookmarked, article.link]);
+  const handleToggleBookmark = useCallback(() => {
     toggleBookmark('news', article.link, {
       title: getLocalizedTitle(article, lang),
       link: article.link,
-      category: article.category,
+      ...(article.category ? { category: article.category } : {}),
     });
-  };
+  }, [toggleBookmark, article, lang]);
 
   return (
     <Modal
@@ -583,11 +583,20 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
               <Share2 size={18} color={colors.textSecondary} />
             </Pressable>
 
-            {/* 북마크 버튼 통합 */}
-            <BookmarkButton
-              isBookmarked={bookmarked}
-              onToggle={handleToggleBookmark}
-            />
+            {/* 북마크 버튼 — 액션 바 스타일과 통일 */}
+            <View style={{
+              alignItems: 'center', justifyContent: 'center',
+              minHeight: 44, minWidth: 44,
+              backgroundColor: bookmarked ? colors.primaryLight : colors.border,
+              borderRadius: 10,
+              borderWidth: bookmarked ? 1 : 0,
+              borderColor: colors.primaryBorder,
+            }}>
+              <BookmarkButton
+                isBookmarked={bookmarked}
+                onToggle={handleToggleBookmark}
+              />
+            </View>
           </View>
 
           {/* 인라인 토스트 */}

@@ -45,9 +45,9 @@ function SavedItemCard({
       style={{ backgroundColor: colors.card, borderRadius: 16, marginHorizontal: 16, marginBottom: 12, padding: 16, ...cardShadow }}
     >
       {/* Type badge + 삭제 */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <View style={{ backgroundColor: config.bgColor, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <View style={{ backgroundColor: config.bgColor, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
             <Icon size={11} color={config.color} />
             <Text style={{ color: config.color, fontSize: 11, fontWeight: '700' }}>{config.label}</Text>
           </View>
@@ -57,10 +57,16 @@ function SavedItemCard({
         </View>
         <Pressable
           onPress={() => onDelete(bookmark)}
-          style={{ padding: 14 }}
           accessibilityLabel={t('saved.delete')}
+          accessibilityRole="button"
+          style={({ pressed }) => ({
+            minHeight: 44, minWidth: 44,
+            alignItems: 'center' as const, justifyContent: 'center' as const,
+            marginRight: -10, marginTop: -8,
+            opacity: pressed ? 0.6 : 1,
+          })}
         >
-          <Trash2 size={15} color={colors.textDim} />
+          <Trash2 size={16} color={colors.textLight} />
         </Pressable>
       </View>
 
@@ -74,13 +80,13 @@ function SavedItemCard({
 
       {/* 부제목 */}
       {meta?.subtitle && (
-        <Text style={{ color: colors.textDim, fontSize: 12, lineHeight: 16 }} numberOfLines={1}>
+        <Text style={{ color: colors.textDim, fontSize: 13, lineHeight: 18, marginTop: 2 }} numberOfLines={2}>
           {meta.subtitle}
         </Text>
       )}
 
       {/* Footer: 저장일 + 원문 링크 (뉴스만) */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.border }}>
         <Text style={{ color: colors.textLight, fontSize: 12 }}>
           {typeof bookmark.createdAt === 'string'
             ? new Date(bookmark.createdAt).toLocaleDateString(lang === 'en' ? 'en-US' : 'ko-KR')
@@ -89,7 +95,13 @@ function SavedItemCard({
         {bookmark.type === 'news' && meta?.link && (
           <Pressable
             onPress={() => Linking.openURL(meta.link!)}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 44, paddingVertical: 8 }}
+            accessibilityLabel={t('saved.view_original')}
+            accessibilityRole="link"
+            style={({ pressed }) => ({
+              flexDirection: 'row' as const, alignItems: 'center' as const,
+              gap: 4, minHeight: 44, paddingVertical: 8, paddingLeft: 8,
+              opacity: pressed ? 0.7 : 1,
+            })}
           >
             <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '600' }}>{t('saved.view_original')}</Text>
             <ExternalLink size={12} color={colors.primary} />
@@ -156,20 +168,20 @@ export default function SavedScreen() {
 
   const ListEmptyComponent = !user ? (
     <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 80, paddingHorizontal: 32 }}>
-      <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: colors.primaryLight, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-        <Bookmark size={28} color={colors.primary} />
+      <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: colors.primaryLight, alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
+        <Bookmark size={30} color={colors.primary} />
       </View>
-      <Text style={{ color: colors.textPrimary, fontWeight: '600', fontSize: 16, marginBottom: 4 }}>{t('auth.login_required')}</Text>
+      <Text style={{ color: colors.textPrimary, fontWeight: '700', fontSize: 17, lineHeight: 24, marginBottom: 6 }}>{t('auth.login_required')}</Text>
       <Text style={{ color: colors.textDim, fontSize: 14, textAlign: 'center', lineHeight: 20 }}>
         {t('saved.bookmark_login')}
       </Text>
     </View>
   ) : (
     <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 80, paddingHorizontal: 32 }}>
-      <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: colors.primaryLight, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-        <Bookmark size={28} color={colors.primary} />
+      <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: colors.primaryLight, alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
+        <Bookmark size={30} color={colors.primary} />
       </View>
-      <Text style={{ color: colors.textPrimary, fontWeight: '600', fontSize: 16, marginBottom: 4 }}>{t('saved.no_items_yet')}</Text>
+      <Text style={{ color: colors.textPrimary, fontWeight: '700', fontSize: 17, lineHeight: 24, marginBottom: 6 }}>{t('saved.no_items_yet')}</Text>
       <Text style={{ color: colors.textDim, fontSize: 14, textAlign: 'center', lineHeight: 20 }}>
         {t('saved.bookmark_hint')}
       </Text>
@@ -196,23 +208,23 @@ export default function SavedScreen() {
 
       {/* 타입별 통계 카드 */}
       {sorted.length > 0 && (
-        <View style={{ flexDirection: 'row', marginHorizontal: 16, marginBottom: 12, gap: 8 }}>
+        <View style={{ flexDirection: 'row', marginHorizontal: 16, marginBottom: 16, gap: 8 }}>
           {newsCount > 0 && (
-            <View style={{ flex: 1, backgroundColor: colors.primaryLight, borderRadius: 14, paddingVertical: 10, alignItems: 'center' }}>
+            <View style={{ flex: 1, backgroundColor: colors.primaryLight, borderRadius: 14, paddingVertical: 12, alignItems: 'center', justifyContent: 'center', minHeight: 56 }}>
               <Text style={{ color: colors.primary, fontSize: 20, fontWeight: '800' }}>{newsCount}</Text>
-              <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '600' }}>{t('saved.type_news')}</Text>
+              <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '600', marginTop: 2 }}>{t('saved.type_news')}</Text>
             </View>
           )}
           {snapCount > 0 && (
-            <View style={{ flex: 1, backgroundColor: colors.coreTechBg, borderRadius: 14, paddingVertical: 10, alignItems: 'center' }}>
+            <View style={{ flex: 1, backgroundColor: colors.coreTechBg, borderRadius: 14, paddingVertical: 12, alignItems: 'center', justifyContent: 'center', minHeight: 56 }}>
               <Text style={{ color: colors.coreTech, fontSize: 20, fontWeight: '800' }}>{snapCount}</Text>
-              <Text style={{ color: colors.coreTech, fontSize: 11, fontWeight: '600' }}>{t('saved.type_principle')}</Text>
+              <Text style={{ color: colors.coreTech, fontSize: 11, fontWeight: '600', marginTop: 2 }}>{t('saved.type_principle')}</Text>
             </View>
           )}
           {ideaCount > 0 && (
-            <View style={{ flex: 1, backgroundColor: colors.warningLight, borderRadius: 14, paddingVertical: 10, alignItems: 'center' }}>
+            <View style={{ flex: 1, backgroundColor: colors.warningLight, borderRadius: 14, paddingVertical: 12, alignItems: 'center', justifyContent: 'center', minHeight: 56 }}>
               <Text style={{ color: colors.accent, fontSize: 20, fontWeight: '800' }}>{ideaCount}</Text>
-              <Text style={{ color: colors.accent, fontSize: 11, fontWeight: '600' }}>{t('saved.type_idea')}</Text>
+              <Text style={{ color: colors.accent, fontSize: 11, fontWeight: '600', marginTop: 2 }}>{t('saved.type_idea')}</Text>
             </View>
           )}
         </View>
@@ -223,6 +235,8 @@ export default function SavedScreen() {
         renderItem={renderItem}
         keyExtractor={keyExtractor}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={sorted.length === 0 ? { flexGrow: 1 } : undefined}
+        ListHeaderComponent={sorted.length > 0 ? <View style={{ height: 4 }} /> : null}
         ListEmptyComponent={ListEmptyComponent}
         ListFooterComponent={<View style={{ height: 24 }} />}
       />
