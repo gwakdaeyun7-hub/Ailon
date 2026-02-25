@@ -4,7 +4,7 @@ import { Cpu, BookOpen, FlaskConical, Bookmark, User } from 'lucide-react-native
 import { useLanguage } from '@/context/LanguageContext';
 import { Colors } from '@/lib/colors';
 
-function TabIcon({ Icon, color, focused }: { Icon: any; color: string; focused: boolean }) {
+function TabIcon({ Icon, color, focused }: { Icon: React.ComponentType<{ size: number; color: string; strokeWidth?: number }>; color: string; focused: boolean }) {
   return (
     <View style={{ alignItems: 'center' }}>
       <Icon size={22} color={color} strokeWidth={focused ? 2.5 : 1.8} />

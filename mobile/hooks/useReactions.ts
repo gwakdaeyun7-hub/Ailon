@@ -1,11 +1,10 @@
 /**
  * 좋아요/싫어요 Hook — Firestore reactions 컬렉션
- * 하루 1회만 토글 가능 (AsyncStorage로 일일 중복 방지)
+ * dislikedBy 배열로 중복 방지 (toggleLike와 동일 정책)
  */
 
 import { useState, useEffect, useCallback } from 'react';
 import { doc, onSnapshot, runTransaction } from 'firebase/firestore';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -13,10 +12,6 @@ export type ItemType = 'news' | 'snap' | 'idea';
 
 function makeSafeId(itemType: ItemType, itemId: string): string {
   return `${itemType}_${encodeURIComponent(itemId).slice(0, 200)}`;
-}
-
-function todayStr(): string {
-  return new Date().toISOString().slice(0, 10);
 }
 
 interface ReactionData {
@@ -95,9 +90,6 @@ export function useReactions(itemType: ItemType, itemId: string, contentAuthorUi
 
   const toggleDislike = useCallback(async () => {
     if (!user) return;
-    const key = `dislike_${todayStr()}_${docId}`;
-    const already = await AsyncStorage.getItem(key);
-    if (already) return;
 
     const ref = doc(db, 'reactions', docId);
     await runTransaction(db, async (tx) => {
@@ -120,7 +112,6 @@ export function useReactions(itemType: ItemType, itemId: string, contentAuthorUi
         dislikedBy: newDislikedBy,
       }, { merge: true });
     });
-    await AsyncStorage.setItem(key, '1');
   }, [user, docId]);
 
   const liked = user ? data.likedBy.includes(user.uid) : false;

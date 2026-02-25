@@ -31,19 +31,27 @@ export function useBookmarks(userId: string | null) {
 
   const addBookmark = async (type: Bookmark['type'], itemId: string, metadata?: BookmarkMeta) => {
     if (!userId) return;
-    const bookmarkRef = doc(db, 'users', userId, 'bookmarks', `${type}_${itemId}`);
-    await setDoc(bookmarkRef, {
-      type,
-      itemId,
-      createdAt: new Date().toISOString(),
-      ...(metadata ? { metadata } : {}),
-    });
+    try {
+      const bookmarkRef = doc(db, 'users', userId, 'bookmarks', `${type}_${itemId}`);
+      await setDoc(bookmarkRef, {
+        type,
+        itemId,
+        createdAt: new Date().toISOString(),
+        ...(metadata ? { metadata } : {}),
+      });
+    } catch (err) {
+      console.error('Bookmark add error:', err);
+    }
   };
 
   const removeBookmark = async (type: Bookmark['type'], itemId: string) => {
     if (!userId) return;
-    const bookmarkRef = doc(db, 'users', userId, 'bookmarks', `${type}_${itemId}`);
-    await deleteDoc(bookmarkRef);
+    try {
+      const bookmarkRef = doc(db, 'users', userId, 'bookmarks', `${type}_${itemId}`);
+      await deleteDoc(bookmarkRef);
+    } catch (err) {
+      console.error('Bookmark remove error:', err);
+    }
   };
 
   const isBookmarked = (type: Bookmark['type'], itemId: string) => {
@@ -51,10 +59,14 @@ export function useBookmarks(userId: string | null) {
   };
 
   const toggleBookmark = async (type: Bookmark['type'], itemId: string, metadata?: BookmarkMeta) => {
-    if (isBookmarked(type, itemId)) {
-      await removeBookmark(type, itemId);
-    } else {
-      await addBookmark(type, itemId, metadata);
+    try {
+      if (isBookmarked(type, itemId)) {
+        await removeBookmark(type, itemId);
+      } else {
+        await addBookmark(type, itemId, metadata);
+      }
+    } catch (err) {
+      console.error('Bookmark toggle error:', err);
     }
   };
 

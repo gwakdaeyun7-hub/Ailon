@@ -22,7 +22,7 @@ import { Image } from 'expo-image';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import {
-  Bell, RefreshCw, ThumbsUp, Eye, Share2, ExternalLink, MessageCircle, X,
+  Bell, RefreshCw, ThumbsUp, Eye, Share2, ExternalLink, MessageCircle, X, Cpu,
 } from 'lucide-react-native';
 import { useNews } from '@/hooks/useNews';
 import { useDrawer } from '@/context/DrawerContext';
@@ -36,6 +36,10 @@ import type { Article } from '@/lib/types';
 import { Colors } from '@/lib/colors';
 import type { Language } from '@/lib/translations';
 import type { BatchStats } from '@/hooks/useBatchStats';
+
+// expo-notifications (optional dependency)
+let Notifications: any = null;
+try { Notifications = require('expo-notifications'); } catch {}
 
 // ─── 색상 ───────────────────────────────────────────────────────────────
 const BG = Colors.bg;
@@ -99,20 +103,29 @@ const DEFAULT_CATEGORY_ORDER = ['research', 'models_products', 'industry_busines
 const DEFAULT_SOURCE_ORDER = ['aitimes', 'geeknews', 'zdnet_ai_editor', 'yozm_ai'];
 
 // ─── 헬퍼 ───────────────────────────────────────────────────────────────
-function formatDate(str?: string) {
+const EN_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+function formatDate(str?: string, lang?: string): string {
   if (!str) return '';
   try {
     // ZDNet 등 "2026.02.19 PM 08:20" 형식 처리
     const ymdMatch = str.match(/^(\d{4})\.(\d{2})\.(\d{2})/);
     if (ymdMatch) {
+      if (lang === 'en') {
+        const mi = parseInt(ymdMatch[2], 10) - 1;
+        return `${EN_MONTHS[mi]} ${parseInt(ymdMatch[3], 10)}, ${ymdMatch[1]}`;
+      }
       return `${ymdMatch[1]}/${ymdMatch[2]}/${ymdMatch[3]}`;
     }
     const d = new Date(str);
     if (isNaN(d.getTime())) return '';
     const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}/${m}/${day}`;
+    const m = d.getMonth();
+    const day = d.getDate();
+    if (lang === 'en') {
+      return `${EN_MONTHS[m]} ${day}, ${y}`;
+    }
+    return `${y}/${String(m + 1).padStart(2, '0')}/${String(day).padStart(2, '0')}`;
   } catch { return ''; }
 }
 
@@ -144,37 +157,14 @@ function getCategoryName(catKey: string, t: (key: string) => string) {
   return t(`cat.${catKey}`);
 }
 
-// ─── 제목 말줄임 처리 (중복 "..." 방지) ─────────────────────────────────
-function TitleText({ children, style, numberOfLines = 2 }: { children: string; style: any; numberOfLines?: number }) {
-  const [display, setDisplay] = React.useState(children);
-  const measured = React.useRef(false);
-
-  React.useEffect(() => {
-    measured.current = false;
-    setDisplay(children);
-  }, [children]);
-
+// ─── 제목 말줄임 (네이티브 numberOfLines + ellipsizeMode 사용) ──────────
+const TitleText = React.memo(function TitleText({ children, style, numberOfLines = 2 }: { children: string; style: any; numberOfLines?: number }) {
   return (
-    <Text
-      style={style}
-      numberOfLines={numberOfLines}
-      ellipsizeMode="clip"
-      onTextLayout={(e) => {
-        if (measured.current) return;
-        measured.current = true;
-        const lines = e.nativeEvent.lines;
-        const shown = lines.slice(0, numberOfLines).map((l: any) => l.text).join('');
-        if (shown.length < children.length) {
-          let t = shown.slice(0, -3).trimEnd();
-          t = t.replace(/\.+$/, '').replace(/…+$/, '');
-          setDisplay(t + '...');
-        }
-      }}
-    >
-      {display}
+    <Text style={style} numberOfLines={numberOfLines} ellipsizeMode="tail">
+      {children}
     </Text>
   );
-}
+});
 
 // ─── 좋아요+뷰 카운트 (정적 — 피드 카드에서 리스너 폭발 방지) ──────────
 const ArticleStats = React.memo(function ArticleStats({ likes, views }: { likes?: number; views?: number }) {
@@ -193,18 +183,16 @@ const ArticleStats = React.memo(function ArticleStats({ likes, views }: { likes?
 });
 
 // ─── 소스 뱃지 ──────────────────────────────────────────────────────────
-const SourceBadge = React.memo(function SourceBadge({ sourceKey }: { sourceKey?: string }) {
+const SourceBadge = React.memo(function SourceBadge({ sourceKey, name }: { sourceKey?: string; name?: string }) {
   if (!sourceKey) return null;
-  const { t } = useLanguage();
-  const name = getSourceName(sourceKey, t);
   const color = SOURCE_COLORS[sourceKey] || TEXT_SECONDARY;
   return (
     <View style={{
       backgroundColor: color + '18',
-      paddingHorizontal: 8, paddingVertical: 3,
+      paddingHorizontal: 6, paddingVertical: 2,
       borderRadius: 6, alignSelf: 'flex-start',
     }}>
-      <Text style={{ fontSize: 10, fontWeight: '700', color }}>{name}</Text>
+      <Text style={{ fontSize: 10, fontWeight: '700', color }}>{name || sourceKey}</Text>
     </View>
   );
 });
@@ -241,7 +229,7 @@ const HighlightScrollCard = React.memo(function HighlightScrollCard({
 }: {
   article: Article; onToggle?: () => void; likes?: number; views?: number;
 }) {
-  const { lang } = useLanguage();
+  const { lang, t } = useLanguage();
   const handlePress = () => {
     if (onToggle) {
       onToggle();
@@ -286,7 +274,7 @@ const HighlightScrollCard = React.memo(function HighlightScrollCard({
       )}
       <View style={{ padding: 14, flex: 1, justifyContent: 'space-between', width: HIGHLIGHT_CARD_WIDTH }}>
         <View style={{ width: HIGHLIGHT_CARD_WIDTH - 28 }}>
-          <SourceBadge sourceKey={article.source_key} />
+          <SourceBadge sourceKey={article.source_key} name={getSourceName(article.source_key || '', t)} />
           <TitleText
             style={{ fontSize: 15, fontWeight: '800', color: TEXT_PRIMARY, lineHeight: 21, marginTop: 6 }}
             numberOfLines={2}
@@ -296,7 +284,7 @@ const HighlightScrollCard = React.memo(function HighlightScrollCard({
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Text style={{ fontSize: 11, color: TEXT_LIGHT }}>{formatDate(article.published)}</Text>
+            <Text style={{ fontSize: 11, color: TEXT_LIGHT }}>{formatDate(article.published, lang)}</Text>
             <ScoreBadge article={article} />
           </View>
           <ArticleStats likes={likes} views={views} />
@@ -398,7 +386,7 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
               onPress={onClose}
               accessibilityLabel={t('modal.close')}
               accessibilityRole="button"
-              style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center' }}
+              style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.surface, alignItems: 'center', justifyContent: 'center' }}
             >
               <X size={16} color={TEXT_SECONDARY} />
             </Pressable>
@@ -431,7 +419,7 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
               }}>
                 <Text style={{ fontSize: 11, fontWeight: '700', color: sourceColor }}>{sourceName}</Text>
               </View>
-              <Text style={{ fontSize: 12, color: TEXT_LIGHT }}>{formatDate(article.published)}</Text>
+              <Text style={{ fontSize: 12, color: TEXT_LIGHT }}>{formatDate(article.published, lang)}</Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
                 <Eye size={11} color={TEXT_LIGHT} />
                 <Text style={{ fontSize: 10, color: TEXT_LIGHT, fontWeight: '600' }}>{views}</Text>
@@ -459,7 +447,7 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
                 return (
                   <View style={{ paddingHorizontal: 20, marginBottom: 16 }}>
                     {/* 핵심 한줄 */}
-                    <View style={{ backgroundColor: '#F0F4FF', borderRadius: 10, padding: 14, marginBottom: 16 }}>
+                    <View style={{ backgroundColor: Colors.highlightBg, borderRadius: 10, padding: 14, marginBottom: 16 }}>
                       <Text style={{ fontSize: 11, fontWeight: '600', color: '#6366F1', marginBottom: 6 }}>{t('modal.one_line')}</Text>
                       <Text style={{ fontSize: 16, color: TEXT_PRIMARY, lineHeight: 26, fontWeight: '700' }}>
                         {oneLine}
@@ -535,6 +523,7 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
               accessibilityRole="button"
               style={({ pressed }) => ({
                 alignItems: 'center', justifyContent: 'center',
+                minHeight: 44, minWidth: 44,
                 backgroundColor: liked ? '#3B82F615' : BORDER,
                 paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10,
                 borderWidth: liked ? 1 : 0, borderColor: '#3B82F640',
@@ -550,6 +539,7 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
               accessibilityRole="button"
               style={({ pressed }) => ({
                 alignItems: 'center', justifyContent: 'center',
+                minHeight: 44, minWidth: 44,
                 backgroundColor: BORDER,
                 paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10,
                 opacity: pressed ? 0.8 : 1,
@@ -564,6 +554,7 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
               accessibilityRole="button"
               style={({ pressed }) => ({
                 alignItems: 'center', justifyContent: 'center',
+                minHeight: 44, minWidth: 44,
                 backgroundColor: BORDER,
                 paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10,
                 opacity: pressed ? 0.8 : 1,
@@ -577,7 +568,7 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
           {toastMsg ? (
             <Animated.View style={{
               position: 'absolute', top: 20, left: 20, right: 20,
-              backgroundColor: '#1F2937', borderRadius: 10, paddingVertical: 10, paddingHorizontal: 16,
+              backgroundColor: Colors.toastBg, borderRadius: 10, paddingVertical: 10, paddingHorizontal: 16,
               alignItems: 'center', opacity: toastOpacity,
             }} pointerEvents="none" accessibilityLiveRegion="assertive">
               <Text style={{ color: '#FFF', fontSize: 13, fontWeight: '600' }}>{toastMsg}</Text>
@@ -596,7 +587,7 @@ function HighlightSection({ highlights, onArticlePress, allStats }: { highlights
   if (!highlights || highlights.length === 0) return null;
 
   return (
-    <View style={{ paddingTop: 12, paddingBottom: 24, backgroundColor: '#F0F4FF' }}>
+    <View style={{ paddingTop: 12, paddingBottom: 24, backgroundColor: Colors.highlightBg }}>
       {/* 섹션 헤더 */}
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 14 }}>
         <Text style={{ fontSize: 17, fontWeight: '800', color: TEXT_PRIMARY }}>{t('news.highlight_title')}</Text>
@@ -632,7 +623,7 @@ const HScrollCard = React.memo(function HScrollCard({
 }: {
   article: Article; showSourceBadge?: boolean; onToggle?: () => void; likes?: number; views?: number;
 }) {
-  const { lang } = useLanguage();
+  const { lang, t } = useLanguage();
   const handlePress = () => {
     if (onToggle) {
       onToggle();
@@ -677,7 +668,7 @@ const HScrollCard = React.memo(function HScrollCard({
       )}
       <View style={{ padding: 14, flex: 1, width: CARD_WIDTH }}>
         <View style={{ width: CARD_WIDTH - 28 }}>
-          {showSourceBadge && <SourceBadge sourceKey={article.source_key} />}
+          {showSourceBadge && <SourceBadge sourceKey={article.source_key} name={getSourceName(article.source_key || '', t)} />}
           <TitleText
             style={{ fontSize: 13, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 18, marginTop: showSourceBadge ? 6 : 0 }}
             numberOfLines={2}
@@ -687,7 +678,7 @@ const HScrollCard = React.memo(function HScrollCard({
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Text style={{ fontSize: 11, color: TEXT_LIGHT }}>{formatDate(article.published)}</Text>
+            <Text style={{ fontSize: 11, color: TEXT_LIGHT }}>{formatDate(article.published, lang)}</Text>
             <ScoreBadge article={article} />
           </View>
           <ArticleStats likes={likes} views={views} />
@@ -742,7 +733,7 @@ function CategoryTabSection({
                 accessibilityRole="tab"
                 accessibilityState={{ selected: isActive }}
                 style={{
-                  paddingHorizontal: 14, paddingVertical: 6,
+                  paddingHorizontal: 14, paddingVertical: 10,
                   borderRadius: 16,
                   backgroundColor: isActive ? color : CARD,
                   borderWidth: 1,
@@ -797,7 +788,7 @@ function CategoryTabSection({
               )}
               <View style={{ flex: 1, padding: 14, justifyContent: 'space-between' }}>
                 <View>
-                  <SourceBadge sourceKey={a.source_key} />
+                  <SourceBadge sourceKey={a.source_key} name={getSourceName(a.source_key || '', t)} />
                   <TitleText
                     style={{ fontSize: 14, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 20, marginTop: 6 }}
                     numberOfLines={2}
@@ -807,7 +798,7 @@ function CategoryTabSection({
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Text style={{ fontSize: 11, color: TEXT_LIGHT }}>{formatDate(a.published)}</Text>
+                    <Text style={{ fontSize: 11, color: TEXT_LIGHT }}>{formatDate(a.published, lang)}</Text>
                     <ScoreBadge article={a} />
                   </View>
                   <ArticleStats likes={stats[a.link]?.likes} views={stats[a.link]?.views} />
@@ -910,12 +901,12 @@ const GeekNewsSection = React.memo(function GeekNewsSection({ articles, onArticl
   const { lang, t } = useLanguage();
   if (!articles || articles.length === 0) return null;
 
-  const first5 = articles.slice(0, 5);
-  const more5 = articles.slice(5, 10);
   const visible = React.useMemo(
-    () => (showMore ? [...first5, ...more5] : first5),
-    [showMore, first5, more5],
+    () => articles.slice(0, showMore ? 10 : 5),
+    [showMore, articles],
   );
+  const hasMore = !showMore && articles.length > 5;
+  const moreCount = Math.min(articles.length - 5, 5);
   const color = SOURCE_COLORS['geeknews'] || TEXT_SECONDARY;
   const name = getSourceName('geeknews', t);
 
@@ -957,26 +948,46 @@ const GeekNewsSection = React.memo(function GeekNewsSection({ articles, onArticl
               <ScoreBadge article={a} />
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
-              <Text style={{ fontSize: 11, color: TEXT_LIGHT }}>{formatDate(a.published)}</Text>
+              <Text style={{ fontSize: 11, color: TEXT_LIGHT }}>{formatDate(a.published, lang)}</Text>
               <ArticleStats likes={stats[a.link]?.likes} views={stats[a.link]?.views} />
             </View>
           </Pressable>
         ))}
       </View>
 
-      {!showMore && more5.length > 0 && (
+      {hasMore && (
         <Pressable
           onPress={() => setShowMore(true)}
-          accessibilityLabel={`${t('news.show_more')} ${more5.length}`}
+          accessibilityLabel={`${t('news.show_more')} ${moreCount}`}
           accessibilityRole="button"
           style={{ alignItems: 'center', paddingVertical: 14, minHeight: 44, justifyContent: 'center' }}
         >
-          <Text style={{ fontSize: 13, fontWeight: '600', color: Colors.primary }}>{t('news.show_more')} ({more5.length})</Text>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: Colors.primary }}>{t('news.show_more')} ({moreCount})</Text>
         </Pressable>
       )}
     </View>
   );
 });
+
+// ─── 정렬: KST 날짜(일) 최신순 → 점수순 → 시간 최신순 ───
+function sortByDateThenScore(articles: Article[]) {
+  const KST_OFFSET = 9 * 60 * 60 * 1000;
+  const toKSTDay = (pub: string) => Math.floor((new Date(pub || 0).getTime() + KST_OFFSET) / 86400000);
+  const toTime = (pub: string) => new Date(pub || 0).getTime();
+  return [...articles].sort((a, b) => {
+    const dayA = toKSTDay(a.published);
+    const dayB = toKSTDay(b.published);
+    if (dayA !== dayB) return dayB - dayA;
+    const scoreDiff = (b.score ?? 0) - (a.score ?? 0);
+    if (scoreDiff !== 0) return scoreDiff;
+    return toTime(b.published) - toTime(a.published);
+  });
+}
+
+interface DeliveredNotification {
+  request?: { identifier?: string; content?: { title?: string; body?: string } };
+  date?: number;
+}
 
 // ─── 메인 화면 ──────────────────────────────────────────────────────────
 export default function NewsScreen() {
@@ -984,7 +995,7 @@ export default function NewsScreen() {
   const [modalArticle, setModalArticle] = useState<Article | null>(null);
   const [commentArticleLink, setCommentArticleLink] = useState<string | null>(null);
   const [notifModalVisible, setNotifModalVisible] = useState(false);
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<DeliveredNotification[]>([]);
   const { openDrawer, setActiveTab } = useDrawer();
   const { lang, t } = useLanguage();
   const { newsData, loading, error, refresh } = useNews();
@@ -1007,41 +1018,29 @@ export default function NewsScreen() {
 
   const openNotifications = useCallback(async () => {
     try {
-      const Notif = require('expo-notifications');
-      const delivered = await Notif.getPresentedNotificationsAsync();
-      setNotifications(delivered.sort((a: any, b: any) =>
-        (b.date ?? 0) - (a.date ?? 0)
-      ));
+      if (Notifications) {
+        const delivered = await Notifications.getPresentedNotificationsAsync();
+        setNotifications(delivered.sort((a: DeliveredNotification, b: DeliveredNotification) =>
+          (b.date ?? 0) - (a.date ?? 0)
+        ));
+      } else {
+        setNotifications([]);
+      }
     } catch {
       setNotifications([]);
     }
     setNotifModalVisible(true);
   }, []);
 
-  const handleRefresh = async () => {
+  const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     await refresh();
     setRefreshing(false);
-  };
-
-  // ─── 정렬: KST 날짜(일) 최신순 → 점수순 → 시간 최신순 ───
-  const sortByDateThenScore = useCallback((articles: Article[]) => {
-    const KST_OFFSET = 9 * 60 * 60 * 1000;
-    const toKSTDay = (pub: string) => Math.floor((new Date(pub || 0).getTime() + KST_OFFSET) / 86400000);
-    const toTime = (pub: string) => new Date(pub || 0).getTime();
-    return [...articles].sort((a, b) => {
-      const dayA = toKSTDay(a.published);
-      const dayB = toKSTDay(b.published);
-      if (dayA !== dayB) return dayB - dayA;
-      const scoreDiff = (b.score ?? 0) - (a.score ?? 0);
-      if (scoreDiff !== 0) return scoreDiff;
-      return toTime(b.published) - toTime(a.published);
-    });
-  }, []);
+  }, [refresh]);
 
   // ─── 새 구조 (3-Section) ───
   const rawHighlights = newsData?.highlights ?? [];
-  const highlights = React.useMemo(() => sortByDateThenScore(rawHighlights), [rawHighlights, sortByDateThenScore]);
+  const highlights = React.useMemo(() => sortByDateThenScore(rawHighlights), [rawHighlights]);
   const rawCategorized = newsData?.categorized_articles ?? {};
   const categorizedArticles = React.useMemo(() => {
     const sorted: Record<string, Article[]> = {};
@@ -1049,20 +1048,23 @@ export default function NewsScreen() {
       sorted[cat] = sortByDateThenScore(articles);
     }
     return sorted;
-  }, [rawCategorized, sortByDateThenScore]);
+  }, [rawCategorized]);
   const categoryOrder = newsData?.category_order ?? DEFAULT_CATEGORY_ORDER;
   const sourceArticles = newsData?.source_articles ?? {};
   const sourceOrder = newsData?.source_order ?? DEFAULT_SOURCE_ORDER;
 
   // ─── 레거시 폴백 (기존 articles 배열 데이터) ───
-  const legacyGrouped: Record<string, Article[]> = {};
-  if (highlights.length === 0 && newsData?.articles) {
-    for (const a of newsData.articles) {
-      const key = a.source_key || 'unknown';
-      if (!legacyGrouped[key]) legacyGrouped[key] = [];
-      legacyGrouped[key].push(a);
+  const legacyGrouped = React.useMemo(() => {
+    const grouped: Record<string, Article[]> = {};
+    if (highlights.length === 0 && newsData?.articles) {
+      for (const a of newsData.articles) {
+        const key = a.source_key || 'unknown';
+        if (!grouped[key]) grouped[key] = [];
+        grouped[key].push(a);
+      }
     }
-  }
+    return grouped;
+  }, [highlights.length, newsData?.articles]);
   const isLegacy = highlights.length === 0 && Object.keys(legacyGrouped).length > 0;
   const legacySourceOrder = newsData?.source_order ?? [
     'wired_ai', 'the_verge_ai', 'techcrunch_ai', 'mit_tech_review',
@@ -1110,7 +1112,7 @@ export default function NewsScreen() {
           <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '800' }}>A</Text>
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 18, fontWeight: '800', color: TEXT_PRIMARY }}>{t('news.header')}</Text>
+          <Text style={{ fontSize: 24, fontWeight: '800', color: TEXT_PRIMARY }}>{t('news.header')}</Text>
           {totalArticles > 0 && (
             <Text style={{ fontSize: 12, color: TEXT_LIGHT }}>
               {newsData?.updated_at
@@ -1140,15 +1142,17 @@ export default function NewsScreen() {
             <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: '#FEE2E2', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
               <RefreshCw size={28} color="#DC2626" />
             </View>
-            <Text style={{ color: TEXT_PRIMARY, fontWeight: '700', fontSize: 16, marginBottom: 8 }}>{t('news.connection_error')}</Text>
-            <Text style={{ color: TEXT_LIGHT, fontSize: 14, textAlign: 'center', marginBottom: 20 }}>{error}</Text>
+            <Text style={{ color: TEXT_PRIMARY, fontWeight: '700', fontSize: 16, marginBottom: 8 }}>{t(error)}</Text>
             <Pressable onPress={refresh} style={{ backgroundColor: Colors.primary, paddingHorizontal: 28, paddingVertical: 12, borderRadius: 12 }}>
               <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 15 }}>{t('news.retry')}</Text>
             </Pressable>
           </View>
         ) : totalArticles === 0 ? (
-          <View style={{ alignItems: 'center', paddingVertical: 60 }}>
-            <Text style={{ color: TEXT_LIGHT, fontSize: 14 }}>{t('news.no_news')}</Text>
+          <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 40 }}>
+            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: Colors.primaryLight, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+              <Cpu size={28} color={Colors.primary} />
+            </View>
+            <Text style={{ fontSize: 15, fontWeight: '600', color: TEXT_PRIMARY, marginBottom: 4 }}>{t('news.no_news')}</Text>
           </View>
         ) : isLegacy ? (
           <>
@@ -1179,7 +1183,7 @@ export default function NewsScreen() {
             {/* 구분선: 카테고리 → 소스별 */}
             {sourceOrder.some(key => (sourceArticles[key]?.length ?? 0) > 0) && (
               <View style={{ paddingHorizontal: 16, marginBottom: 20, marginTop: 16 }}>
-                <View style={{ height: 8, backgroundColor: '#F3F4F6', borderRadius: 4, marginBottom: 20 }} />
+                <View style={{ height: 8, backgroundColor: Colors.surface, borderRadius: 4, marginBottom: 20 }} />
                 <Text style={{ fontSize: 16, fontWeight: '800', color: TEXT_PRIMARY }}>
                   {t('news.source_title')}
                 </Text>
@@ -1223,7 +1227,7 @@ export default function NewsScreen() {
       <Modal visible={notifModalVisible} animationType="slide" transparent onRequestClose={() => setNotifModalVisible(false)}>
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <Pressable style={{ flex: 0.15 }} onPress={() => setNotifModalVisible(false)} />
-          <View style={{ flex: 0.85, backgroundColor: BG, borderTopLeftRadius: 20, borderTopRightRadius: 20, overflow: 'hidden' }}>
+          <View style={{ flex: 0.85, backgroundColor: BG, borderTopLeftRadius: 20, borderTopRightRadius: 20, overflow: 'hidden' }} accessibilityViewIsModal={true}>
             <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: BORDER }}>
               <Bell size={20} color={TEXT_PRIMARY} />
               <Text style={{ flex: 1, fontSize: 17, fontWeight: '700', color: TEXT_PRIMARY, marginLeft: 8 }}>{t('notification.title')}</Text>

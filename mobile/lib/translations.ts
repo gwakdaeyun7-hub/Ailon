@@ -137,6 +137,8 @@ const translations: Record<string, Record<Language, string>> = {
   'comment.reply_placeholder': { ko: '에게 답글...', en: 'replying to...' },
   'comment.login_required': { ko: '댓글을 작성하려면 로그인이 필요해요', en: 'Log in to leave a comment' },
   'comment.login': { ko: '로그인하기', en: 'Log in' },
+  'comment.send': { ko: '댓글 전송', en: 'Send comment' },
+  'comment.close': { ko: '댓글 닫기', en: 'Close comments' },
 
   // ─── 메뉴 ───
   'menu.open': { ko: '메뉴 열기', en: 'Open menu' },

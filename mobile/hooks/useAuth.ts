@@ -37,25 +37,30 @@ export function useAuth() {
   // Firebase 인증 상태 감지
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      setUser(firebaseUser);
-      setLoading(false);
+      try {
+        setUser(firebaseUser);
+        setLoading(false);
 
-      if (firebaseUser) {
-        const userRef = doc(db, 'users', firebaseUser.uid);
-        const userDoc = await getDoc(userRef);
+        if (firebaseUser) {
+          const userRef = doc(db, 'users', firebaseUser.uid);
+          const userDoc = await getDoc(userRef);
 
-        if (!userDoc.exists()) {
-          await setDoc(userRef, {
-            uid: firebaseUser.uid,
-            email: firebaseUser.email,
-            displayName: firebaseUser.displayName,
-            photoURL: firebaseUser.photoURL,
-            createdAt: serverTimestamp(),
-            lastLoginAt: serverTimestamp(),
-          });
-        } else {
-          await setDoc(userRef, { lastLoginAt: serverTimestamp() }, { merge: true });
+          if (!userDoc.exists()) {
+            await setDoc(userRef, {
+              uid: firebaseUser.uid,
+              email: firebaseUser.email,
+              displayName: firebaseUser.displayName,
+              photoURL: firebaseUser.photoURL,
+              createdAt: serverTimestamp(),
+              lastLoginAt: serverTimestamp(),
+            });
+          } else {
+            await setDoc(userRef, { lastLoginAt: serverTimestamp() }, { merge: true });
+          }
         }
+      } catch (error: unknown) {
+        console.error('Auth state change error:', error);
+        setLoading(false);
       }
     });
 
@@ -64,7 +69,7 @@ export function useAuth() {
 
   const signInWithGoogle = useCallback(async () => {
     if (!GoogleSignin) {
-      Alert.alert('알림', '개발 빌드에서만 Google 로그인이 가능합니다.');
+      Alert.alert('Notice', 'Google Sign-In is only available in development builds.');
       return;
     }
     try {
@@ -76,16 +81,17 @@ export function useAuth() {
         const credential = GoogleAuthProvider.credential(idToken);
         await signInWithCredential(auth, credential);
       }
-    } catch (error: any) {
-      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
-        // 사용자가 취소
-      } else if (error.code === statusCodes.IN_PROGRESS) {
-        // 이미 진행 중
-      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-        Alert.alert('오류', 'Google Play 서비스를 사용할 수 없습니다.');
+    } catch (error: unknown) {
+      const err = error as { code?: string };
+      if (err.code === statusCodes.SIGN_IN_CANCELLED) {
+        // user cancelled
+      } else if (err.code === statusCodes.IN_PROGRESS) {
+        // already in progress
+      } else if (err.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        Alert.alert('Error', 'Google Play Services is not available.');
       } else {
         console.error('Google sign-in error:', error);
-        Alert.alert('로그인 오류', '다시 시도해주세요.');
+        Alert.alert('Login Error', 'Please try again.');
       }
     }
   }, []);

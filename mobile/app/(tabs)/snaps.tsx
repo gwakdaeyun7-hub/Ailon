@@ -10,7 +10,7 @@ export default function SnapsScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.bg }} edges={['top']}>
       <View style={{ paddingHorizontal: 16, paddingTop: 20, paddingBottom: 12 }}>
-        <Text style={{ fontSize: 24, fontWeight: '700', color: Colors.textPrimary }}>{t('snaps.title')}</Text>
+        <Text style={{ fontSize: 24, fontWeight: '800', color: Colors.textPrimary }}>{t('snaps.title')}</Text>
         <View style={{ width: 40, height: 3, backgroundColor: Colors.primary, borderRadius: 2, marginTop: 12 }} />
       </View>
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 }}>

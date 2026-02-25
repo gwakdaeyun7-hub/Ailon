@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Animated } from 'react-native';
+import { Colors } from '@/lib/colors';
 
 interface SkeletonProps {
   className?: string;
@@ -28,7 +29,7 @@ function SkeletonItem({ width, height = 16, borderRadius = 8 }: SkeletonProps) {
         width: width ?? '100%',
         height,
         borderRadius,
-        backgroundColor: '#E0E0E0',
+        backgroundColor: Colors.border,
         opacity,
       }}
     />

@@ -13,4 +13,13 @@ export const Colors = {
   surface: '#F5F5F5',
   highlightBg: '#F0F4FF',
   toastBg: '#1F2937',
+  textDark: '#424242',
+  warning: '#F57C00',
+  warningLight: '#FFF3E0',
+  warningBorder: '#FFE082',
+  indigoBg: '#E8EAF6',
+  indigo: '#5C6BC0',
+  coreTech: '#3b82f6',
+  coreTechBg: '#EFF6FF',
+  placeholder: '#BDBDBD',
 } as const;

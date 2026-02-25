@@ -2,6 +2,7 @@ import React from 'react';
 import { Pressable } from 'react-native';
 import { Bookmark, BookmarkCheck } from 'lucide-react-native';
 import { useLanguage } from '@/context/LanguageContext';
+import { Colors } from '@/lib/colors';
 
 interface BookmarkButtonProps {
   isBookmarked: boolean;
@@ -19,9 +20,9 @@ export function BookmarkButton({ isBookmarked, onToggle, size = 18 }: BookmarkBu
       accessibilityLabel={isBookmarked ? t('bookmark.remove') : t('bookmark.add')}
     >
       {isBookmarked ? (
-        <BookmarkCheck size={size} color="#e53935" strokeWidth={2} />
+        <BookmarkCheck size={size} color={Colors.primary} strokeWidth={2} />
       ) : (
-        <Bookmark size={size} color="#999999" strokeWidth={2} />
+        <Bookmark size={size} color={Colors.textLight} strokeWidth={2} />
       )}
     </Pressable>
   );

@@ -5,6 +5,12 @@ import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useLanguage } from '@/context/LanguageContext';
 
+const FEEDBACK_COLORS = {
+  positive: '#43A047',
+  negative: '#E53935',
+  neutral: '#888888',
+} as const;
+
 interface FeedbackButtonsProps {
   userId: string | null;
   itemType: 'news' | 'snap' | 'idea';
@@ -20,6 +26,7 @@ export function FeedbackButtons({ userId, itemType, itemId, initialReaction = nu
   const handleFeedback = async (type: 'like' | 'dislike') => {
     if (!userId || saving) return;
 
+    const prevReaction = reaction;
     const newReaction = reaction === type ? null : type;
     setReaction(newReaction);
 
@@ -39,7 +46,7 @@ export function FeedbackButtons({ userId, itemType, itemId, initialReaction = nu
       }
     } catch (err) {
       console.error('Feedback error:', err);
-      setReaction(reaction); // 롤백
+      setReaction(prevReaction);
     } finally {
       setSaving(false);
     }
@@ -57,7 +64,7 @@ export function FeedbackButtons({ userId, itemType, itemId, initialReaction = nu
       >
         <ThumbsUp
           size={14}
-          color={reaction === 'like' ? '#22c55e' : '#888888'}
+          color={reaction === 'like' ? FEEDBACK_COLORS.positive : FEEDBACK_COLORS.neutral}
           strokeWidth={2}
         />
         <Text className={`text-xs ${reaction === 'like' ? 'text-green-400' : 'text-text-muted'}`}>
@@ -75,7 +82,7 @@ export function FeedbackButtons({ userId, itemType, itemId, initialReaction = nu
       >
         <ThumbsDown
           size={14}
-          color={reaction === 'dislike' ? '#ef4444' : '#888888'}
+          color={reaction === 'dislike' ? FEEDBACK_COLORS.negative : FEEDBACK_COLORS.neutral}
           strokeWidth={2}
         />
         <Text className={`text-xs ${reaction === 'dislike' ? 'text-red-400' : 'text-text-muted'}`}>

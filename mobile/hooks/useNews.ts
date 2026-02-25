@@ -3,7 +3,7 @@
  * 오늘 데이터 우선, 없으면 최근 7일 fallback
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { doc, getDoc, collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { DailyNews } from '@/lib/types';
@@ -13,11 +13,7 @@ export function useNews() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchNews();
-  }, []);
-
-  const fetchNews = async () => {
+  const fetchNews = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -43,12 +39,16 @@ export function useNews() {
         setNewsData(snapshot.docs[0].data() as DailyNews);
       }
     } catch (err) {
-      setError('뉴스를 불러오는 데 실패했어요.');
+      setError('news.connection_error');
       console.error('useNews error:', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchNews();
+  }, [fetchNews]);
 
   return {
     newsData,

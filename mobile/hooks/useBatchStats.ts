@@ -1,10 +1,10 @@
 /**
  * 피드 카드용 일괄 좋아요수/뷰수 조회 Hook
- * reactions는 onSnapshot(실시간), views는 getDoc(1회)
+ * getDoc 일괄 1회 조회 (리스너 폭발 방지)
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 export interface BatchStats {
@@ -21,36 +21,32 @@ export function useBatchStats(articleLinks: string[]): Record<string, BatchStats
     if (key === prevKey.current || articleLinks.length === 0) return;
     prevKey.current = key;
 
-    const result: Record<string, BatchStats> = {};
-    const unsubs: (() => void)[] = [];
+    const fetchStats = async () => {
+      const newStats: Record<string, BatchStats> = {};
 
-    // views는 1회 조회, reactions는 실시간 리스너
-    articleLinks.forEach((link) => {
-      const encoded = encodeURIComponent(link).slice(0, 200);
-      const reactionsId = `news_${encoded}`;
-      const viewsId = encoded;
+      await Promise.all(articleLinks.map(async (link) => {
+        try {
+          const encoded = encodeURIComponent(link).slice(0, 200);
+          const reactionsId = `news_${encoded}`;
+          const viewsId = encoded;
 
-      // views 1회 조회
-      getDoc(doc(db, 'article_views', viewsId)).then((snap) => {
-        const views = snap.exists() ? (snap.data()?.views ?? 0) : 0;
-        setStats((prev) => ({
-          ...prev,
-          [link]: { likes: prev[link]?.likes ?? 0, views },
-        }));
-      }).catch(() => {});
+          const [reactionsSnap, viewsSnap] = await Promise.all([
+            getDoc(doc(db, 'reactions', reactionsId)),
+            getDoc(doc(db, 'article_views', viewsId)),
+          ]);
 
-      // reactions 실시간 리스너
-      const unsub = onSnapshot(doc(db, 'reactions', reactionsId), (snap) => {
-        const likes = snap.exists() ? (snap.data()?.likes ?? 0) : 0;
-        setStats((prev) => ({
-          ...prev,
-          [link]: { likes, views: prev[link]?.views ?? 0 },
-        }));
-      });
-      unsubs.push(unsub);
-    });
+          const likes = reactionsSnap.exists() ? (reactionsSnap.data()?.likes ?? 0) : 0;
+          const views = viewsSnap.exists() ? (viewsSnap.data()?.views ?? 0) : 0;
+          newStats[link] = { likes, views };
+        } catch {
+          newStats[link] = { likes: 0, views: 0 };
+        }
+      }));
 
-    return () => { unsubs.forEach((u) => u()); };
+      setStats(newStats);
+    };
+
+    fetchStats();
   }, [articleLinks]);
 
   return stats;

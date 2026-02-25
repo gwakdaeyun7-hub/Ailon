@@ -33,7 +33,7 @@ export function ReactionBar({ itemType, itemId, shareText, shareTitle }: Reactio
           alignItems: 'center',
           paddingTop: 10,
           borderTopWidth: 1,
-          borderTopColor: Colors.surface,
+          borderTopColor: Colors.border,
           gap: 4,
         }}
       >
