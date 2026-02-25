@@ -1096,7 +1096,9 @@ def _apply_scores_to_candidate(candidate: dict, score_dict: dict, category: str)
 
     if candidate.get("_total_score", 0) >= 90:
         title = (candidate.get("display_title") or candidate.get("title", ""))[:40]
-        print(f"    [HIGH SCORE 진단] cat={category}, score={candidate['_total_score']}, raw={score_dict} | {title}")
+        actual_cat = candidate.get("_llm_category", "?")
+        mismatch = " ⚠ MISMATCH" if actual_cat != category else ""
+        print(f"    [HIGH SCORE 진단] scored_as={category}, llm_cat={actual_cat}{mismatch}, score={candidate['_total_score']}, raw={score_dict} | {title}")
 
 
 @_safe_node("categorizer")
@@ -1194,13 +1196,15 @@ def scorer_node(state: NewsGraphState) -> dict:
             if not c.get("_llm_scored"):
                 c.pop("_total_score", None)
 
-    unscored_indices = [i for i, c in enumerate(candidates) if not c.get("_llm_scored")]
-    unscored = [candidates[i] for i in unscored_indices]
+    unscored_pairs = [(i, candidates[i]) for i in range(len(candidates)) if not candidates[i].get("_llm_scored")]
+    # 정렬: (index, article) 쌍을 함께 정렬하여 인덱스 매핑 유지
+    unscored_pairs.sort(key=lambda x: (x[1].get("link", ""), x[1].get("title", "")))
+    unscored_indices = [i for i, _ in unscored_pairs]
+    unscored = [a for _, a in unscored_pairs]
 
     print(f"  [스코어링] {len(unscored)}/{len(candidates)}개 평가 중...")
 
     if unscored:
-        unscored.sort(key=lambda a: (a.get("link", ""), a.get("title", "")))
 
         # 카테고리별 그룹화 (research는 스코어링 스킵)
         SCORED_CATEGORIES = {"models_products", "industry_business"}
