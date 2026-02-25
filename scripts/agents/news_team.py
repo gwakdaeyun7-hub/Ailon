@@ -133,10 +133,17 @@ def _parse_llm_json(text: str):
     text = re.sub(r'```(?:json)?\s*\n?', '', text)
     text = re.sub(r'\n?```\s*', '', text)
     # Gemini bold/italic 마크다운 제거 — *** 가 {} 를 대체하는 케이스 처리
-    # [***"i":0,...***] → [{"i":0,...}]
-    text = re.sub(r'\[\s*\*{1,3}', '[{', text)
-    text = re.sub(r'\*{1,3}\s*\]', '}]', text)
-    text = re.sub(r'\*{1,3}', '', text)
+    # 패턴: [***"i":0,...***] 또는 [{***"i":0,...***}] 등
+    # Step 1: {***...***} 내부의 *** 제거 (중괄호가 이미 있는 경우)
+    text = re.sub(r'\{\s*\*+', '{', text)
+    text = re.sub(r'\*+\s*\}', '}', text)
+    # Step 2: [*** → [{ 치환 (중괄호가 없고 ***가 대신한 경우)
+    text = re.sub(r'\[\s*\*+', '[{', text)
+    text = re.sub(r'\*+\s*\]', '}]', text)
+    # Step 3: 객체 사이 ***,*** → },{  (예: ...***,***"i":1... )
+    text = re.sub(r'\*+\s*,\s*\*+', '},{', text)
+    # Step 4: 남은 * 그룹 제거 (bold/italic 잔여)
+    text = re.sub(r'\*{2,}', '', text)
     text = text.strip()
 
     if not text:
@@ -838,8 +845,9 @@ _CALIBRATION_MAP = {
     "industry_business": (
         '"NVIDIA reports record $35B quarterly revenue" → {{"i":0,"mag":9,"sig":9,"brd":9}}\n'
         '"Anthropic, 60조 가치에 2조 원 투자 유치" → {{"i":1,"mag":8,"sig":8,"brd":7}}\n'
-        '"AI startup raises $8M seed round" → {{"i":2,"mag":3,"sig":3,"brd":2}}\n'
-        '"Two CEOs awkward moment at conference" → {{"i":3,"mag":1,"sig":1,"brd":1}}'
+        '"오픈소스 팀, 대형 AI 플랫폼에 합류" → {{"i":2,"mag":5,"sig":7,"brd":7}}\n'
+        '"AI startup raises $8M seed round" → {{"i":3,"mag":3,"sig":3,"brd":2}}\n'
+        '"Two CEOs awkward moment at conference" → {{"i":4,"mag":1,"sig":1,"brd":1}}'
     ),
 }
 
@@ -1202,6 +1210,15 @@ def scorer_node(state: NewsGraphState) -> dict:
             cat = a.get("_llm_category", "industry_business")
             if cat == "research":
                 research_count += 1
+                # 이전 파이프라인 실행에서 잔존하는 점수 초기화
+                a["_total_score"] = 0
+                a["_score_utility"] = 0
+                a["_score_impact"] = 0
+                a["_score_access"] = 0
+                a["_score_market"] = 0
+                a["_score_signal"] = 0
+                a["_score_breadth"] = 0
+                a.pop("_llm_scored", None)
                 continue
             if cat not in cat_groups:
                 cat_groups["industry_business"].append((i, a))
