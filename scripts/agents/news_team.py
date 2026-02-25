@@ -1014,6 +1014,12 @@ def _classify_batch(batch: list[dict], offset: int) -> list[dict]:
 
         if len(valid) < len(batch):
             print(f"    [CLASSIFY 진단] offset={offset}, 요청={len(batch)}개, 유효={len(valid)}개")
+            valid_indices = {r["_global_idx"] - offset for r in valid}
+            for idx, r in enumerate(dicts_only):
+                if idx not in valid_indices:
+                    raw_i = r.get("i", r.get("index", "MISSING"))
+                    raw_cat = r.get("cat", "MISSING")
+                    print(f"      [무효] i={raw_i}, cat={raw_cat} (범위: 0~{len(batch)-1})")
         return valid
     except Exception as e:
         print(f"    [CLASSIFY ERROR] 배치 offset={offset}, size={len(batch)}: {type(e).__name__}: {e}")
@@ -1038,8 +1044,13 @@ def _classify_batch_with_retry(batch: list[dict], offset: int) -> list[dict]:
         if missing:
             print(f"    [CLASSIFY RETRY] 부분 누락 {len(missing)}개 개별 재시도")
             for mi, article in missing:
+                title = (article.get("display_title") or article.get("title", ""))[:40]
                 single = _classify_batch([article], offset + mi)
                 results.extend(single)
+                if single:
+                    print(f"      [복구] idx={offset+mi} cat={single[0].get('cat','?')} | {title}")
+                else:
+                    print(f"      [실패] idx={offset+mi} | {title}")
     return results
 
 
@@ -1332,6 +1343,34 @@ def scorer_node(state: NewsGraphState) -> dict:
     llm_count = len([c for c in candidates if c.get("_llm_scored")])
     print(f"  [스코어링] LLM 평가: {llm_count}/{len(candidates)}개")
 
+    # 카테고리별 점수 통계
+    for cat in VALID_CATEGORIES:
+        cat_articles = [c for c in candidates if c.get("_llm_category") == cat and c.get("_llm_scored")]
+        if not cat_articles:
+            continue
+        scores = [c.get("_total_score", 0) for c in cat_articles]
+        avg_s = sum(scores) / len(scores)
+        print(f"    [{cat}] {len(cat_articles)}개 | 평균 {avg_s:.1f} | 최소 {min(scores)} | 최대 {max(scores)}")
+        for rank, c in enumerate(sorted(cat_articles, key=lambda x: x.get("_total_score", 0), reverse=True)[:3]):
+            title = (c.get("display_title") or c.get("title", ""))[:50]
+            print(f"      Top{rank+1}: [{c.get('_total_score', 0)}점] {title}")
+
+    # 90점 이상 고점 기사 플래깅
+    high_scorers = [c for c in candidates if c.get("_total_score", 0) >= 90 and c.get("_llm_scored")]
+    if high_scorers:
+        print(f"  [주의] 90점 이상 기사 {len(high_scorers)}개:")
+        for c in sorted(high_scorers, key=lambda x: x.get("_total_score", 0), reverse=True):
+            title = (c.get("display_title") or c.get("title", ""))[:60]
+            cat = c.get("_llm_category", "?")
+            score = c.get("_total_score", 0)
+            if cat == "research":
+                dims = f"rig={c.get('_score_rigor',0)} nov={c.get('_score_novelty',0)} pot={c.get('_score_potential',0)}"
+            elif cat == "models_products":
+                dims = f"uti={c.get('_score_utility',0)} imp={c.get('_score_impact',0)} acc={c.get('_score_access',0)}"
+            else:
+                dims = f"mag={c.get('_score_market',0)} sig={c.get('_score_signal',0)} brd={c.get('_score_breadth',0)}"
+            print(f"    [{score}점] [{cat}] {dims} | {title}")
+
     return {"scored_candidates": candidates, "scorer_retry_count": retry_count + 1}
 
 
@@ -1532,6 +1571,20 @@ def classifier_node(state: NewsGraphState) -> dict:
         today_count = len([a for a in categorized[cat] if a.get("_is_today")])
         categorized[cat] = _select_category_top_n(categorized[cat])
         print(f"    {cat}: {total}개 (당일 {today_count}) -> Top {len(categorized[cat])}개")
+
+    # 카테고리별 최종 선정 기사 목록
+    for cat in category_order:
+        articles = categorized[cat]
+        if not articles:
+            continue
+        print(f"  --- [{cat}] 최종 선정 {len(articles)}개 ---")
+        for idx, a in enumerate(articles[:5]):
+            title = (a.get("display_title") or a.get("title", ""))[:50]
+            score = a.get("_total_score", 0)
+            is_today = "당일" if a.get("_is_today") else "이전"
+            print(f"    {idx+1}. [{score}점] [{is_today}] {title}")
+        if len(articles) > 5:
+            print(f"    ... 외 {len(articles) - 5}개")
 
     # 품질 검증 (기존 quality_gate 통합)
     highlights = state.get("highlights", [])
