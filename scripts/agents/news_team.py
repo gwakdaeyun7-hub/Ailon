@@ -1002,9 +1002,11 @@ def _classify_batch(batch: list[dict], offset: int) -> list[dict]:
             if 0 <= idx < len(batch) and cat in VALID_CATEGORIES:
                 valid.append({"_global_idx": offset + idx, "cat": cat})
 
+        # 폴백 + 진단용: dict만 추출
+        dicts_only = [r for r in results if isinstance(r, dict)]
+
         # 폴백: "i" 필드 없지만 개수가 맞으면 순서대로 매핑
         if not valid:
-            dicts_only = [r for r in results if isinstance(r, dict)]
             if len(dicts_only) == len(batch):
                 print(f"    [CLASSIFY 폴백] i값 없음 → 순서 매핑 (offset={offset}, {len(batch)}개)")
                 for idx, r in enumerate(dicts_only):
