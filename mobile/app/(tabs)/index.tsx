@@ -524,71 +524,53 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
           {/* 고정 하단 액션 바 */}
           <View style={{
             borderTopWidth: 1, borderTopColor: BORDER,
-            flexDirection: 'row', alignItems: 'center',
+            flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end',
             paddingHorizontal: 16, paddingTop: 10,
             paddingBottom: Math.max(insets.bottom, 10),
-            gap: 10,
+            gap: 8,
           }}>
-            {/* 원문 보기 버튼 */}
             <Pressable
-              onPress={handleOpenOriginal}
-              accessibilityLabel={t('modal.view_original')}
-              accessibilityRole="link"
+              onPress={handleLike}
+              accessibilityLabel={liked ? t('modal.unlike') : t('modal.like')}
+              accessibilityRole="button"
               style={({ pressed }) => ({
-                flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5,
-                backgroundColor: '#000', paddingVertical: 11, borderRadius: 10,
+                alignItems: 'center', justifyContent: 'center',
+                backgroundColor: liked ? '#3B82F615' : BORDER,
+                paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10,
+                borderWidth: liked ? 1 : 0, borderColor: '#3B82F640',
                 opacity: pressed ? 0.8 : 1,
               })}
             >
-              <ExternalLink size={15} color="#FFF" />
-              <Text style={{ color: '#FFF', fontSize: 14, fontWeight: '700' }}>{t('modal.view_original')}</Text>
+              <ThumbsUp size={18} color={liked ? '#3B82F6' : TEXT_SECONDARY} />
             </Pressable>
 
-            {/* 좋아요 | 댓글 | 공유 — 오른쪽 정렬 */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Pressable
-                onPress={handleLike}
-                accessibilityLabel={liked ? t('modal.unlike') : t('modal.like')}
-                accessibilityRole="button"
-                style={({ pressed }) => ({
-                  alignItems: 'center', justifyContent: 'center',
-                  backgroundColor: liked ? '#3B82F615' : BORDER,
-                  paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10,
-                  borderWidth: liked ? 1 : 0, borderColor: '#3B82F640',
-                  opacity: pressed ? 0.8 : 1,
-                })}
-              >
-                <ThumbsUp size={18} color={liked ? '#3B82F6' : TEXT_SECONDARY} />
-              </Pressable>
+            <Pressable
+              onPress={onOpenComments}
+              accessibilityLabel={t('modal.comment')}
+              accessibilityRole="button"
+              style={({ pressed }) => ({
+                alignItems: 'center', justifyContent: 'center',
+                backgroundColor: BORDER,
+                paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10,
+                opacity: pressed ? 0.8 : 1,
+              })}
+            >
+              <MessageCircle size={18} color={TEXT_SECONDARY} />
+            </Pressable>
 
-              <Pressable
-                onPress={onOpenComments}
-                accessibilityLabel={t('modal.comment')}
-                accessibilityRole="button"
-                style={({ pressed }) => ({
-                  alignItems: 'center', justifyContent: 'center',
-                  backgroundColor: BORDER,
-                  paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10,
-                  opacity: pressed ? 0.8 : 1,
-                })}
-              >
-                <MessageCircle size={18} color={TEXT_SECONDARY} />
-              </Pressable>
-
-              <Pressable
-                onPress={handleShare}
-                accessibilityLabel={t('modal.share')}
-                accessibilityRole="button"
-                style={({ pressed }) => ({
-                  alignItems: 'center', justifyContent: 'center',
-                  backgroundColor: BORDER,
-                  paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10,
-                  opacity: pressed ? 0.8 : 1,
-                })}
-              >
-                <Share2 size={18} color={TEXT_SECONDARY} />
-              </Pressable>
-            </View>
+            <Pressable
+              onPress={handleShare}
+              accessibilityLabel={t('modal.share')}
+              accessibilityRole="button"
+              style={({ pressed }) => ({
+                alignItems: 'center', justifyContent: 'center',
+                backgroundColor: BORDER,
+                paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10,
+                opacity: pressed ? 0.8 : 1,
+              })}
+            >
+              <Share2 size={18} color={TEXT_SECONDARY} />
+            </Pressable>
           </View>
 
           {/* 인라인 토스트 */}
