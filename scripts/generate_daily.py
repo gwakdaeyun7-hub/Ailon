@@ -83,6 +83,11 @@ def save_news_to_firestore(result: dict):
                 "score_signal": a.get("_score_signal", 0),
                 "score_breadth": a.get("_score_breadth", 0),
                 "category": a.get("_llm_category", ""),
+                "background": a.get("background", ""),
+                "background_en": a.get("background_en", ""),
+                "tags": a.get("tags", []),
+                "glossary": a.get("glossary", []),
+                "glossary_en": a.get("glossary_en", []),
             }
             for a in articles
         ]

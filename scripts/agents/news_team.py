@@ -263,7 +263,7 @@ def _summarize_batch(batch: list[dict], batch_idx: int, translate: bool = True) 
 
     prompt = f"""IMPORTANT: Output ONLY a valid JSON array. No thinking, no markdown. Start with '[' and end with ']'.
 
-RULE: Only use facts stated in the provided article text. Never infer, speculate, or add information not present in the source.
+RULE: Only use facts stated in the provided article text. Never infer, speculate, or add information not present in the source. (Exception: the "background" field MAY use general knowledge.)
 
 {task_desc}
 
@@ -283,6 +283,17 @@ For each article, produce:
   - one_line·key_points에 나온 내용 반복 금지
   - "~에 영향을 줄 수 있어요", "~가 바뀔 수 있어요" 등 시사점 중심
 {en_fields_rule}
+- background: 이 뉴스를 이해하기 위한 배경 맥락 1~2문장 (~이에요/~해요 체)
+  - 이전 사건이나 관련 배경 정보를 포함해요
+  - 기사 본문 외 일반 상식·배경 지식 사용 허용
+  - 예: "OpenAI는 지난해 GPT-4o를 출시하며 멀티모달 AI 경쟁을 이끌어왔어요"
+- background_en: English version of background (1-2 sentences)
+- tags: 이 기사의 핵심 키워드 2~4개 배열
+  - 예: ["OpenAI", "GPT-5", "멀티모달"]
+- glossary: 기사에 등장하는 전문 용어 2~3개를 {{"term": "용어", "desc": "한줄설명"}} 형태의 배열
+  - 예: [{{"term": "MoE", "desc": "여러 전문가 모델을 조합해 효율적으로 추론하는 아키텍처"}}]
+  - desc는 ~이에요/~해요 체
+- glossary_en: English version of glossary (same structure: {{"term": "...", "desc": "..."}})
 
 문체 규칙 (한국어 필드만 해당):
 - 종결어미: ~이에요/~해요/~있어요 (해요체). ~입니다/~합니다(합쇼체) 사용 금지
@@ -297,7 +308,7 @@ AI 용어 번역 규칙:
 - 확실하지 않으면 영어 원문을 그대로 유지할 것
 
 Return exactly {len(batch)} items:
-[{{"index":1,"display_title":"...","one_line":"...","key_points":["..."],"why_important":"...","display_title_en":"...","one_line_en":"...","key_points_en":["..."],"why_important_en":"..."}}]
+[{{"index":1,"display_title":"...","one_line":"...","key_points":["..."],"why_important":"...","display_title_en":"...","one_line_en":"...","key_points_en":["..."],"why_important_en":"...","background":"...","background_en":"...","tags":["..."],"glossary":[{{"term":"...","desc":"..."}}],"glossary_en":[{{"term":"...","desc":"..."}}]}}]
 
 Articles:
 {batch_text}"""
@@ -362,6 +373,20 @@ def _apply_batch_results(batch: list[dict], results: list[dict]) -> int:
                 batch[ridx]["key_points_en"] = kp_en if isinstance(kp_en, list) else []
             if r.get("why_important_en"):
                 batch[ridx]["why_important_en"] = r["why_important_en"]
+            # background / tags / glossary 필드
+            if r.get("background"):
+                batch[ridx]["background"] = r["background"]
+            if r.get("background_en"):
+                batch[ridx]["background_en"] = r["background_en"]
+            tags = r.get("tags", [])
+            if tags:
+                batch[ridx]["tags"] = tags if isinstance(tags, list) else []
+            glossary = r.get("glossary", [])
+            if glossary:
+                batch[ridx]["glossary"] = glossary if isinstance(glossary, list) else []
+            glossary_en = r.get("glossary_en", [])
+            if glossary_en:
+                batch[ridx]["glossary_en"] = glossary_en if isinstance(glossary_en, list) else []
     return done
 
 

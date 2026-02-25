@@ -43,6 +43,9 @@ const translations: Record<string, Record<Language, string>> = {
   'modal.unlike': { ko: '좋아요 취소', en: 'Unlike' },
   'modal.comment': { ko: '댓글', en: 'Comments' },
   'modal.share': { ko: '공유', en: 'Share' },
+  'modal.background': { ko: '배경', en: 'Background' },
+  'modal.glossary': { ko: '용어 해설', en: 'Glossary' },
+  'modal.tags': { ko: '키워드', en: 'Keywords' },
 
   // ─── 공유 메시지 ───
   'share.one_line_label': { ko: '💡 핵심 한줄', en: '💡 Key Takeaway' },

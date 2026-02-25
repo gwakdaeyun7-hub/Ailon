@@ -36,6 +36,11 @@ export interface Article {
   score_signal?: number;
   score_breadth?: number;
   category?: string;
+  background?: string;
+  background_en?: string;
+  tags?: string[];
+  glossary?: { term: string; desc: string }[];
+  glossary_en?: { term: string; desc: string }[];
 }
 
 export interface DailyNews {

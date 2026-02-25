@@ -22,7 +22,7 @@ import { Image } from 'expo-image';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import {
-  Bell, RefreshCw, ThumbsUp, Eye, Share2, ExternalLink, MessageCircle, X, Cpu, Newspaper, Bookmark,
+  Bell, RefreshCw, ThumbsUp, Eye, Share2, ExternalLink, MessageCircle, X, Cpu, Newspaper, Bookmark, ChevronDown,
 } from 'lucide-react-native';
 import { useNews } from '@/hooks/useNews';
 import { useDrawer } from '@/context/DrawerContext';
@@ -151,6 +151,16 @@ function getLocalizedKeyPoints(a: Article, lang: Language): string[] {
 function getLocalizedWhyImportant(a: Article, lang: Language) {
   if (lang === 'en' && a.why_important_en) return a.why_important_en;
   return a.why_important || '';
+}
+
+function getLocalizedBackground(a: Article, lang: Language) {
+  if (lang === 'en' && a.background_en) return a.background_en;
+  return a.background || '';
+}
+
+function getLocalizedGlossary(a: Article, lang: Language): { term: string; desc: string }[] {
+  if (lang === 'en' && a.glossary_en && a.glossary_en.length > 0) return a.glossary_en;
+  return a.glossary || [];
 }
 
 function getCategoryName(catKey: string, t: (key: string) => string) {
@@ -313,6 +323,7 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
   const viewTrackedLink = useRef('');
   const insets = useSafeAreaInsets();
   const [toastMsg, setToastMsg] = useState('');
+  const [glossaryOpen, setGlossaryOpen] = useState(false);
   const toastOpacity = useRef(new Animated.Value(0)).current;
 
   const showToast = (msg: string) => {
@@ -329,6 +340,7 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
     if (article && article.link !== viewTrackedLink.current) {
       viewTrackedLink.current = article.link;
       trackView();
+      setGlossaryOpen(false);
     }
   }, [article, trackView]);
 
@@ -484,29 +496,54 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
             {/* 구분선 */}
             <View style={{ height: 1, backgroundColor: colors.border, marginBottom: 18, marginHorizontal: 20 }} />
 
-            {/* 3-파트 요약 — 이슈 #1: 하드코딩 색상 수정 */}
+            {/* 3-파트 요약 + 배경/태그/용어 — 이슈 #1: 하드코딩 색상 수정 */}
             {(() => {
               const oneLine = getLocalizedOneLine(article, lang);
               const keyPoints = getLocalizedKeyPoints(article, lang);
               const whyImportant = getLocalizedWhyImportant(article, lang);
+              const background = getLocalizedBackground(article, lang);
+              const tags = (article as any).tags as string[] | undefined;
+              const glossary = getLocalizedGlossary(article, lang);
               if (oneLine) {
                 return (
                   <View style={{ paddingHorizontal: 20, marginBottom: 16 }}>
-                    {/* 핵심 한줄 */}
-                    <View style={{ backgroundColor: colors.highlightBg, borderRadius: 10, padding: 14, marginBottom: 16 }}>
-                      <Text style={{ fontSize: 11, fontWeight: '600', color: colors.summaryIndigo, marginBottom: 6 }}>{t('modal.one_line')}</Text>
-                      <Text style={{ fontSize: 16, color: colors.textPrimary, lineHeight: 26, fontWeight: '700' }}>
-                        {oneLine}
-                      </Text>
+                    {/* 배경 맥락 (Task 5) */}
+                    {background ? (
+                      <View style={{ backgroundColor: colors.surface, borderRadius: 10, padding: 14, marginBottom: 16 }}>
+                        <Text style={{ fontSize: 12, fontWeight: '700', color: colors.textSecondary, marginBottom: 6 }}>
+                          {lang === 'en' ? 'Background' : '배경'}
+                        </Text>
+                        <Text style={{ fontSize: 14, color: colors.summaryBody, lineHeight: 22 }}>
+                          {background}
+                        </Text>
+                      </View>
+                    ) : null}
+
+                    {/* 핵심 한줄 (Task 3: 인디케이터 바 + 폰트 조정) */}
+                    <View style={{ backgroundColor: colors.highlightBg, borderRadius: 10, padding: 14, marginBottom: 16, flexDirection: 'row' }}>
+                      <View style={{ width: 3, backgroundColor: colors.summaryIndigo, borderRadius: 2, marginRight: 12 }} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 13, fontWeight: '600', color: colors.summaryIndigo, marginBottom: 6 }}>{t('modal.one_line')}</Text>
+                        <Text style={{ fontSize: 16, color: colors.textPrimary, lineHeight: 28, fontWeight: '700' }}>
+                          {oneLine}
+                        </Text>
+                      </View>
                     </View>
 
-                    {/* 주요 포인트 */}
+                    {/* 주요 포인트 (Task 4: 원형 뱃지 + 간격 증가) */}
                     {keyPoints.length > 0 && (
                       <View style={{ marginBottom: 16 }}>
                         <Text style={{ fontSize: 13, fontWeight: '700', color: colors.summaryTeal, marginBottom: 8 }}>{t('modal.key_points')}</Text>
                         {keyPoints.map((point, idx) => (
-                          <View key={idx} style={{ flexDirection: 'row', marginBottom: 12, paddingRight: 4 }}>
-                            <Text style={{ fontSize: 13, color: colors.summaryTeal, marginRight: 8, lineHeight: 22, fontWeight: '700' }}>{idx + 1}.</Text>
+                          <View key={idx} style={{ flexDirection: 'row', marginBottom: 16, paddingRight: 4, alignItems: 'flex-start' }}>
+                            <View style={{
+                              width: 22, height: 22, borderRadius: 11,
+                              backgroundColor: colors.summaryTeal,
+                              alignItems: 'center', justifyContent: 'center',
+                              marginRight: 10, marginTop: 1,
+                            }}>
+                              <Text style={{ fontSize: 12, color: '#FFFFFF', fontWeight: '700' }}>{idx + 1}</Text>
+                            </View>
                             <Text style={{ fontSize: 14, color: colors.summaryBody, lineHeight: 22, flex: 1 }}>{point}</Text>
                           </View>
                         ))}
@@ -515,11 +552,53 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
 
                     {/* 왜 중요해요? */}
                     {whyImportant ? (
-                      <View style={{ backgroundColor: colors.summaryWarnBg, borderRadius: 10, padding: 14 }}>
+                      <View style={{ backgroundColor: colors.summaryWarnBg, borderRadius: 10, padding: 14, marginBottom: tags && tags.length > 0 ? 16 : 0 }}>
                         <Text style={{ fontSize: 13, fontWeight: '700', color: colors.summaryWarnText, marginBottom: 4 }}>{t('modal.why_important')}</Text>
                         <Text style={{ fontSize: 14, color: colors.summaryBody, lineHeight: 24 }}>
                           {whyImportant}
                         </Text>
+                      </View>
+                    ) : null}
+
+                    {/* 키워드 태그 (Task 6) */}
+                    {tags && tags.length > 0 ? (
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: glossary.length > 0 ? 16 : 0 }}>
+                        {tags.map((tag, idx) => (
+                          <View key={idx} style={{
+                            backgroundColor: colors.surface,
+                            paddingHorizontal: 10, paddingVertical: 5,
+                            borderRadius: 12,
+                          }}>
+                            <Text style={{ fontSize: 12, color: colors.textSecondary, fontWeight: '500' }}>{tag}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    ) : null}
+
+                    {/* 용어 해설 (Task 7) */}
+                    {glossary.length > 0 ? (
+                      <View style={{ borderRadius: 10, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' }}>
+                        <Pressable
+                          onPress={() => setGlossaryOpen(!glossaryOpen)}
+                          style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14 }}
+                        >
+                          <Text style={{ fontSize: 13, fontWeight: '700', color: colors.textPrimary }}>
+                            {lang === 'en' ? 'Glossary' : '용어 해설'}
+                          </Text>
+                          <View style={{ transform: [{ rotate: glossaryOpen ? '180deg' : '0deg' }] }}>
+                            <ChevronDown size={16} color={colors.textSecondary} />
+                          </View>
+                        </Pressable>
+                        {glossaryOpen ? (
+                          <View style={{ paddingHorizontal: 14, paddingBottom: 14 }}>
+                            {glossary.map((item, idx) => (
+                              <View key={idx} style={{ marginBottom: idx < glossary.length - 1 ? 10 : 0 }}>
+                                <Text style={{ fontSize: 13, fontWeight: '700', color: colors.summaryIndigo, marginBottom: 2 }}>{item.term}</Text>
+                                <Text style={{ fontSize: 13, color: colors.summaryBody, lineHeight: 20 }}>{item.desc}</Text>
+                              </View>
+                            ))}
+                          </View>
+                        ) : null}
                       </View>
                     ) : null}
                   </View>

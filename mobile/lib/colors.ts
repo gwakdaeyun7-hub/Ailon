@@ -47,6 +47,16 @@ export const LightColors = {
   errorColor: '#DC2626',
   // Switch
   switchTrackActive: '#FFCCBC',
+  // 요약 모달 — 배경 컨텍스트 섹션
+  contextBg: '#F3F4F6',
+  contextText: '#6B7280',
+  // 요약 모달 — 용어 해설 섹션
+  glossaryBg: '#F5F3FF',
+  glossaryTerm: '#6D28D9',
+  glossaryDesc: '#4B5563',
+  // 태그 칩
+  tagBg: '#F0F0F0',
+  tagText: '#616161',
 } as const;
 
 export const DarkColors: Record<keyof typeof LightColors, string> = {
@@ -92,6 +102,13 @@ export const DarkColors: Record<keyof typeof LightColors, string> = {
   errorBg: '#3D1F1F',
   errorColor: '#FF5252',
   switchTrackActive: '#5C3A30',
+  contextBg: '#1F2937',
+  contextText: '#9CA3AF',
+  glossaryBg: '#1E1B2E',
+  glossaryTerm: '#A78BFA',
+  glossaryDesc: '#D1D5DB',
+  tagBg: '#2A2A2A',
+  tagText: '#BDBDBD',
 } as const;
 
 // 하위 호환성: 기존 `Colors` export 유지 (비-컴포넌트 코드용)
