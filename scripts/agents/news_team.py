@@ -130,8 +130,8 @@ def _parse_llm_json(text: str):
     text = text.strip()
     # Gemini 2.5 Flash: <thinking> 태그 제거 (thinking 비활성화 시에도 발생 가능)
     text = re.sub(r'<think(?:ing)?>.*?</think(?:ing)?>', '', text, flags=re.DOTALL)
-    text = re.sub(r'^```(?:json)?\s*\n?', '', text)
-    text = re.sub(r'\n?```\s*$', '', text)
+    text = re.sub(r'```(?:json)?\s*\n?', '', text)
+    text = re.sub(r'\n?```\s*', '', text)
     text = text.strip()
 
     if not text:
@@ -789,6 +789,7 @@ ONLY pure scientific findings with no released product. This is the NARROWEST ca
 "Anthropic, Claude Cowork 업데이트로 기업 업무 자동화 확장" → models_products (제품 업데이트)
 "Nimble, 기업용 '에이전트 검색 플랫폼' 출시" → models_products (플랫폼 출시)
 "Kilo, OpenClaw 에이전트 60초 만에 배포하는 KiloClaw 서비스 출시" → models_products (서비스 출시)
+"Google Chrome, Auto Browse 에이전트 테스트 결과 공개" → models_products (제품 기능 테스트 결과 공개)
 
 "Meta, AMD와 수십억 달러 규모 칩 계약 체결" → industry_business (거래/계약)
 "Canva, 애니메이션 'Cavalry'·마케팅 AI 'MangoAI' 동시 인수" → industry_business (M&A 인수)
@@ -950,7 +951,8 @@ Penalize for: expected moves already priced in, copycat strategies, announcement
 - 2: Single company and its immediate stakeholders
 - 1: Internal to one organization; no external impact
 Boost for: cross-industry effects, impacts on open-source community, effects on AI talent market.
-Penalize for: single geography with no global relevance, single vertical with no spillover."""
+Penalize for: single geography with no global relevance, single vertical with no spillover.
+NOTE: Events with no financial, strategic, regulatory, or legal substance (social interactions, gossip, personality clashes, conference anecdotes) should score mag <= 2 regardless of the individuals involved."""
 
 # 카테고리 → 루브릭 매핑
 _RUBRIC_MAP = {
@@ -972,7 +974,8 @@ _CALIBRATION_MAP = {
     ),
     "industry_business": (
         '"NVIDIA reports record $35B quarterly revenue" → {{"i":0,"mag":9,"sig":9,"brd":9}}\n'
-        '"AI startup raises $8M seed round" → {{"i":1,"mag":2,"sig":2,"brd":1}}'
+        '"AI startup raises $8M seed round" → {{"i":1,"mag":2,"sig":2,"brd":1}}\n'
+        '"Two CEOs awkward moment / executive social interaction at conference" → {{"i":2,"mag":1,"sig":2,"brd":2}}'
     ),
 }
 
