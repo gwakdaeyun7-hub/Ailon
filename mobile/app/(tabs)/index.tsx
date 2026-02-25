@@ -553,8 +553,9 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
           {/* 고정 하단 액션 바 — 3등분 컬럼: 좋아요 | 댓글 | 공유 */}
           <View style={{
             borderTopWidth: 1, borderTopColor: colors.border,
-            flexDirection: 'row', alignItems: 'center',
+            flexDirection: 'row', alignItems: 'stretch',
             paddingBottom: Math.max(insets.bottom, 10),
+            backgroundColor: colors.card,
           }}>
             {/* 좋아요 */}
             <Pressable
@@ -562,17 +563,16 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
               accessibilityLabel={liked ? t('modal.unlike') : t('modal.like')}
               accessibilityRole="button"
               style={({ pressed }) => ({
-                flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-                gap: 6, paddingVertical: 12, minHeight: 48,
-                opacity: pressed ? 0.6 : 1,
+                flex: 1, alignItems: 'center', justifyContent: 'center',
+                paddingVertical: 14, minHeight: 52,
+                opacity: pressed ? 0.5 : 1,
               })}
             >
-              <ThumbsUp size={18} color={liked ? colors.likeActiveColor : colors.textSecondary} />
-              <Text style={{ fontSize: 13, fontWeight: '600', color: liked ? colors.likeActiveColor : colors.textSecondary }}>{likes}</Text>
+              <ThumbsUp size={24} color={liked ? colors.likeActiveColor : colors.textSecondary} />
             </Pressable>
 
             {/* 구분선 */}
-            <View style={{ width: 1, height: 24, backgroundColor: colors.border }} />
+            <View style={{ width: 1, backgroundColor: colors.border, marginVertical: 12 }} />
 
             {/* 댓글 */}
             <Pressable
@@ -580,17 +580,16 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
               accessibilityLabel={t('modal.comment')}
               accessibilityRole="button"
               style={({ pressed }) => ({
-                flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-                gap: 6, paddingVertical: 12, minHeight: 48,
-                opacity: pressed ? 0.6 : 1,
+                flex: 1, alignItems: 'center', justifyContent: 'center',
+                paddingVertical: 14, minHeight: 52,
+                opacity: pressed ? 0.5 : 1,
               })}
             >
-              <MessageCircle size={18} color={colors.textSecondary} />
-              <Text style={{ fontSize: 13, fontWeight: '600', color: colors.textSecondary }}>0</Text>
+              <MessageCircle size={24} color={colors.textSecondary} />
             </Pressable>
 
             {/* 구분선 */}
-            <View style={{ width: 1, height: 24, backgroundColor: colors.border }} />
+            <View style={{ width: 1, backgroundColor: colors.border, marginVertical: 12 }} />
 
             {/* 공유 */}
             <Pressable
@@ -598,12 +597,12 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
               accessibilityLabel={t('modal.share')}
               accessibilityRole="button"
               style={({ pressed }) => ({
-                flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-                gap: 6, paddingVertical: 12, minHeight: 48,
-                opacity: pressed ? 0.6 : 1,
+                flex: 1, alignItems: 'center', justifyContent: 'center',
+                paddingVertical: 14, minHeight: 52,
+                opacity: pressed ? 0.5 : 1,
               })}
             >
-              <Share2 size={18} color={colors.textSecondary} />
+              <Share2 size={24} color={colors.textSecondary} />
             </Pressable>
           </View>
 

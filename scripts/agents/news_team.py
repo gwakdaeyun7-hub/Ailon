@@ -9,7 +9,7 @@ collector --> [en_process, ko_process] (병렬 Send) --> categorizer --> scorer 
 2. en_process:    영어 기사 번역+요약 (thinking 비활성화, 배치 5)  -- 병렬
 3. ko_process:    한국어 기사 요약 (thinking 비활성화, 배치 2)     -- 병렬
 4. categorizer:   LLM 카테고리 분류 (research / models_products / industry_business)
-5. scorer:        카테고리별 LLM 평가 (research: rig*4+nov*3+pot*3, models_products: uti*4+imp*3+acc*3, industry_business: mag*4+sig*3+brd*3, 만점 100)
+5. scorer:        카테고리별 LLM 평가 (research: 스킵, models_products: uti*4+imp*3+acc*3, industry_business: mag*4+sig*3+brd*3, 만점 100)
 6. selector:      하이라이트 Top 3 + 카테고리별 Top 25 + 품질 검증 (기존 ranker+classifier 통합)
 7. assembler:     한국 소스별 분리 + 최종 결과 + 타이밍 리포트
 
@@ -22,7 +22,7 @@ collector --> [en_process, ko_process] (병렬 Send) --> categorizer --> scorer 
 - 노드별 소요 시간 측정
 - sources Annotated 리듀서로 EN/KO 결과 안전 머지
 
-점수 체계: 카테고리별 차등 (research: rig*4+nov*3+pot*3, models_products: uti*4+imp*3+acc*3, industry_business: mag*4+sig*3+brd*3, 만점 100)
+점수 체계: 카테고리별 차등 (research: 스킵(전부 노출), models_products: uti*4+imp*3+acc*3, industry_business: mag*4+sig*3+brd*3, 만점 100)
 """
 
 import json
@@ -698,10 +698,6 @@ def _deduplicate_candidates(candidates: list[dict]) -> list[dict]:
 
 
 # ─── Node 4: categorizer (카테고리 분류) + Node 5: scorer (3 LLM차원, 병렬 배치) ───
-# research 가중치
-W_RIGOR = 4         # 엄밀성 (research)
-W_NOVELTY = 3       # 방법론 새로움 (research)
-W_POTENTIAL = 3     # 잠재력 (research)
 # models_products 가중치
 W_UTILITY = 4       # 실용성 (models_products)
 W_IMPACT = 3        # 생태계 영향 (models_products)
@@ -757,65 +753,18 @@ VALID_CATEGORIES = {"research", "models_products", "industry_business"}
 
 _CLASSIFY_PROMPT = """Output ONLY a JSON array. No markdown, no explanation. Start with '['.
 
-Classify each article into exactly ONE category. Apply tests top-to-bottom; first YES wins.
+Classify each article into exactly ONE category — the best fit.
 
-## Test 1: research (가장 좁음 — 순수 학술/과학만)
-Is this about a SCIENTIFIC PAPER, RESEARCH FINDING, BENCHMARK RESULT, or ALGORITHMIC DISCOVERY?
-YES conditions (ALL must apply):
-- 핵심이 논문/연구/실험/벤치마크/과학적 발견임
-- 사용자가 다운로드/사용할 수 있는 제품이 아님
-- 비즈니스 거래/전략/규제 이야기가 아님
-Signal: 논문, 연구, 발견, 벤치마크, SOTA, scaling law, 방법론, 실험 결과, 알고리즘 제안
-
-## Test 2: models_products (두 번째로 좁음 — 출시/공개/업데이트만)
-Is this about a NEW MODEL, PRODUCT, FEATURE, or TOOL that users can USE/DOWNLOAD/ACCESS?
-YES conditions (ANY one suffices):
-- 새 모델/앱/서비스/플랫폼/도구가 출시·공개·릴리스됨
-- 기존 제품에 기능 업데이트·API 추가됨
-- 오픈소스 웨이트/코드가 공개됨
-Signal: 출시, 공개, 릴리스, 오픈소스, 업데이트, 배포, API, SDK, 서비스, 플랫폼
-
-## Test 3: industry_business (나머지 전부 — catch-all)
-위 두 카테고리에 해당하지 않으면 무조건 industry_business.
-투자, M&A, 규제, 소송, 인사, 시장 분석, 파트너십, 전략, 보안, 행사, 가십 등 전부 포함.
-
-## 경계 판단 규칙
-- 논문 + 코드/모델 동시 공개 → models_products (사용 가능한 것이 있으면 models_products)
-- 논문만, 제품 없음 → research
-- 연구 결과지만 기업 전략/투자 맥락 → industry_business
-- "연구 촉구/우려 제기" → 실제 논문이면 research, 아니면 industry_business
-- 성능 비교/벤치마크 → 학술 실험이면 research, 제품 홍보면 models_products
-- 회사명만으로 판단하지 말 것. 핵심 ACTION으로 판단.
-- CEO/COO/CTO 등 경영진 발언·분석·의견 → industry_business
-- 인덱스/지표/리포트 발표 → industry_business (논문이 아니면 research 아님)
+## Categories
+- research: 논문, 연구 결과, 벤치마크, 알고리즘 발견 (학술/과학)
+- models_products: 모델·제품·도구의 출시, 공개, 업데이트 (사용 가능한 것)
+- industry_business: 투자, M&A, 규제, 전략, 시장 분석, 인사 등 비즈니스 전반
 
 ## Examples
-
-research:
-"OpenAI, GPT-5.2로 입자 물리학 난제 해결" → research (과학 문제 해결)
-"ByteDance AI, Long CoT 연구 발표" → research (연구 논문)
-"Google DeepMind, 챗봇의 도덕적 행동 진정성 연구 촉구" → research (학술 연구)
-"MIT, 트랜스포머 대체할 새로운 아키텍처 논문 발표" → research (논문)
-"Anthropic, 대규모 언어 모델 환각 현상 분석 논문 공개" → research (논문/연구 결과)
-
-models_products:
-"Alibaba Qwen 팀, Qwen 3.5 미디엄 모델 시리즈 공개" → models_products (모델 공개)
-"Inception Labs, 확산 기반 언어 추론 모델 'Mercury 2' 공개" → models_products (모델 공개)
-"Anthropic, Claude Cowork 업데이트로 기업 업무 자동화 확장" → models_products (제품 업데이트)
-"Nimble, 기업용 '에이전트 검색 플랫폼' 출시" → models_products (플랫폼 출시)
-"Google, Gemma 3n 오픈소스 웨이트 공개" → models_products (오픈소스 릴리스)
-"Google Chrome, Auto Browse 에이전트 테스트 결과 공개" → models_products (제품 기능 공개)
-
-industry_business:
-"Meta, AMD와 수십억 달러 규모 칩 계약 체결" → industry_business (거래)
-"Canva, 애니메이션 'Cavalry'·마케팅 AI 'MangoAI' 동시 인수" → industry_business (M&A)
-"OpenAI, xAI의 영업 비밀 침해 소송 기각 결정 받아 승소" → industry_business (소송)
-"Deepseek, 美 수출 금지에도 Nvidia Blackwell 칩으로 AI 모델 훈련" → industry_business (규제)
-"Anthropic, 중국 AI 기업들의 Claude 무단 활용 의혹 제기" → industry_business (의혹/전략)
-"Sam Altman, AI 안전 정책 방향성 발표" → industry_business (전략/정책)
-"AI 스타트업 투자 2026년 상반기 200억 돌파" → industry_business (시장 분석)
-"OpenAI COO, 'AI, 아직 기업에 침투 못 해'" → industry_business (경영진 발언/시장 분석)
-"Anthropic, 'AI Fluency Index' 발표" → industry_business (인덱스/리포트 = 시장 분석)
+"MIT, 트랜스포머 대체 아키텍처 논문 발표" → research
+"Alibaba Qwen 팀, Qwen 3.5 모델 시리즈 공개" → models_products
+"Meta, AMD와 수십억 달러 칩 계약 체결" → industry_business
+"논문 + 코드/모델 동시 공개" → models_products
 
 Articles:
 {article_text}
@@ -839,50 +788,59 @@ Articles:
 Output exactly {count} JSON object(s) as a single-line compact JSON array:
 {output_example}"""
 
-# --- 카테고리별 스코어링 루브릭 ---
-_RUBRIC_RESEARCH = """### Category: research → score rig, nov, pot (each 0-10, use any integer)
-- rig (Rigor): 이 연구가 얼마나 새롭고 흥미로운 방법론/실험 설계를 갖추고 있는가?
-- nov (Novelty): 이 연구의 접근 방식이 얼마나 새롭고 흥미로운가? (SOTA 달성 자체는 높은 점수 사유가 아님)
-- pot (Potential): 이 연구가 향후 얼마나 새롭고 흥미로운 후속 연구를 촉발할 수 있는가?"""
+# --- 카테고리별 스코어링 루브릭 (research는 스코어링 스킵) ---
+_RUBRIC_MODELS_PRODUCTS = """### Category: models_products → score uti, imp, acc (each 0-10 integer)
+- uti (Utility): 사용자에게 실질적으로 얼마나 유용한가?
+  0-3 낮음: 틈새 용도, 제한적 사용처
+  4-6 보통: 특정 분야 개발자/사용자에게 유용
+  7-10 높음: 광범위한 사용자에게 즉시 유용
+- imp (Impact): AI 생태계/업계에 얼마나 영향을 주는가?
+  0-3 낮음: 기존 제품의 소규모 업데이트
+  4-6 보통: 해당 분야 경쟁 구도에 영향
+  7-10 높음: 업계 판도를 바꾸는 수준
+- acc (Accessibility): 접근성 — 얼마나 쉽게 사용할 수 있는가?
+  0-3 낮음: 유료/제한적 접근, 초대제
+  4-6 보통: 무료 티어 있지만 제한 있음
+  7-10 높음: 오픈소스 또는 무료 공개"""
 
-_RUBRIC_MODELS_PRODUCTS = """### Category: models_products → score uti, imp, acc (each 0-10, use any integer)
-- uti (Utility): 이 제품/모델이 사용자에게 얼마나 새롭고 흥미로운 가치를 제공하는가?
-- imp (Impact): 이 제품/모델이 AI 생태계에 얼마나 새롭고 흥미로운 변화를 일으키는가?
-- acc (Accessibility): 이 제품/모델에 얼마나 쉽게 접근할 수 있는가? (오픈소스/무료일수록 높음)"""
+_RUBRIC_INDUSTRY_BUSINESS = """### Category: industry_business → score mag, sig, brd (each 0-10 integer)
+- mag (Magnitude): 이벤트 규모 (금액, 당사자 수 기준)
+  0-3 낮음: 가십, 비금전 이벤트, 소규모
+  4-6 보통: 수천만~수억 달러, 중견 기업
+  7-10 높음: 수십억 달러 이상, 대형 기업
+- sig (Signal): 업계 전략적 신호 강도
+  0-3 낮음: 일상적 뉴스, 반복적 패턴
+  4-6 보통: 특정 분야 전략 변화 시사
+  7-10 높음: 업계 전체 방향성 전환 신호
+- brd (Breadth): 영향받는 이해관계자 범위
+  0-3 낮음: 단일 기업/소수 관계자
+  4-6 보통: 특정 산업 또는 지역
+  7-10 높음: 글로벌 AI 생태계 전반"""
 
-_RUBRIC_INDUSTRY_BUSINESS = """### Category: industry_business → score mag, sig, brd (each 0-10, use any integer)
-- mag (Magnitude): 이 이벤트의 규모가 얼마나 새롭고 흥미로운가? (가십/비금전 이벤트는 낮게)
-- sig (Signal): 이 이벤트가 업계에 얼마나 새롭고 흥미로운 전략적 신호를 주는가?
-- brd (Breadth): 이 이벤트가 얼마나 많은 이해관계자에게 새롭고 흥미로운 영향을 주는가?"""
-
-# 카테고리 → 루브릭 매핑
+# 카테고리 → 루브릭 매핑 (research는 스코어링 스킵)
 _RUBRIC_MAP = {
-    "research": _RUBRIC_RESEARCH,
     "models_products": _RUBRIC_MODELS_PRODUCTS,
     "industry_business": _RUBRIC_INDUSTRY_BUSINESS,
 }
 
-# 카테고리별 캘리브레이션 예시
+# 카테고리별 캘리브레이션 예시 (research 제외)
 _CALIBRATION_MAP = {
-    "research": (
-        '"DeepMind paper: new diffusion architecture beats SOTA on 5 benchmarks" → {{"i":0,"rig":8,"nov":8,"pot":7}}\n'
-        '"Survey paper comparing 30 LLMs on reasoning tasks" → {{"i":1,"rig":7,"nov":2,"pot":3}}'
-    ),
     "models_products": (
-        '"Meta releases Llama 4 open-weights model with 1T parameters" → {{"i":0,"uti":9,"imp":9,"acc":9}}\n'
-        '"ChatGPT gets memory feature for persistent context" → {{"i":1,"uti":7,"imp":6,"acc":8}}\n'
-        '"MLflow 2.16 released with improved artifact storage" → {{"i":2,"uti":4,"imp":2,"acc":8}}'
+        '"Meta releases Llama 4 open-weights with 1T params" → {{"i":0,"uti":9,"imp":9,"acc":9}}\n'
+        '"ChatGPT gets memory feature for persistent context" → {{"i":1,"uti":7,"imp":5,"acc":7}}\n'
+        '"Google, Gemma 3n 오픈소스 웨이트 공개" → {{"i":2,"uti":6,"imp":6,"acc":9}}\n'
+        '"MLflow 2.16 released with improved artifact storage" → {{"i":3,"uti":3,"imp":2,"acc":8}}'
     ),
     "industry_business": (
         '"NVIDIA reports record $35B quarterly revenue" → {{"i":0,"mag":9,"sig":9,"brd":9}}\n'
-        '"AI startup raises $8M seed round" → {{"i":1,"mag":2,"sig":2,"brd":1}}\n'
-        '"Two CEOs awkward moment / executive social interaction at conference" → {{"i":2,"mag":1,"sig":2,"brd":2}}'
+        '"Anthropic, 60조 가치에 2조 원 투자 유치" → {{"i":1,"mag":8,"sig":8,"brd":7}}\n'
+        '"AI startup raises $8M seed round" → {{"i":2,"mag":3,"sig":3,"brd":2}}\n'
+        '"Two CEOs awkward moment at conference" → {{"i":3,"mag":1,"sig":1,"brd":1}}'
     ),
 }
 
-# 카테고리별 출력 예시 (배치 1 기준)
+# 카테고리별 출력 예시 (배치 1 기준, research 제외)
 _OUTPUT_EXAMPLE_MAP = {
-    "research": '[{{"i":0,"rig":7,"nov":6,"pot":5}}]',
     "models_products": '[{{"i":0,"uti":8,"imp":7,"acc":6}}]',
     "industry_business": '[{{"i":0,"mag":4,"sig":3,"brd":5}}]',
 }
@@ -1096,11 +1054,9 @@ def _score_batch_with_retry(batch: list[dict], offset: int, category: str = "") 
 
 
 def _apply_scores_to_candidate(candidate: dict, score_dict: dict, category: str) -> None:
-    """스코어링 결과를 기사 dict에 적용. 카테고리에 맞는 점수만 설정."""
-    # 모든 점수 필드 초기화
-    candidate["_score_rigor"] = 0
-    candidate["_score_novelty"] = 0
-    candidate["_score_potential"] = 0
+    """스코어링 결과를 기사 dict에 적용. 카테고리에 맞는 점수만 설정.
+    research는 스코어링하지 않으므로 이 함수가 호출되지 않아야 한다."""
+    # 점수 필드 초기화
     candidate["_score_utility"] = 0
     candidate["_score_impact"] = 0
     candidate["_score_access"] = 0
@@ -1109,25 +1065,17 @@ def _apply_scores_to_candidate(candidate: dict, score_dict: dict, category: str)
     candidate["_score_breadth"] = 0
 
     if category == "industry_business":
-        mag = min(10, max(1, score_dict.get("mag", 5)))
-        sig = min(10, max(1, score_dict.get("sig", 5)))
-        brd = min(10, max(1, score_dict.get("brd", 5)))
+        mag = min(10, max(0, score_dict.get("mag", 5)))
+        sig = min(10, max(0, score_dict.get("sig", 5)))
+        brd = min(10, max(0, score_dict.get("brd", 5)))
         candidate["_score_market"] = mag
         candidate["_score_signal"] = sig
         candidate["_score_breadth"] = brd
         candidate["_total_score"] = mag * W_MARKET + sig * W_SIGNAL + brd * W_BREADTH
-    elif category == "research":
-        rigor = min(10, max(1, score_dict.get("rig", 5)))
-        novelty = min(10, max(1, score_dict.get("nov", 5)))
-        potential = min(10, max(1, score_dict.get("pot", 5)))
-        candidate["_score_rigor"] = rigor
-        candidate["_score_novelty"] = novelty
-        candidate["_score_potential"] = potential
-        candidate["_total_score"] = rigor * W_RIGOR + novelty * W_NOVELTY + potential * W_POTENTIAL
     else:  # models_products
-        utility = min(10, max(1, score_dict.get("uti", 5)))
-        impact = min(10, max(1, score_dict.get("imp", 5)))
-        access = min(10, max(1, score_dict.get("acc", 5)))
+        utility = min(10, max(0, score_dict.get("uti", 5)))
+        impact = min(10, max(0, score_dict.get("imp", 5)))
+        access = min(10, max(0, score_dict.get("acc", 5)))
         candidate["_score_utility"] = utility
         candidate["_score_impact"] = impact
         candidate["_score_access"] = access
@@ -1242,12 +1190,22 @@ def scorer_node(state: NewsGraphState) -> dict:
     if unscored:
         unscored.sort(key=lambda a: (a.get("link", ""), a.get("title", "")))
 
-        # 카테고리별 그룹화
-        cat_groups: dict[str, list[tuple[int, dict]]] = {cat: [] for cat in VALID_CATEGORIES}
+        # 카테고리별 그룹화 (research는 스코어링 스킵)
+        SCORED_CATEGORIES = {"models_products", "industry_business"}
+        cat_groups: dict[str, list[tuple[int, dict]]] = {cat: [] for cat in SCORED_CATEGORIES}
+        research_count = 0
         for i, a in enumerate(unscored):
             cat = a.get("_llm_category", "industry_business")
-            cat_groups[cat].append((i, a))
+            if cat == "research":
+                research_count += 1
+                continue
+            if cat not in cat_groups:
+                cat_groups["industry_business"].append((i, a))
+            else:
+                cat_groups[cat].append((i, a))
 
+        if research_count > 0:
+            print(f"    [그룹] research: {research_count}개 (스코어링 스킵)")
         for cat, group in cat_groups.items():
             print(f"    [그룹] {cat}: {len(group)}개")
 
@@ -1296,25 +1254,20 @@ def scorer_node(state: NewsGraphState) -> dict:
 
                 print(f"    스코어 배치 {batch_done}/{len(all_score_tasks)} ({cat}): {applied}/{len(b_articles)}개")
 
-    # 폴백: 미평가 기사에 카테고리별 낮은 기본 점수 (LLM 평가 기사 우선)
+    # 폴백: 미평가 기사에 카테고리별 낮은 기본 점수 (research는 스킵)
     for c in candidates:
+        cat = c.get("_llm_category", "industry_business")
+        if cat == "research":
+            # research는 스코어링 스킵 — 전부 보여줌
+            continue
         if "_total_score" not in c:
-            cat = c.get("_llm_category", "industry_business")
-            c["_score_rigor"] = 0
-            c["_score_novelty"] = 0
-            c["_score_potential"] = 0
             c["_score_utility"] = 0
             c["_score_impact"] = 0
             c["_score_access"] = 0
             c["_score_market"] = 0
             c["_score_signal"] = 0
             c["_score_breadth"] = 0
-            if cat == "research":
-                c["_score_rigor"] = 3
-                c["_score_novelty"] = 3
-                c["_score_potential"] = 3
-                c["_total_score"] = 3 * W_RIGOR + 3 * W_NOVELTY + 3 * W_POTENTIAL
-            elif cat == "models_products":
+            if cat == "models_products":
                 c["_score_utility"] = 3
                 c["_score_impact"] = 3
                 c["_score_access"] = 3
@@ -1325,11 +1278,13 @@ def scorer_node(state: NewsGraphState) -> dict:
                 c["_score_breadth"] = 3
                 c["_total_score"] = 3 * W_MARKET + 3 * W_SIGNAL + 3 * W_BREADTH
 
-    llm_count = len([c for c in candidates if c.get("_llm_scored")])
-    print(f"  [스코어링] LLM 평가: {llm_count}/{len(candidates)}개")
+    research_count = len([c for c in candidates if c.get("_llm_category") == "research"])
+    scored_candidates = [c for c in candidates if c.get("_llm_category") != "research"]
+    llm_count = len([c for c in scored_candidates if c.get("_llm_scored")])
+    print(f"  [스코어링] LLM 평가: {llm_count}/{len(scored_candidates)}개 (research {research_count}개 스킵)")
 
-    # 카테고리별 점수 통계
-    for cat in VALID_CATEGORIES:
+    # 카테고리별 점수 통계 (research 제외)
+    for cat in ("models_products", "industry_business"):
         cat_articles = [c for c in candidates if c.get("_llm_category") == cat and c.get("_llm_scored")]
         if not cat_articles:
             continue
@@ -1348,9 +1303,7 @@ def scorer_node(state: NewsGraphState) -> dict:
             title = (c.get("display_title") or c.get("title", ""))[:60]
             cat = c.get("_llm_category", "?")
             score = c.get("_total_score", 0)
-            if cat == "research":
-                dims = f"rig={c.get('_score_rigor',0)} nov={c.get('_score_novelty',0)} pot={c.get('_score_potential',0)}"
-            elif cat == "models_products":
+            if cat == "models_products":
                 dims = f"uti={c.get('_score_utility',0)} imp={c.get('_score_impact',0)} acc={c.get('_score_access',0)}"
             else:
                 dims = f"mag={c.get('_score_market',0)} sig={c.get('_score_signal',0)} brd={c.get('_score_breadth',0)}"
@@ -1421,14 +1374,14 @@ def selector_node(state: NewsGraphState) -> dict:
             "category_order": category_order,
         }
 
-    # ── Step 1: 하이라이트 Top 3 선정 (당일 research + models_products) ──
-    HIGHLIGHT_CATEGORIES = {"research", "models_products"}
+    # ── Step 1: 하이라이트 Top 3 선정 (당일 models_products만) ──
+    HIGHLIGHT_CATEGORIES = {"models_products"}
     today_all = [
         c for c in candidates
         if c.get("_is_today") and c.get("_llm_category", "") in HIGHLIGHT_CATEGORIES
     ]
     today_total = sum(1 for c in candidates if c.get("_is_today"))
-    print(f"  [선정] 당일 기사 {today_total}개 중 하이라이트 후보 {len(today_all)}개 (research + models_products)")
+    print(f"  [선정] 당일 기사 {today_total}개 중 하이라이트 후보 {len(today_all)}개 (models_products)")
 
     _epoch = datetime(2000, 1, 1, tzinfo=_KST)
     def _day_key(c: dict):
@@ -1476,12 +1429,21 @@ def selector_node(state: NewsGraphState) -> dict:
             # categorizer에서 전부 분류되지만, 안전 폴백
             categorized["industry_business"].append(a)
 
-    # ── Step 3: 카테고리별 Top 25 + 당일 3개 보장 ──
+    # ── Step 3: 카테고리별 Top 25 + 당일 3개 보장 (research는 전부 노출) ──
     for cat in category_order:
         total = len(categorized[cat])
         today_count = len([a for a in categorized[cat] if a.get("_is_today")])
-        categorized[cat] = _select_category_top_n(categorized[cat])
-        print(f"    {cat}: {total}개 (당일 {today_count}) -> Top {len(categorized[cat])}개")
+        if cat == "research":
+            # research는 스코어링 없이 전부 노출 — 날짜 최신순 정렬만
+            _epoch_local = datetime(2000, 1, 1, tzinfo=_KST)
+            categorized[cat].sort(
+                key=lambda a: _parse_published(a.get("published", "")) or _epoch_local,
+                reverse=True,
+            )
+            print(f"    {cat}: {total}개 (당일 {today_count}) -> 전체 {len(categorized[cat])}개 (스킵)")
+        else:
+            categorized[cat] = _select_category_top_n(categorized[cat])
+            print(f"    {cat}: {total}개 (당일 {today_count}) -> Top {len(categorized[cat])}개")
 
     # 카테고리별 최종 선정 기사 목록
     for cat in category_order:
@@ -1586,13 +1548,17 @@ def _route_after_collector(state: NewsGraphState) -> list[Send]:
 
 
 def _route_after_scorer(state: NewsGraphState) -> str:
-    """스코어 커버리지 < 90% 이고 재시도 < 2 이면 재시도"""
+    """스코어 커버리지 < 90% 이고 재시도 < 2 이면 재시도 (research 제외)"""
     candidates = state.get("scored_candidates", [])
     retry_count = state.get("scorer_retry_count", 0)
     if not candidates:
         return "selector"
-    llm_scored = len([c for c in candidates if c.get("_llm_scored")])
-    coverage = llm_scored / len(candidates)
+    # research는 스코어링 스킵이므로 커버리지 계산에서 제외
+    scoreable = [c for c in candidates if c.get("_llm_category") != "research"]
+    if not scoreable:
+        return "selector"
+    llm_scored = len([c for c in scoreable if c.get("_llm_scored")])
+    coverage = llm_scored / len(scoreable)
     if coverage < 0.9 and retry_count < 2:
         print(f"  [라우팅] 스코어 커버리지 {coverage:.0%} < 90% -> 재시도")
         return "scorer"
