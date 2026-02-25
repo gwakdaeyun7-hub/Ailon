@@ -38,6 +38,10 @@ export const LightColors = {
   likeActiveBg: '#3B82F615',
   likeActiveBorder: '#3B82F640',
   likeActiveColor: '#3B82F6',
+  // 북마크 활성 색상
+  bookmarkActiveBg: '#E5393515',
+  bookmarkActiveBorder: '#E5393540',
+  bookmarkActiveColor: '#E53935',
   // 에러 상태
   errorBg: '#FEE2E2',
   errorColor: '#DC2626',
@@ -82,6 +86,9 @@ export const DarkColors: Record<keyof typeof LightColors, string> = {
   likeActiveBg: '#64B5F615',
   likeActiveBorder: '#64B5F640',
   likeActiveColor: '#64B5F6',
+  bookmarkActiveBg: '#FF525215',
+  bookmarkActiveBorder: '#FF525240',
+  bookmarkActiveColor: '#FF5252',
   errorBg: '#3D1F1F',
   errorColor: '#FF5252',
   switchTrackActive: '#5C3A30',

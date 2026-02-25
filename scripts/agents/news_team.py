@@ -837,139 +837,20 @@ Output exactly {count} JSON object(s) as a single-line compact JSON array:
 {output_example}"""
 
 # --- 카테고리별 스코어링 루브릭 ---
-_RUBRIC_RESEARCH = """### Category: research → score rig, nov, pot
+_RUBRIC_RESEARCH = """### Category: research → score rig, nov, pot (each 0-10)
+- rig (Rigor): 연구가 얼마나 엄밀한가. 0=근거없음, 5=보통수준, 10=완벽한실험설계·다중검증
+- nov (Novelty): 방법론이 얼마나 새로운가. 0=기존반복, 5=의미있는변형, 10=완전히새로운패러다임. 방법론 자체의 새로움만 평가(SOTA 달성≠높은nov)
+- pot (Potential): 미래 연구에 얼마나 영향을 줄 수 있는가. 0=영향없음, 5=후속연구가능, 10=새연구분야개척"""
 
-**rig (Rigor):** How methodologically sound and well-evidenced is this research?
-- 10: Landmark paper with comprehensive experiments, ablations, multi-dataset validation, and formal proofs where applicable (e.g., "Attention Is All You Need" level)
-- 9: Top-venue paper with thorough experimental design, strong baselines, and clear reproducibility
-- 8: Well-designed study with solid methodology across multiple benchmarks, minor gaps only
-- 7: Sound methodology with good experimental coverage; some ablations or baselines missing
-- 6: Adequate methodology; results are credible but experimental scope is limited
-- 5: Mixed rigor; some claims well-supported, others lack sufficient evidence
-- 4: Noticeable methodological gaps; limited baselines or questionable evaluation setup
-- 3: Weak methodology; key claims unsupported or experiments poorly designed
-- 2: Minimal evidence; mostly claims without substantiation
-- 1: No methodology; opinion piece or pure speculation disguised as research
-Boost for: reproducibility artifacts (code/data released), peer-reviewed venue, comprehensive ablation studies.
-Penalize for: cherry-picked benchmarks, no comparison to baselines, unreproducible setup, preprint with extraordinary claims but no verification.
+_RUBRIC_MODELS_PRODUCTS = """### Category: models_products → score uti, imp, acc (each 0-10)
+- uti (Utility): 사용자에게 얼마나 유용한가. 0=쓸모없음, 5=특정작업에유용, 10=모든사용자필수도구
+- imp (Impact): AI 생태계에 얼마나 영향을 주는가. 0=영향없음, 5=한분야에영향, 10=업계표준변경
+- acc (Accessibility): 얼마나 쉽게 접근/사용할 수 있는가. 0=접근불가, 5=유료API, 10=무료오픈소스·즉시사용가능"""
 
-**nov (Novelty):** How new is the METHODOLOGY or APPROACH? (Not "is this the first time" — LLMs cannot verify world-firsts.)
-- 10: Introduces an entirely new paradigm or framework that redefines how a problem class is approached
-- 9: Proposes a fundamentally different method combining ideas never joined before
-- 8: Novel architecture or algorithm with a clearly original core mechanism
-- 7: Creative adaptation combining known techniques in a meaningfully new way
-- 6: Extends existing work with a non-obvious modification that yields new insights
-- 5: Applies known methods to a new domain or problem setting with moderate adaptation
-- 4: Incremental improvement on existing method; the delta is small but real
-- 3: Standard approach applied with minor tweaks; limited originality
-- 2: Replication, survey, or re-analysis of known results with no new method
-- 1: Pure rehash or re-statement of established knowledge
-Boost for: interdisciplinary approach, counter-intuitive findings from a new method, new formalization of a previously informal problem.
-Penalize for: obvious next-step experiments, hyperparameter tuning presented as novelty, "we applied X to Y" with no methodological insight.
-NOTE: Judge novelty of the METHOD, not the result. A known method achieving a new SOTA is low novelty. A new method with modest results can be high novelty.
-
-**pot (Potential):** How much could this research unlock future progress?
-- 10: Opens an entirely new research direction with broad implications across AI and beyond (e.g., attention mechanism enabling transformers)
-- 9: Provides foundations that could enable breakthroughs in multiple subfields
-- 8: High potential to significantly accelerate progress in a major research area
-- 7: Could meaningfully influence research direction in its subfield for years
-- 6: Useful contribution that will likely inspire follow-up work in a focused area
-- 5: Moderate potential; relevant to current work but unlikely to shift directions
-- 4: Narrow applicability; may help a few research groups
-- 3: Limited potential; mostly confirms what was already suspected
-- 2: Dead-end or highly constrained; unlikely to lead anywhere new
-- 1: No foreseeable research impact
-Boost for: general-purpose methods applicable across domains, work that removes key bottlenecks, results that challenge prevailing assumptions.
-Penalize for: task-specific solutions with no generalization path, improvements only at extreme scale, results dependent on proprietary data/compute."""
-
-_RUBRIC_MODELS_PRODUCTS = """### Category: models_products → score uti, imp, acc
-
-**uti (Utility):** How practically useful is this for real users right now?
-- 10: Transforms a major workflow for millions of users (e.g., ChatGPT-level impact on daily work)
-- 9: Dramatically improves productivity or capability for a large professional community
-- 8: Highly useful tool/model that many practitioners will adopt into daily workflows
-- 7: Solid practical value; clearly useful for a well-defined user segment
-- 6: Useful for specific tasks; good but not essential
-- 5: Moderate utility; helpful in some contexts, ignorable in others
-- 4: Minor convenience improvement; nice to have, not need to have
-- 3: Limited practical use; edge-case utility only
-- 2: Barely functional or so niche that almost no one benefits
-- 1: No practical use to any real user
-Boost for: solves a pain point many users actively complain about, works out-of-the-box with minimal setup, significant cost/time savings.
-Penalize for: requires extensive fine-tuning to be useful, demo-only without production readiness, duplicates existing well-established tools.
-
-**imp (Impact):** How much will this affect the broader AI ecosystem?
-- 10: Reshapes the entire AI ecosystem (e.g., new foundation model that becomes the default baseline)
-- 9: Changes standard practice across multiple communities (researchers, developers, enterprises)
-- 8: Major shift in a large segment; most practitioners in that area will be affected
-- 7: Important influence on a broad subfield's direction or tooling landscape
-- 6: Clear adoption in several organizations; noticeable market effect
-- 5: Moderate community interest; relevant to one segment but not beyond
-- 4: Minor effect on existing ecosystem; adopted by a small group
-- 3: Niche impact; affects a small community or narrow use case
-- 2: Marginal change; no measurable ecosystem effect
-- 1: No ecosystem impact whatsoever
-Boost for: sets new standard that others must respond to, enables entirely new categories of applications, shifts competitive dynamics.
-Penalize for: me-too product in crowded space, improvement too small to change user behavior, locked to a single platform.
-
-**acc (Accessibility):** How easy is it for users to access and use this?
-- 10: Free, open-source, works everywhere, excellent docs, no setup required
-- 9: Free or very low cost, open-source, easy installation, good documentation
-- 8: Accessible to most developers; open API or downloadable with reasonable requirements
-- 7: Available to developers with moderate effort; some cost or hardware requirements
-- 6: Usable but requires significant setup, cost, or specialized knowledge
-- 5: Limited access; waitlist, high cost, or enterprise-only
-- 4: Restricted access; requires application, significant cost, or rare hardware
-- 3: Highly restricted; only available to select partners or requires extreme resources
-- 2: Effectively inaccessible to most; requires top-tier compute or special agreements
-- 1: Not yet available; announced but no access path exists
-Boost for: open-source with permissive license, free tier available, cross-platform support, active community.
-Penalize for: closed-source with no API, prohibitive pricing, requires cutting-edge GPU, vendor lock-in."""
-
-_RUBRIC_INDUSTRY_BUSINESS = """### Category: industry_business → score mag, sig, brd
-
-**mag (Magnitude):** Scale of the event.
-- 10: $50B+ deal or event reshaping the global tech economy (e.g., mega-merger of top AI companies)
-- 9: $10B-50B deal, top-3 company earnings that signal market direction
-- 8: $5B-10B deal, global regulation with enforcement teeth, top-5 company strategic pivot
-- 7: $1B-5B deal, major country's national AI policy, top-10 company significant move
-- 6: $500M-1B deal, important regulatory proposal, major partnership between large players
-- 5: $100M-500M deal, notable corporate restructuring, significant policy announcement
-- 4: $20M-100M deal, mid-size company move, regional regulation
-- 3: $5M-20M funding, single executive change at notable company, industry report
-- 2: Seed round <$5M, minor hire, small partnership announcement
-- 1: Trivial event; single small company internal change, no financial significance
-Boost for: events involving multiple top-5 AI companies, cross-border regulatory actions, precedent-setting legal decisions.
-Penalize for: routine quarterly reports with no surprises, announced plans without execution, minor organizational changes.
-
-**sig (Signal):** Does this reshape the competitive landscape or signal a strategic shift?
-- 10: Fundamentally redraws market boundaries (e.g., new monopoly formation, paradigm regulatory shift)
-- 9: Creates a new market leader or destroys an existing competitive advantage
-- 8: Major strategic pivot by a top player that forces industry-wide response
-- 7: Significant repositioning that will change competitive dynamics in a segment
-- 6: Notable strategic move; competitors will need to take notice
-- 5: Moderate signal; suggests a trend but no immediate competitive impact
-- 4: Minor strategic implication; one company's internal decision
-- 3: Weak signal; could mean something but likely noise
-- 2: No strategic implication; routine business operation
-- 1: Zero signal value; purely administrative or procedural
-Boost for: first-mover actions that others must follow, regulatory precedents, unexpected alliances or rivalries.
-Penalize for: expected moves already priced in, copycat strategies, announcements without execution.
-
-**brd (Breadth):** How many stakeholders are affected?
-- 10: Entire global tech ecosystem + adjacent industries (healthcare, finance, education, etc.)
-- 9: All AI companies + major adjacent sectors (cloud, chips, enterprise software)
-- 8: Entire AI ecosystem (startups, enterprises, researchers, developers)
-- 7: Multiple major segments (e.g., all LLM providers + all enterprise AI buyers)
-- 6: A large segment (e.g., all AI startups, or all cloud AI users)
-- 5: Several companies and their customers in a specific niche
-- 4: A handful of direct competitors and their immediate ecosystem
-- 3: Two or three companies directly involved + limited spillover
-- 2: Single company and its immediate stakeholders
-- 1: Internal to one organization; no external impact
-Boost for: cross-industry effects, impacts on open-source community, effects on AI talent market.
-Penalize for: single geography with no global relevance, single vertical with no spillover.
-NOTE: Events with no financial, strategic, regulatory, or legal substance (social interactions, gossip, personality clashes, conference anecdotes) should score mag <= 2 regardless of the individuals involved."""
+_RUBRIC_INDUSTRY_BUSINESS = """### Category: industry_business → score mag, sig, brd (each 0-10)
+- mag (Magnitude): 이벤트 규모가 얼마나 큰가. 0=사소, 3=$5-20M, 5=$100-500M, 7=$1-5B, 10=$50B+거래. 가십/비금전이벤트는 mag<=2
+- sig (Signal): 전략적으로 얼마나 중요한 신호인가. 0=의미없음, 5=트렌드시사, 10=시장판도변경
+- brd (Breadth): 얼마나 많은 이해관계자에게 영향을 주는가. 0=내부만, 5=특정분야, 10=전세계산업"""
 
 # 카테고리 → 루브릭 매핑
 _RUBRIC_MAP = {
