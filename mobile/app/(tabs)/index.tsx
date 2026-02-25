@@ -390,6 +390,7 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
 
         {/* 바텀시트 — 이슈 #4: accessibilityViewIsModal */}
         <View style={{
+          width: '100%',
           backgroundColor: colors.card,
           borderTopLeftRadius: 20,
           borderTopRightRadius: 20,
@@ -552,6 +553,7 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
 
           {/* 고정 하단 액션 바 — 3등분 컬럼: 좋아요 | 댓글 | 공유 */}
           <View style={{
+            width: '100%',
             borderTopWidth: 1, borderTopColor: colors.border,
             flexDirection: 'row', alignItems: 'stretch',
             paddingBottom: Math.max(insets.bottom, 10),
