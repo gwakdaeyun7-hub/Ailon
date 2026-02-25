@@ -4,12 +4,13 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, getCountFromServer } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 export interface BatchStats {
   likes: number;
   views: number;
+  comments: number;
 }
 
 export function useBatchStats(articleLinks: string[]): Record<string, BatchStats> {
@@ -30,16 +31,20 @@ export function useBatchStats(articleLinks: string[]): Record<string, BatchStats
           const reactionsId = `news_${encoded}`;
           const viewsId = encoded;
 
-          const [reactionsSnap, viewsSnap] = await Promise.all([
+          const commentsId = `news_${encoded}`;
+
+          const [reactionsSnap, viewsSnap, commentsSnap] = await Promise.all([
             getDoc(doc(db, 'reactions', reactionsId)),
             getDoc(doc(db, 'article_views', viewsId)),
+            getCountFromServer(collection(db, 'comments', commentsId, 'entries')),
           ]);
 
           const likes = reactionsSnap.exists() ? (reactionsSnap.data()?.likes ?? 0) : 0;
           const views = viewsSnap.exists() ? (viewsSnap.data()?.views ?? 0) : 0;
-          newStats[link] = { likes, views };
+          const comments = commentsSnap.data().count;
+          newStats[link] = { likes, views, comments };
         } catch {
-          newStats[link] = { likes: 0, views: 0 };
+          newStats[link] = { likes: 0, views: 0, comments: 0 };
         }
       }));
 

@@ -167,13 +167,17 @@ const TitleText = React.memo(function TitleText({ children, style, numberOfLines
 });
 
 // ─── 좋아요+뷰 카운트 (정적 — 피드 카드에서 리스너 폭발 방지) ──────────
-const ArticleStats = React.memo(function ArticleStats({ likes, views }: { likes?: number; views?: number }) {
+const ArticleStats = React.memo(function ArticleStats({ likes, views, comments }: { likes?: number; views?: number; comments?: number }) {
   const { colors } = useTheme();
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
         <ThumbsUp size={11} color={colors.textSecondary} />
         <Text style={{ fontSize: 11, color: colors.textSecondary, fontWeight: '600' }}>{likes ?? 0}</Text>
+      </View>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+        <MessageCircle size={11} color={colors.textSecondary} />
+        <Text style={{ fontSize: 11, color: colors.textSecondary, fontWeight: '600' }}>{comments ?? 0}</Text>
       </View>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
         <Eye size={11} color={colors.textSecondary} />
@@ -228,9 +232,9 @@ const HIGHLIGHT_CARD_WIDTH = 280;
 const HIGHLIGHT_CARD_HEIGHT = 260;
 
 const HighlightScrollCard = React.memo(function HighlightScrollCard({
-  article, onToggle, likes, views,
+  article, onToggle, likes, views, comments,
 }: {
-  article: Article; onToggle?: () => void; likes?: number; views?: number;
+  article: Article; onToggle?: () => void; likes?: number; views?: number; comments?: number;
 }) {
   const { lang, t } = useLanguage();
   const { colors } = useTheme();
@@ -291,7 +295,7 @@ const HighlightScrollCard = React.memo(function HighlightScrollCard({
             <Text style={{ fontSize: 11, color: colors.textSecondary }}>{formatDate(article.published, lang)}</Text>
             <ScoreBadge article={article} />
           </View>
-          <ArticleStats likes={likes} views={views} />
+          <ArticleStats likes={likes} views={views} comments={comments} />
         </View>
       </View>
     </Pressable>
@@ -629,6 +633,7 @@ function HighlightSection({ highlights, onArticlePress, allStats }: { highlights
             onToggle={() => onArticlePress(a)}
             likes={stats[a.link]?.likes}
             views={stats[a.link]?.views}
+            comments={stats[a.link]?.comments}
           />
         ))}
       </ScrollView>
@@ -641,9 +646,9 @@ const CARD_WIDTH = 240;
 const HCARD_HEIGHT = 260;
 
 const HScrollCard = React.memo(function HScrollCard({
-  article, showSourceBadge, onToggle, likes, views,
+  article, showSourceBadge, onToggle, likes, views, comments,
 }: {
-  article: Article; showSourceBadge?: boolean; onToggle?: () => void; likes?: number; views?: number;
+  article: Article; showSourceBadge?: boolean; onToggle?: () => void; likes?: number; views?: number; comments?: number;
 }) {
   const { lang, t } = useLanguage();
   const { colors } = useTheme();
@@ -704,7 +709,7 @@ const HScrollCard = React.memo(function HScrollCard({
             <Text style={{ fontSize: 11, color: colors.textSecondary }}>{formatDate(article.published, lang)}</Text>
             <ScoreBadge article={article} />
           </View>
-          <ArticleStats likes={likes} views={views} />
+          <ArticleStats likes={likes} views={views} comments={comments} />
         </View>
       </View>
     </Pressable>
@@ -828,7 +833,7 @@ function CategoryTabSection({
                     <Text style={{ fontSize: 11, color: colors.textSecondary }}>{formatDate(a.published, lang)}</Text>
                     <ScoreBadge article={a} />
                   </View>
-                  <ArticleStats likes={stats[a.link]?.likes} views={stats[a.link]?.views} />
+                  <ArticleStats likes={stats[a.link]?.likes} views={stats[a.link]?.views} comments={stats[a.link]?.comments} />
                 </View>
               </View>
             </View>
@@ -896,6 +901,7 @@ function SourceHScrollSection({
             onToggle={() => onArticlePress(a)}
             likes={stats[a.link]?.likes}
             views={stats[a.link]?.views}
+            comments={stats[a.link]?.comments}
           />
         ))}
 
@@ -978,7 +984,7 @@ const GeekNewsSection = React.memo(function GeekNewsSection({ articles, onArticl
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
               <Text style={{ fontSize: 11, color: colors.textSecondary }}>{formatDate(a.published, lang)}</Text>
-              <ArticleStats likes={stats[a.link]?.likes} views={stats[a.link]?.views} />
+              <ArticleStats likes={stats[a.link]?.likes} views={stats[a.link]?.views} comments={stats[a.link]?.comments} />
             </View>
           </Pressable>
         ))}
