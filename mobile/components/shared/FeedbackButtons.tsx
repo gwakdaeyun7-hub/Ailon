@@ -4,12 +4,7 @@ import { ThumbsUp, ThumbsDown } from 'lucide-react-native';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useLanguage } from '@/context/LanguageContext';
-
-const FEEDBACK_COLORS = {
-  positive: '#43A047',
-  negative: '#E53935',
-  neutral: '#888888',
-} as const;
+import { useTheme } from '@/context/ThemeContext';
 
 interface FeedbackButtonsProps {
   userId: string | null;
@@ -22,6 +17,7 @@ export function FeedbackButtons({ userId, itemType, itemId, initialReaction = nu
   const [reaction, setReaction] = useState<'like' | 'dislike' | null>(initialReaction);
   const [saving, setSaving] = useState(false);
   const { t } = useLanguage();
+  const { colors } = useTheme();
 
   const handleFeedback = async (type: 'like' | 'dislike') => {
     if (!userId || saving) return;
@@ -53,39 +49,61 @@ export function FeedbackButtons({ userId, itemType, itemId, initialReaction = nu
   };
 
   return (
-    <View className="flex-row gap-2">
+    <View style={{ flexDirection: 'row', gap: 8 }}>
       <Pressable
         onPress={() => handleFeedback('like')}
-        className={`flex-row items-center gap-1 px-3 py-2.5 rounded-full ${
-          reaction === 'like' ? 'bg-green-500/20' : 'bg-surface'
-        }`}
-        style={{ minHeight: 44 }}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 4,
+          paddingHorizontal: 12,
+          paddingVertical: 10,
+          borderRadius: 9999,
+          minHeight: 44,
+          backgroundColor: reaction === 'like' ? colors.success + '33' : colors.surface,
+        }}
         accessibilityLabel={t('feedback.like')}
       >
         <ThumbsUp
           size={14}
-          color={reaction === 'like' ? FEEDBACK_COLORS.positive : FEEDBACK_COLORS.neutral}
+          color={reaction === 'like' ? colors.success : colors.textLight}
           strokeWidth={2}
         />
-        <Text className={`text-xs ${reaction === 'like' ? 'text-green-400' : 'text-text-muted'}`}>
+        <Text
+          style={{
+            fontSize: 12,
+            color: reaction === 'like' ? colors.success : colors.textLight,
+          }}
+        >
           {t('feedback.like')}
         </Text>
       </Pressable>
 
       <Pressable
         onPress={() => handleFeedback('dislike')}
-        className={`flex-row items-center gap-1 px-3 py-2.5 rounded-full ${
-          reaction === 'dislike' ? 'bg-red-500/20' : 'bg-surface'
-        }`}
-        style={{ minHeight: 44 }}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 4,
+          paddingHorizontal: 12,
+          paddingVertical: 10,
+          borderRadius: 9999,
+          minHeight: 44,
+          backgroundColor: reaction === 'dislike' ? colors.primary + '33' : colors.surface,
+        }}
         accessibilityLabel={t('feedback.dislike')}
       >
         <ThumbsDown
           size={14}
-          color={reaction === 'dislike' ? FEEDBACK_COLORS.negative : FEEDBACK_COLORS.neutral}
+          color={reaction === 'dislike' ? colors.primary : colors.textLight}
           strokeWidth={2}
         />
-        <Text className={`text-xs ${reaction === 'dislike' ? 'text-red-400' : 'text-text-muted'}`}>
+        <Text
+          style={{
+            fontSize: 12,
+            color: reaction === 'dislike' ? colors.primary : colors.textLight,
+          }}
+        >
           {t('feedback.dislike')}
         </Text>
       </Pressable>

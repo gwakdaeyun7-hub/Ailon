@@ -21,6 +21,14 @@ interface ReactionData {
   dislikedBy: string[];
 }
 
+interface ReactionUpdate {
+  likes: number;
+  likedBy: string[];
+  dislikes: number;
+  dislikedBy: string[];
+  contentAuthorUid?: string;
+}
+
 export type LikeResult = 'done' | 'already' | 'no_user';
 
 interface UseReactionsReturn {
@@ -53,9 +61,11 @@ export function useReactions(itemType: ItemType, itemId: string, contentAuthorUi
       } else {
         setData({ likes: 0, likedBy: [], dislikes: 0, dislikedBy: [] });
       }
+    }, (error) => {
+      console.error('Reactions snapshot error:', error);
     });
     return unsub;
-  }, [docId]);
+  }, [docId, itemId]);
 
   const toggleLike = useCallback(async (): Promise<LikeResult> => {
     if (!user) return 'no_user';
@@ -74,7 +84,7 @@ export function useReactions(itemType: ItemType, itemId: string, contentAuthorUi
       // 좋아요 누르면 싫어요 자동 해제
       const newDislikedBy = cur.dislikedBy.filter((id) => id !== user.uid);
 
-      const update: Record<string, any> = {
+      const update: ReactionUpdate = {
         likes: newLikedBy.length,
         likedBy: newLikedBy,
         dislikes: newDislikedBy.length,

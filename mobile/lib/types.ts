@@ -2,6 +2,8 @@
  * TypeScript 타입 정의 - frontend/lib/types.ts 기반 + React Native 확장
  */
 
+import type { Timestamp } from 'firebase/firestore';
+
 // ---------------------------------------------------------------------------
 // Article & Daily News (소스별 플랫 구조)
 // ---------------------------------------------------------------------------
@@ -33,6 +35,7 @@ export interface Article {
   score_market?: number;
   score_signal?: number;
   score_breadth?: number;
+  category?: string;
 }
 
 export interface DailyNews {
@@ -44,7 +47,7 @@ export interface DailyNews {
   source_articles?: Record<string, Article[]>;
   source_order?: string[];
   total_count?: number;
-  updated_at: any;
+  updated_at: Timestamp | string | null;
   // 레거시 호환 (기존 데이터 폴백)
   articles?: Article[];
   text_only_articles?: Article[];
@@ -113,7 +116,7 @@ export interface DailyPrinciples {
     superCategory: string;
   };
   principle: Principle;  // 단일 원리 (3단계 구조)
-  updated_at: any;
+  updated_at: Timestamp | string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -184,7 +187,7 @@ export interface DailySynergyIdeas {
     ideas_final: number;
     run_timestamp: string;
   };
-  updated_at: any;
+  updated_at: Timestamp | string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -196,8 +199,8 @@ export interface UserProfile {
   email: string | null;
   displayName: string | null;
   photoURL: string | null;
-  createdAt: any;
-  lastLoginAt: any;
+  createdAt: Timestamp | string | null;
+  lastLoginAt: Timestamp | string | null;
 }
 
 export interface BookmarkMeta {
@@ -210,7 +213,7 @@ export interface BookmarkMeta {
 export interface Bookmark {
   type: 'news' | 'principle' | 'snap' | 'idea';
   itemId: string;
-  createdAt: any;
+  createdAt: Timestamp | string | null;
   metadata?: BookmarkMeta;
 }
 
@@ -220,5 +223,5 @@ export interface UserFeedback {
   itemType: 'news' | 'snap' | 'idea';
   itemId: string;
   reaction: 'like' | 'dislike';
-  createdAt: any;
+  createdAt: Timestamp | string | null;
 }

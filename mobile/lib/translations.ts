@@ -83,6 +83,8 @@ const translations: Record<string, Record<Language, string>> = {
   'profile.signing_out': { ko: '로그아웃 중...', en: 'Signing out...' },
   'profile.signout_error': { ko: '로그아웃 중 문제가 발생했어요.', en: 'An error occurred while signing out.' },
   'profile.language': { ko: '언어', en: 'Language' },
+  'profile.dark_mode': { ko: '다크 모드', en: 'Dark Mode' },
+  'profile.theme': { ko: '테마', en: 'Theme' },
   'profile.error': { ko: '오류', en: 'Error' },
 
   // ─── 알림 설정 ───

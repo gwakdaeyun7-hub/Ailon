@@ -5,13 +5,15 @@ import * as SplashScreen from 'expo-splash-screen';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { DrawerProvider } from '@/context/DrawerContext';
 import { LanguageProvider } from '@/context/LanguageContext';
+import { ThemeProvider, useTheme } from '@/context/ThemeContext';
 import { SideDrawer } from '@/components/shared/SideDrawer';
 import { useNotifications } from '@/hooks/useNotifications';
 import '../global.css';
 
 SplashScreen.preventAutoHideAsync();
 
-export default function RootLayout() {
+function InnerLayout() {
+  const { colors, isDark } = useTheme();
   useNotifications();
 
   useEffect(() => {
@@ -19,17 +21,27 @@ export default function RootLayout() {
   }, []);
 
   return (
+    <>
+      <StatusBar style={isDark ? 'light' : 'dark'} translucent />
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="auth" options={{ headerShown: false, presentation: 'modal' }} />
+      </Stack>
+      <SideDrawer />
+    </>
+  );
+}
+
+export default function RootLayout() {
+  return (
     <SafeAreaProvider>
-      <LanguageProvider>
-        <DrawerProvider>
-          <StatusBar style="dark" translucent />
-          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#FAFAFA' } }}>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="auth" options={{ headerShown: false, presentation: 'modal' }} />
-          </Stack>
-          <SideDrawer />
-        </DrawerProvider>
-      </LanguageProvider>
+      <ThemeProvider>
+        <LanguageProvider>
+          <DrawerProvider>
+            <InnerLayout />
+          </DrawerProvider>
+        </LanguageProvider>
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }

@@ -5,7 +5,7 @@
  * Section 3: 소스별 가로 스크롤 (한국 소스)
  */
 
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -22,32 +22,33 @@ import { Image } from 'expo-image';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import {
-  Bell, RefreshCw, ThumbsUp, Eye, Share2, ExternalLink, MessageCircle, X, Cpu,
+  Bell, RefreshCw, ThumbsUp, Eye, Share2, ExternalLink, MessageCircle, X, Cpu, Newspaper,
 } from 'lucide-react-native';
 import { useNews } from '@/hooks/useNews';
 import { useDrawer } from '@/context/DrawerContext';
 import { useLanguage } from '@/context/LanguageContext';
+import { useTheme } from '@/context/ThemeContext';
 import { useReactions } from '@/hooks/useReactions';
 import { useArticleViews } from '@/hooks/useArticleViews';
 import { useBatchStats } from '@/hooks/useBatchStats';
+import { useBookmarks } from '@/hooks/useBookmarks';
+import { useAuth } from '@/hooks/useAuth';
 import { NewsCardSkeleton } from '@/components/shared/LoadingSkeleton';
 import { CommentSheet } from '@/components/shared/CommentSheet';
+import { BookmarkButton } from '@/components/shared/BookmarkButton';
 import type { Article } from '@/lib/types';
 import { Colors } from '@/lib/colors';
 import type { Language } from '@/lib/translations';
 import type { BatchStats } from '@/hooks/useBatchStats';
 
-// expo-notifications (optional dependency)
-let Notifications: any = null;
+// expo-notifications (optional dependency) — 이슈 #25: any 타입 수정
+let Notifications: typeof import('expo-notifications') | null = null;
 try { Notifications = require('expo-notifications'); } catch {}
 
-// ─── 색상 ───────────────────────────────────────────────────────────────
-const BG = Colors.bg;
-const CARD = Colors.card;
-const TEXT_PRIMARY = Colors.textPrimary;
-const TEXT_SECONDARY = Colors.textSecondary;
-const TEXT_LIGHT = Colors.textSecondary;
-const BORDER = Colors.border;
+// ─── 빈 배열 상수 (이슈 #17: 인라인 리터럴 참조 안정성) ────────────────
+const EMPTY_ARTICLES: Article[] = [];
+const EMPTY_RECORD: Record<string, Article[]> = {};
+const EMPTY_ORDER: string[] = [];
 
 const SOURCE_COLORS: Record<string, string> = {
   wired_ai: '#000000',
@@ -168,15 +169,16 @@ const TitleText = React.memo(function TitleText({ children, style, numberOfLines
 
 // ─── 좋아요+뷰 카운트 (정적 — 피드 카드에서 리스너 폭발 방지) ──────────
 const ArticleStats = React.memo(function ArticleStats({ likes, views }: { likes?: number; views?: number }) {
+  const { colors } = useTheme();
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-        <ThumbsUp size={11} color={TEXT_LIGHT} />
-        <Text style={{ fontSize: 11, color: TEXT_LIGHT, fontWeight: '600' }}>{likes ?? 0}</Text>
+        <ThumbsUp size={11} color={colors.textSecondary} />
+        <Text style={{ fontSize: 11, color: colors.textSecondary, fontWeight: '600' }}>{likes ?? 0}</Text>
       </View>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-        <Eye size={11} color={TEXT_LIGHT} />
-        <Text style={{ fontSize: 11, color: TEXT_LIGHT, fontWeight: '600' }}>{views ?? 0}</Text>
+        <Eye size={11} color={colors.textSecondary} />
+        <Text style={{ fontSize: 11, color: colors.textSecondary, fontWeight: '600' }}>{views ?? 0}</Text>
       </View>
     </View>
   );
@@ -184,8 +186,9 @@ const ArticleStats = React.memo(function ArticleStats({ likes, views }: { likes?
 
 // ─── 소스 뱃지 ──────────────────────────────────────────────────────────
 const SourceBadge = React.memo(function SourceBadge({ sourceKey, name }: { sourceKey?: string; name?: string }) {
+  const { colors } = useTheme();
   if (!sourceKey) return null;
-  const color = SOURCE_COLORS[sourceKey] || TEXT_SECONDARY;
+  const color = SOURCE_COLORS[sourceKey] || colors.textSecondary;
   return (
     <View style={{
       backgroundColor: color + '18',
@@ -197,8 +200,9 @@ const SourceBadge = React.memo(function SourceBadge({ sourceKey, name }: { sourc
   );
 });
 
-// ─── 점수 뱃지 ─────────────────────────────────────────────────────────
+// ─── 점수 뱃지 (이슈 #10: 색상 토큰화) ──────────────────────────────────
 function ScoreBadge({ article }: { article: Article }) {
+  const { colors } = useTheme();
   const { score, score_rigor: rig, score_novelty: nov, score_potential: pot,
     score_utility: uti, score_impact: imp, score_access: acc,
     score_market: mag, score_signal: sig, score_breadth: brd } = article;
@@ -208,13 +212,13 @@ function ScoreBadge({ article }: { article: Article }) {
   const isMP = !!(uti || imp || acc);
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-      <Text style={{ fontSize: 11, color: isBiz ? '#B45309' : isResearch ? '#2563EB' : '#7C3AED', fontWeight: '700' }}>{score}</Text>
+      <Text style={{ fontSize: 11, color: isBiz ? colors.scoreBiz : isResearch ? colors.scoreResearch : colors.scoreProduct, fontWeight: '700' }}>{score}</Text>
       {isBiz ? (
-        <Text style={{ fontSize: 11, color: '#B45309' }}>M{mag} S{sig} B{brd}</Text>
+        <Text style={{ fontSize: 11, color: colors.scoreBiz }}>M{mag} S{sig} B{brd}</Text>
       ) : isResearch ? (
-        <Text style={{ fontSize: 11, color: '#2563EB' }}>R{rig} N{nov} P{pot}</Text>
+        <Text style={{ fontSize: 11, color: colors.scoreResearch }}>R{rig} N{nov} P{pot}</Text>
       ) : isMP ? (
-        <Text style={{ fontSize: 11, color: '#7C3AED' }}>U{uti} I{imp} A{acc}</Text>
+        <Text style={{ fontSize: 11, color: colors.scoreProduct }}>U{uti} I{imp} A{acc}</Text>
       ) : null}
     </View>
   );
@@ -230,6 +234,7 @@ const HighlightScrollCard = React.memo(function HighlightScrollCard({
   article: Article; onToggle?: () => void; likes?: number; views?: number;
 }) {
   const { lang, t } = useLanguage();
+  const { colors } = useTheme();
   const handlePress = () => {
     if (onToggle) {
       onToggle();
@@ -249,16 +254,16 @@ const HighlightScrollCard = React.memo(function HighlightScrollCard({
         height: HIGHLIGHT_CARD_HEIGHT,
         flexGrow: 0,
         flexShrink: 0,
-        backgroundColor: CARD,
+        backgroundColor: colors.card,
         borderRadius: 14,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: BORDER,
+        borderColor: colors.border,
         opacity: pressed ? 0.85 : 1,
       })}
     >
       {article.image_url ? (
-        <View style={{ width: HIGHLIGHT_CARD_WIDTH, height: 150, backgroundColor: BORDER, borderRadius: 8, overflow: 'hidden' }}>
+        <View style={{ width: HIGHLIGHT_CARD_WIDTH, height: 150, backgroundColor: colors.border, borderRadius: 8, overflow: 'hidden' }}>
           <Image
             source={article.image_url}
             style={{ width: HIGHLIGHT_CARD_WIDTH, height: 150 }}
@@ -268,15 +273,15 @@ const HighlightScrollCard = React.memo(function HighlightScrollCard({
           />
         </View>
       ) : (
-        <View style={{ width: HIGHLIGHT_CARD_WIDTH, height: 150, backgroundColor: BORDER, borderRadius: 8, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ fontSize: 28, color: TEXT_LIGHT }}>📰</Text>
+        <View style={{ width: HIGHLIGHT_CARD_WIDTH, height: 150, backgroundColor: colors.border, borderRadius: 8, alignItems: 'center', justifyContent: 'center' }}>
+          <Newspaper size={28} color={colors.textLight} />
         </View>
       )}
       <View style={{ padding: 14, flex: 1, justifyContent: 'space-between', width: HIGHLIGHT_CARD_WIDTH }}>
         <View style={{ width: HIGHLIGHT_CARD_WIDTH - 28 }}>
           <SourceBadge sourceKey={article.source_key} name={getSourceName(article.source_key || '', t)} />
           <TitleText
-            style={{ fontSize: 15, fontWeight: '800', color: TEXT_PRIMARY, lineHeight: 21, marginTop: 6 }}
+            style={{ fontSize: 15, fontWeight: '800', color: colors.textPrimary, lineHeight: 21, marginTop: 6 }}
             numberOfLines={2}
           >
             {getLocalizedTitle(article, lang)}
@@ -284,7 +289,7 @@ const HighlightScrollCard = React.memo(function HighlightScrollCard({
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Text style={{ fontSize: 11, color: TEXT_LIGHT }}>{formatDate(article.published, lang)}</Text>
+            <Text style={{ fontSize: 11, color: colors.textSecondary }}>{formatDate(article.published, lang)}</Text>
             <ScoreBadge article={article} />
           </View>
           <ArticleStats likes={likes} views={views} />
@@ -298,7 +303,11 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
   const { views, trackView } = useArticleViews(article?.link ?? '');
   const { likes, liked, toggleLike } = useReactions('news', article?.link ?? '');
   const { lang, t } = useLanguage();
-  const viewTracked = useRef(false);
+  const { colors } = useTheme();
+  const { user } = useAuth();
+  const { isBookmarked, toggleBookmark } = useBookmarks(user?.uid ?? null);
+  // 이슈 #18: viewTracked 중복 호출 수정 — link 기반 추적
+  const viewTrackedLink = useRef('');
   const insets = useSafeAreaInsets();
   const [toastMsg, setToastMsg] = useState('');
   const toastOpacity = useRef(new Animated.Value(0)).current;
@@ -312,21 +321,18 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
     ]).start();
   };
 
-  // 모달 열릴 때 뷰수 자동 증가 (1회)
+  // 이슈 #18: 모달 열릴 때 뷰수 자동 증가 (link 기반 1회)
   useEffect(() => {
-    if (article && !viewTracked.current) {
-      viewTracked.current = true;
+    if (article && article.link !== viewTrackedLink.current) {
+      viewTrackedLink.current = article.link;
       trackView();
-    }
-    if (!article) {
-      viewTracked.current = false;
     }
   }, [article, trackView]);
 
   if (!article) return null;
 
   const sourceName = getSourceName(article.source_key || '', t);
-  const sourceColor = SOURCE_COLORS[article.source_key || ''] || TEXT_SECONDARY;
+  const sourceColor = SOURCE_COLORS[article.source_key || ''] || colors.textSecondary;
 
   const handleOpenOriginal = () => {
     if (article.link) Linking.openURL(article.link);
@@ -362,6 +368,15 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
     } catch {}
   };
 
+  const bookmarked = isBookmarked('news', article.link);
+  const handleToggleBookmark = () => {
+    toggleBookmark('news', article.link, {
+      title: getLocalizedTitle(article, lang),
+      link: article.link,
+      category: article.category,
+    });
+  };
+
   return (
     <Modal
       visible={!!article}
@@ -373,22 +388,27 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
         {/* 배경 탭으로 닫기 */}
         <Pressable style={{ flex: 1 }} onPress={onClose} />
 
-        {/* 바텀시트 */}
+        {/* 바텀시트 — 이슈 #4: accessibilityViewIsModal */}
         <View style={{
-          backgroundColor: CARD,
+          backgroundColor: colors.card,
           borderTopLeftRadius: 20,
           borderTopRightRadius: 20,
           maxHeight: '85%',
-        }}>
+        }} accessibilityViewIsModal={true}>
+          {/* 이슈 #13: 드래그 핸들 */}
+          <View style={{ alignItems: 'center', paddingTop: 12 }}>
+            <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: colors.border }} />
+          </View>
+
           {/* X 닫기 버튼 */}
-          <View style={{ flexDirection: 'row', justifyContent: 'flex-end', paddingTop: 16, paddingBottom: 12, paddingHorizontal: 20 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'flex-end', paddingTop: 8, paddingBottom: 12, paddingHorizontal: 20 }}>
             <Pressable
               onPress={onClose}
               accessibilityLabel={t('modal.close')}
               accessibilityRole="button"
-              style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.surface, alignItems: 'center', justifyContent: 'center' }}
+              style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' }}
             >
-              <X size={16} color={TEXT_SECONDARY} />
+              <X size={16} color={colors.textSecondary} />
             </Pressable>
           </View>
 
@@ -399,7 +419,7 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
           >
             {/* 썸네일 */}
             {article.image_url ? (
-              <View style={{ width: '100%', height: 200, backgroundColor: BORDER }}>
+              <View style={{ width: '100%', height: 200, backgroundColor: colors.border }}>
                 <Image
                   source={article.image_url}
                   style={{ width: '100%', height: 200 }}
@@ -419,16 +439,16 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
               }}>
                 <Text style={{ fontSize: 11, fontWeight: '700', color: sourceColor }}>{sourceName}</Text>
               </View>
-              <Text style={{ fontSize: 12, color: TEXT_LIGHT }}>{formatDate(article.published, lang)}</Text>
+              <Text style={{ fontSize: 12, color: colors.textSecondary }}>{formatDate(article.published, lang)}</Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-                <Eye size={11} color={TEXT_LIGHT} />
-                <Text style={{ fontSize: 10, color: TEXT_LIGHT, fontWeight: '600' }}>{views}</Text>
+                <Eye size={11} color={colors.textSecondary} />
+                <Text style={{ fontSize: 10, color: colors.textSecondary, fontWeight: '600' }}>{views}</Text>
               </View>
             </View>
 
             {/* 제목 */}
             <Text style={{
-              fontSize: 18, fontWeight: '800', color: TEXT_PRIMARY, lineHeight: 28,
+              fontSize: 18, fontWeight: '800', color: colors.textPrimary, lineHeight: 28,
               marginTop: 14, marginBottom: 14,
               paddingHorizontal: 20,
             }}>
@@ -436,9 +456,9 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
             </Text>
 
             {/* 구분선 */}
-            <View style={{ height: 1, backgroundColor: BORDER, marginBottom: 18, marginHorizontal: 20 }} />
+            <View style={{ height: 1, backgroundColor: colors.border, marginBottom: 18, marginHorizontal: 20 }} />
 
-            {/* 3-파트 요약 */}
+            {/* 3-파트 요약 — 이슈 #1: 하드코딩 색상 수정 */}
             {(() => {
               const oneLine = getLocalizedOneLine(article, lang);
               const keyPoints = getLocalizedKeyPoints(article, lang);
@@ -447,9 +467,9 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
                 return (
                   <View style={{ paddingHorizontal: 20, marginBottom: 16 }}>
                     {/* 핵심 한줄 */}
-                    <View style={{ backgroundColor: Colors.highlightBg, borderRadius: 10, padding: 14, marginBottom: 16 }}>
-                      <Text style={{ fontSize: 11, fontWeight: '600', color: '#6366F1', marginBottom: 6 }}>{t('modal.one_line')}</Text>
-                      <Text style={{ fontSize: 16, color: TEXT_PRIMARY, lineHeight: 26, fontWeight: '700' }}>
+                    <View style={{ backgroundColor: colors.highlightBg, borderRadius: 10, padding: 14, marginBottom: 16 }}>
+                      <Text style={{ fontSize: 11, fontWeight: '600', color: colors.summaryIndigo, marginBottom: 6 }}>{t('modal.one_line')}</Text>
+                      <Text style={{ fontSize: 16, color: colors.textPrimary, lineHeight: 26, fontWeight: '700' }}>
                         {oneLine}
                       </Text>
                     </View>
@@ -457,11 +477,11 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
                     {/* 주요 포인트 */}
                     {keyPoints.length > 0 && (
                       <View style={{ marginBottom: 16 }}>
-                        <Text style={{ fontSize: 13, fontWeight: '700', color: '#0891B2', marginBottom: 8 }}>{t('modal.key_points')}</Text>
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: colors.summaryTeal, marginBottom: 8 }}>{t('modal.key_points')}</Text>
                         {keyPoints.map((point, idx) => (
                           <View key={idx} style={{ flexDirection: 'row', marginBottom: 12, paddingRight: 4 }}>
-                            <Text style={{ fontSize: 13, color: '#0891B2', marginRight: 8, lineHeight: 22, fontWeight: '700' }}>{idx + 1}.</Text>
-                            <Text style={{ fontSize: 14, color: '#374151', lineHeight: 22, flex: 1 }}>{point}</Text>
+                            <Text style={{ fontSize: 13, color: colors.summaryTeal, marginRight: 8, lineHeight: 22, fontWeight: '700' }}>{idx + 1}.</Text>
+                            <Text style={{ fontSize: 14, color: colors.summaryBody, lineHeight: 22, flex: 1 }}>{point}</Text>
                           </View>
                         ))}
                       </View>
@@ -469,9 +489,9 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
 
                     {/* 왜 중요해요? */}
                     {whyImportant ? (
-                      <View style={{ backgroundColor: '#FFFBEB', borderRadius: 10, padding: 14 }}>
-                        <Text style={{ fontSize: 13, fontWeight: '700', color: '#D97706', marginBottom: 4 }}>{t('modal.why_important')}</Text>
-                        <Text style={{ fontSize: 14, color: '#374151', lineHeight: 24 }}>
+                      <View style={{ backgroundColor: colors.summaryWarnBg, borderRadius: 10, padding: 14 }}>
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: colors.summaryWarnText, marginBottom: 4 }}>{t('modal.why_important')}</Text>
+                        <Text style={{ fontSize: 14, color: colors.summaryBody, lineHeight: 24 }}>
                           {whyImportant}
                         </Text>
                       </View>
@@ -482,7 +502,7 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
               if (article.summary) {
                 return (
                   <Text style={{
-                    fontSize: 15, color: '#374151', lineHeight: 28, letterSpacing: 0.2, marginBottom: 16,
+                    fontSize: 15, color: colors.summaryBody, lineHeight: 28, letterSpacing: 0.2, marginBottom: 16,
                     paddingHorizontal: 20,
                   }}>
                     {article.summary}
@@ -491,17 +511,17 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
               }
               return (
                 <View style={{ alignItems: 'center', paddingVertical: 24, paddingHorizontal: 20 }}>
-                  <Text style={{ fontSize: 14, fontWeight: '600', color: TEXT_SECONDARY, marginBottom: 4 }}>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: colors.textSecondary, marginBottom: 4 }}>
                     {t('modal.no_summary')}
                   </Text>
-                  <Text style={{ fontSize: 13, color: TEXT_LIGHT, marginBottom: 12 }}>
+                  <Text style={{ fontSize: 13, color: colors.textSecondary, marginBottom: 12 }}>
                     {t('modal.check_original')}
                   </Text>
                   <Pressable
                     onPress={handleOpenOriginal}
-                    style={{ paddingHorizontal: 20, paddingVertical: 10, backgroundColor: '#000', borderRadius: 8 }}
+                    style={{ paddingHorizontal: 20, paddingVertical: 10, backgroundColor: colors.textPrimary, borderRadius: 8 }}
                   >
-                    <Text style={{ color: '#FFF', fontSize: 13, fontWeight: '700' }}>{t('modal.view_original')}</Text>
+                    <Text style={{ color: colors.card, fontSize: 13, fontWeight: '700' }}>{t('modal.view_original')}</Text>
                   </Pressable>
                 </View>
               );
@@ -509,9 +529,9 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
 
           </ScrollView>
 
-          {/* 고정 하단 액션 바 */}
+          {/* 고정 하단 액션 바 — 이슈 #2, #15: 색상 토큰화 + 터치 타겟 */}
           <View style={{
-            borderTopWidth: 1, borderTopColor: BORDER,
+            borderTopWidth: 1, borderTopColor: colors.border,
             flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end',
             paddingHorizontal: 16, paddingTop: 10,
             paddingBottom: Math.max(insets.bottom, 10),
@@ -524,13 +544,13 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
               style={({ pressed }) => ({
                 alignItems: 'center', justifyContent: 'center',
                 minHeight: 44, minWidth: 44,
-                backgroundColor: liked ? '#3B82F615' : BORDER,
+                backgroundColor: liked ? colors.likeActiveBg : colors.border,
                 paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10,
-                borderWidth: liked ? 1 : 0, borderColor: '#3B82F640',
+                borderWidth: liked ? 1 : 0, borderColor: colors.likeActiveBorder,
                 opacity: pressed ? 0.8 : 1,
               })}
             >
-              <ThumbsUp size={18} color={liked ? '#3B82F6' : TEXT_SECONDARY} />
+              <ThumbsUp size={18} color={liked ? colors.likeActiveColor : colors.textSecondary} />
             </Pressable>
 
             <Pressable
@@ -540,12 +560,12 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
               style={({ pressed }) => ({
                 alignItems: 'center', justifyContent: 'center',
                 minHeight: 44, minWidth: 44,
-                backgroundColor: BORDER,
+                backgroundColor: colors.border,
                 paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10,
                 opacity: pressed ? 0.8 : 1,
               })}
             >
-              <MessageCircle size={18} color={TEXT_SECONDARY} />
+              <MessageCircle size={18} color={colors.textSecondary} />
             </Pressable>
 
             <Pressable
@@ -555,13 +575,19 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
               style={({ pressed }) => ({
                 alignItems: 'center', justifyContent: 'center',
                 minHeight: 44, minWidth: 44,
-                backgroundColor: BORDER,
+                backgroundColor: colors.border,
                 paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10,
                 opacity: pressed ? 0.8 : 1,
               })}
             >
-              <Share2 size={18} color={TEXT_SECONDARY} />
+              <Share2 size={18} color={colors.textSecondary} />
             </Pressable>
+
+            {/* 북마크 버튼 통합 */}
+            <BookmarkButton
+              isBookmarked={bookmarked}
+              onToggle={handleToggleBookmark}
+            />
           </View>
 
           {/* 인라인 토스트 */}
@@ -583,15 +609,16 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
 function HighlightSection({ highlights, onArticlePress, allStats }: { highlights: Article[]; onArticlePress: (article: Article) => void; allStats: Record<string, BatchStats> }) {
   const stats = allStats;
   const { t } = useLanguage();
+  const { colors } = useTheme();
 
   if (!highlights || highlights.length === 0) return null;
 
   return (
-    <View style={{ paddingTop: 12, paddingBottom: 24, backgroundColor: Colors.highlightBg }}>
+    <View style={{ paddingTop: 12, paddingBottom: 24, backgroundColor: colors.highlightBg }}>
       {/* 섹션 헤더 */}
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 14 }}>
-        <Text style={{ fontSize: 17, fontWeight: '800', color: TEXT_PRIMARY }}>{t('news.highlight_title')}</Text>
-        <Text style={{ fontSize: 11, color: TEXT_LIGHT, marginLeft: 8 }}>Top {highlights.length}</Text>
+        <Text style={{ fontSize: 17, fontWeight: '800', color: colors.textPrimary }}>{t('news.highlight_title')}</Text>
+        <Text style={{ fontSize: 11, color: colors.textSecondary, marginLeft: 8 }}>Top {highlights.length}</Text>
       </View>
 
       {/* 가로 스크롤 하이라이트 카드 */}
@@ -624,6 +651,7 @@ const HScrollCard = React.memo(function HScrollCard({
   article: Article; showSourceBadge?: boolean; onToggle?: () => void; likes?: number; views?: number;
 }) {
   const { lang, t } = useLanguage();
+  const { colors } = useTheme();
   const handlePress = () => {
     if (onToggle) {
       onToggle();
@@ -643,16 +671,16 @@ const HScrollCard = React.memo(function HScrollCard({
         height: HCARD_HEIGHT,
         flexGrow: 0,
         flexShrink: 0,
-        backgroundColor: CARD,
+        backgroundColor: colors.card,
         borderRadius: 12,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: BORDER,
+        borderColor: colors.border,
         opacity: pressed ? 0.85 : 1,
       })}
     >
       {article.image_url ? (
-        <View style={{ width: CARD_WIDTH, height: 140, backgroundColor: BORDER, borderRadius: 8, overflow: 'hidden' }}>
+        <View style={{ width: CARD_WIDTH, height: 140, backgroundColor: colors.border, borderRadius: 8, overflow: 'hidden' }}>
           <Image
             source={article.image_url}
             style={{ width: CARD_WIDTH, height: 140 }}
@@ -662,15 +690,15 @@ const HScrollCard = React.memo(function HScrollCard({
           />
         </View>
       ) : (
-        <View style={{ width: CARD_WIDTH, height: 140, backgroundColor: BORDER, borderRadius: 8, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ fontSize: 28, color: TEXT_LIGHT }}>📰</Text>
+        <View style={{ width: CARD_WIDTH, height: 140, backgroundColor: colors.border, borderRadius: 8, alignItems: 'center', justifyContent: 'center' }}>
+          <Newspaper size={28} color={colors.textLight} />
         </View>
       )}
       <View style={{ padding: 14, flex: 1, width: CARD_WIDTH }}>
         <View style={{ width: CARD_WIDTH - 28 }}>
           {showSourceBadge && <SourceBadge sourceKey={article.source_key} name={getSourceName(article.source_key || '', t)} />}
           <TitleText
-            style={{ fontSize: 13, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 18, marginTop: showSourceBadge ? 6 : 0 }}
+            style={{ fontSize: 13, fontWeight: '700', color: colors.textPrimary, lineHeight: 18, marginTop: showSourceBadge ? 6 : 0 }}
             numberOfLines={2}
           >
             {getLocalizedTitle(article, lang)}
@@ -678,7 +706,7 @@ const HScrollCard = React.memo(function HScrollCard({
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Text style={{ fontSize: 11, color: TEXT_LIGHT }}>{formatDate(article.published, lang)}</Text>
+            <Text style={{ fontSize: 11, color: colors.textSecondary }}>{formatDate(article.published, lang)}</Text>
             <ScoreBadge article={article} />
           </View>
           <ArticleStats likes={likes} views={views} />
@@ -697,11 +725,13 @@ function CategoryTabSection({
   const [activeTab, setActiveTab] = useState(categoryOrder[0] || 'research');
   const [expandLevel, setExpandLevel] = useState(0); // 0=5개, 1=10개, 2=15개
   const { lang, t } = useLanguage();
+  const { colors } = useTheme();
 
   const articles = categorizedArticles[activeTab] || [];
   const stats = allStats;
   const visibleCount = Math.min(5 + expandLevel * 5, articles.length);
-  const visible = articles.slice(0, visibleCount);
+  // 이슈 #16: useMemo로 감싸기
+  const visible = useMemo(() => articles.slice(0, visibleCount), [articles, visibleCount]);
   const remaining = articles.length - visibleCount;
 
   const handleTabChange = (tab: string) => {
@@ -713,7 +743,7 @@ function CategoryTabSection({
     <View style={{ marginBottom: 24 }}>
       {/* 섹션 헤더 + 카테고리 탭 */}
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 16 }}>
-        <Text style={{ fontSize: 17, fontWeight: '800', color: TEXT_PRIMARY, marginRight: 12 }}>{t('news.category_title')}</Text>
+        <Text style={{ fontSize: 17, fontWeight: '800', color: colors.textPrimary, marginRight: 12 }}>{t('news.category_title')}</Text>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -723,7 +753,7 @@ function CategoryTabSection({
         >
           {categoryOrder.map(catKey => {
             const isActive = catKey === activeTab;
-            const color = CATEGORY_COLORS[catKey] || TEXT_SECONDARY;
+            const color = CATEGORY_COLORS[catKey] || colors.textSecondary;
             const catName = getCategoryName(catKey, t);
             return (
               <Pressable
@@ -734,15 +764,17 @@ function CategoryTabSection({
                 accessibilityState={{ selected: isActive }}
                 style={{
                   paddingHorizontal: 14, paddingVertical: 10,
+                  minHeight: 44,
                   borderRadius: 16,
-                  backgroundColor: isActive ? color : CARD,
+                  backgroundColor: isActive ? color : colors.card,
                   borderWidth: 1,
-                  borderColor: isActive ? color : BORDER,
+                  borderColor: isActive ? color : colors.border,
+                  justifyContent: 'center',
                 }}
               >
                 <Text style={{
                   fontSize: 12, fontWeight: '700',
-                  color: isActive ? '#FFF' : TEXT_SECONDARY,
+                  color: isActive ? '#FFF' : colors.textSecondary,
                 }}>
                   {catName}
                 </Text>
@@ -762,17 +794,17 @@ function CategoryTabSection({
             accessibilityRole="button"
             style={({ pressed }) => ({
               height: 120,
-              backgroundColor: CARD,
+              backgroundColor: colors.card,
               borderRadius: 14,
               overflow: 'hidden',
               borderWidth: 1,
-              borderColor: BORDER,
+              borderColor: colors.border,
               opacity: pressed ? 0.85 : 1,
             })}
           >
             <View style={{ flexDirection: 'row', flex: 1 }}>
               {a.image_url ? (
-                <View style={{ width: 118, height: 118, backgroundColor: BORDER, borderRadius: 8, overflow: 'hidden' }}>
+                <View style={{ width: 118, height: 118, backgroundColor: colors.border, borderRadius: 8, overflow: 'hidden' }}>
                   <Image
                     source={a.image_url}
                     style={{ width: 118, height: 118 }}
@@ -782,15 +814,15 @@ function CategoryTabSection({
                   />
                 </View>
               ) : (
-                <View style={{ width: 118, height: 118, backgroundColor: BORDER, borderRadius: 8, alignItems: 'center', justifyContent: 'center' }}>
-                  <Text style={{ fontSize: 24, color: TEXT_LIGHT }}>📰</Text>
+                <View style={{ width: 118, height: 118, backgroundColor: colors.border, borderRadius: 8, alignItems: 'center', justifyContent: 'center' }}>
+                  <Newspaper size={24} color={colors.textLight} />
                 </View>
               )}
               <View style={{ flex: 1, padding: 14, justifyContent: 'space-between' }}>
                 <View>
                   <SourceBadge sourceKey={a.source_key} name={getSourceName(a.source_key || '', t)} />
                   <TitleText
-                    style={{ fontSize: 14, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 20, marginTop: 6 }}
+                    style={{ fontSize: 14, fontWeight: '700', color: colors.textPrimary, lineHeight: 20, marginTop: 6 }}
                     numberOfLines={2}
                   >
                     {getLocalizedTitle(a, lang)}
@@ -798,7 +830,7 @@ function CategoryTabSection({
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Text style={{ fontSize: 11, color: TEXT_LIGHT }}>{formatDate(a.published, lang)}</Text>
+                    <Text style={{ fontSize: 11, color: colors.textSecondary }}>{formatDate(a.published, lang)}</Text>
                     <ScoreBadge article={a} />
                   </View>
                   <ArticleStats likes={stats[a.link]?.likes} views={stats[a.link]?.views} />
@@ -809,16 +841,16 @@ function CategoryTabSection({
         ))}
       </View>
 
-      {/* 더보기 */}
+      {/* 더보기 — 이슈 #23: 접근성 라벨 "+" 제거, 이슈 #2: 테두리 색상 토큰화 */}
       {remaining > 0 && (
         <Pressable
           onPress={() => setExpandLevel(prev => prev + 1)}
-          accessibilityLabel={`+${Math.min(remaining, 5)}${t('news.more')}`}
+          accessibilityLabel={`${Math.min(remaining, 5)}${t('news.more')}`}
           accessibilityRole="button"
           style={{ alignItems: 'center', paddingVertical: 12, marginHorizontal: 16 }}
         >
-          <View style={{ paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10, backgroundColor: BORDER, borderWidth: 1, borderColor: '#E5E7EB' }}>
-            <Text style={{ fontSize: 13, fontWeight: '700', color: TEXT_SECONDARY }}>
+          <View style={{ paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10, backgroundColor: colors.border, borderWidth: 1, borderColor: colors.border }}>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: colors.textSecondary }}>
               +{Math.min(remaining, 5)}{t('news.more')}
             </Text>
           </View>
@@ -837,11 +869,12 @@ function SourceHScrollSection({
   const [showMore, setShowMore] = useState(false);
   const stats = allStats;
   const { lang, t } = useLanguage();
+  const { colors } = useTheme();
 
   if (!articles || articles.length === 0) return null;
 
   const name = getSourceName(sourceKey, t);
-  const color = SOURCE_COLORS[sourceKey] || TEXT_SECONDARY;
+  const color = SOURCE_COLORS[sourceKey] || colors.textSecondary;
   const first5 = articles.slice(0, 5);
   const more5 = articles.slice(5, 10);
   const visible = showMore ? [...first5, ...more5] : first5;
@@ -850,10 +883,10 @@ function SourceHScrollSection({
     <View style={{ marginBottom: 24 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 14 }}>
         <View style={{ width: 4, height: 18, borderRadius: 2, backgroundColor: color, marginRight: 8 }} />
-        <Text style={{ fontSize: 15, fontWeight: '800', color: TEXT_PRIMARY, flex: 1 }}>
+        <Text style={{ fontSize: 15, fontWeight: '800', color: colors.textPrimary, flex: 1 }}>
           {name}
         </Text>
-        <Text style={{ fontSize: 11, color: TEXT_LIGHT }}>{articles.length}{t('news.articles_suffix')}</Text>
+        <Text style={{ fontSize: 11, color: colors.textSecondary }}>{articles.length}{t('news.articles_suffix')}</Text>
       </View>
 
       <ScrollView
@@ -878,13 +911,13 @@ function SourceHScrollSection({
               width: 80,
               height: HCARD_HEIGHT,
               marginRight: 12,
-              backgroundColor: BORDER,
+              backgroundColor: colors.border,
               borderRadius: 12,
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            <Text style={{ fontSize: 12, fontWeight: '700', color: TEXT_SECONDARY, textAlign: 'center' }}>
+            <Text style={{ fontSize: 12, fontWeight: '700', color: colors.textSecondary, textAlign: 'center' }}>
               +{more5.length}{'\n'}{t('news.show_more')}
             </Text>
           </Pressable>
@@ -899,6 +932,7 @@ const GeekNewsSection = React.memo(function GeekNewsSection({ articles, onArticl
   const [showMore, setShowMore] = useState(false);
   const stats = allStats;
   const { lang, t } = useLanguage();
+  const { colors } = useTheme();
   if (!articles || articles.length === 0) return null;
 
   const visible = React.useMemo(
@@ -907,7 +941,7 @@ const GeekNewsSection = React.memo(function GeekNewsSection({ articles, onArticl
   );
   const hasMore = !showMore && articles.length > 5;
   const moreCount = Math.min(articles.length - 5, 5);
-  const color = SOURCE_COLORS['geeknews'] || TEXT_SECONDARY;
+  const color = SOURCE_COLORS['geeknews'] || colors.textSecondary;
   const name = getSourceName('geeknews', t);
 
   return (
@@ -917,8 +951,8 @@ const GeekNewsSection = React.memo(function GeekNewsSection({ articles, onArticl
         accessibilityRole="header"
       >
         <View style={{ width: 4, height: 18, borderRadius: 2, backgroundColor: color, marginRight: 8 }} />
-        <Text style={{ fontSize: 15, fontWeight: '800', color: TEXT_PRIMARY, flex: 1 }}>{name}</Text>
-        <Text style={{ fontSize: 11, color: TEXT_LIGHT }}>{articles.length}{t('news.articles_suffix')}</Text>
+        <Text style={{ fontSize: 15, fontWeight: '800', color: colors.textPrimary, flex: 1 }}>{name}</Text>
+        <Text style={{ fontSize: 11, color: colors.textSecondary }}>{articles.length}{t('news.articles_suffix')}</Text>
       </View>
 
       <View style={{ paddingHorizontal: 16, gap: 12 }}>
@@ -929,10 +963,10 @@ const GeekNewsSection = React.memo(function GeekNewsSection({ articles, onArticl
             accessibilityLabel={getLocalizedTitle(a, lang)}
             accessibilityRole="button"
             style={({ pressed }) => ({
-              backgroundColor: CARD,
+              backgroundColor: colors.card,
               borderRadius: 12,
               borderWidth: 1,
-              borderColor: BORDER,
+              borderColor: colors.border,
               padding: 14,
               justifyContent: 'space-between',
               opacity: pressed ? 0.85 : 1,
@@ -940,7 +974,7 @@ const GeekNewsSection = React.memo(function GeekNewsSection({ articles, onArticl
           >
             <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
               <TitleText
-                style={{ fontSize: 14, fontWeight: '700', color: TEXT_PRIMARY, lineHeight: 20, flex: 1, marginRight: 8 }}
+                style={{ fontSize: 14, fontWeight: '700', color: colors.textPrimary, lineHeight: 20, flex: 1, marginRight: 8 }}
                 numberOfLines={2}
               >
                 {getLocalizedTitle(a, lang)}
@@ -948,7 +982,7 @@ const GeekNewsSection = React.memo(function GeekNewsSection({ articles, onArticl
               <ScoreBadge article={a} />
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
-              <Text style={{ fontSize: 11, color: TEXT_LIGHT }}>{formatDate(a.published, lang)}</Text>
+              <Text style={{ fontSize: 11, color: colors.textSecondary }}>{formatDate(a.published, lang)}</Text>
               <ArticleStats likes={stats[a.link]?.likes} views={stats[a.link]?.views} />
             </View>
           </Pressable>
@@ -989,6 +1023,15 @@ interface DeliveredNotification {
   date?: number;
 }
 
+// ─── Timestamp 처리 (이슈 #26) ──────────────────────────────────────────
+const getUpdatedTime = (ua: any) => {
+  if (!ua) return null;
+  if (typeof ua === 'string') return new Date(ua);
+  if (ua.toDate) return ua.toDate();
+  if (ua.seconds !== undefined) return new Date(ua.seconds * 1000);
+  return new Date(ua);
+};
+
 // ─── 메인 화면 ──────────────────────────────────────────────────────────
 export default function NewsScreen() {
   const [refreshing, setRefreshing] = useState(false);
@@ -998,6 +1041,7 @@ export default function NewsScreen() {
   const [notifications, setNotifications] = useState<DeliveredNotification[]>([]);
   const { openDrawer, setActiveTab } = useDrawer();
   const { lang, t } = useLanguage();
+  const { colors, isDark } = useTheme();
   const { newsData, loading, error, refresh } = useNews();
 
   const handleArticlePress = useCallback((article: Article) => {
@@ -1020,9 +1064,9 @@ export default function NewsScreen() {
     try {
       if (Notifications) {
         const delivered = await Notifications.getPresentedNotificationsAsync();
-        setNotifications(delivered.sort((a: DeliveredNotification, b: DeliveredNotification) =>
+        setNotifications(delivered.sort((a: any, b: any) =>
           (b.date ?? 0) - (a.date ?? 0)
-        ));
+        ) as DeliveredNotification[]);
       } else {
         setNotifications([]);
       }
@@ -1038,10 +1082,10 @@ export default function NewsScreen() {
     setRefreshing(false);
   }, [refresh]);
 
-  // ─── 새 구조 (3-Section) ───
-  const rawHighlights = newsData?.highlights ?? [];
+  // ─── 새 구조 (3-Section) — 이슈 #17: 빈 배열 상수 참조 ───
+  const rawHighlights = newsData?.highlights ?? EMPTY_ARTICLES;
   const highlights = React.useMemo(() => sortByDateThenScore(rawHighlights), [rawHighlights]);
-  const rawCategorized = newsData?.categorized_articles ?? {};
+  const rawCategorized = newsData?.categorized_articles ?? EMPTY_RECORD;
   const categorizedArticles = React.useMemo(() => {
     const sorted: Record<string, Article[]> = {};
     for (const [cat, articles] of Object.entries(rawCategorized)) {
@@ -1050,7 +1094,7 @@ export default function NewsScreen() {
     return sorted;
   }, [rawCategorized]);
   const categoryOrder = newsData?.category_order ?? DEFAULT_CATEGORY_ORDER;
-  const sourceArticles = newsData?.source_articles ?? {};
+  const sourceArticles = newsData?.source_articles ?? EMPTY_RECORD;
   const sourceOrder = newsData?.source_order ?? DEFAULT_SOURCE_ORDER;
 
   // ─── 레거시 폴백 (기존 articles 배열 데이터) ───
@@ -1097,39 +1141,43 @@ export default function NewsScreen() {
     || (newsData?.articles?.length ?? 0));
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: BG }} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor={BG} />
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top']}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.bg} />
 
-      {/* ─── 헤더 ─── */}
+      {/* ─── 헤더 — 이슈 #24: paddingTop 통일 ─── */}
       <View style={{
         flexDirection: 'row', alignItems: 'center',
-        paddingHorizontal: 16, paddingVertical: 14, backgroundColor: BG,
+        paddingHorizontal: 16, paddingTop: 20, paddingBottom: 12, backgroundColor: colors.bg,
       }}>
         <View style={{
           width: 36, height: 36, borderRadius: 10,
-          backgroundColor: '#000', alignItems: 'center', justifyContent: 'center', marginRight: 10,
+          backgroundColor: colors.textPrimary, alignItems: 'center', justifyContent: 'center', marginRight: 10,
         }}>
-          <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '800' }}>A</Text>
+          <Text style={{ color: colors.card, fontSize: 16, fontWeight: '800' }}>A</Text>
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 24, fontWeight: '800', color: TEXT_PRIMARY }}>{t('news.header')}</Text>
+          <Text style={{ fontSize: 24, fontWeight: '800', color: colors.textPrimary }}>{t('news.header')}</Text>
           {totalArticles > 0 && (
-            <Text style={{ fontSize: 12, color: TEXT_LIGHT }}>
-              {newsData?.updated_at
-                ? `${new Date(newsData.updated_at.seconds ? newsData.updated_at.seconds * 1000 : newsData.updated_at).toLocaleTimeString(lang === 'en' ? 'en-US' : 'ko-KR', { hour: '2-digit', minute: '2-digit' })} ${t('news.updated')}`
-                : `${totalArticles}${t('news.articles_count')}`}
+            <Text style={{ fontSize: 12, color: colors.textSecondary }}>
+              {(() => {
+                const updatedTime = getUpdatedTime(newsData?.updated_at);
+                if (updatedTime) {
+                  return `${updatedTime.toLocaleTimeString(lang === 'en' ? 'en-US' : 'ko-KR', { hour: '2-digit', minute: '2-digit' })} ${t('news.updated')}`;
+                }
+                return `${totalArticles}${t('news.articles_count')}`;
+              })()}
             </Text>
           )}
           <View style={{ width: 40, height: 3, backgroundColor: Colors.primary, borderRadius: 2, marginTop: 12 }} />
         </View>
         <Pressable onPress={openNotifications} accessibilityLabel={t('notification.title')} accessibilityRole="button" style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
-          <Bell size={22} color={TEXT_SECONDARY} />
+          <Bell size={22} color={colors.textSecondary} />
         </Pressable>
       </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={TEXT_SECONDARY} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.textSecondary} />}
       >
         {loading ? (
           <View style={{ paddingHorizontal: 16, gap: 12, paddingTop: 8 }}>
@@ -1139,10 +1187,11 @@ export default function NewsScreen() {
           </View>
         ) : error ? (
           <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 60, paddingHorizontal: 32 }}>
-            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: '#FEE2E2', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-              <RefreshCw size={28} color="#DC2626" />
+            {/* 이슈 #2: 에러 색상 토큰화 */}
+            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: colors.errorBg, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+              <RefreshCw size={28} color={colors.errorColor} />
             </View>
-            <Text style={{ color: TEXT_PRIMARY, fontWeight: '700', fontSize: 16, marginBottom: 8 }}>{t(error)}</Text>
+            <Text style={{ color: colors.textPrimary, fontWeight: '700', fontSize: 16, marginBottom: 8 }}>{t(error)}</Text>
             <Pressable onPress={refresh} style={{ backgroundColor: Colors.primary, paddingHorizontal: 28, paddingVertical: 12, borderRadius: 12 }}>
               <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 15 }}>{t('news.retry')}</Text>
             </Pressable>
@@ -1152,7 +1201,7 @@ export default function NewsScreen() {
             <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: Colors.primaryLight, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
               <Cpu size={28} color={Colors.primary} />
             </View>
-            <Text style={{ fontSize: 15, fontWeight: '600', color: TEXT_PRIMARY, marginBottom: 4 }}>{t('news.no_news')}</Text>
+            <Text style={{ fontSize: 15, fontWeight: '600', color: colors.textPrimary, marginBottom: 4 }}>{t('news.no_news')}</Text>
           </View>
         ) : isLegacy ? (
           <>
@@ -1183,11 +1232,11 @@ export default function NewsScreen() {
             {/* 구분선: 카테고리 → 소스별 */}
             {sourceOrder.some(key => (sourceArticles[key]?.length ?? 0) > 0) && (
               <View style={{ paddingHorizontal: 16, marginBottom: 20, marginTop: 16 }}>
-                <View style={{ height: 8, backgroundColor: Colors.surface, borderRadius: 4, marginBottom: 20 }} />
-                <Text style={{ fontSize: 16, fontWeight: '800', color: TEXT_PRIMARY }}>
+                <View style={{ height: 8, backgroundColor: colors.surface, borderRadius: 4, marginBottom: 20 }} />
+                <Text style={{ fontSize: 16, fontWeight: '800', color: colors.textPrimary }}>
                   {t('news.source_title')}
                 </Text>
-                <Text style={{ fontSize: 12, color: TEXT_SECONDARY, marginTop: 4 }}>
+                <Text style={{ fontSize: 12, color: colors.textSecondary, marginTop: 4 }}>
                   {t('news.source_subtitle')}
                 </Text>
               </View>
@@ -1227,34 +1276,34 @@ export default function NewsScreen() {
       <Modal visible={notifModalVisible} animationType="slide" transparent onRequestClose={() => setNotifModalVisible(false)}>
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <Pressable style={{ flex: 0.15 }} onPress={() => setNotifModalVisible(false)} />
-          <View style={{ flex: 0.85, backgroundColor: BG, borderTopLeftRadius: 20, borderTopRightRadius: 20, overflow: 'hidden' }} accessibilityViewIsModal={true}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: BORDER }}>
-              <Bell size={20} color={TEXT_PRIMARY} />
-              <Text style={{ flex: 1, fontSize: 17, fontWeight: '700', color: TEXT_PRIMARY, marginLeft: 8 }}>{t('notification.title')}</Text>
+          <View style={{ flex: 0.85, backgroundColor: colors.bg, borderTopLeftRadius: 20, borderTopRightRadius: 20, overflow: 'hidden' }} accessibilityViewIsModal={true}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+              <Bell size={20} color={colors.textPrimary} />
+              <Text style={{ flex: 1, fontSize: 17, fontWeight: '700', color: colors.textPrimary, marginLeft: 8 }}>{t('notification.title')}</Text>
               <Pressable onPress={() => setNotifModalVisible(false)} accessibilityLabel={t('modal.close')} accessibilityRole="button" style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
-                <X size={20} color={TEXT_SECONDARY} />
+                <X size={20} color={colors.textSecondary} />
               </Pressable>
             </View>
             <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
               {notifications.length === 0 ? (
                 <View style={{ alignItems: 'center', paddingTop: 60 }}>
-                  <Bell size={48} color={TEXT_SECONDARY} />
-                  <Text style={{ color: TEXT_SECONDARY, fontSize: 15, marginTop: 16 }}>{t('notification.empty')}</Text>
+                  <Bell size={48} color={colors.textSecondary} />
+                  <Text style={{ color: colors.textSecondary, fontSize: 15, marginTop: 16 }}>{t('notification.empty')}</Text>
                 </View>
               ) : (
                 notifications.map((n, i) => (
                   <View key={n.request?.identifier ?? i} style={{
-                    backgroundColor: CARD, borderRadius: 12, padding: 14, marginBottom: 10,
-                    borderWidth: 1, borderColor: BORDER,
+                    backgroundColor: colors.card, borderRadius: 12, padding: 14, marginBottom: 10,
+                    borderWidth: 1, borderColor: colors.border,
                   }}>
-                    <Text style={{ fontSize: 15, fontWeight: '600', color: TEXT_PRIMARY }} numberOfLines={2}>
+                    <Text style={{ fontSize: 15, fontWeight: '600', color: colors.textPrimary }} numberOfLines={2}>
                       {n.request?.content?.title ?? 'Ailon'}
                     </Text>
-                    <Text style={{ fontSize: 13, color: TEXT_SECONDARY, marginTop: 4 }} numberOfLines={3}>
+                    <Text style={{ fontSize: 13, color: colors.textSecondary, marginTop: 4 }} numberOfLines={3}>
                       {n.request?.content?.body ?? ''}
                     </Text>
                     {n.date ? (
-                      <Text style={{ fontSize: 11, color: TEXT_LIGHT, marginTop: 6 }}>
+                      <Text style={{ fontSize: 11, color: colors.textSecondary, marginTop: 6 }}>
                         {new Date(n.date).toLocaleDateString(lang === 'en' ? 'en-US' : 'ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                       </Text>
                     ) : null}

@@ -1,16 +1,16 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Animated } from 'react-native';
-import { Colors } from '@/lib/colors';
+import { View, Animated, type DimensionValue } from 'react-native';
+import { useTheme } from '@/context/ThemeContext';
 
 interface SkeletonProps {
-  className?: string;
-  width?: number | string;
+  width?: DimensionValue;
   height?: number;
   borderRadius?: number;
 }
 
 function SkeletonItem({ width, height = 16, borderRadius = 8 }: SkeletonProps) {
   const opacity = useRef(new Animated.Value(0.4)).current;
+  const { colors } = useTheme();
 
   useEffect(() => {
     const anim = Animated.loop(
@@ -29,7 +29,7 @@ function SkeletonItem({ width, height = 16, borderRadius = 8 }: SkeletonProps) {
         width: width ?? '100%',
         height,
         borderRadius,
-        backgroundColor: Colors.border,
+        backgroundColor: colors.border,
         opacity,
       }}
     />
@@ -37,10 +37,15 @@ function SkeletonItem({ width, height = 16, borderRadius = 8 }: SkeletonProps) {
 }
 
 export function NewsCardSkeleton() {
+  const { colors } = useTheme();
   return (
     <View
-      className="bg-card rounded-2xl p-4 mb-3 mx-4"
       style={{
+        backgroundColor: colors.card,
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 12,
+        marginHorizontal: 16,
         elevation: 2,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
@@ -48,18 +53,18 @@ export function NewsCardSkeleton() {
         shadowRadius: 4,
       }}
     >
-      <View className="flex-row items-center gap-2 mb-3">
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
         <SkeletonItem width={60} height={20} borderRadius={10} />
         <SkeletonItem width={80} height={14} borderRadius={6} />
       </View>
       <SkeletonItem height={20} borderRadius={6} />
-      <View className="mt-2">
+      <View style={{ marginTop: 8 }}>
         <SkeletonItem height={14} borderRadius={6} />
-        <View className="mt-1.5">
+        <View style={{ marginTop: 6 }}>
           <SkeletonItem width="70%" height={14} borderRadius={6} />
         </View>
       </View>
-      <View className="flex-row items-center justify-between mt-3">
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 }}>
         <SkeletonItem width={60} height={12} borderRadius={4} />
         <SkeletonItem width={14} height={14} borderRadius={7} />
       </View>
@@ -68,10 +73,16 @@ export function NewsCardSkeleton() {
 }
 
 export function SnapCardSkeleton() {
+  const { colors } = useTheme();
   return (
     <View
-      className="bg-card rounded-2xl p-4 mb-3 mx-4 overflow-hidden"
       style={{
+        backgroundColor: colors.card,
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 12,
+        marginHorizontal: 16,
+        overflow: 'hidden',
         elevation: 2,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
@@ -80,25 +91,25 @@ export function SnapCardSkeleton() {
       }}
     >
       {/* Accent bar */}
-      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, backgroundColor: '#E0E0E0' }} />
-      <View className="flex-row items-center justify-between mb-3 mt-1">
+      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, backgroundColor: colors.border }} />
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, marginTop: 4 }}>
         <SkeletonItem width={80} height={20} borderRadius={10} />
         <SkeletonItem width={50} height={20} borderRadius={10} />
       </View>
       {/* Hook skeleton */}
-      <View className="bg-primary-light rounded-xl p-3 mb-3">
+      <View style={{ backgroundColor: colors.primaryLight, borderRadius: 12, padding: 12, marginBottom: 12 }}>
         <SkeletonItem height={14} borderRadius={6} />
-        <View className="mt-1">
+        <View style={{ marginTop: 4 }}>
           <SkeletonItem width="80%" height={14} borderRadius={6} />
         </View>
       </View>
       <SkeletonItem height={22} borderRadius={6} />
-      <View className="mt-3">
+      <View style={{ marginTop: 12 }}>
         <SkeletonItem height={14} borderRadius={6} />
-        <View className="mt-1">
+        <View style={{ marginTop: 4 }}>
           <SkeletonItem height={14} borderRadius={6} />
         </View>
-        <View className="mt-1">
+        <View style={{ marginTop: 4 }}>
           <SkeletonItem width="60%" height={14} borderRadius={6} />
         </View>
       </View>
@@ -107,10 +118,15 @@ export function SnapCardSkeleton() {
 }
 
 export function IdeaCardSkeleton() {
+  const { colors } = useTheme();
   return (
     <View
-      className="bg-card rounded-2xl p-4 mb-3 mx-4"
       style={{
+        backgroundColor: colors.card,
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 12,
+        marginHorizontal: 16,
         elevation: 2,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
@@ -118,23 +134,23 @@ export function IdeaCardSkeleton() {
         shadowRadius: 4,
       }}
     >
-      <View className="flex-row items-center gap-3 mb-3">
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 }}>
         <SkeletonItem width={32} height={32} borderRadius={16} />
-        <View className="flex-1">
+        <View style={{ flex: 1 }}>
           <SkeletonItem height={20} borderRadius={6} />
         </View>
       </View>
-      <View className="mt-1">
+      <View style={{ marginTop: 4 }}>
         <SkeletonItem height={14} borderRadius={6} />
-        <View className="mt-1.5">
+        <View style={{ marginTop: 6 }}>
           <SkeletonItem width="85%" height={14} borderRadius={6} />
         </View>
       </View>
-      <View className="flex-row gap-3 mt-4">
+      <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
         {[0, 1, 2].map((i) => (
-          <View key={i} className="flex-1">
+          <View key={i} style={{ flex: 1 }}>
             <SkeletonItem height={12} borderRadius={4} />
-            <View className="mt-1.5">
+            <View style={{ marginTop: 6 }}>
               <SkeletonItem height={6} borderRadius={3} />
             </View>
           </View>

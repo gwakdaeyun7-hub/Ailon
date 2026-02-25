@@ -2,9 +2,10 @@ import { Tabs } from 'expo-router';
 import { View } from 'react-native';
 import { Cpu, BookOpen, FlaskConical, Bookmark, User } from 'lucide-react-native';
 import { useLanguage } from '@/context/LanguageContext';
-import { Colors } from '@/lib/colors';
+import { useTheme } from '@/context/ThemeContext';
 
 function TabIcon({ Icon, color, focused }: { Icon: React.ComponentType<{ size: number; color: string; strokeWidth?: number }>; color: string; focused: boolean }) {
+  const { colors } = useTheme();
   return (
     <View style={{ alignItems: 'center' }}>
       <Icon size={22} color={color} strokeWidth={focused ? 2.5 : 1.8} />
@@ -14,7 +15,7 @@ function TabIcon({ Icon, color, focused }: { Icon: React.ComponentType<{ size: n
             width: 5,
             height: 5,
             borderRadius: 2.5,
-            backgroundColor: Colors.primary,
+            backgroundColor: colors.primary,
             marginTop: 4,
           }}
         />
@@ -25,13 +26,14 @@ function TabIcon({ Icon, color, focused }: { Icon: React.ComponentType<{ size: n
 
 export default function TabLayout() {
   const { t } = useLanguage();
+  const { colors } = useTheme();
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: Colors.card,
-          borderTopColor: Colors.border,
+          backgroundColor: colors.card,
+          borderTopColor: colors.border,
           borderTopWidth: 1,
           elevation: 4,
           shadowColor: '#000',
@@ -39,8 +41,8 @@ export default function TabLayout() {
           shadowOpacity: 0.06,
           shadowRadius: 8,
         },
-        tabBarActiveTintColor: Colors.primary,
-        tabBarInactiveTintColor: Colors.textDim,
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textDim,
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '600',

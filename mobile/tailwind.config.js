@@ -18,7 +18,7 @@ module.exports = {
         "text-muted": "#757575",
         "text-dim": "#757575",
         success: "#43A047",
-        warning: "#FB8C00",
+        warning: "#F57C00",
         danger: "#E53935",
         "core-tech": "#3b82f6",
         "dev-tools": "#43A047",

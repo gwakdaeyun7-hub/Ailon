@@ -13,17 +13,18 @@ import { Bookmark, ExternalLink, Trash2, Newspaper, BookOpen, Lightbulb } from '
 import { useAuth } from '@/hooks/useAuth';
 import { useBookmarks } from '@/hooks/useBookmarks';
 import { useLanguage } from '@/context/LanguageContext';
-import { Colors } from '@/lib/colors';
+import { useTheme } from '@/context/ThemeContext';
 import { cardShadow } from '@/lib/theme';
+import type { ThemeColors } from '@/lib/colors';
 import type { Bookmark as BookmarkType } from '@/lib/types';
 
-function useTypeConfig() {
+function useTypeConfig(colors: ThemeColors) {
   const { t } = useLanguage();
   return {
-    news: { label: t('saved.type_news'), color: Colors.primary, bgColor: Colors.primaryLight, Icon: Newspaper },
-    snap: { label: t('saved.type_principle'), color: Colors.coreTech, bgColor: Colors.coreTechBg, Icon: BookOpen },
-    principle: { label: t('saved.type_principle'), color: Colors.coreTech, bgColor: Colors.coreTechBg, Icon: BookOpen },
-    idea: { label: t('saved.type_idea'), color: Colors.accent, bgColor: Colors.warningLight, Icon: Lightbulb },
+    news: { label: t('saved.type_news'), color: colors.primary, bgColor: colors.primaryLight, Icon: Newspaper },
+    snap: { label: t('saved.type_principle'), color: colors.coreTech, bgColor: colors.coreTechBg, Icon: BookOpen },
+    principle: { label: t('saved.type_principle'), color: colors.coreTech, bgColor: colors.coreTechBg, Icon: BookOpen },
+    idea: { label: t('saved.type_idea'), color: colors.accent, bgColor: colors.warningLight, Icon: Lightbulb },
   } as const;
 }
 
@@ -32,7 +33,8 @@ function SavedItemCard({
   onDelete,
   typeConfig,
   lang,
-}: { bookmark: BookmarkType; onDelete: (bookmark: BookmarkType) => void; typeConfig: ReturnType<typeof useTypeConfig>; lang: string }) {
+  colors,
+}: { bookmark: BookmarkType; onDelete: (bookmark: BookmarkType) => void; typeConfig: ReturnType<typeof useTypeConfig>; lang: string; colors: ThemeColors }) {
   const { t } = useLanguage();
   const config = typeConfig[bookmark.type] ?? typeConfig.news;
   const meta = bookmark.metadata;
@@ -40,7 +42,7 @@ function SavedItemCard({
 
   return (
     <View
-      style={{ backgroundColor: Colors.card, borderRadius: 16, marginHorizontal: 16, marginBottom: 12, padding: 16, ...cardShadow }}
+      style={{ backgroundColor: colors.card, borderRadius: 16, marginHorizontal: 16, marginBottom: 12, padding: 16, ...cardShadow }}
     >
       {/* Type badge + 삭제 */}
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -50,7 +52,7 @@ function SavedItemCard({
             <Text style={{ color: config.color, fontSize: 11, fontWeight: '700' }}>{config.label}</Text>
           </View>
           {meta?.category && (
-            <Text style={{ color: Colors.textDim, fontSize: 12 }}>{meta.category}</Text>
+            <Text style={{ color: colors.textDim, fontSize: 12 }}>{meta.category}</Text>
           )}
         </View>
         <Pressable
@@ -58,13 +60,13 @@ function SavedItemCard({
           style={{ padding: 14 }}
           accessibilityLabel={t('saved.delete')}
         >
-          <Trash2 size={15} color={Colors.textDim} />
+          <Trash2 size={15} color={colors.textDim} />
         </Pressable>
       </View>
 
       {/* 제목 */}
       <Text
-        style={{ color: Colors.textPrimary, fontWeight: '700', fontSize: 16, lineHeight: 22, marginBottom: 4 }}
+        style={{ color: colors.textPrimary, fontWeight: '700', fontSize: 16, lineHeight: 22, marginBottom: 4 }}
         numberOfLines={2}
       >
         {meta?.title ?? bookmark.itemId}
@@ -72,14 +74,14 @@ function SavedItemCard({
 
       {/* 부제목 */}
       {meta?.subtitle && (
-        <Text style={{ color: Colors.textDim, fontSize: 12, lineHeight: 16 }} numberOfLines={1}>
+        <Text style={{ color: colors.textDim, fontSize: 12, lineHeight: 16 }} numberOfLines={1}>
           {meta.subtitle}
         </Text>
       )}
 
       {/* Footer: 저장일 + 원문 링크 (뉴스만) */}
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 }}>
-        <Text style={{ color: Colors.textDim, fontSize: 12 }}>
+        <Text style={{ color: colors.textLight, fontSize: 12 }}>
           {typeof bookmark.createdAt === 'string'
             ? new Date(bookmark.createdAt).toLocaleDateString(lang === 'en' ? 'en-US' : 'ko-KR')
             : ''}
@@ -87,10 +89,10 @@ function SavedItemCard({
         {bookmark.type === 'news' && meta?.link && (
           <Pressable
             onPress={() => Linking.openURL(meta.link!)}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 44, paddingVertical: 8 }}
           >
-            <Text style={{ color: Colors.primary, fontSize: 12, fontWeight: '600' }}>{t('saved.view_original')}</Text>
-            <ExternalLink size={12} color={Colors.primary} />
+            <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '600' }}>{t('saved.view_original')}</Text>
+            <ExternalLink size={12} color={colors.primary} />
           </Pressable>
         )}
       </View>
@@ -102,7 +104,8 @@ export default function SavedScreen() {
   const { user } = useAuth();
   const { bookmarks, toggleBookmark } = useBookmarks(user?.uid ?? null);
   const { lang, t } = useLanguage();
-  const typeConfig = useTypeConfig();
+  const { colors } = useTheme();
+  const typeConfig = useTypeConfig(colors);
 
   // 최신순 정렬
   const sorted = useMemo(() => [...bookmarks].sort((a, b) => {
@@ -142,8 +145,9 @@ export default function SavedScreen() {
       onDelete={handleDelete}
       typeConfig={typeConfig}
       lang={lang}
+      colors={colors}
     />
-  ), [handleDelete, typeConfig, lang]);
+  ), [handleDelete, typeConfig, lang, colors]);
 
   const keyExtractor = useCallback(
     (item: BookmarkType, index: number) => `${item.type}_${item.itemId}_${index}`,
@@ -152,63 +156,63 @@ export default function SavedScreen() {
 
   const ListEmptyComponent = !user ? (
     <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 80, paddingHorizontal: 32 }}>
-      <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: Colors.primaryLight, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-        <Bookmark size={28} color={Colors.primary} />
+      <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: colors.primaryLight, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+        <Bookmark size={28} color={colors.primary} />
       </View>
-      <Text style={{ color: Colors.textPrimary, fontWeight: '600', fontSize: 16, marginBottom: 4 }}>{t('auth.login_required')}</Text>
-      <Text style={{ color: Colors.textDim, fontSize: 14, textAlign: 'center', lineHeight: 20 }}>
+      <Text style={{ color: colors.textPrimary, fontWeight: '600', fontSize: 16, marginBottom: 4 }}>{t('auth.login_required')}</Text>
+      <Text style={{ color: colors.textDim, fontSize: 14, textAlign: 'center', lineHeight: 20 }}>
         {t('saved.bookmark_login')}
       </Text>
     </View>
   ) : (
     <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 80, paddingHorizontal: 32 }}>
-      <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: Colors.primaryLight, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-        <Bookmark size={28} color={Colors.primary} />
+      <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: colors.primaryLight, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+        <Bookmark size={28} color={colors.primary} />
       </View>
-      <Text style={{ color: Colors.textPrimary, fontWeight: '600', fontSize: 16, marginBottom: 4 }}>{t('saved.no_items_yet')}</Text>
-      <Text style={{ color: Colors.textDim, fontSize: 14, textAlign: 'center', lineHeight: 20 }}>
+      <Text style={{ color: colors.textPrimary, fontWeight: '600', fontSize: 16, marginBottom: 4 }}>{t('saved.no_items_yet')}</Text>
+      <Text style={{ color: colors.textDim, fontSize: 14, textAlign: 'center', lineHeight: 20 }}>
         {t('saved.bookmark_hint')}
       </Text>
     </View>
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.bg }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top']}>
       {/* Header */}
       <View style={{ paddingHorizontal: 16, paddingTop: 20, paddingBottom: 12 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <View>
-            <Text style={{ color: Colors.textPrimary, fontSize: 24, fontWeight: '800' }}>{t('saved.title')}</Text>
-            <Text style={{ color: Colors.textDim, fontSize: 14, marginTop: 4 }}>
+            <Text style={{ color: colors.textPrimary, fontSize: 24, fontWeight: '800' }}>{t('saved.title')}</Text>
+            <Text style={{ color: colors.textDim, fontSize: 14, marginTop: 4 }}>
               {sorted.length > 0 ? `${sorted.length}${t('saved.total')}` : t('saved.empty')}
             </Text>
           </View>
-          <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.primaryLight, alignItems: 'center', justifyContent: 'center' }}>
-            <Bookmark size={20} color={Colors.primary} />
+          <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.primaryLight, alignItems: 'center', justifyContent: 'center' }}>
+            <Bookmark size={20} color={colors.primary} />
           </View>
         </View>
-        <View style={{ width: 40, height: 3, backgroundColor: Colors.primary, borderRadius: 2, marginTop: 12 }} />
+        <View style={{ width: 40, height: 3, backgroundColor: colors.primary, borderRadius: 2, marginTop: 12 }} />
       </View>
 
       {/* 타입별 통계 카드 */}
       {sorted.length > 0 && (
         <View style={{ flexDirection: 'row', marginHorizontal: 16, marginBottom: 12, gap: 8 }}>
           {newsCount > 0 && (
-            <View style={{ flex: 1, backgroundColor: Colors.primaryLight, borderRadius: 14, paddingVertical: 10, alignItems: 'center' }}>
-              <Text style={{ color: Colors.primary, fontSize: 20, fontWeight: '800' }}>{newsCount}</Text>
-              <Text style={{ color: Colors.primary, fontSize: 11, fontWeight: '600' }}>{t('saved.type_news')}</Text>
+            <View style={{ flex: 1, backgroundColor: colors.primaryLight, borderRadius: 14, paddingVertical: 10, alignItems: 'center' }}>
+              <Text style={{ color: colors.primary, fontSize: 20, fontWeight: '800' }}>{newsCount}</Text>
+              <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '600' }}>{t('saved.type_news')}</Text>
             </View>
           )}
           {snapCount > 0 && (
-            <View style={{ flex: 1, backgroundColor: Colors.coreTechBg, borderRadius: 14, paddingVertical: 10, alignItems: 'center' }}>
-              <Text style={{ color: Colors.coreTech, fontSize: 20, fontWeight: '800' }}>{snapCount}</Text>
-              <Text style={{ color: Colors.coreTech, fontSize: 11, fontWeight: '600' }}>{t('saved.type_principle')}</Text>
+            <View style={{ flex: 1, backgroundColor: colors.coreTechBg, borderRadius: 14, paddingVertical: 10, alignItems: 'center' }}>
+              <Text style={{ color: colors.coreTech, fontSize: 20, fontWeight: '800' }}>{snapCount}</Text>
+              <Text style={{ color: colors.coreTech, fontSize: 11, fontWeight: '600' }}>{t('saved.type_principle')}</Text>
             </View>
           )}
           {ideaCount > 0 && (
-            <View style={{ flex: 1, backgroundColor: Colors.warningLight, borderRadius: 14, paddingVertical: 10, alignItems: 'center' }}>
-              <Text style={{ color: Colors.accent, fontSize: 20, fontWeight: '800' }}>{ideaCount}</Text>
-              <Text style={{ color: Colors.accent, fontSize: 11, fontWeight: '600' }}>{t('saved.type_idea')}</Text>
+            <View style={{ flex: 1, backgroundColor: colors.warningLight, borderRadius: 14, paddingVertical: 10, alignItems: 'center' }}>
+              <Text style={{ color: colors.accent, fontSize: 20, fontWeight: '800' }}>{ideaCount}</Text>
+              <Text style={{ color: colors.accent, fontSize: 11, fontWeight: '600' }}>{t('saved.type_idea')}</Text>
             </View>
           )}
         </View>

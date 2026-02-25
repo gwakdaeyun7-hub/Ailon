@@ -24,6 +24,9 @@ export function useBookmarks(userId: string | null) {
       const items: Bookmark[] = snapshot.docs.map((d) => d.data() as Bookmark);
       setBookmarks(items);
       setLoading(false);
+    }, (error) => {
+      console.error('Bookmarks snapshot error:', error);
+      setLoading(false);
     });
 
     return () => unsubscribe();

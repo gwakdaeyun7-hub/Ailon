@@ -18,14 +18,21 @@ import { auth, db } from '@/lib/firebase';
 
 const WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? '';
 
-let GoogleSignin: any = null;
-let statusCodes: any = {};
+interface GoogleSignInModule {
+  configure: (opts: { webClientId: string }) => void;
+  hasPlayServices: () => Promise<void>;
+  signIn: () => Promise<{ data?: { idToken?: string | null } | null } | null>;
+  signOut: () => Promise<void>;
+}
+
+let GoogleSignin: GoogleSignInModule | null = null;
+let statusCodes: Record<string, string> = {};
 
 try {
   const mod = require('@react-native-google-signin/google-signin');
   GoogleSignin = mod.GoogleSignin;
   statusCodes = mod.statusCodes;
-  GoogleSignin.configure({ webClientId: WEB_CLIENT_ID });
+  GoogleSignin!.configure({ webClientId: WEB_CLIENT_ID });
 } catch {
   console.warn('Google Sign-In native module not available (Expo Go?)');
 }
@@ -76,7 +83,7 @@ export function useAuth() {
       await GoogleSignin.hasPlayServices();
       const response = await GoogleSignin.signIn();
 
-      const idToken = response.data?.idToken;
+      const idToken = response?.data?.idToken;
       if (idToken) {
         const credential = GoogleAuthProvider.credential(idToken);
         await signInWithCredential(auth, credential);

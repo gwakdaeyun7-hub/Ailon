@@ -25,22 +25,28 @@ export function useArticleViews(articleLink: string) {
     const ref = doc(db, 'article_views', docId);
     const unsub = onSnapshot(ref, (snap) => {
       if (snap.exists()) {
-        setViews((snap.data() as any).views ?? 0);
+        setViews((snap.data() as { views?: number }).views ?? 0);
       }
+    }, (error) => {
+      console.error('Article views snapshot error:', error);
     });
     return unsub;
-  }, [docId]);
+  }, [docId, articleLink]);
 
   const trackView = useCallback(async () => {
     if (!articleLink) return;
-    const key = `view_${todayStr()}_${docId}`;
-    const already = await AsyncStorage.getItem(key);
-    if (already) return;
+    try {
+      const key = `view_${todayStr()}_${docId}`;
+      const already = await AsyncStorage.getItem(key);
+      if (already) return;
 
-    const ref = doc(db, 'article_views', docId);
-    await setDoc(ref, { views: increment(1) }, { merge: true });
-    await AsyncStorage.setItem(key, '1');
-  }, [docId]);
+      const ref = doc(db, 'article_views', docId);
+      await setDoc(ref, { views: increment(1) }, { merge: true });
+      await AsyncStorage.setItem(key, '1');
+    } catch (err) {
+      console.error('Track view error:', err);
+    }
+  }, [articleLink, docId]);
 
   return { views, trackView };
 }

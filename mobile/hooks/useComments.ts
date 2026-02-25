@@ -6,10 +6,19 @@ import {
   query,
   orderBy,
   serverTimestamp,
+  FieldValue,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import type { ItemType } from '@/hooks/useReactions';
+
+interface CommentData {
+  text: string;
+  authorName: string;
+  authorUid: string;
+  createdAt: FieldValue;
+  parentId?: string;
+}
 
 function makeSafeId(itemType: ItemType, itemId: string): string {
   return `${itemType}_${encodeURIComponent(itemId).slice(0, 200)}`;
@@ -56,21 +65,24 @@ export function useComments(itemType: ItemType, itemId: string): UseCommentsRetu
         })
       );
       setLoading(false);
+    }, (error) => {
+      console.error('Comments snapshot error:', error);
+      setLoading(false);
     });
     return unsub;
-  }, [docId]);
+  }, [docId, itemId]);
 
   const addComment = useCallback(
     async (text: string, parentId?: string) => {
       if (!user || !text.trim()) return;
       const ref = collection(db, 'comments', docId, 'entries');
-      const data: Record<string, any> = {
+      const data: CommentData = {
         text: text.trim(),
         authorName: user.displayName ?? user.email ?? '익명',
         authorUid: user.uid,
         createdAt: serverTimestamp(),
+        ...(parentId ? { parentId } : {}),
       };
-      if (parentId) data.parentId = parentId;
       await addDoc(ref, data);
     },
     [user, docId]
