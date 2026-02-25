@@ -837,20 +837,20 @@ Output exactly {count} JSON object(s) as a single-line compact JSON array:
 {output_example}"""
 
 # --- 카테고리별 스코어링 루브릭 ---
-_RUBRIC_RESEARCH = """### Category: research → score rig, nov, pot (each 0-10)
-- rig (Rigor): 연구가 얼마나 엄밀한가. 0=근거없음, 5=보통수준, 10=완벽한실험설계·다중검증
-- nov (Novelty): 방법론이 얼마나 새로운가. 0=기존반복, 5=의미있는변형, 10=완전히새로운패러다임. 방법론 자체의 새로움만 평가(SOTA 달성≠높은nov)
-- pot (Potential): 미래 연구에 얼마나 영향을 줄 수 있는가. 0=영향없음, 5=후속연구가능, 10=새연구분야개척"""
+_RUBRIC_RESEARCH = """### Category: research → score rig, nov, pot (each 0-10, use any integer)
+- rig (Rigor): 이 연구가 얼마나 새롭고 흥미로운 방법론/실험 설계를 갖추고 있는가?
+- nov (Novelty): 이 연구의 접근 방식이 얼마나 새롭고 흥미로운가? (SOTA 달성 자체는 높은 점수 사유가 아님)
+- pot (Potential): 이 연구가 향후 얼마나 새롭고 흥미로운 후속 연구를 촉발할 수 있는가?"""
 
-_RUBRIC_MODELS_PRODUCTS = """### Category: models_products → score uti, imp, acc (each 0-10)
-- uti (Utility): 사용자에게 얼마나 유용한가. 0=쓸모없음, 5=특정작업에유용, 10=모든사용자필수도구
-- imp (Impact): AI 생태계에 얼마나 영향을 주는가. 0=영향없음, 5=한분야에영향, 10=업계표준변경
-- acc (Accessibility): 얼마나 쉽게 접근/사용할 수 있는가. 0=접근불가, 5=유료API, 10=무료오픈소스·즉시사용가능"""
+_RUBRIC_MODELS_PRODUCTS = """### Category: models_products → score uti, imp, acc (each 0-10, use any integer)
+- uti (Utility): 이 제품/모델이 사용자에게 얼마나 새롭고 흥미로운 가치를 제공하는가?
+- imp (Impact): 이 제품/모델이 AI 생태계에 얼마나 새롭고 흥미로운 변화를 일으키는가?
+- acc (Accessibility): 이 제품/모델에 얼마나 쉽게 접근할 수 있는가? (오픈소스/무료일수록 높음)"""
 
-_RUBRIC_INDUSTRY_BUSINESS = """### Category: industry_business → score mag, sig, brd (each 0-10)
-- mag (Magnitude): 이벤트 규모가 얼마나 큰가. 0=사소, 3=$5-20M, 5=$100-500M, 7=$1-5B, 10=$50B+거래. 가십/비금전이벤트는 mag<=2
-- sig (Signal): 전략적으로 얼마나 중요한 신호인가. 0=의미없음, 5=트렌드시사, 10=시장판도변경
-- brd (Breadth): 얼마나 많은 이해관계자에게 영향을 주는가. 0=내부만, 5=특정분야, 10=전세계산업"""
+_RUBRIC_INDUSTRY_BUSINESS = """### Category: industry_business → score mag, sig, brd (each 0-10, use any integer)
+- mag (Magnitude): 이 이벤트의 규모가 얼마나 새롭고 흥미로운가? (가십/비금전 이벤트는 낮게)
+- sig (Signal): 이 이벤트가 업계에 얼마나 새롭고 흥미로운 전략적 신호를 주는가?
+- brd (Breadth): 이 이벤트가 얼마나 많은 이해관계자에게 새롭고 흥미로운 영향을 주는가?"""
 
 # 카테고리 → 루브릭 매핑
 _RUBRIC_MAP = {
