@@ -765,6 +765,10 @@ Classify each article into exactly ONE category — the best fit.
 "Alibaba Qwen 팀, Qwen 3.5 모델 시리즈 공개" → models_products
 "Meta, AMD와 수십억 달러 칩 계약 체결" → industry_business
 "논문 + 코드/모델 동시 공개" → research
+"AI 범죄 악용 우려 확산, 전문가 연구 필요 촉구" → industry_business (우려/경고 기사는 논문이 아님)
+"OpenAI COO, AI 시장 전망 발표" → industry_business (경영진 발언/분석)
+"Google, Gemma 3n 오픈소스 웨이트 공개" → models_products (사용 가능한 모델 공개)
+"Anthropic, AI Fluency Index 리포트 발표" → industry_business (리포트/인덱스 = 비즈니스)
 
 Articles:
 {article_text}
