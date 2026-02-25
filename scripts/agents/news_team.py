@@ -752,62 +752,49 @@ VALID_CATEGORIES = {"research", "models_products", "industry_business"}
 
 _CLASSIFY_PROMPT = """Output ONLY a JSON array. No markdown, no explanation. Start with '['.
 
-Classify each article into exactly ONE category.
+Classify each article into exactly ONE category by finding the KEY ACTION in the title.
 
-## Categories — ask "What is this article's NEWS about?"
+## Step: Find the key action verb/noun, then match below (top-to-bottom, first match wins).
 
-research
-  The news is a FINDING, DISCOVERY, STUDY, PAPER, BENCHMARK, or SCIENTIFIC RESULT.
-  It does NOT matter which company did it. If the headline is about what was LEARNED or SOLVED, it is research.
-  Includes: papers, novel methods, experimental results, scaling studies, AI solving a scientific problem, benchmark comparisons, theoretical advances.
+### 1) industry_business — 돈·거래·전략·사람·규제
+Signal words: 계약, 인수, 투자, 펀딩, 소송, 승소, 기각, 사임, 해고, 채용, 진출, 규제, 제재, 수출 금지, 지분, 매출, 실적, IPO, 파트너십, 제휴, 티켓, 행사, 시장 분석, 접근 방식, 의혹, 지적, 반발
+English: funding, M&A, lawsuit, regulation, partnership, market, hire, resign, strategy, valuation
+Also: corporate opinions/analysis about the market, geopolitical AI disputes, executive moves.
 
-models_products
-  The news is about something users can USE, DOWNLOAD, ACCESS, or TRY.
-  A model release, API launch, app update, open-source weights, SDK, framework version, new feature rollout.
-  Key test: can someone go use/download this thing right now?
+### 2) models_products — 출시·공개·릴리스·업데이트 (사용 가능한 것)
+Signal words: 출시, 공개, 릴리스, 오픈소스, 업데이트, 발표(제품), 배포, 서비스, 플랫폼, 도구, API, SDK, 모델 시리즈, 기능 추가, 웨이트 공개
+English: release, launch, open-source, update, deploy, available, tool, platform
+Key: someone NEW can be used/downloaded/accessed. Model launches, product updates, tool releases all go here.
 
-industry_business
-  The news is about MONEY, DEALS, CORPORATE STRATEGY, REGULATION, MARKET, PEOPLE, or EVENTS.
-  Funding rounds, M&A, earnings, partnerships, regulation, conferences/tickets, executive hires/departures, market entry.
+### 3) research — 논문·연구·과학적 발견·벤치마크 (가장 좁은 카테고리)
+Signal words: 연구, 논문, 발견, 해결(과학 문제), 벤치마크, 제안(학술), 방법론, 실험, SOTA, scaling law
+English: paper, study, benchmark, discovery, novel method, scientific result
+ONLY pure scientific findings with no released product. This is the NARROWEST category.
 
-## Common mistake to avoid
+## Critical rules
+- "공개/출시/릴리스" in title → almost always models_products, NOT research.
+- "계약/인수/소송/투자/사임/규제/수출 금지" → almost always industry_business, NOT research.
+- Company opinions, market analysis, strategy commentary → industry_business.
+- "연구 촉구/방법 제안" by a company about ethics/strategy → research ONLY if it's a scientific paper; otherwise industry_business.
+- Company name alone does NOT determine category. Classify by the ACTION.
 
-A famous company (OpenAI, Google, Meta, ByteDance…) appearing in the title does NOT make it industry_business or models_products. Classify by WHAT HAPPENED:
-  - Company published a paper / solved a scientific problem → research
-  - Company released a product / model for users → models_products
-  - Company raised money / acquired another company → industry_business
+## Examples (한국어 제목 → 정답)
 
-## Examples
+"OpenAI, GPT-5.2로 입자 물리학 난제 해결" → research (과학 문제 해결)
+"ByteDance AI, Long CoT 연구 발표" → research (연구 발표)
+"Google DeepMind, 챗봇의 도덕적 행동 진정성 연구 촉구" → research (연구 촉구)
 
-Title: "OpenAI, GPT-5.2로 입자 물리학 난제 해결"
-→ research (the news is solving a physics problem = scientific finding, not a product launch)
+"Alibaba Qwen 팀, Qwen 3.5 미디엄 모델 시리즈 공개" → models_products (모델 공개)
+"Inception Labs, 확산 기반 언어 추론 모델 'Mercury 2' 공개" → models_products (모델 공개)
+"Anthropic, Claude Cowork 업데이트로 기업 업무 자동화 확장" → models_products (제품 업데이트)
+"Nimble, 기업용 '에이전트 검색 플랫폼' 출시" → models_products (플랫폼 출시)
+"Kilo, OpenClaw 에이전트 60초 만에 배포하는 KiloClaw 서비스 출시" → models_products (서비스 출시)
 
-Title: "ByteDance AI, Long CoT 연구 발표"
-→ research (연구 발표 = research publication announcing findings, not a usable product)
-
-Title: "DeepMind paper: new diffusion architecture beats SOTA"
-→ research (paper with benchmark results, no downloadable artifact)
-
-Title: "Meta releases Llama 4 open-weights"
-→ models_products (downloadable model that users can access)
-
-Title: "ChatGPT gets memory feature"
-→ models_products (product feature update users can try)
-
-Title: "LangChain 0.3 released"
-→ models_products (framework release users can download)
-
-Title: "Anthropic raises $2B Series C"
-→ industry_business (funding round = money/deals)
-
-Title: "TechCrunch Disrupt 2026 tickets on sale"
-→ industry_business (conference/event = market dynamics)
-
-## Tiebreaks
-- "Company uses AI to achieve [scientific result]" → research (the finding IS the news)
-- Paper + released code/weights → models_products (usable artifact exists)
-- Paper only, no release → research
-- If still ambiguous → industry_business
+"Meta, AMD와 수십억 달러 규모 칩 계약 체결" → industry_business (거래/계약)
+"Canva, 애니메이션 'Cavalry'·마케팅 AI 'MangoAI' 동시 인수" → industry_business (M&A 인수)
+"OpenAI, xAI의 영업 비밀 침해 소송 기각 결정 받아 승소" → industry_business (소송/법적)
+"Deepseek, 美 수출 금지에도 Nvidia Blackwell 칩으로 AI 모델 훈련" → industry_business (지정학/규제)
+"Anthropic, 중국 AI 기업들의 Claude 무단 활용 의혹 제기" → industry_business (기업 전략/의혹)
 
 Articles:
 {article_text}
