@@ -41,6 +41,7 @@ export interface Article {
   tags?: string[];
   glossary?: { term: string; desc: string }[];
   glossary_en?: { term: string; desc: string }[];
+  ai_filtered?: boolean;
 }
 
 export interface DailyNews {

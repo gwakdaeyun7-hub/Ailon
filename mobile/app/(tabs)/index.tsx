@@ -933,9 +933,16 @@ function CategoryTabSection({
               )}
               <View style={{ flex: 1, padding: 14, justifyContent: 'space-between' }}>
                 <View>
-                  <SourceBadge sourceKey={a.source_key} name={getSourceName(a.source_key || '', t)} />
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <SourceBadge sourceKey={a.source_key} name={getSourceName(a.source_key || '', t)} />
+                    {a.ai_filtered && (
+                      <View style={{ backgroundColor: colors.textLight, borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 }}>
+                        <Text style={{ fontSize: 9, fontWeight: '700', color: '#FFF' }}>FILTERED</Text>
+                      </View>
+                    )}
+                  </View>
                   <TitleText
-                    style={{ fontSize: 14, fontWeight: '700', color: colors.textPrimary, lineHeight: 20, marginTop: 6 }}
+                    style={{ fontSize: 14, fontWeight: '700', color: a.ai_filtered ? colors.textSecondary : colors.textPrimary, lineHeight: 20, marginTop: 6 }}
                     numberOfLines={2}
                   >
                     {getLocalizedTitle(a, lang)}

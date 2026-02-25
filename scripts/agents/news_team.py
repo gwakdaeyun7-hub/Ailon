@@ -545,50 +545,49 @@ Return the indices as a JSON array:
     )
 
 
-def _llm_filter_sources(sources: dict[str, list[dict]]) -> list[dict]:
-    """모든 소스를 LLM으로 AI 관련성 필터링 (병렬). 제거된 기사 리스트 반환."""
-    total_removed = 0
-    all_removed: list[dict] = []
+def _llm_filter_sources(sources: dict[str, list[dict]]) -> None:
+    """모든 소스를 LLM으로 AI 관련성 필터링 (병렬). 제거 대신 _ai_filtered 마킹."""
+    total_marked = 0
     tasks = [(key, articles) for key, articles in sources.items() if articles]
 
-    def _filter_one(key: str, articles: list[dict]) -> tuple[str, list[dict], list[dict], int, int]:
+    def _filter_one(key: str, articles: list[dict]) -> tuple[str, int, int, int]:
         ai_indices = _llm_ai_filter_batch(articles, source_key=key)
-        filtered = [a for i, a in enumerate(articles) if i in ai_indices]
-        removed_articles = [a for i, a in enumerate(articles) if i not in ai_indices]
-        removed = len(removed_articles)
-        today_removed = sum(1 for a in removed_articles if _is_today(a))
-        today_kept = sum(1 for a in filtered if _is_today(a))
-        if removed > 0:
-            msg = f"    [{key}] LLM AI 필터: {removed}개 제거 -> {len(filtered)}개"
-            if today_removed > 0 or today_kept > 0:
-                msg += f" (당일: {today_kept}개 남음, {today_removed}개 제거)"
+        marked = 0
+        for i, a in enumerate(articles):
+            if i in ai_indices:
+                a["_ai_filtered"] = False
+            else:
+                a["_ai_filtered"] = True
+                marked += 1
+        today_marked = sum(1 for i, a in enumerate(articles) if i not in ai_indices and _is_today(a))
+        today_kept = sum(1 for i, a in enumerate(articles) if i in ai_indices and _is_today(a))
+        if marked > 0:
+            msg = f"    [{key}] LLM AI 필터: {marked}개 마킹 (전체 {len(articles)}개 유지)"
+            if today_marked > 0 or today_kept > 0:
+                msg += f" (당일: {today_kept}개 통과, {today_marked}개 마킹)"
             print(msg)
-        return key, filtered, removed_articles, today_removed, today_kept
+        return key, marked, today_marked, today_kept
 
-    total_today_removed = 0
+    total_today_marked = 0
     total_today_kept = 0
     with ThreadPoolExecutor(max_workers=4) as executor:
         futures = {executor.submit(_filter_one, key, articles): key for key, articles in tasks}
         for future in as_completed(futures):
             try:
-                key, filtered, removed_articles, today_removed, today_kept = future.result()
+                key, marked, today_marked, today_kept = future.result()
             except Exception as e:
                 key = futures[future]
                 print(f"    [WARN] [{key}] LLM AI 필터 future 실패: {e}")
                 continue
-            sources[key] = filtered
-            all_removed.extend(removed_articles)
-            total_removed += len(removed_articles)
-            total_today_removed += today_removed
+            total_marked += marked
+            total_today_marked += today_marked
             total_today_kept += today_kept
 
-    if total_removed > 0:
-        msg = f"  [LLM AI 필터] 총 {total_removed}개 비AI 기사 제거"
-        if total_today_removed > 0 or total_today_kept > 0:
-            msg += f" (당일 기사: {total_today_kept}개 남음 / {total_today_removed}개 제거)"
+    if total_marked > 0:
+        msg = f"  [LLM AI 필터] 총 {total_marked}개 비AI 기사 마킹 (제거 안 함, 파이프라인 통과)"
+        if total_today_marked > 0 or total_today_kept > 0:
+            msg += f" (당일 기사: {total_today_kept}개 통과 / {total_today_marked}개 마킹)"
         print(msg)
-
-    return all_removed
 
 
 # ─── 노드별 에러 핸들링 + 타이밍 데코레이터 ───
@@ -637,8 +636,8 @@ def collector_node(state: NewsGraphState) -> dict:
     print(f"  ─── 당일 기사 합계: {total_today}개 ───\n")
     enrich_and_scrape(sources)
     filter_imageless(sources)
-    filtered_out = _llm_filter_sources(sources)
-    return {"sources": sources, "filtered_articles": filtered_out}
+    _llm_filter_sources(sources)  # 제거 대신 _ai_filtered 마킹
+    return {"sources": sources}
 
 
 # ─── Node 2a: en_process (영어 번역+요약) ───
@@ -1440,7 +1439,7 @@ def selector_node(state: NewsGraphState) -> dict:
     # 하이라이트 대상: models_products 카테고리 전체
     highlight_pool = [
         c for c in candidates
-        if c.get("_llm_category", "") in HIGHLIGHT_CATEGORIES
+        if c.get("_llm_category", "") in HIGHLIGHT_CATEGORIES and not c.get("_ai_filtered")
     ]
     today_all = [c for c in highlight_pool if c.get("_is_today")]
     rest_all = [c for c in highlight_pool if not c.get("_is_today")]
@@ -1480,17 +1479,20 @@ def selector_node(state: NewsGraphState) -> dict:
         src = c.get("source_key", "")
         print(f"    {rank+1}. [{c.get('_total_score', 0)}점] [{src}] {title}")
 
-    # ── Step 2: 하이라이트 제외 → 카테고리별 분류 ──
+    # ── Step 2: 하이라이트 제외 → AI 통과/필터 분리 → 카테고리별 분류 ──
     highlight_ids = set(id(c) for c in highlights)
     remaining = [c for c in candidates if id(c) not in highlight_ids]
 
+    # AI 필터 통과 기사와 필터 제외 기사 분리
+    passed = [a for a in remaining if not a.get("_ai_filtered")]
+    filtered_out = [a for a in remaining if a.get("_ai_filtered")]
+
     categorized: dict[str, list[dict]] = {k: [] for k in category_order}
-    for a in remaining:
+    for a in passed:
         cat = a.get("_llm_category", "")
         if cat in categorized:
             categorized[cat].append(a)
         else:
-            # categorizer에서 전부 분류되지만, 안전 폴백
             categorized["industry_business"].append(a)
 
     # ── Step 3: 카테고리별 Top 25 + 당일 3개 보장 (research는 전부 노출) ──
@@ -1538,10 +1540,15 @@ def selector_node(state: NewsGraphState) -> dict:
     if issues:
         print(f"  [품질 경고] {', '.join(issues)}")
 
+    # AI 필터 제외 기사도 카테고리+점수 포함하여 저장
+    if filtered_out:
+        print(f"  [AI 필터 제외] {len(filtered_out)}개 (분류+점수 포함)")
+
     return {
         "highlights": highlights,
         "categorized_articles": categorized,
         "category_order": category_order,
+        "filtered_articles": filtered_out,
     }
 
 
