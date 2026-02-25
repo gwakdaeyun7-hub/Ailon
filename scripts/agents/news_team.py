@@ -1,17 +1,18 @@
 """
-뉴스 수집 파이프라인 -- LangGraph 7-노드 (EN/KO 진정한 병렬 분기)
+뉴스 수집 파이프라인 -- LangGraph 8-노드 (EN/KO 진정한 병렬 분기)
 
-collector --> [en_process, ko_process] (병렬 Send) --> scorer --> ranker --> classifier --> assembler
-                                                        ^  |
-                                                        +--+ (커버리지 < 60% 시 재시도)
+collector --> [en_process, ko_process] (병렬 Send) --> categorizer --> scorer --> ranker --> classifier --> assembler
+                                                                       ^  |
+                                                                       +--+ (커버리지 < 90% 시 재시도)
 
 1. collector:     16개 소스 수집 + 이미지/본문 통합 스크래핑 + LLM AI 필터
 2. en_process:    영어 기사 번역+요약 (thinking 비활성화, 배치 5)  -- 병렬
 3. ko_process:    한국어 기사 요약 (thinking 비활성화, 배치 2)     -- 병렬
-4. scorer:        카테고리별 LLM 평가 (research: rig*4+nov*3+pot*3, models_products: uti*4+imp*3+acc*3, industry_business: mag*4+sig*3+brd*3, 만점 100)
-5. ranker:        당일 우선 Top 3 하이라이트 (미번역 차단)
-6. classifier:    3개 카테고리 * Top 10 + 품질 검증 (quality_gate 통합)
-7. assembler:     한국 소스별 분리 + 최종 결과 + 타이밍 리포트
+4. categorizer:   LLM 카테고리 분류 (research / models_products / industry_business)
+5. scorer:        카테고리별 LLM 평가 (research: rig*4+nov*3+pot*3, models_products: uti*4+imp*3+acc*3, industry_business: mag*4+sig*3+brd*3, 만점 100)
+6. ranker:        당일 우선 Top 3 하이라이트 (미번역 차단)
+7. classifier:    3개 카테고리 * Top 10 + 품질 검증 (quality_gate 통합)
+8. assembler:     한국 소스별 분리 + 최종 결과 + 타이밍 리포트
 
 개선 사항:
 - EN/KO Send API 병렬 실행 (순차 -> 병렬, ~2x 속도 개선)
@@ -692,7 +693,7 @@ def _deduplicate_candidates(candidates: list[dict]) -> list[dict]:
     return kept
 
 
-# ─── Node 3: scorer (3 LLM차원, 병렬 배치) ───
+# ─── Node 4: categorizer (카테고리 분류) + Node 5: scorer (3 LLM차원, 병렬 배치) ───
 # research 가중치
 W_RIGOR = 4         # 엄밀성 (research)
 W_NOVELTY = 3       # 방법론 새로움 (research)
@@ -1231,34 +1232,97 @@ def _apply_scores_to_candidate(candidate: dict, score_dict: dict, category: str)
     candidate["_llm_scored"] = True
 
 
+@_safe_node("categorizer")
+def categorizer_node(state: NewsGraphState) -> dict:
+    """카테고리 분류 노드.
+
+    Step 1: 후보 수집 + 중복 제거 + 당일 판별
+    Step 2: _classify_batch_with_retry로 카테고리 분류 (병렬)
+    Step 3: 미분류 기사에 기본 카테고리(industry_business) 부여
+    """
+    candidates: list[dict] = []
+    for key in CATEGORY_SOURCES:
+        for a in state["sources"].get(key, []):
+            candidates.append(a)
+
+    if not candidates:
+        return {"scored_candidates": [], "scorer_retry_count": 0}
+
+    candidates = _deduplicate_candidates(candidates)
+
+    today_count = 0
+    for c in candidates:
+        c["_is_today"] = _is_today(c)
+        if c["_is_today"]:
+            today_count += 1
+    print(f"  [분류] {len(candidates)}개 분류 중... (당일 {today_count}개)")
+
+    # 분류 대상: _llm_category가 없는 기사
+    need_classify = [(i, a) for i, a in enumerate(candidates) if not a.get("_llm_category")]
+    already_classified = sum(1 for a in candidates if a.get("_llm_category"))
+    if already_classified:
+        print(f"    [분류] {already_classified}개 이미 분류됨, {len(need_classify)}개 분류 필요")
+
+    if need_classify:
+        # 정렬: 일관된 배치 구성
+        need_classify.sort(key=lambda x: (x[1].get("link", ""), x[1].get("title", "")))
+        classify_articles = [a for _, a in need_classify]
+        classify_offsets = [i for i, _ in need_classify]
+        cls_batch_size = CLASSIFY_BATCH_SIZE
+        cls_batches = [classify_articles[i:i + cls_batch_size] for i in range(0, len(classify_articles), cls_batch_size)]
+        print(f"    [분류] {len(classify_articles)}개 → {len(cls_batches)}개 배치 (배치 크기 {cls_batch_size})")
+
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            future_to_cls = {
+                executor.submit(_classify_batch_with_retry, batch, idx * cls_batch_size): (batch, idx)
+                for idx, batch in enumerate(cls_batches)
+            }
+            cls_results: list[dict] = []
+            for future in as_completed(future_to_cls):
+                batch, batch_idx = future_to_cls[future]
+                try:
+                    results = future.result()
+                    cls_results.extend(results)
+                except Exception as e:
+                    print(f"    [CLASSIFY ERROR] 배치 {batch_idx+1} future 실패: {e}")
+
+            # 분류 결과를 기사에 적용
+            for r in cls_results:
+                local_idx = r["_global_idx"]
+                if 0 <= local_idx < len(classify_articles):
+                    original_idx = classify_offsets[local_idx]
+                    candidates[original_idx]["_llm_category"] = r["cat"]
+
+        classified = sum(1 for a in candidates if a.get("_llm_category"))
+        print(f"    [분류] 완료: {classified}/{len(candidates)}개 분류됨")
+
+    # 미분류 기사에 기본 카테고리 부여
+    for a in candidates:
+        if not a.get("_llm_category") or a["_llm_category"] not in VALID_CATEGORIES:
+            a["_llm_category"] = "industry_business"
+
+    # 카테고리별 그룹 통계
+    for cat in VALID_CATEGORIES:
+        count = sum(1 for a in candidates if a.get("_llm_category") == cat)
+        print(f"    [그룹] {cat}: {count}개")
+
+    return {"scored_candidates": candidates, "scorer_retry_count": 0}
+
+
 @_safe_node("scorer")
 def scorer_node(state: NewsGraphState) -> dict:
-    """분류 → 스코어링 2단계 파이프라인.
+    """카테고리별 LLM 스코어링.
 
-    Step 1: _classify_batch로 카테고리 분류 (병렬)
-    Step 2: 카테고리별 그룹화 후 _score_batch로 스코어링 (병렬)
+    categorizer_node에서 _llm_category가 설정된 기사를 받아
+    카테고리별 그룹화 후 _score_batch로 점수만 부여한다.
     """
     retry_count = state.get("scorer_retry_count", 0)
+    candidates = state.get("scored_candidates", [])
 
-    if retry_count == 0:
-        candidates: list[dict] = []
-        for key in CATEGORY_SOURCES:
-            for a in state["sources"].get(key, []):
-                candidates.append(a)
+    if not candidates:
+        return {"scored_candidates": [], "scorer_retry_count": retry_count + 1}
 
-        if not candidates:
-            return {"scored_candidates": [], "scorer_retry_count": 1}
-
-        candidates = _deduplicate_candidates(candidates)
-
-        today_count = 0
-        for c in candidates:
-            c["_is_today"] = _is_today(c)
-            if c["_is_today"]:
-                today_count += 1
-        print(f"  [스코어링] {len(candidates)}개 평가 중... (당일 {today_count}개)")
-    else:
-        candidates = state.get("scored_candidates", [])
+    if retry_count > 0:
         for c in candidates:
             if not c.get("_llm_scored"):
                 c.pop("_total_score", None)
@@ -1266,62 +1330,21 @@ def scorer_node(state: NewsGraphState) -> dict:
     unscored_indices = [i for i, c in enumerate(candidates) if not c.get("_llm_scored")]
     unscored = [candidates[i] for i in unscored_indices]
 
+    print(f"  [스코어링] {len(unscored)}/{len(candidates)}개 평가 중...")
+
     if unscored:
         unscored.sort(key=lambda a: (a.get("link", ""), a.get("title", "")))
 
-        # ── Step 1: 분류 (병렬 배치) ──
-        # 이미 카테고리가 있는 기사는 분류 건너뜀
-        need_classify = [(i, a) for i, a in enumerate(unscored) if not a.get("_llm_category")]
-        already_classified = sum(1 for a in unscored if a.get("_llm_category"))
-        if already_classified:
-            print(f"    [분류] {already_classified}개 이미 분류됨, {len(need_classify)}개 분류 필요")
-
-        if need_classify:
-            classify_articles = [a for _, a in need_classify]
-            classify_offsets = [i for i, _ in need_classify]
-            cls_batch_size = CLASSIFY_BATCH_SIZE
-            cls_batches = [classify_articles[i:i + cls_batch_size] for i in range(0, len(classify_articles), cls_batch_size)]
-            print(f"    [분류] {len(classify_articles)}개 → {len(cls_batches)}개 배치 (배치 크기 {cls_batch_size})")
-
-            with ThreadPoolExecutor(max_workers=3) as executor:
-                future_to_cls = {
-                    executor.submit(_classify_batch_with_retry, batch, idx * cls_batch_size): (batch, idx)
-                    for idx, batch in enumerate(cls_batches)
-                }
-                cls_results: list[dict] = []
-                for future in as_completed(future_to_cls):
-                    batch, batch_idx = future_to_cls[future]
-                    try:
-                        results = future.result()
-                        cls_results.extend(results)
-                    except Exception as e:
-                        print(f"    [CLASSIFY ERROR] 배치 {batch_idx+1} future 실패: {e}")
-
-                # 분류 결과를 unscored 기사에 적용
-                for r in cls_results:
-                    local_idx = r["_global_idx"]
-                    if 0 <= local_idx < len(classify_articles):
-                        original_idx = classify_offsets[local_idx]
-                        unscored[original_idx]["_llm_category"] = r["cat"]
-
-            classified = sum(1 for a in unscored if a.get("_llm_category"))
-            print(f"    [분류] 완료: {classified}/{len(unscored)}개 분류됨")
-
-        # 미분류 기사에 기본 카테고리 부여
-        for a in unscored:
-            if not a.get("_llm_category") or a["_llm_category"] not in VALID_CATEGORIES:
-                a["_llm_category"] = "industry_business"
-
-        # ── Step 2: 카테고리별 그룹화 ──
+        # 카테고리별 그룹화
         cat_groups: dict[str, list[tuple[int, dict]]] = {cat: [] for cat in VALID_CATEGORIES}
         for i, a in enumerate(unscored):
-            cat = a["_llm_category"]
+            cat = a.get("_llm_category", "industry_business")
             cat_groups[cat].append((i, a))
 
         for cat, group in cat_groups.items():
             print(f"    [그룹] {cat}: {len(group)}개")
 
-        # ── Step 3: 카테고리별 스코어링 (병렬 배치) ──
+        # 카테고리별 스코어링 (병렬 배치)
         batch_size = SCORER_BATCH_SIZE if retry_count == 0 else max(2, SCORER_BATCH_SIZE // 2)
 
         # 모든 카테고리의 배치를 평탄화하여 병렬 제출
@@ -1361,7 +1384,6 @@ def scorer_node(state: NewsGraphState) -> dict:
                     if 0 <= batch_local < len(b_articles):
                         unscored_local = b_indices[batch_local]
                         gi = unscored_indices[unscored_local]
-                        candidates[gi]["_llm_category"] = cat
                         _apply_scores_to_candidate(candidates[gi], s, cat)
                         applied += 1
 
@@ -1418,7 +1440,7 @@ def scorer_node(state: NewsGraphState) -> dict:
     return {"scored_candidates": candidates, "scorer_retry_count": retry_count + 1}
 
 
-# ─── Node 4: ranker (하이라이트 선정, 당일 기사 전용) ───
+# ─── Node 6: ranker (하이라이트 선정, 당일 기사 전용) ───
 HIGHLIGHT_COUNT = 3
 
 
@@ -1480,7 +1502,7 @@ def ranker_node(state: NewsGraphState) -> dict:
     return {"highlights": selected, "category_pool": remaining}
 
 
-# ─── Node 5: classifier (카테고리 분류 + Top 10 선정 + 품질 검증) ───
+# ─── Node 7: classifier (카테고리 Top 25 선정 + 품질 검증) ───
 CATEGORY_TOP_N = 25
 
 
@@ -1649,7 +1671,7 @@ def classifier_node(state: NewsGraphState) -> dict:
     return {"categorized_articles": categorized, "category_order": category_order}
 
 
-# ─── Node 6: assembler ───
+# ─── Node 8: assembler ───
 @_safe_node("assembler")
 def assembler_node(state: NewsGraphState) -> dict:
     """소스별 섹션 분리 (한국 + 영어 섹션) + 최종 결과 조합 + 타이밍 리포트"""
@@ -1716,7 +1738,7 @@ def _route_after_collector(state: NewsGraphState) -> list[Send]:
 
 
 def _route_after_scorer(state: NewsGraphState) -> str:
-    """스코어 커버리지 < 60% 이고 재시도 < 2 이면 재시도"""
+    """스코어 커버리지 < 90% 이고 재시도 < 2 이면 재시도"""
     candidates = state.get("scored_candidates", [])
     retry_count = state.get("scorer_retry_count", 0)
     if not candidates:
@@ -1736,6 +1758,7 @@ def _build_graph():
     graph.add_node("collector", collector_node)
     graph.add_node("en_process", en_process_node)
     graph.add_node("ko_process", ko_process_node)
+    graph.add_node("categorizer", categorizer_node)
     graph.add_node("scorer", scorer_node)
     graph.add_node("ranker", ranker_node)
     graph.add_node("classifier", classifier_node)
@@ -1746,9 +1769,12 @@ def _build_graph():
     # collector -> Send API 로 EN/KO 병렬 분기, 또는 assembler 직행
     graph.add_conditional_edges("collector", _route_after_collector)
 
-    # EN/KO 완료 -> scorer (둘 다 완료되어야 진행)
-    graph.add_edge("en_process", "scorer")
-    graph.add_edge("ko_process", "scorer")
+    # EN/KO 완료 -> categorizer (둘 다 완료되어야 진행)
+    graph.add_edge("en_process", "categorizer")
+    graph.add_edge("ko_process", "categorizer")
+
+    # categorizer -> scorer
+    graph.add_edge("categorizer", "scorer")
 
     # scorer -> 커버리지 부족 시 재시도 루프
     graph.add_conditional_edges("scorer", _route_after_scorer, {
@@ -1766,7 +1792,7 @@ def _build_graph():
 # ─── 메인 파이프라인 ───
 def run_news_pipeline() -> dict:
     print("=" * 60)
-    print("[START] 뉴스 수집 파이프라인 (LangGraph 7-노드, EN/KO 병렬)")
+    print("[START] 뉴스 수집 파이프라인 (LangGraph 8-노드, EN/KO 병렬)")
     print("=" * 60)
 
     app = _build_graph()
