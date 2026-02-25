@@ -132,7 +132,10 @@ def _parse_llm_json(text: str):
     text = re.sub(r'<think(?:ing)?>.*?</think(?:ing)?>', '', text, flags=re.DOTALL)
     text = re.sub(r'```(?:json)?\s*\n?', '', text)
     text = re.sub(r'\n?```\s*', '', text)
-    # Gemini bold/italic 마크다운 제거 (***text***, **text**, *text*)
+    # Gemini bold/italic 마크다운 제거 — *** 가 {} 를 대체하는 케이스 처리
+    # [***"i":0,...***] → [{"i":0,...}]
+    text = re.sub(r'\[\s*\*{1,3}', '[{', text)
+    text = re.sub(r'\*{1,3}\s*\]', '}]', text)
     text = re.sub(r'\*{1,3}', '', text)
     text = text.strip()
 
