@@ -22,7 +22,7 @@ import { Image } from 'expo-image';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import {
-  Bell, RefreshCw, ThumbsUp, Eye, Share2, ExternalLink, MessageCircle, X, Cpu, Newspaper,
+  Bell, RefreshCw, ThumbsUp, Eye, Share2, ExternalLink, MessageCircle, X, Cpu, Newspaper, Bookmark,
 } from 'lucide-react-native';
 import { useNews } from '@/hooks/useNews';
 import { useDrawer } from '@/context/DrawerContext';
@@ -35,7 +35,6 @@ import { useBookmarks } from '@/hooks/useBookmarks';
 import { useAuth } from '@/hooks/useAuth';
 import { NewsCardSkeleton } from '@/components/shared/LoadingSkeleton';
 import { CommentSheet } from '@/components/shared/CommentSheet';
-import { BookmarkButton } from '@/components/shared/BookmarkButton';
 import type { Article } from '@/lib/types';
 import { Colors } from '@/lib/colors';
 import type { Language } from '@/lib/translations';
@@ -431,20 +430,41 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
               </View>
             ) : null}
 
-            {/* 소스 뱃지 + 날짜 + 조회수 */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, marginTop: article.image_url ? 16 : 20 }}>
-              <View style={{
-                backgroundColor: sourceColor + '18',
-                paddingHorizontal: 8, paddingVertical: 3,
-                borderRadius: 4,
-              }}>
-                <Text style={{ fontSize: 11, fontWeight: '700', color: sourceColor }}>{sourceName}</Text>
+            {/* 소스 뱃지 + 날짜 + 조회수 + 북마크 */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, marginTop: article.image_url ? 16 : 20 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                <View style={{
+                  backgroundColor: sourceColor + '18',
+                  paddingHorizontal: 8, paddingVertical: 3,
+                  borderRadius: 4,
+                }}>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: sourceColor }}>{sourceName}</Text>
+                </View>
+                <Text style={{ fontSize: 12, color: colors.textSecondary }}>{formatDate(article.published, lang)}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                  <Eye size={11} color={colors.textSecondary} />
+                  <Text style={{ fontSize: 10, color: colors.textSecondary, fontWeight: '600' }}>{views}</Text>
+                </View>
               </View>
-              <Text style={{ fontSize: 12, color: colors.textSecondary }}>{formatDate(article.published, lang)}</Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-                <Eye size={11} color={colors.textSecondary} />
-                <Text style={{ fontSize: 10, color: colors.textSecondary, fontWeight: '600' }}>{views}</Text>
-              </View>
+              <Pressable
+                onPress={handleToggleBookmark}
+                accessibilityLabel={bookmarked ? t('bookmark.remove') : t('bookmark.add')}
+                accessibilityRole="button"
+                style={({ pressed }) => ({
+                  width: 36, height: 36, borderRadius: 10,
+                  backgroundColor: bookmarked ? colors.bookmarkActiveColor + '14' : colors.surface,
+                  borderWidth: 1, borderColor: bookmarked ? colors.bookmarkActiveColor + '30' : colors.border,
+                  alignItems: 'center', justifyContent: 'center',
+                  opacity: pressed ? 0.7 : 1,
+                })}
+              >
+                <Bookmark
+                  size={16}
+                  color={bookmarked ? colors.bookmarkActiveColor : colors.textSecondary}
+                  fill="none"
+                  strokeWidth={2}
+                />
+              </Pressable>
             </View>
 
             {/* 제목 */}
@@ -530,64 +550,61 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
 
           </ScrollView>
 
-          {/* 고정 하단 액션 바 — 이슈 #2, #15: 색상 토큰화 + 터치 타겟 */}
+          {/* 고정 하단 액션 바 — 3등분 컬럼: 좋아요 | 댓글 | 공유 */}
           <View style={{
             borderTopWidth: 1, borderTopColor: colors.border,
-            flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end',
-            paddingHorizontal: 16, paddingTop: 10,
+            flexDirection: 'row', alignItems: 'center',
             paddingBottom: Math.max(insets.bottom, 10),
-            gap: 8,
           }}>
+            {/* 좋아요 */}
             <Pressable
               onPress={handleLike}
               accessibilityLabel={liked ? t('modal.unlike') : t('modal.like')}
               accessibilityRole="button"
               style={({ pressed }) => ({
-                alignItems: 'center', justifyContent: 'center',
-                minHeight: 44, minWidth: 44,
-                backgroundColor: liked ? colors.likeActiveBg : colors.border,
-                paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10,
-                borderWidth: liked ? 1 : 0, borderColor: colors.likeActiveBorder,
-                opacity: pressed ? 0.8 : 1,
+                flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+                gap: 6, paddingVertical: 12, minHeight: 48,
+                opacity: pressed ? 0.6 : 1,
               })}
             >
               <ThumbsUp size={18} color={liked ? colors.likeActiveColor : colors.textSecondary} />
+              <Text style={{ fontSize: 13, fontWeight: '600', color: liked ? colors.likeActiveColor : colors.textSecondary }}>{likes}</Text>
             </Pressable>
 
+            {/* 구분선 */}
+            <View style={{ width: 1, height: 24, backgroundColor: colors.border }} />
+
+            {/* 댓글 */}
             <Pressable
               onPress={onOpenComments}
               accessibilityLabel={t('modal.comment')}
               accessibilityRole="button"
               style={({ pressed }) => ({
-                alignItems: 'center', justifyContent: 'center',
-                minHeight: 44, minWidth: 44,
-                backgroundColor: colors.border,
-                paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10,
-                opacity: pressed ? 0.8 : 1,
+                flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+                gap: 6, paddingVertical: 12, minHeight: 48,
+                opacity: pressed ? 0.6 : 1,
               })}
             >
               <MessageCircle size={18} color={colors.textSecondary} />
+              <Text style={{ fontSize: 13, fontWeight: '600', color: colors.textSecondary }}>0</Text>
             </Pressable>
 
+            {/* 구분선 */}
+            <View style={{ width: 1, height: 24, backgroundColor: colors.border }} />
+
+            {/* 공유 */}
             <Pressable
               onPress={handleShare}
               accessibilityLabel={t('modal.share')}
               accessibilityRole="button"
               style={({ pressed }) => ({
-                alignItems: 'center', justifyContent: 'center',
-                minHeight: 44, minWidth: 44,
-                backgroundColor: colors.border,
-                paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10,
-                opacity: pressed ? 0.8 : 1,
+                flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+                gap: 6, paddingVertical: 12, minHeight: 48,
+                opacity: pressed ? 0.6 : 1,
               })}
             >
               <Share2 size={18} color={colors.textSecondary} />
             </Pressable>
-
-            <BookmarkButton
-              isBookmarked={bookmarked}
-              onToggle={handleToggleBookmark}
-            />
           </View>
 
           {/* 인라인 토스트 */}
