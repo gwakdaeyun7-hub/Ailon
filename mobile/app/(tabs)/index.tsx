@@ -494,7 +494,33 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
             </Text>
 
             {/* 구분선 */}
-            <View style={{ height: 1, backgroundColor: colors.border, marginBottom: 18, marginHorizontal: 20 }} />
+            <View style={{ height: 1, backgroundColor: colors.border, marginBottom: 12, marginHorizontal: 20 }} />
+
+            {/* AI 요약 메타: 읽기 시간 + 생성 시점 */}
+            {(() => {
+              const summaryText = [
+                getLocalizedOneLine(article, lang),
+                ...getLocalizedKeyPoints(article, lang),
+                getLocalizedWhyImportant(article, lang),
+              ].join('');
+              const readMin = Math.max(1, Math.round(summaryText.length / 500));
+              const pubDate = article.published ? formatDate(article.published, lang) : '';
+              return (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, marginBottom: 14 }}>
+                  <Text style={{ fontSize: 11, color: colors.textLight }}>
+                    {lang === 'en' ? `${readMin} min read` : `${readMin}분 분량`}
+                  </Text>
+                  {pubDate ? (
+                    <>
+                      <Text style={{ fontSize: 11, color: colors.textLight }}>·</Text>
+                      <Text style={{ fontSize: 11, color: colors.textLight }}>
+                        {lang === 'en' ? `AI summary · ${pubDate}` : `AI 요약 · ${pubDate}`}
+                      </Text>
+                    </>
+                  ) : null}
+                </View>
+              );
+            })()}
 
             {/* 3-파트 요약 + 배경/태그/용어 — 이슈 #1: 하드코딩 색상 수정 */}
             {(() => {
@@ -502,7 +528,7 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
               const keyPoints = getLocalizedKeyPoints(article, lang);
               const whyImportant = getLocalizedWhyImportant(article, lang);
               const background = getLocalizedBackground(article, lang);
-              const tags = (article as any).tags as string[] | undefined;
+              const tags = article.tags;
               const glossary = getLocalizedGlossary(article, lang);
               if (oneLine) {
                 return (
