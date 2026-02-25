@@ -709,50 +709,105 @@ SCORER_BATCH_SIZE = 5
 VALID_CATEGORIES = {"research", "models_products", "industry_business"}
 
 # --- 분류 전용 프롬프트 (classification only) ---
+
+# ── OLD Decision Tree prompt (v1) ── kept for reference ──────────────────
+# _CLASSIFY_PROMPT = """Output ONLY a JSON array. No markdown, no explanation. Start with '['.
+#
+# Classify each article into exactly ONE category: research, models_products, industry_business.
+#
+# ## Decision tree (follow top-to-bottom, stop at first match)
+#
+# 1. Is the article primarily about MONEY, DEALS, CORPORATE STRATEGY, REGULATION, or MARKET DYNAMICS?
+#    → industry_business
+#    Signal words: raises/funding/투자/인수/M&A, revenue/earnings/실적, IPO, regulation/규제,
+#    partnership/제휴, layoffs/해고, exec hire, market entry/시장 진출, acquisition/인수합병,
+#    valuation/기업가치, antitrust/독점, event/conference ticket/행사
+#
+# 2. Does the article describe something a user can USE, DOWNLOAD, or ACCESS right now (or imminently)?
+#    → models_products
+#    Signal words: releases/출시/공개, launches/런칭, open-source/오픈소스, API available, download,
+#    update/업데이트, new feature/신기능, SDK, framework, app, tool, platform, weights released
+#
+# 3. Everything else (papers, benchmarks, theory, algorithms without released artifact)
+#    → research
+#    Signal words: paper/논문, study/연구, benchmark, SOTA, architecture proposed, scaling law,
+#    survey, dataset (academic), novel method, theoretical
+#
+# ## Contrast examples (title → category, WHY)
+# "OpenAI, GPT-5.2로 입자 물리학 난제 해결" → research
+# "Guide Labs, Steerling-8B 오픈소스 공개" → models_products
+# "ByteDance AI, Long CoT 연구 발표" → research
+# "OpenAI와 Jony Ive, 하드웨어 시장 진출" → industry_business
+# "TechCrunch Disrupt 2026 티켓" → industry_business
+# ...
+#
+# ## Tiebreak rules
+# 1. Company name does NOT determine category.
+# 2. "Company X uses AI to solve Y" → research
+# 3. Paper + code release → models_products
+# 4. Paper only → research
+# ...
+# """
+# ── END OLD prompt ────────────────────────────────────────────────────────
+
 _CLASSIFY_PROMPT = """Output ONLY a JSON array. No markdown, no explanation. Start with '['.
 
-Classify each article into exactly ONE category: research, models_products, industry_business.
+Classify each article into exactly ONE category.
 
-## Decision tree (follow top-to-bottom, stop at first match)
+## Categories — ask "What is this article's NEWS about?"
 
-1. Is the article primarily about MONEY, DEALS, CORPORATE STRATEGY, REGULATION, or MARKET DYNAMICS?
-   → industry_business
-   Signal words: raises/funding/투자/인수/M&A, revenue/earnings/실적, IPO, regulation/규제, partnership/제휴, layoffs/해고, exec hire, market entry/시장 진출, acquisition/인수합병, valuation/기업가치, antitrust/독점, event/conference ticket/행사
+research
+  The news is a FINDING, DISCOVERY, STUDY, PAPER, BENCHMARK, or SCIENTIFIC RESULT.
+  It does NOT matter which company did it. If the headline is about what was LEARNED or SOLVED, it is research.
+  Includes: papers, novel methods, experimental results, scaling studies, AI solving a scientific problem, benchmark comparisons, theoretical advances.
 
-2. Does the article describe something a user can USE, DOWNLOAD, or ACCESS right now (or imminently)?
-   → models_products
-   Signal words: releases/출시/공개, launches/런칭, open-source/오픈소스, API available, download, update/업데이트, new feature/신기능, SDK, framework, app, tool, platform, weights released, fine-tuned model
+models_products
+  The news is about something users can USE, DOWNLOAD, ACCESS, or TRY.
+  A model release, API launch, app update, open-source weights, SDK, framework version, new feature rollout.
+  Key test: can someone go use/download this thing right now?
 
-3. Everything else (papers, benchmarks, theory, algorithms without released artifact)
-   → research
-   Signal words: paper/논문, study/연구, benchmark, SOTA, architecture proposed, scaling law, survey, dataset (academic), novel method, theoretical
+industry_business
+  The news is about MONEY, DEALS, CORPORATE STRATEGY, REGULATION, MARKET, PEOPLE, or EVENTS.
+  Funding rounds, M&A, earnings, partnerships, regulation, conferences/tickets, executive hires/departures, market entry.
 
-## Contrast examples (title → category, WHY)
+## Common mistake to avoid
 
-"OpenAI, GPT-5.2로 입자 물리학 난제 해결" → research (used a model FOR research, no product release)
-"Guide Labs, Steerling-8B 오픈소스 공개" → models_products (오픈소스 공개 = downloadable release)
-"ByteDance AI, Long CoT 연구 발표" → research (연구 발표 = research publication, no usable artifact)
-"OpenAI와 Jony Ive, 하드웨어 시장 진출" → industry_business (시장 진출 = market entry, corporate strategy)
-"TechCrunch Disrupt 2026 티켓" → industry_business (event/conference = market dynamics)
-"DeepMind paper: new diffusion architecture beats SOTA" → research (paper, no release)
-"Meta releases Llama 4 open-weights" → models_products (downloadable model)
-"Anthropic raises $2B Series C" → industry_business (funding round)
-"ChatGPT gets memory feature" → models_products (product feature update)
-"EU AI Act enforcement begins" → industry_business (regulation)
-"Scaling laws study on emergent abilities" → research (study, no artifact)
-"LangChain 0.3 released" → models_products (framework release)
-"NVIDIA reports record $35B revenue" → industry_business (earnings)
-"Google acquires AI startup for $500M" → industry_business (acquisition)
+A famous company (OpenAI, Google, Meta, ByteDance…) appearing in the title does NOT make it industry_business or models_products. Classify by WHAT HAPPENED:
+  - Company published a paper / solved a scientific problem → research
+  - Company released a product / model for users → models_products
+  - Company raised money / acquired another company → industry_business
 
-## Tiebreak rules (apply in order)
-1. Company name in title does NOT determine category. Focus on WHAT happened, not WHO did it.
-2. "Company X uses AI model to solve Y" → research (the FINDING is the news, not a product)
-3. Paper + code/model release → models_products (usable artifact exists)
-4. Paper only → research (even from a top lab)
-5. Model announcement + API access → models_products
-6. Title mentions deal amount/funding → industry_business
-7. Title mentions release/launch/open-source → models_products
-8. Still ambiguous → industry_business (safe default for non-technical content)
+## Examples
+
+Title: "OpenAI, GPT-5.2로 입자 물리학 난제 해결"
+→ research (the news is solving a physics problem = scientific finding, not a product launch)
+
+Title: "ByteDance AI, Long CoT 연구 발표"
+→ research (연구 발표 = research publication announcing findings, not a usable product)
+
+Title: "DeepMind paper: new diffusion architecture beats SOTA"
+→ research (paper with benchmark results, no downloadable artifact)
+
+Title: "Meta releases Llama 4 open-weights"
+→ models_products (downloadable model that users can access)
+
+Title: "ChatGPT gets memory feature"
+→ models_products (product feature update users can try)
+
+Title: "LangChain 0.3 released"
+→ models_products (framework release users can download)
+
+Title: "Anthropic raises $2B Series C"
+→ industry_business (funding round = money/deals)
+
+Title: "TechCrunch Disrupt 2026 tickets on sale"
+→ industry_business (conference/event = market dynamics)
+
+## Tiebreaks
+- "Company uses AI to achieve [scientific result]" → research (the finding IS the news)
+- Paper + released code/weights → models_products (usable artifact exists)
+- Paper only, no release → research
+- If still ambiguous → industry_business
 
 Articles:
 {article_text}
@@ -960,7 +1015,7 @@ def _scorer_throttle():
         _scorer_call_ts.append(time.time())
 
 
-CLASSIFY_BATCH_SIZE = 6
+CLASSIFY_BATCH_SIZE = 3
 
 
 def _classify_batch(batch: list[dict], offset: int) -> list[dict]:
