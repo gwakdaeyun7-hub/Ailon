@@ -82,6 +82,7 @@ def save_news_to_firestore(result: dict):
                 "score_market": a.get("_score_market", 0),
                 "score_signal": a.get("_score_signal", 0),
                 "score_breadth": a.get("_score_breadth", 0),
+                "category": a.get("_llm_category", ""),
             }
             for a in articles
         ]
