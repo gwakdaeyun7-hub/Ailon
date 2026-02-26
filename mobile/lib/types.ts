@@ -26,9 +26,9 @@ export interface Article {
   source_key?: string;
   image_url?: string;
   score?: number;
-  score_rigor?: number;
   score_novelty?: number;
-  score_potential?: number;
+  score_rigor?: number;
+  score_buzz?: number;
   score_utility?: number;
   score_impact?: number;
   score_access?: number;

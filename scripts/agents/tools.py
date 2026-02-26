@@ -58,6 +58,7 @@ SOURCES = [
         "max_items": 40,
 
         "lang": "en",
+        "rss_image_field": "enclosure",
     },
     {
         "key": "the_decoder",
@@ -92,6 +93,7 @@ SOURCES = [
         "max_items": 40,
 
         "lang": "en",
+        "rss_image_field": "media_content",  # 원본 이미지 우선 (썸네일 842x450 → 원본 1280x680+)
     },
     {
         "key": "huggingface_blog",
@@ -222,6 +224,16 @@ def _within_days(date_str: str, days: int) -> bool:
     return (datetime.now() - dt).days <= days
 
 
+def _clamp_future_date(date_str: str) -> str:
+    """미래 날짜인 경우 현재 시각으로 교정"""
+    dt = _parse_date(date_str)
+    if dt is None:
+        return date_str
+    if dt > datetime.now():
+        return datetime.now().isoformat()
+    return date_str
+
+
 def _is_ai_related(title: str, description: str) -> bool:
     text = (title + " " + description).lower()
     # 짧은 키워드는 단어 경계로 매칭 (ai→said 오탐 방지)
@@ -273,12 +285,21 @@ def _extract_rss_image(entry: dict, rss_image_field: str = "") -> str:
                 if url.startswith("http") and not url.endswith(".svg"):
                     return url
 
-    # enclosure (일부 RSS)
+    # enclosure (VentureBeat 등)
     for enc in entry.get("enclosures", []):
         if enc.get("type", "").startswith("image/") and enc.get("href"):
-            return enc["href"]
+            return _upgrade_image_quality(enc["href"])
 
     return ""
+
+
+def _upgrade_image_quality(url: str) -> str:
+    """CDN 이미지 URL의 저화질 파라미터를 고화질로 교체"""
+    # Contentful CDN (VentureBeat): ?w=300&q=30 → ?w=800&q=80
+    if "images.ctfassets.net" in url:
+        url = re.sub(r'[?&]w=\d+', '?w=800', url)
+        url = re.sub(r'[?&]q=\d+', '&q=80', url)
+    return url
 
 
 # ─── HTML 스크래핑 수집 ──────────────────────────────────────────────────
@@ -346,7 +367,7 @@ def _fetch_scrape_source(source_config: dict) -> list[dict]:
                 "description": "",
                 "summary": "",
                 "link": link,
-                "published": published or datetime.now().isoformat(),
+                "published": _clamp_future_date(published) if published else datetime.now().isoformat(),
                 "source": name,
                 "source_key": key,
                 "lang": lang,
@@ -427,7 +448,7 @@ def fetch_source(source_config: dict) -> list[dict]:
                 "description": description,
                 "summary": "",  # 번역 후 채워짐
                 "link": link,
-                "published": published or datetime.now().isoformat(),
+                "published": _clamp_future_date(published) if published else datetime.now().isoformat(),
                 "source": name,
                 "source_key": key,
                 "lang": lang,
