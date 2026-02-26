@@ -699,11 +699,32 @@ def ko_process_node(state: NewsGraphState) -> dict:
 
 
 # ─── 중복 제거 ───
-DEDUP_THRESHOLD = 0.65
+DEDUP_THRESHOLD = 0.55  # 유사도 임계값 (낮출수록 공격적)
+
+
+def _normalize_title(title: str) -> str:
+    """비교용 제목 정규화: 소문자, 특수문자/공백 제거"""
+    import unicodedata
+    t = unicodedata.normalize("NFKC", title.lower())
+    t = re.sub(r'[^\w\s]', '', t)       # 특수문자 제거
+    t = re.sub(r'\s+', ' ', t).strip()   # 공백 정리
+    return t
+
+
+def _extract_url_key(link: str) -> str:
+    """URL에서 쿼리/프래그먼트 제거한 정규화 키"""
+    if not link:
+        return ""
+    from urllib.parse import urlparse
+    p = urlparse(link)
+    # 경로 끝 슬래시 제거 + 소문자
+    path = p.path.rstrip("/").lower()
+    return f"{p.netloc.lower()}{path}"
 
 
 def _deduplicate_candidates(candidates: list[dict]) -> list[dict]:
-    """display_title 유사도 기반 중복 제거. 발행일 가장 오래된(원본) 기사 유지."""
+    """다층 중복 제거: URL 완전 일치 → 원본 제목 유사도 → 번역 제목 유사도.
+    발행일 가장 오래된(원본) 기사 유지."""
     if len(candidates) <= 1:
         return candidates
 
@@ -714,19 +735,40 @@ def _deduplicate_candidates(candidates: list[dict]) -> list[dict]:
     )
 
     kept: list[dict] = []
+    seen_urls: set[str] = set()
     removed = 0
+
     for c in sorted_cands:
-        title = c.get("display_title") or c.get("title", "")
+        # Layer 1: URL 완전 일치
+        url_key = _extract_url_key(c.get("link", ""))
+        if url_key and url_key in seen_urls:
+            removed += 1
+            continue
+
+        # Layer 2: 원본 제목(영문) 유사도
+        orig_title = _normalize_title(c.get("title", ""))
+        # Layer 3: 번역 제목(한국어) 유사도
+        disp_title = _normalize_title(c.get("display_title") or c.get("title", ""))
+
         is_dup = False
         for k in kept:
-            k_title = k.get("display_title") or k.get("title", "")
-            if SequenceMatcher(None, title, k_title).ratio() >= DEDUP_THRESHOLD:
+            # 원본 제목 비교
+            k_orig = _normalize_title(k.get("title", ""))
+            if orig_title and k_orig and SequenceMatcher(None, orig_title, k_orig).ratio() >= DEDUP_THRESHOLD:
                 is_dup = True
                 break
+            # 번역 제목 비교
+            k_disp = _normalize_title(k.get("display_title") or k.get("title", ""))
+            if disp_title and k_disp and SequenceMatcher(None, disp_title, k_disp).ratio() >= DEDUP_THRESHOLD:
+                is_dup = True
+                break
+
         if is_dup:
             removed += 1
         else:
             kept.append(c)
+            if url_key:
+                seen_urls.add(url_key)
 
     if removed > 0:
         print(f"  [중복 제거] {removed}개 중복 기사 제거 ({len(candidates)} → {len(kept)}개)")
