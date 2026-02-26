@@ -6,7 +6,22 @@ on:
     - cron: '0 21 * * *'
     # 매일 오후 6시 (UTC 09:00 = KST 18:00)
     - cron: '0 9 * * *'
-  workflow_dispatch: # 수동 실행 허용
+  workflow_dispatch:
+    inputs:
+      target:
+        description: '실행 대상'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - news
+          - principle
+      force:
+        description: '원리 강제 재생성 (기존 콘텐츠 덮어쓰기)'
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   run-agent-pipeline:
@@ -33,7 +48,13 @@ jobs:
           FIREBASE_CREDENTIALS: ${{ secrets.FIREBASE_CREDENTIALS }}
         run: |
           cd scripts
-          python generate_daily.py
+          TARGET="${{ github.event.inputs.target || 'all' }}"
+          FORCE="${{ github.event.inputs.force }}"
+          if [ "$FORCE" = "true" ]; then
+            python generate_daily.py "$TARGET" --force
+          else
+            python generate_daily.py "$TARGET"
+          fi
 
       - name: Notify completion
         if: always()
