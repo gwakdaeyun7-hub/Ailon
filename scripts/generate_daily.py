@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-일일 뉴스 파이프라인
-뉴스 에이전트 팀 → daily_news 컬렉션
+일일 콘텐츠 파이프라인
+Step 1: 뉴스 에이전트 팀 → daily_news 컬렉션
+Step 2: 학제간 원리 파이프라인 → daily_principles 컬렉션
+Step 3: 데이터 정리
 
 매일 GitHub Actions에서 실행됩니다.
 """
@@ -17,6 +19,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from agents.config import initialize_firebase, get_firestore_client
 from agents.news_team import run_news_pipeline
+from agents.principle_team import run_principle_pipeline
 from notifications import send_news_notification
 
 
@@ -135,7 +138,7 @@ def cleanup_old_data(keep_days: int = 30):
     db = get_firestore_client()
     cutoff_date = (datetime.now() - timedelta(days=keep_days)).strftime("%Y-%m-%d")
 
-    collections = ["daily_news"]
+    collections = ["daily_news", "daily_principles"]
     total_deleted = 0
 
     for col_name in collections:
@@ -191,15 +194,42 @@ def main():
     except Exception as e:
         print(f"  [알림 실패] {e} — 파이프라인은 계속 진행")
 
+    # ─── 학제간 원리 파이프라인 (하루 1회만) ───
+    print("\n" + "-" * 40)
+    print("Step 2: 학제간 원리 파이프라인")
+    print("-" * 40)
+    principle_result = None
+    today = datetime.now().strftime("%Y-%m-%d")
+    try:
+        db = get_firestore_client()
+        existing = db.collection("daily_principles").document(today).get()
+        if existing.exists:
+            print(f"  [스킵] 오늘({today}) 원리 콘텐츠가 이미 존재합니다.")
+        else:
+            start = time.time()
+            principle_result = run_principle_pipeline()
+            elapsed = time.time() - start
+            print(f"\n  파이프라인 소요: {elapsed:.1f}초")
+            if principle_result:
+                discipline = principle_result.get("discipline_info", {}).get("name", "?")
+                focus = principle_result.get("discipline_info", {}).get("focus", "?")
+                print(f"  원리 생성 완료: {discipline} — {focus}")
+            else:
+                print("  [경고] 원리 파이프라인 결과 없음")
+    except Exception as e:
+        print(f"  [원리 파이프라인 실패] {e} — 뉴스 파이프라인은 정상 완료")
+
     # ─── 오래된 데이터 정리 ───
     print("\n" + "-" * 40)
-    print("Step 2: 데이터 정리")
+    print("Step 3: 데이터 정리")
     print("-" * 40)
     cleanup_old_data(keep_days=30)
 
     # ─── 완료 ───
     print("\n" + "=" * 60)
-    print(f"완료! 뉴스 {news_result.get('total_count', 0)}개 수집")
+    news_count = news_result.get('total_count', 0)
+    principle_status = "성공" if principle_result else "실패"
+    print(f"완료! 뉴스 {news_count}개 수집 / 원리 {principle_status}")
     print("=" * 60)
 
 

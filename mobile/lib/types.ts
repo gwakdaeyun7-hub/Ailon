@@ -71,11 +71,21 @@ export interface LearnMoreLink {
   url: string;
 }
 
+export interface DeepDive {
+  history: string;              // 원리의 발견/발전 역사
+  mechanism: string;            // 작동 원리 상세 설명
+  formula?: string;             // 수식/공식 (해당시)
+  visualExplanation?: string;   // 시각적 설명 텍스트
+  relatedPrinciples: string[];  // 관련 원리들
+  modernRelevance: string;      // 현대적 의미/응용
+}
+
 export interface PrincipleFoundation {
   principle: string;        // 기본 원리 설명
   keyIdea: string;          // 핵심 아이디어 한 줄
   everydayAnalogy: string;  // 일상 비유
   scientificContext?: string; // 학문에서의 중요성
+  deepDive?: DeepDive;
 }
 
 export interface PrincipleApplication {

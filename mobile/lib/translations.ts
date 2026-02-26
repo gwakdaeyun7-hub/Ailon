@@ -117,8 +117,32 @@ const translations: Record<string, Record<Language, string>> = {
   'saved.type_principle': { ko: '원리', en: 'Principles' },
   'saved.type_idea': { ko: '아이디어', en: 'Ideas' },
 
-  // ─── 스낵/아이디어 ───
+  // ─── 스낵/원리 (snaps.tsx) ───
   'snaps.title': { ko: '학문 스낵', en: 'Snacks' },
+  'snaps.tab_insight': { ko: '인사이트', en: 'Insight' },
+  'snaps.tab_deepdive': { ko: '딥다이브', en: 'Deep Dive' },
+  'snaps.foundation': { ko: '기본 원리', en: 'Foundation' },
+  'snaps.application': { ko: 'AI 응용', en: 'AI Application' },
+  'snaps.integration': { ko: '융합 사례', en: 'Integration' },
+  'snaps.key_idea': { ko: '핵심 아이디어', en: 'Key Idea' },
+  'snaps.analogy': { ko: '일상 비유', en: 'Everyday Analogy' },
+  'snaps.mechanism': { ko: '작동 원리', en: 'Mechanism' },
+  'snaps.tech_terms': { ko: '관련 기술 용어', en: 'Technical Terms' },
+  'snaps.problem': { ko: '해결한 문제', en: 'Problem Solved' },
+  'snaps.examples': { ko: '실제 사례', en: 'Real-World Examples' },
+  'snaps.why_works': { ko: '왜 효과적인가', en: 'Why It Works' },
+  'snaps.history': { ko: '발견의 역사', en: 'History' },
+  'snaps.deep_mechanism': { ko: '상세 메커니즘', en: 'Detailed Mechanism' },
+  'snaps.formula': { ko: '수식/공식', en: 'Formula' },
+  'snaps.related': { ko: '관련 원리', en: 'Related Principles' },
+  'snaps.modern': { ko: '현대적 의미', en: 'Modern Relevance' },
+  'snaps.no_deepdive': { ko: '딥다이브 콘텐츠가 아직 없어요', en: 'Deep dive content not available yet' },
+  'snaps.no_content': { ko: '아직 콘텐츠가 없어요', en: 'No content yet' },
+  'snaps.no_content_desc': { ko: '새로운 학문 인사이트를 준비하고 있어요', en: 'New academic insights are being prepared' },
+  'principle.connection_error': { ko: '연결에 문제가 있어요', en: 'Connection error' },
+  'principle.retry': { ko: '다시 시도', en: 'Retry' },
+
+  // ─── 아이디어 ───
   'ideas.title': { ko: '시너지 랩', en: 'Synergy' },
   'placeholder.preparing': { ko: '준비 중이에요', en: 'Coming soon' },
   'placeholder.preparing_desc': { ko: '새로운 콘텐츠를 준비하고 있어요', en: 'New content is being prepared' },
