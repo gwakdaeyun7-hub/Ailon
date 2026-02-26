@@ -8,6 +8,7 @@ Step 3: 데이터 정리
 매일 GitHub Actions에서 실행됩니다.
 """
 
+import argparse
 import sys
 import os
 import time
@@ -161,25 +162,16 @@ def cleanup_old_data(keep_days: int = 30):
         print(f"  총 {total_deleted}개 문서 정리 완료")
 
 
-def main():
-    """일일 뉴스 파이프라인 실행"""
-    print("=" * 60)
-    print("AI News Pipeline")
-    print(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print("=" * 60)
-
-    initialize_firebase()
-
-    # ─── 뉴스 수집 + 번역/요약 + 스코어링 + 분류 ───
+def run_news():
+    """뉴스 파이프라인만 실행"""
     print("\n" + "-" * 40)
-    print("Step 1: 뉴스 파이프라인")
+    print("뉴스 파이프라인")
     print("-" * 40)
     start = time.time()
     news_result = run_news_pipeline()
     elapsed = time.time() - start
     print(f"\n  파이프라인 소요: {elapsed:.1f}초")
 
-    # ─── 저장 전 검증 ───
     warnings = _validate_output(news_result)
     if warnings:
         print("\n  [검증 경고]")
@@ -188,48 +180,95 @@ def main():
 
     save_news_to_firestore(news_result)
 
-    # ─── 뉴스 알림 발송 ───
     try:
         send_news_notification(article_count=news_result.get("total_count", 0))
     except Exception as e:
         print(f"  [알림 실패] {e} — 파이프라인은 계속 진행")
 
-    # ─── 학제간 원리 파이프라인 (하루 1회만) ───
+    return news_result
+
+
+def run_principle(force: bool = False):
+    """원리 파이프라인만 실행. force=True면 기존 콘텐츠 덮어쓰기."""
     print("\n" + "-" * 40)
-    print("Step 2: 학제간 원리 파이프라인")
+    print("학제간 원리 파이프라인")
     print("-" * 40)
-    principle_result = None
+
     today = datetime.now().strftime("%Y-%m-%d")
-    try:
-        db = get_firestore_client()
-        existing = db.collection("daily_principles").document(today).get()
-        if existing.exists:
-            print(f"  [스킵] 오늘({today}) 원리 콘텐츠가 이미 존재합니다.")
-        else:
-            start = time.time()
-            principle_result = run_principle_pipeline()
-            elapsed = time.time() - start
-            print(f"\n  파이프라인 소요: {elapsed:.1f}초")
-            if principle_result:
-                discipline = principle_result.get("discipline_info", {}).get("name", "?")
-                focus = principle_result.get("discipline_info", {}).get("focus", "?")
-                print(f"  원리 생성 완료: {discipline} — {focus}")
-            else:
-                print("  [경고] 원리 파이프라인 결과 없음")
-    except Exception as e:
-        print(f"  [원리 파이프라인 실패] {e} — 뉴스 파이프라인은 정상 완료")
+    if not force:
+        try:
+            db = get_firestore_client()
+            existing = db.collection("daily_principles").document(today).get()
+            if existing.exists:
+                print(f"  [스킵] 오늘({today}) 원리 콘텐츠가 이미 존재합니다. (--force로 덮어쓰기 가능)")
+                return None
+        except Exception:
+            pass
+
+    start = time.time()
+    result = run_principle_pipeline()
+    elapsed = time.time() - start
+    print(f"\n  파이프라인 소요: {elapsed:.1f}초")
+
+    if result:
+        discipline = result.get("discipline_info", {}).get("name", "?")
+        focus = result.get("discipline_info", {}).get("focus", "?")
+        print(f"  원리 생성 완료: {discipline} — {focus}")
+    else:
+        print("  [경고] 원리 파이프라인 결과 없음")
+
+    return result
+
+
+def main():
+    """일일 콘텐츠 파이프라인
+
+    사용법:
+      python generate_daily.py          # 전체 (뉴스 + 원리 + 정리)
+      python generate_daily.py news     # 뉴스만
+      python generate_daily.py principle # 원리만 (하루 1회)
+      python generate_daily.py principle --force  # 원리 강제 재생성
+    """
+    parser = argparse.ArgumentParser(description="Ailon 일일 콘텐츠 파이프라인")
+    parser.add_argument("target", nargs="?", default="all", choices=["all", "news", "principle"],
+                        help="실행 대상: all(전체), news(뉴스만), principle(원리만)")
+    parser.add_argument("--force", action="store_true",
+                        help="원리 파이프라인: 오늘 콘텐츠가 있어도 강제 재생성")
+    args = parser.parse_args()
+
+    print("=" * 60)
+    print(f"Ailon Daily Pipeline — target: {args.target}")
+    print(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print("=" * 60)
+
+    initialize_firebase()
+
+    news_result = None
+    principle_result = None
+
+    if args.target in ("all", "news"):
+        news_result = run_news()
+
+    if args.target in ("all", "principle"):
+        try:
+            principle_result = run_principle(force=args.force)
+        except Exception as e:
+            print(f"  [원리 파이프라인 실패] {e}")
 
     # ─── 오래된 데이터 정리 ───
     print("\n" + "-" * 40)
-    print("Step 3: 데이터 정리")
+    print("데이터 정리")
     print("-" * 40)
     cleanup_old_data(keep_days=30)
 
     # ─── 완료 ───
     print("\n" + "=" * 60)
-    news_count = news_result.get('total_count', 0)
-    principle_status = "성공" if principle_result else "실패"
-    print(f"완료! 뉴스 {news_count}개 수집 / 원리 {principle_status}")
+    parts = []
+    if news_result:
+        parts.append(f"뉴스 {news_result.get('total_count', 0)}개")
+    if principle_result:
+        parts.append("원리 생성 완료")
+    print(f"완료! {' / '.join(parts) if parts else args.target + ' 완료'}")
     print("=" * 60)
 
 
