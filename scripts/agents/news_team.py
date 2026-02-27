@@ -908,10 +908,10 @@ Output exactly {count} indices (0 to {count_minus_1}):"""
 
 
 def _rank_to_score(rank: int, total: int) -> int:
-    """순위(0-based)에서 점수를 선형 보간. 1위=100, 꼴등=30."""
+    """순위(0-based)에서 점수를 선형 보간. 1위=100, 꼴등=0."""
     if total <= 1:
         return 100
-    return round(100 - (100 - 30) * rank / (total - 1))
+    return round(100 - 100 * rank / (total - 1))
 
 
 def _rank_category(articles: list[dict], category: str) -> list[tuple[int, int, int]]:
