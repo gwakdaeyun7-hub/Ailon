@@ -135,18 +135,19 @@ def _parse_llm_json(text: str):
     # 마크다운 코드블록 제거 — ```json, ```JSON, ``` 등 모두 처리
     text = re.sub(r'```[a-zA-Z]*\s*\n?', '', text)
     text = re.sub(r'\n?\s*```', '', text)
-    # Gemini bold/italic 마크다운 제거 — *** 가 {} 를 대체하는 케이스 처리
-    # 패턴: [***"i":0,...***] 또는 [{***"i":0,...***}] 등
-    # Step 1: {***...***} 내부의 *** 제거 (중괄호가 이미 있는 경우)
-    text = re.sub(r'\{\s*\*+', '{', text)
-    text = re.sub(r'\*+\s*\}', '}', text)
-    # Step 2: [*** → [{ 치환 (중괄호가 없고 ***가 대신한 경우)
-    text = re.sub(r'\[\s*\*+', '[{', text)
-    text = re.sub(r'\*+\s*\]', '}]', text)
-    # Step 3: 객체 사이 ***,*** → },{  (예: ...***,***"i":1... )
-    text = re.sub(r'\*+\s*,\s*\*+', '},{', text)
-    # Step 4: 남은 * 그룹 제거 (bold/italic 잔여)
-    text = re.sub(r'\*{2,}', '', text)
+    # Gemini bold/italic 마크다운 제거 — *** 가 {} 를 대체하거나 장식으로 삽입되는 케이스 처리
+    # 패턴 A (장식): [{***"i":0***}] — {} 가 이미 있고 *** 는 장식
+    # 패턴 B (대체): [***"i":0***]   — {} 없이 *** 가 {} 역할
+    has_braces = '{' in text
+    if has_braces:
+        # {} 가 이미 있으면 *** 는 장식 — 전부 제거
+        text = re.sub(r'\*{2,}', '', text)
+    else:
+        # {} 없이 *** 가 {} 를 대체한 경우 — 구조적 치환
+        text = re.sub(r'\[\s*\*+', '[{', text)
+        text = re.sub(r'\*+\s*\]', '}]', text)
+        text = re.sub(r'\*+\s*,\s*\*+', '},{', text)
+        text = re.sub(r'\*{2,}', '', text)
     text = text.strip()
 
     if not text:
@@ -826,7 +827,7 @@ W_ACCESS = 3        # 접근성 (models_products)
 W_MARKET = 4        # 시장 규모 (industry_business)
 W_SIGNAL = 3        # 전략적 시그널 (industry_business)
 W_BREADTH = 3       # 이해관계자 범위 (industry_business)
-SCORER_BATCH_SIZE = 1
+SCORER_BATCH_SIZE = 5
 VALID_CATEGORIES = {"research", "models_products", "industry_business"}
 
 # --- 분류 전용 프롬프트 (classification only) ---
@@ -931,6 +932,14 @@ CRITICAL SCORING RULES:
    - Genuinely notable, clear significance → score 7-8
    - Groundbreaking, industry-shaping → score 9-10
    Do NOT hedge everything to 5-7. If the article is weak, give it a low score.
+
+3. COMPARATIVE SCORING (when multiple articles are given):
+   - Compare all articles in this batch AGAINST EACH OTHER before assigning scores.
+   - The weakest article in the batch should receive scores in the 2-4 range.
+   - The strongest article in the batch should receive scores in the 8-10 range.
+   - SPREAD scores across the full range. If you give all articles similar scores, you are doing it wrong.
+   - Rank articles from weakest to strongest first, then assign scores that reflect their relative quality.
+   - The gap between the best and worst article's scores should be at least 4 points on each dimension.
 
 {scoring_rubric}
 
@@ -1063,9 +1072,9 @@ _CALIBRATION_MAP = {
 
 # 카테고리별 출력 예시 (배치 1 기준 — 다양한 점수 시연)
 _OUTPUT_EXAMPLE_MAP = {
-    "research": '[{{"i":0,"nov":4,"imp":6,"buzz":3}}]',
-    "models_products": '[{{"i":0,"uti":8,"imp":5,"acc":3}}]',
-    "industry_business": '[{{"i":0,"mag":3,"sig":7,"brd":5}}]',
+    "research": '[{{"i":0,"nov":2,"imp":3,"buzz":1}},{{"i":1,"nov":5,"imp":4,"buzz":3}},{{"i":2,"nov":7,"imp":6,"buzz":5}},{{"i":3,"nov":9,"imp":8,"buzz":7}},{{"i":4,"nov":3,"imp":2,"buzz":2}}]',
+    "models_products": '[{{"i":0,"uti":3,"imp":2,"acc":4}},{{"i":1,"uti":6,"imp":5,"acc":7}},{{"i":2,"uti":9,"imp":8,"acc":6}},{{"i":3,"uti":4,"imp":3,"acc":8}},{{"i":4,"uti":7,"imp":7,"acc":9}}]',
+    "industry_business": '[{{"i":0,"mag":2,"sig":3,"brd":2}},{{"i":1,"mag":5,"sig":4,"brd":3}},{{"i":2,"mag":8,"sig":7,"brd":6}},{{"i":3,"mag":3,"sig":2,"brd":1}},{{"i":4,"mag":9,"sig":8,"brd":7}}]',
 }
 
 
@@ -1756,22 +1765,19 @@ def assembler_node(state: NewsGraphState) -> dict:
     def _pub_key(a: dict):
         return _parse_published(a.get("published", "")) or _epoch
 
-    # 한국 소스 전체를 합쳐서 중복 제거 후 다시 분리
-    # 한국어 뉴스는 고유명사 공유가 많아 임계값을 높게 설정 (0.55 → 0.75)
-    all_ko: list[dict] = []
+    # 한국 소스별 중복 제거 (per-source) + AI 필터 기사 분리
+    # cross-source dedup은 한국어 고유명사 공유로 과도 제거 발생 → per-source로 변경
+    ko_filtered_out: list[dict] = []
     for s in SOURCES:
         key = s["key"]
         if key in SOURCE_SECTION_SOURCES and sources.get(key):
-            all_ko.extend(sources[key])
             source_order.append(key)
-
-    if all_ko:
-        all_ko = _deduplicate_candidates(all_ko, threshold=0.75)
-
-    for key in source_order:
-        ko_for_key = [a for a in all_ko if a.get("source_key") == key]
-        sorted_articles = sorted(ko_for_key, key=_pub_key, reverse=True)
-        source_articles[key] = sorted_articles[:10]
+            deduped = _deduplicate_candidates(sources[key], threshold=0.75)
+            passed = [a for a in deduped if not a.get("_ai_filtered")]
+            filtered = [a for a in deduped if a.get("_ai_filtered")]
+            ko_filtered_out.extend(filtered)
+            sorted_articles = sorted(passed, key=_pub_key, reverse=True)
+            source_articles[key] = sorted_articles[:10]
 
     total = (
         len(state.get("highlights", []))
@@ -1779,7 +1785,8 @@ def assembler_node(state: NewsGraphState) -> dict:
         + sum(len(v) for v in source_articles.values())
     )
 
-    filtered_articles = state.get("filtered_articles", [])
+    # selector의 EN 필터 기사 + assembler의 KO 필터 기사 합산
+    filtered_articles = state.get("filtered_articles", []) + ko_filtered_out
     deduped_articles = state.get("deduped_articles", {})
     deduped_total = sum(len(v) for v in deduped_articles.values())
 
