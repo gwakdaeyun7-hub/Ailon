@@ -132,8 +132,9 @@ def _parse_llm_json(text: str):
     text = text.strip()
     # Gemini 2.5 Flash: <thinking> 태그 제거 (thinking 비활성화 시에도 발생 가능)
     text = re.sub(r'<think(?:ing)?>.*?</think(?:ing)?>', '', text, flags=re.DOTALL)
-    text = re.sub(r'```(?:json)?\s*\n?', '', text)
-    text = re.sub(r'\n?```\s*', '', text)
+    # 마크다운 코드블록 제거 — ```json, ```JSON, ``` 등 모두 처리
+    text = re.sub(r'```[a-zA-Z]*\s*\n?', '', text)
+    text = re.sub(r'\n?\s*```', '', text)
     # Gemini bold/italic 마크다운 제거 — *** 가 {} 를 대체하는 케이스 처리
     # 패턴: [***"i":0,...***] 또는 [{***"i":0,...***}] 등
     # Step 1: {***...***} 내부의 *** 제거 (중괄호가 이미 있는 경우)
@@ -151,13 +152,41 @@ def _parse_llm_json(text: str):
     if not text:
         raise json.JSONDecodeError("LLM response empty after stripping thinking tags", "", 0)
 
+    # 1차: 전체 텍스트가 유효한 JSON인지 시도
     try:
         return json.loads(text)
     except json.JSONDecodeError:
         pass
 
-    # 잘린 JSON 배열 복구 ([ 있지만 ] 없는 경우 — {/} 추출보다 먼저 시도)
+    # 2차: 앞뒤 텍스트 제거 — 첫 [ 또는 { 부터 마지막 ] 또는 } 까지 추출
+    #       예: "Here is the result:\n[{...}]\nDone." → "[{...}]"
+    for start_char, end_char in [('[', ']'), ('{', '}')]:
+        start_idx = text.find(start_char)
+        if start_idx == -1:
+            continue
+        last_end = text.rfind(end_char)
+        if last_end > start_idx:
+            try:
+                return json.loads(text[start_idx:last_end + 1])
+            except json.JSONDecodeError:
+                pass
+
+    # 3차: 배열에서 단일 객체 추출 — 배열 파싱이 실패했지만 내부 {} 는 유효한 경우
+    #       예: 깨진 [{...}] → 내부 {...} 추출 후 [obj] 반환
     bracket_idx = text.find('[')
+    if bracket_idx != -1:
+        bracket_end = text.rfind(']')
+        if bracket_end > bracket_idx:
+            inner = text[bracket_idx + 1:bracket_end].strip()
+            if inner.startswith('{') and inner.endswith('}'):
+                try:
+                    obj = json.loads(inner)
+                    if isinstance(obj, dict):
+                        return [obj]
+                except json.JSONDecodeError:
+                    pass
+
+    # 4차: 잘린 JSON 배열 복구 ([ 있지만 ] 없는 경우)
     if bracket_idx != -1 and ']' not in text[bracket_idx:]:
         truncated = text[bracket_idx:].rstrip()
         # 끝의 불완전한 요소/쉼표 제거 후 ] 추가
@@ -172,16 +201,11 @@ def _parse_llm_json(text: str):
         except json.JSONDecodeError:
             pass
 
+    # 5차: depth 기반 추출 — 중첩/오염된 텍스트에서 유효한 JSON 영역만 추출
     for start_char, end_char in [('[', ']'), ('{', '}')]:
         start_idx = text.find(start_char)
         if start_idx == -1:
             continue
-        last_end = text.rfind(end_char)
-        if last_end > start_idx:
-            try:
-                return json.loads(text[start_idx:last_end + 1])
-            except json.JSONDecodeError:
-                pass
         depth = 0
         in_string = False
         escape_next = False
@@ -899,63 +923,63 @@ Output exactly {count} JSON object(s) as a single-line compact JSON array:
 
 _RUBRIC_RESEARCH = """### Category: research -> score nov, imp, buzz (each 0-10 integer)
 - nov (Novelty): 연구의 신규성/독창성. 기존 연구 대비 얼마나 새로운 접근인가?
-  1: 기존 방법의 사소한 변형, 서베이/리뷰 논문
-  3: 기존 프레임워크에 의미 있는 개선점 제시 (새 데이터셋, 약간 다른 아키텍처)
-  5: 새로운 기법/아키텍처 제안, 의미 있는 SOTA 갱신
-  7: 해당 분야의 접근법 자체를 바꿀 수 있는 연구 (Attention Is All You Need급 가능성)
-  9: 패러다임 전환. AI 역사에 기록될 수준 (GPT-3 논문, AlphaFold)
+  2: 기존 방법의 사소한 변형, 서베이/리뷰 논문
+  5: 기존 프레임워크에 의미 있는 개선점 제시 (새 데이터셋, 개선된 아키텍처)
+  7: 새로운 기법/아키텍처 제안, 의미 있는 SOTA 갱신. 대부분의 주목할만한 논문이 여기.
+  8: 해당 분야의 접근법 자체를 바꿀 가능성이 있는 연구
+  10: 패러다임 전환. AI 역사에 기록될 수준 (Transformer, AlphaFold)
 - imp (Impact): 후속 연구/산업에 미치는 파급력
-  1: 좁은 서브필드에서만 인용될 수준
-  3: 해당 분야 연구자들이 참고할 수준
-  5: 여러 분야에 걸쳐 영향, 오픈소스 구현 기대됨
-  7: 대형 기업/연구소가 즉시 후속 연구에 착수할 수준
-  9: 산업 전체의 R&D 방향을 바꿈
+  2: 좁은 서브필드에서만 인용될 수준
+  5: 해당 분야 연구자들이 참고할 수준
+  7: 여러 분야에 걸쳐 영향, 오픈소스 구현 기대됨. 대부분의 양질 논문이 여기.
+  8: 대형 기업/연구소가 즉시 후속 연구에 착수할 수준
+  10: 산업 전체의 R&D 방향을 바꿈
 - buzz (Buzz): 일반인/비전공자도 관심을 가질만한 화제성
-  1: 전문가만 이해 가능, 대중적 흥미 없음
-  3: AI에 관심 있는 사람이라면 흥미로울 수준
-  5: 테크 미디어에서 다룰만한 수준
-  7: 일반 언론에서도 보도할 수준 (예: AI가 수학 올림피아드 풀었다)
-  9: 전 세계 뉴스 헤드라인. 비AI 분야 사람도 다 아는 수준"""
+  2: 극히 좁은 전문 분야, 대중적 흥미 없음
+  5: AI에 관심 있는 사람이라면 흥미로울 수준
+  7: 테크 미디어에서 다룰만한 수준. 대부분의 주요 AI 뉴스가 여기.
+  8: 일반 언론에서도 보도할 수준 (예: AI가 수학 올림피아드 풀었다)
+  10: 전 세계 뉴스 헤드라인. 비AI 분야 사람도 다 아는 수준"""
 
 _RUBRIC_MODELS_PRODUCTS = """### Category: models_products -> score uti, imp, acc (each 0-10 integer)
 - uti (Utility): 사용자에게 실질적으로 얼마나 유용한가?
-  1: 데모/실험 수준. 실제 사용 어려움. 틈새 연구용 도구
-  3: 특정 니치 개발자에게 유용. 기존 도구의 마이너 업데이트
-  5: 해당 분야 개발자/사용자에게 확실히 유용. 기존 워크플로 개선
-  7: 광범위한 사용자에게 즉시 적용 가능. 경쟁 제품 대비 명확한 우위
-  9: 누구나 쓸 수 있고 업무 방식 자체를 바꿈 (ChatGPT 첫 출시급)
+  2: 데모/실험 수준. 실제 사용 어려움. 극히 좁은 틈새용
+  5: 특정 개발자/사용자에게 유용. 기존 도구의 의미 있는 업데이트
+  7: 해당 분야 개발자/사용자에게 확실히 유용. 기존 워크플로 개선. 대부분의 제품 출시/업데이트가 여기.
+  8: 광범위한 사용자에게 즉시 적용 가능. 경쟁 제품 대비 명확한 우위
+  10: 누구나 쓸 수 있고 업무 방식 자체를 바꿈 (ChatGPT 첫 출시급)
 - imp (Impact): AI 생태계/업계에 얼마나 영향을 주는가?
-  1: 기존 제품의 버그픽스, UI 변경 수준
-  3: 해당 제품 사용자에게만 의미 있는 업데이트
-  5: 해당 분야의 경쟁 구도에 영향. 다른 기업이 대응해야 할 수준
-  7: 업계 전체의 기준선을 올림. 후발 제품들이 따라야 할 새 기준
-  9: 업계 판도를 완전히 바꿈 (GPT-4 출시, Llama 2 오픈소스급)
+  2: 기존 제품의 버그픽스, 사소한 UI 변경 수준
+  5: 해당 제품 사용자에게 의미 있는 업데이트
+  7: 해당 분야의 경쟁 구도에 영향. 다른 기업이 대응해야 할 수준. 대부분의 주요 제품 뉴스가 여기.
+  8: 업계 전체의 기준선을 올림. 후발 제품들이 따라야 할 새 기준
+  10: 업계 판도를 완전히 바꿈 (GPT-4 출시, Llama 2 오픈소스급)
 - acc (Accessibility): 접근성 — 얼마나 쉽게 사용할 수 있는가?
-  1: 초대제/비공개 베타. 대기자 명단 필요
-  3: 유료 전용. 비싼 가격대 또는 기업용만 제공
-  5: 무료 티어 있지만 제한 있음 (일일 한도, 기능 제한)
-  7: 무료로 충분히 사용 가능. API 공개. 합리적 가격
-  9: 완전 오픈소스, 무료, 웨이트 공개, 자유 라이선스"""
+  2: 초대제/비공개 베타. 대기자 명단 필요
+  5: 유료 전용이지만 합리적 가격대. 또는 무료 티어 있지만 제한 있음
+  7: 무료로 충분히 사용 가능. API 공개. 합리적 가격. 대부분의 공개 제품이 여기.
+  8: 오픈소스, 무료 사용 가능, 웨이트 공개
+  10: 완전 오픈소스, 자유 라이선스, 제한 없는 상업적 사용 가능"""
 
 _RUBRIC_INDUSTRY_BUSINESS = """### Category: industry_business -> score mag, sig, brd (each 0-10 integer)
 - mag (Magnitude): 이벤트의 규모와 구체성
-  1: 루머, 가십, 내용 없는 짧은 소식, 행사/이벤트 홍보
-  3: $10M 이하 투자, 소형 스타트업 뉴스, 소규모 제휴
-  5: $100M~$1B 규모 거래, 중견 기업 전략 발표, 주요 인사 이동
-  7: $1B+ 규모 거래, Big Tech 기업의 전략 전환, 주요국 규제 발표
-  9: $10B+ 규모, 산업 재편급 M&A, 글로벌 규제 프레임워크 (EU AI Act급)
+  2: 루머, 가십, 내용 없는 짧은 소식, 행사/이벤트 홍보
+  5: $10M~$100M 투자, 스타트업 뉴스, 기업 제휴, 주요 인사 이동
+  7: $100M~$1B 규모 거래, 주요 기업 전략 발표, 주요국 규제 발표. 대부분의 주요 비즈니스 뉴스가 여기.
+  8: $1B+ 규모 거래, Big Tech 기업의 전략 전환
+  10: $10B+ 규모, 산업 재편급 M&A, 글로벌 규제 프레임워크 (EU AI Act급)
 - sig (Signal): 업계 전략적 신호 강도
-  1: 일상적 운영 뉴스, 반복적 패턴 (분기 실적 소폭 변동)
-  3: 특정 기업의 방향성 변화 시사, 예상 가능한 움직임
-  5: 해당 분야의 경쟁 구도/전략 변화를 시사. 예상 밖의 움직임
-  7: 여러 기업/분야에 연쇄 반응 예상. 새로운 트렌드의 시작
-  9: 산업 전체의 게임 룰 변경 (예: OpenAI 영리 전환, NVIDIA 수출 규제)
+  2: 일상적 운영 뉴스, 반복적 패턴 (분기 실적 소폭 변동)
+  5: 특정 기업의 방향성 변화 시사, 업계 흐름을 반영하는 움직임
+  7: 해당 분야의 경쟁 구도/전략 변화를 시사. 대부분의 전략적 뉴스가 여기.
+  8: 여러 기업/분야에 연쇄 반응 예상. 새로운 트렌드의 시작
+  10: 산업 전체의 게임 룰 변경 (예: OpenAI 영리 전환, NVIDIA 수출 규제)
 - brd (Breadth): 영향받는 이해관계자 범위
-  1: 단일 기업의 내부 이슈, 소수 관계자
-  3: 같은 업종/분야의 몇몇 기업에 영향
-  5: 특정 산업 또는 지역 전체에 영향
-  7: 여러 산업에 걸쳐 영향, 일반 소비자에게도 의미 있음
-  9: 글로벌 AI 생태계 + 비AI 산업 + 일반 대중 모두 영향"""
+  2: 단일 기업의 내부 이슈, 소수 관계자
+  5: 같은 업종/분야의 여러 기업에 영향
+  7: 특정 산업 또는 지역 전체에 영향. 대부분의 업계 뉴스가 여기.
+  8: 여러 산업에 걸쳐 영향, 일반 소비자에게도 의미 있음
+  10: 글로벌 AI 생태계 + 비AI 산업 + 일반 대중 모두 영향"""
 
 # 카테고리 -> 루브릭 매핑
 _RUBRIC_MAP = {
@@ -964,36 +988,36 @@ _RUBRIC_MAP = {
     "industry_business": _RUBRIC_INDUSTRY_BUSINESS,
 }
 
-# 카테고리별 캘리브레이션 예시 (점수 분포를 넓게, 낮은 점수 예시 포함)
+# 카테고리별 캘리브레이션 예시 (큐레이션된 AI 뉴스 기준, 대부분 6-8점대)
 _CALIBRATION_MAP = {
     "research": (
         '"Attention Is All You Need (Transformer 원논문)" -> {{"i":0,"nov":10,"imp":10,"buzz":9}}\n'
-        '"OpenAI, GPT-4 시스템 카드 및 벤치마크 공개" -> {{"i":1,"nov":5,"imp":7,"buzz":8}}\n'
-        '"대학원생 팀, 이미지 분류 새 SOTA 0.3% 개선" -> {{"i":2,"nov":3,"imp":2,"buzz":1}}\n'
-        '"Google, 기존 BERT 모델 한국어 파인튜닝 결과 발표" -> {{"i":3,"nov":2,"imp":2,"buzz":2}}\n'
-        '"AI 윤리 관련 서베이 논문 발표" -> {{"i":4,"nov":1,"imp":1,"buzz":2}}'
+        '"OpenAI, GPT-4 시스템 카드 및 벤치마크 공개" -> {{"i":1,"nov":7,"imp":8,"buzz":9}}\n'
+        '"새로운 효율적 어텐션 메커니즘 제안, 기존 대비 40% 속도 향상" -> {{"i":2,"nov":7,"imp":7,"buzz":6}}\n'
+        '"대학원생 팀, 이미지 분류 새 SOTA 0.3% 개선" -> {{"i":3,"nov":5,"imp":5,"buzz":4}}\n'
+        '"AI 윤리 관련 서베이 논문 발표" -> {{"i":4,"nov":4,"imp":4,"buzz":5}}'
     ),
     "models_products": (
-        '"OpenAI, GPT-5 공식 출시 — 추론 2배 빠르고 가격 50% 인하" -> {{"i":0,"uti":9,"imp":9,"acc":7}}\n'
-        '"Meta, Llama 4 오픈소스 웨이트 공개 (405B)" -> {{"i":1,"uti":7,"imp":8,"acc":9}}\n'
-        '"Cursor, AI 코드 에디터 v0.45 업데이트 — 새 자동완성 모델" -> {{"i":2,"uti":5,"imp":3,"acc":5}}\n'
-        '"MLflow 2.16 아티팩트 저장 개선" -> {{"i":3,"uti":2,"imp":1,"acc":7}}\n'
-        '"소형 스타트업, 특정 도메인 RAG 도구 베타 출시" -> {{"i":4,"uti":2,"imp":1,"acc":3}}'
+        '"OpenAI, GPT-5 공식 출시 — 추론 2배 빠르고 가격 50% 인하" -> {{"i":0,"uti":10,"imp":10,"acc":8}}\n'
+        '"Meta, Llama 4 오픈소스 웨이트 공개 (405B)" -> {{"i":1,"uti":8,"imp":9,"acc":9}}\n'
+        '"Cursor, AI 코드 에디터 v0.45 업데이트 — 새 자동완성 모델" -> {{"i":2,"uti":7,"imp":6,"acc":7}}\n'
+        '"MLflow 2.16 아티팩트 저장 개선" -> {{"i":3,"uti":6,"imp":5,"acc":8}}\n'
+        '"소형 스타트업, 특정 도메인 RAG 도구 베타 출시" -> {{"i":4,"uti":5,"imp":4,"acc":5}}'
     ),
     "industry_business": (
-        '"EU, AI Act 최종 시행 — 전 세계 AI 규제 기준 확립" -> {{"i":0,"mag":9,"sig":9,"brd":9}}\n'
-        '"Anthropic, $4B 투자 유치 ($60B 가치)" -> {{"i":1,"mag":8,"sig":7,"brd":6}}\n'
-        '"중견 AI 스타트업, 시리즈 B $50M 투자 유치" -> {{"i":2,"mag":4,"sig":3,"brd":2}}\n'
-        '"AI 컨퍼런스 참가 후기 / 업계 동향 칼럼" -> {{"i":3,"mag":1,"sig":2,"brd":2}}\n'
-        '"CEO 인터뷰: 향후 AI 전망 언급" -> {{"i":4,"mag":1,"sig":2,"brd":1}}'
+        '"EU, AI Act 최종 시행 — 전 세계 AI 규제 기준 확립" -> {{"i":0,"mag":10,"sig":10,"brd":10}}\n'
+        '"Anthropic, $4B 투자 유치 ($60B 가치)" -> {{"i":1,"mag":9,"sig":8,"brd":7}}\n'
+        '"중견 AI 스타트업, 시리즈 B $50M 투자 유치" -> {{"i":2,"mag":6,"sig":6,"brd":5}}\n'
+        '"AI 컨퍼런스 참가 후기 / 업계 동향 칼럼" -> {{"i":3,"mag":4,"sig":5,"brd":5}}\n'
+        '"CEO 인터뷰: 향후 AI 전망 언급" -> {{"i":4,"mag":5,"sig":5,"brd":4}}'
     ),
 }
 
 # 카테고리별 출력 예시 (배치 1 기준)
 _OUTPUT_EXAMPLE_MAP = {
-    "research": '[{{"i":0,"nov":3,"imp":2,"buzz":2}}]',
-    "models_products": '[{{"i":0,"uti":4,"imp":3,"acc":5}}]',
-    "industry_business": '[{{"i":0,"mag":3,"sig":2,"brd":2}}]',
+    "research": '[{{"i":0,"nov":7,"imp":6,"buzz":7}}]',
+    "models_products": '[{{"i":0,"uti":7,"imp":7,"acc":7}}]',
+    "industry_business": '[{{"i":0,"mag":7,"sig":6,"brd":7}}]',
 }
 
 
@@ -1317,8 +1341,10 @@ def categorizer_node(state: NewsGraphState) -> dict:
         classified = sum(1 for a in candidates if a.get("_llm_category"))
         print(f"    [분류] 완료: {classified}/{len(candidates)}개 분류됨")
 
-    # 미분류 기사에 기본 카테고리 부여
+    # 미분류 기사에 기본 카테고리 부여 (중복 기사는 제외 — selector에서 원본 매칭)
     for a in candidates:
+        if a.get("_deduped"):
+            continue
         if not a.get("_llm_category") or a["_llm_category"] not in VALID_CATEGORIES:
             a["_llm_category"] = "industry_business"
 
@@ -1348,7 +1374,7 @@ def scorer_node(state: NewsGraphState) -> dict:
             if not c.get("_llm_scored"):
                 c.pop("_total_score", None)
 
-    unscored_pairs = [(i, candidates[i]) for i in range(len(candidates)) if not candidates[i].get("_llm_scored")]
+    unscored_pairs = [(i, candidates[i]) for i in range(len(candidates)) if not candidates[i].get("_llm_scored") and not candidates[i].get("_deduped")]
     # 정렬: (index, article) 쌍을 함께 정렬하여 인덱스 매핑 유지
     unscored_pairs.sort(key=lambda x: (x[1].get("link", ""), x[1].get("title", "")))
     unscored_indices = [i for i, _ in unscored_pairs]
