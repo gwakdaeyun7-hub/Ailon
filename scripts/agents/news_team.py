@@ -28,7 +28,7 @@ from langgraph.types import Send
 from agents.config import get_llm
 from agents.tools import (
     SOURCES,
-    fetch_all_sources, enrich_and_scrape, filter_imageless, _is_ai_related,
+    fetch_all_sources, enrich_and_scrape, filter_imageless,
     HIGHLIGHT_SOURCES, CATEGORY_SOURCES, SOURCE_SECTION_SOURCES,
 )
 
@@ -552,12 +552,9 @@ Return the indices as a JSON array:
         if isinstance(result, list):
             return set(int(idx) for idx in result if isinstance(idx, (int, float)))
     except Exception as e:
-        print(f"    [WARN] LLM AI 필터 실패 -> 키워드 폴백: {e}")
-    # 실패 시 키워드 필터로 폴백
-    return set(
-        i for i, a in enumerate(articles)
-        if _is_ai_related(a.get("title", ""), a.get("description", ""))
-    )
+        print(f"    [WARN] LLM AI 필터 실패 -> 전체 통과: {e}")
+    # 실패 시 전체 통과 (AI 관련으로 간주)
+    return set(range(len(articles)))
 
 
 def _llm_filter_sources(sources: dict[str, list[dict]]) -> None:
@@ -1553,16 +1550,14 @@ def assembler_node(state: NewsGraphState) -> dict:
     def _pub_key(a: dict):
         return _parse_published(a.get("published", "")) or _epoch
 
-    # 한국 소스별 중복 제거 (per-source) + AI 필터 기사 분리
-    # cross-source dedup은 한국어 고유명사 공유로 과도 제거 발생 → per-source로 변경
+    # 한국 소스: 중복 제거 없이 AI 필터 기사만 분리
     ko_filtered_out: list[dict] = []
     for s in SOURCES:
         key = s["key"]
         if key in SOURCE_SECTION_SOURCES and sources.get(key):
             source_order.append(key)
-            deduped = _deduplicate_candidates(sources[key], threshold=0.75)
-            passed = [a for a in deduped if not a.get("_ai_filtered")]
-            filtered = [a for a in deduped if a.get("_ai_filtered")]
+            passed = [a for a in sources[key] if not a.get("_ai_filtered")]
+            filtered = [a for a in sources[key] if a.get("_ai_filtered")]
             ko_filtered_out.extend(filtered)
             sorted_articles = sorted(passed, key=_pub_key, reverse=True)
             source_articles[key] = sorted_articles[:10]

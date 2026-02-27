@@ -123,7 +123,6 @@ SOURCES = [
         "name": "AI타임스",
         "rss_url": "https://www.aitimes.com/rss/allArticle.xml",
         "max_items": 30,
-        "ai_filter": False,
         "lang": "ko",
     },
     {
@@ -131,7 +130,6 @@ SOURCES = [
         "name": "GeekNews",
         "rss_url": "https://news.hada.io/rss/news",
         "max_items": 30,
-        "ai_filter": False,
         "lang": "ko",
     },
     {
@@ -139,7 +137,6 @@ SOURCES = [
         "name": "ZDNet AI 에디터",
         "scrape_url": "https://zdnet.co.kr/reporter/?lstcode=media",
         "max_items": 30,
-        "ai_filter": False,
         "lang": "ko",
     },
     {
@@ -147,35 +144,9 @@ SOURCES = [
         "name": "요즘IT AI",
         "rss_url": "https://yozm.wishket.com/magazine/ai/feed/",
         "max_items": 30,
-        "ai_filter": False,
         "lang": "ko",
         "rss_image_field": "content_image",
     },
-]
-
-# AI 키워드 — 정규식 단어 경계 매칭 (ai_filter=True인 소스에서 사용)
-# _WORD_BOUNDARY_KEYWORDS: \bkw\b 로 매칭 (부분 문자열 오탐 방지)
-_WORD_BOUNDARY_KEYWORDS = [
-    "ai", "llm", "gpt", "nlp", "rag", "gpu", "tpu",
-]
-# _PLAIN_KEYWORDS: 단순 부분 문자열 매칭 (충분히 길어서 오탐 없음)
-_PLAIN_KEYWORDS = [
-    # Core AI terms (English)
-    "artificial intelligence", "machine learning", "deep learning",
-    "chatgpt", "claude", "gemini", "neural", "transformer",
-    "agentic", "multimodal", "generative", "diffusion",
-    "natural language", "computer vision", "robotics", "autonomous",
-    "chatbot", "foundation model", "large language model",
-    # AI-adjacent: companies, products, techniques
-    "openai", "anthropic", "deepmind", "hugging face", "huggingface",
-    "midjourney", "stable diffusion", "copilot", "sora", "dall-e",
-    "nvidia", "tensor", "fine-tun", "embedding",
-    "reinforcement learning", "supervised learning", "unsupervised",
-    "prompt engineer", "synthetic data",
-    # Korean equivalents
-    "인공지능", "머신러닝", "딥러닝", "생성형", "언어모델", "챗봇",
-    "파인튜닝", "임베딩", "프롬프트", "신경망", "자율주행",
-    "컴퓨터 비전", "자연어 처리", "강화학습", "초거대",
 ]
 
 # ─── 소스별 역할 분류 ─────────────────────────────────────────────────────
@@ -235,16 +206,6 @@ def _clamp_future_date(date_str: str) -> str:
     if dt > datetime.now():
         return datetime.now().isoformat()
     return date_str
-
-
-def _is_ai_related(title: str, description: str) -> bool:
-    text = (title + " " + description).lower()
-    # 짧은 키워드는 단어 경계로 매칭 (ai→said 오탐 방지)
-    for kw in _WORD_BOUNDARY_KEYWORDS:
-        if re.search(r'\b' + kw + r'\b', text):
-            return True
-    # 긴 키워드는 부분 문자열 매칭
-    return any(kw in text for kw in _PLAIN_KEYWORDS)
 
 
 # ─── 이미지 추출 ─────────────────────────────────────────────────────────
@@ -316,11 +277,9 @@ def _fetch_scrape_source(source_config: dict) -> list[dict]:
     max_items = source_config.get("max_items", 20)
     days = source_config.get("days", MAX_ARTICLE_AGE_DAYS)
     lang = source_config.get("lang", "ko")
-    ai_filter = source_config.get("ai_filter", False)
 
     articles = []
     date_filtered = 0
-    keyword_filtered = 0
     try:
         headers = {"User-Agent": "Mozilla/5.0 (compatible; AilonBot/1.0)"}
         resp = requests.get(url, headers=headers, timeout=10)
@@ -359,11 +318,6 @@ def _fetch_scrape_source(source_config: dict) -> list[dict]:
                 date_filtered += 1
                 continue
 
-            # 키워드 AI 필터
-            if ai_filter and not _is_ai_related(title, ""):
-                keyword_filtered += 1
-                continue
-
             articles.append({
                 "title": title,
                 "display_title": "",
@@ -382,9 +336,6 @@ def _fetch_scrape_source(source_config: dict) -> list[dict]:
 
     if date_filtered > 0:
         print(f"  [{name}] 날짜 필터: {date_filtered}개 ({days}일 초과) 제거")
-    if keyword_filtered > 0:
-        print(f"  [{name}] AI 키워드 필터: {keyword_filtered}개 비AI 기사 제거")
-
     return articles
 
 
@@ -412,11 +363,9 @@ def fetch_source(source_config: dict) -> list[dict]:
     max_items = source_config.get("max_items", 10)
     days = source_config.get("days", MAX_ARTICLE_AGE_DAYS)
     lang = source_config.get("lang", "en")
-    ai_filter = source_config.get("ai_filter", False)
     rss_image_field = source_config.get("rss_image_field", "")
 
     articles = []
-    filtered_out = 0
     date_filtered = 0
     try:
         feed = feedparser.parse(rss_url, agent="Mozilla/5.0")
@@ -437,10 +386,6 @@ def fetch_source(source_config: dict) -> list[dict]:
 
             description = (entry.get("summary", "") or "").strip()
             description = re.sub(r'<[^>]+>', '', description)[:500]
-
-            if ai_filter and not _is_ai_related(title, description):
-                filtered_out += 1
-                continue
 
             link = entry.get("link", "")
             image_url = _extract_rss_image(entry, rss_image_field)
@@ -463,9 +408,6 @@ def fetch_source(source_config: dict) -> list[dict]:
 
     if date_filtered > 0:
         print(f"  [{name}] 날짜 필터: {date_filtered}개 ({days}일 초과) 제거")
-    if filtered_out > 0:
-        print(f"  [{name}] AI 필터: {filtered_out}개 비AI 기사 제거")
-
     return articles
 
 

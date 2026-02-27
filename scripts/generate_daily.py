@@ -57,6 +57,20 @@ def _validate_output(result: dict) -> list[str]:
     return warnings
 
 
+def _merge_articles(existing: list[dict], new: list[dict]) -> list[dict]:
+    """link 기준 병합. 중복 시 신규(최신 수집) 우선."""
+    seen = {}
+    for a in new:
+        link = a.get("link", "")
+        if link:
+            seen[link] = a
+    for a in existing:
+        link = a.get("link", "")
+        if link and link not in seen:
+            seen[link] = a
+    return list(seen.values())
+
+
 def save_news_to_firestore(result: dict):
     """뉴스 결과를 Firestore에 저장 (3-Section 구조: highlights + categorized + source_articles)"""
     db = get_firestore_client()
@@ -114,16 +128,83 @@ def save_news_to_firestore(result: dict):
     }
 
     doc_ref = db.collection("daily_news").document(today)
+
+    # ─── 기존 문서와 병합 (오전+오후 수집 결과 보존) ───
+    try:
+        existing_doc = doc_ref.get()
+    except Exception:
+        existing_doc = None
+
+    if existing_doc and existing_doc.exists:
+        old = existing_doc.to_dict()
+        print("  [병합] 기존 문서 발견 — 오전+오후 병합 수행")
+
+        # highlights: 병합 → score 내림차순 → 상위 3개
+        highlights = sorted(
+            _merge_articles(old.get("highlights", []), highlights),
+            key=lambda a: a.get("score", 0), reverse=True,
+        )[:3]
+
+        # categorized_articles: 카테고리별 병합 → score 내림차순
+        old_cat = old.get("categorized_articles", {})
+        all_cats = set(list(old_cat.keys()) + list(categorized_articles.keys()))
+        categorized_articles = {
+            cat: sorted(
+                _merge_articles(old_cat.get(cat, []), categorized_articles.get(cat, [])),
+                key=lambda a: a.get("score", 0), reverse=True,
+            )
+            for cat in all_cats
+        }
+
+        # source_articles: 소스별 병합
+        old_src = old.get("source_articles", {})
+        all_srcs = set(list(old_src.keys()) + list(source_articles.keys()))
+        source_articles = {
+            src: _merge_articles(old_src.get(src, []), source_articles.get(src, []))
+            for src in all_srcs
+        }
+
+        # filtered_articles: 병합
+        filtered_articles = _merge_articles(old.get("filtered_articles", []), filtered_articles)
+
+        # deduped_articles: 카테고리별 병합
+        old_dedup = old.get("deduped_articles", {})
+        all_dedup_cats = set(list(old_dedup.keys()) + list(deduped_articles.keys()))
+        deduped_articles = {
+            cat: _merge_articles(old_dedup.get(cat, []), deduped_articles.get(cat, []))
+            for cat in all_dedup_cats
+        }
+
+    # category_order, source_order: 합집합(순서 유지)
+    def _union_order(existing_order: list, new_order: list) -> list:
+        seen = set()
+        merged = []
+        for item in new_order + existing_order:
+            if item not in seen:
+                seen.add(item)
+                merged.append(item)
+        return merged
+
+    category_order = result.get("category_order", [])
+    source_order = result.get("source_order", [])
+    if existing_doc and existing_doc.exists:
+        old = existing_doc.to_dict()
+        category_order = _union_order(old.get("category_order", []), category_order)
+        source_order = _union_order(old.get("source_order", []), source_order)
+
+    # total_count 재계산
+    total_count = sum(len(v) for v in categorized_articles.values())
+
     doc_data = {
         "date": today,
         "highlights": highlights,
         "categorized_articles": categorized_articles,
-        "category_order": result.get("category_order", []),
+        "category_order": category_order,
         "source_articles": source_articles,
-        "source_order": result.get("source_order", []),
+        "source_order": source_order,
         "filtered_articles": filtered_articles,
         "deduped_articles": deduped_articles,
-        "total_count": result.get("total_count", 0),
+        "total_count": total_count,
         "updated_at": firestore.SERVER_TIMESTAMP,
     }
     try:
