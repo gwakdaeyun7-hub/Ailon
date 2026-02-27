@@ -921,15 +921,24 @@ _SCORE_PROMPT = """Output ONLY a single-line compact JSON array. No markdown, no
 
 Score each article on its ASSIGNED category dimensions (0-10 integers). Use ONLY the provided text.
 
-IMPORTANT CONTEXT: These articles have already been curated as noteworthy AI news. They have passed multiple relevance filters, so they inherently carry value. Score them generously to reflect this pre-selection.
+CRITICAL SCORING RULES — You MUST follow these:
 
-Scoring distribution guide:
-- Most articles should score 6-8 on each dimension. This is the EXPECTED range for curated AI news.
-- Score 5: below-average article with limited substance or very narrow scope.
-- Score 3-4: genuinely low-value — vague rumors, trivial updates, or filler content.
-- Score 1-2: content-free or completely irrelevant (should be rare in curated feeds).
-- Score 9-10: major milestone or landmark event. Expected a few times per week in the fast-moving AI industry.
-- When uncertain between two scores, pick the HIGHER one — these articles earned their place in the feed.
+1. USE THE FULL 1-10 RANGE. Do NOT default to safe middle scores. A score of 5 is NOT "average" — it is mediocre. Score 7 is already good. Score 3 is poor. Commit to your judgment.
+
+2. Expected distribution per dimension across a batch of 20 articles:
+   - 1-3: roughly 3-5 articles (routine updates, narrow scope, vague content, filler)
+   - 4-6: roughly 7-9 articles (decent but unremarkable, incremental progress)
+   - 7-8: roughly 4-6 articles (genuinely notable, clear significance)
+   - 9-10: roughly 1-2 articles (landmark, industry-shaping, historic)
+   If ALL your scores land in the 5-8 range, you are doing it WRONG.
+
+3. Anchoring rules:
+   - Before scoring, mentally rank the articles from weakest to strongest.
+   - The weakest article in a batch SHOULD get low scores (1-4). The strongest SHOULD get high scores (7-10).
+   - If an article is a routine update, minor patch, or vague rumor, score it 2-3 — not 5-6.
+   - If an article is truly groundbreaking, score it 9-10 — do not hedge to 7-8.
+
+4. NEVER cluster all dimensions at the same value. An article may have high novelty (8) but low buzz (3). Differentiate across dimensions.
 
 {scoring_rubric}
 
@@ -945,64 +954,82 @@ Output exactly {count} JSON object(s) as a single-line compact JSON array:
 # --- 카테고리별 스코어링 루브릭 ---
 
 _RUBRIC_RESEARCH = """### Category: research -> score nov, imp, buzz (each 0-10 integer)
-- nov (Novelty): 연구의 신규성/독창성. 기존 연구 대비 얼마나 새로운 접근인가?
-  2: 기존 방법의 사소한 변형, 서베이/리뷰 논문
-  5: 기존 프레임워크에 의미 있는 개선점 제시 (새 데이터셋, 개선된 아키텍처)
-  7: 새로운 기법/아키텍처 제안, 의미 있는 SOTA 갱신. 대부분의 주목할만한 논문이 여기.
-  8: 해당 분야의 접근법 자체를 바꿀 가능성이 있는 연구
-  10: 패러다임 전환. AI 역사에 기록될 수준 (Transformer, AlphaFold)
-- imp (Impact): 후속 연구/산업에 미치는 파급력
-  2: 좁은 서브필드에서만 인용될 수준
-  5: 해당 분야 연구자들이 참고할 수준
-  7: 여러 분야에 걸쳐 영향, 오픈소스 구현 기대됨. 대부분의 양질 논문이 여기.
-  8: 대형 기업/연구소가 즉시 후속 연구에 착수할 수준
-  10: 산업 전체의 R&D 방향을 바꿈
-- buzz (Buzz): 일반인/비전공자도 관심을 가질만한 화제성
-  2: 극히 좁은 전문 분야, 대중적 흥미 없음
-  5: AI에 관심 있는 사람이라면 흥미로울 수준
-  7: 테크 미디어에서 다룰만한 수준. 대부분의 주요 AI 뉴스가 여기.
-  8: 일반 언론에서도 보도할 수준 (예: AI가 수학 올림피아드 풀었다)
-  10: 전 세계 뉴스 헤드라인. 비AI 분야 사람도 다 아는 수준"""
+- nov (Novelty): How new/original is the research compared to prior work?
+  1: Exact replication, trivial parameter change, or pure survey with no new insight
+  2-3: Minor variation of existing method, incremental SOTA improvement (<1%), routine benchmark evaluation
+  4-5: Meaningful improvement on existing framework — new dataset, better architecture, solid engineering contribution
+  6-7: New technique or architecture with clear novelty, significant SOTA improvement, introduces a useful concept
+  8: Changes the approach for its subfield — researchers will adopt this method
+  9: Opens an entirely new research direction or solves a long-standing open problem
+  10: Paradigm shift — will be in AI history textbooks (Transformer, AlphaFold, diffusion models)
+- imp (Impact): Downstream influence on follow-up research and industry
+  1: No practical follow-up expected, already superseded, or too narrow to matter
+  2-3: Cited only within a narrow subfield, no industry relevance
+  4-5: Useful reference for researchers in the specific area, may inspire follow-up work
+  6-7: Cross-field influence expected, open-source implementations likely, industry teams will evaluate
+  8: Major labs will immediately build on this, shifts competitive dynamics in the field
+  9: Reshapes R&D priorities across multiple organizations
+  10: Redirects the entire industry's R&D direction
+- buzz (Buzz): Would non-specialists find this interesting?
+  1: Extremely narrow technical niche, zero public interest
+  2-3: Only specialists in that exact subfield would care
+  4-5: Interesting to people who actively follow AI research
+  6-7: Tech media would cover it, generates discussion on social media
+  8: Mainstream media coverage, general public takes notice
+  9: Dominates tech news cycle for days, widely shared beyond AI community
+  10: Global headline news — even non-tech people discuss it"""
 
 _RUBRIC_MODELS_PRODUCTS = """### Category: models_products -> score uti, imp, acc (each 0-10 integer)
-- uti (Utility): 사용자에게 실질적으로 얼마나 유용한가?
-  2: 데모/실험 수준. 실제 사용 어려움. 극히 좁은 틈새용
-  5: 특정 개발자/사용자에게 유용. 기존 도구의 의미 있는 업데이트
-  7: 해당 분야 개발자/사용자에게 확실히 유용. 기존 워크플로 개선. 대부분의 제품 출시/업데이트가 여기.
-  8: 광범위한 사용자에게 즉시 적용 가능. 경쟁 제품 대비 명확한 우위
-  10: 누구나 쓸 수 있고 업무 방식 자체를 바꿈 (ChatGPT 첫 출시급)
-- imp (Impact): AI 생태계/업계에 얼마나 영향을 주는가?
-  2: 기존 제품의 버그픽스, 사소한 UI 변경 수준
-  5: 해당 제품 사용자에게 의미 있는 업데이트
-  7: 해당 분야의 경쟁 구도에 영향. 다른 기업이 대응해야 할 수준. 대부분의 주요 제품 뉴스가 여기.
-  8: 업계 전체의 기준선을 올림. 후발 제품들이 따라야 할 새 기준
-  10: 업계 판도를 완전히 바꿈 (GPT-4 출시, Llama 2 오픈소스급)
-- acc (Accessibility): 접근성 — 얼마나 쉽게 사용할 수 있는가?
-  2: 초대제/비공개 베타. 대기자 명단 필요
-  5: 유료 전용이지만 합리적 가격대. 또는 무료 티어 있지만 제한 있음
-  7: 무료로 충분히 사용 가능. API 공개. 합리적 가격. 대부분의 공개 제품이 여기.
-  8: 오픈소스, 무료 사용 가능, 웨이트 공개
-  10: 완전 오픈소스, 자유 라이선스, 제한 없는 상업적 사용 가능"""
+- uti (Utility): How practically useful is this to end users right now?
+  1: Broken, unusable, or purely theoretical with no working artifact
+  2-3: Demo/experiment level — toy project, extremely narrow niche, or barely functional
+  4-5: Useful to a specific subset of developers/users, meaningful update to existing tool
+  6-7: Clearly useful to its target audience, improves existing workflows noticeably
+  8: Broadly applicable across many user segments, clear advantage over competitors
+  9: Immediately adopted by large user base, becomes a default tool in its category
+  10: Transforms how people work — everyone can use it (ChatGPT launch level)
+- imp (Impact): How much does this affect the AI ecosystem and industry?
+  1: Irrelevant to the broader ecosystem, no competitive significance
+  2-3: Bug fix, minor UI tweak, routine maintenance release
+  4-5: Meaningful update for existing users of that product, but limited industry effect
+  6-7: Affects competitive dynamics in its segment, competitors take notice
+  8: Raises the industry baseline — becomes the new standard others must match
+  9: Forces strategic pivots across multiple companies
+  10: Completely reshapes the industry landscape (GPT-4 launch, Llama 2 open-source level)
+- acc (Accessibility): How easy is it to access and use?
+  1: Announced but not available, or requires special partnership/NDA
+  2-3: Invite-only / closed beta / waitlist required / prohibitively expensive
+  4-5: Paid-only at reasonable price, or free tier with significant limitations
+  6-7: Free tier is genuinely usable, public API available, reasonable pricing
+  8: Open-source with weights available, free to use
+  9: Fully open-source with permissive license, easy to deploy
+  10: Fully open, permissive license, no restrictions on commercial use, plug-and-play"""
 
 _RUBRIC_INDUSTRY_BUSINESS = """### Category: industry_business -> score mag, sig, brd (each 0-10 integer)
-- mag (Magnitude): 이벤트의 규모와 구체성
-  2: 루머, 가십, 내용 없는 짧은 소식, 행사/이벤트 홍보
-  5: $10M~$100M 투자, 스타트업 뉴스, 기업 제휴, 주요 인사 이동
-  7: $100M~$1B 규모 거래, 주요 기업 전략 발표, 주요국 규제 발표. 대부분의 주요 비즈니스 뉴스가 여기.
-  8: $1B+ 규모 거래, Big Tech 기업의 전략 전환
-  10: $10B+ 규모, 산업 재편급 M&A, 글로벌 규제 프레임워크 (EU AI Act급)
-- sig (Signal): 업계 전략적 신호 강도
-  2: 일상적 운영 뉴스, 반복적 패턴 (분기 실적 소폭 변동)
-  5: 특정 기업의 방향성 변화 시사, 업계 흐름을 반영하는 움직임
-  7: 해당 분야의 경쟁 구도/전략 변화를 시사. 대부분의 전략적 뉴스가 여기.
-  8: 여러 기업/분야에 연쇄 반응 예상. 새로운 트렌드의 시작
-  10: 산업 전체의 게임 룰 변경 (예: OpenAI 영리 전환, NVIDIA 수출 규제)
-- brd (Breadth): 영향받는 이해관계자 범위
-  2: 단일 기업의 내부 이슈, 소수 관계자
-  5: 같은 업종/분야의 여러 기업에 영향
-  7: 특정 산업 또는 지역 전체에 영향. 대부분의 업계 뉴스가 여기.
-  8: 여러 산업에 걸쳐 영향, 일반 소비자에게도 의미 있음
-  10: 글로벌 AI 생태계 + 비AI 산업 + 일반 대중 모두 영향"""
+- mag (Magnitude): Scale and concreteness of the event
+  1: Vague rumor with no source, event promotion, or content-free announcement
+  2-3: Gossip, unconfirmed leak, minor hire, small event recap, opinion piece with no news
+  4-5: $10M-$100M deal, startup funding round, corporate partnership, notable executive move
+  6-7: $100M-$1B deal, major corporate strategy announcement, national-level regulation
+  8: $1B+ deal, Big Tech strategic pivot, major government policy shift
+  9: $5B+ deal, industry-reshaping M&A, multinational regulatory framework
+  10: $10B+ scale, once-in-a-decade industry restructuring (EU AI Act level)
+- sig (Signal): Strategic signal strength for industry direction
+  1: Routine operational news, press release with no substance
+  2-3: Repetitive pattern (minor quarterly earnings change), predictable move
+  4-5: Suggests a directional change for a specific company, reflects emerging industry trend
+  6-7: Signals competitive or strategic shift in the sector, prompts analyst commentary
+  8: Expected to trigger chain reactions across multiple companies, marks start of a new trend
+  9: Redefines competitive dynamics for an entire segment
+  10: Changes the rules of the game for the whole industry (OpenAI for-profit pivot, NVIDIA export controls)
+- brd (Breadth): Range of affected stakeholders
+  1: Internal issue of a single small company, no external relevance
+  2-3: Affects only direct competitors or a handful of stakeholders
+  4-5: Affects multiple companies in the same sector/vertical
+  6-7: Affects an entire industry segment or geographic region
+  8: Cross-industry impact, meaningful to general consumers
+  9: Affects global AI ecosystem plus adjacent industries
+  10: Global AI ecosystem + non-AI industries + general public all affected"""
 
 # 카테고리 -> 루브릭 매핑
 _RUBRIC_MAP = {
@@ -1011,36 +1038,42 @@ _RUBRIC_MAP = {
     "industry_business": _RUBRIC_INDUSTRY_BUSINESS,
 }
 
-# 카테고리별 캘리브레이션 예시 (큐레이션된 AI 뉴스 기준, 대부분 6-8점대)
+# 카테고리별 캘리브레이션 예시 (전 범위 1-10 분포 시연)
 _CALIBRATION_MAP = {
     "research": (
-        '"Attention Is All You Need (Transformer 원논문)" -> {{"i":0,"nov":10,"imp":10,"buzz":9}}\n'
-        '"OpenAI, GPT-4 시스템 카드 및 벤치마크 공개" -> {{"i":1,"nov":7,"imp":8,"buzz":9}}\n'
-        '"새로운 효율적 어텐션 메커니즘 제안, 기존 대비 40% 속도 향상" -> {{"i":2,"nov":7,"imp":7,"buzz":6}}\n'
-        '"대학원생 팀, 이미지 분류 새 SOTA 0.3% 개선" -> {{"i":3,"nov":5,"imp":5,"buzz":4}}\n'
-        '"AI 윤리 관련 서베이 논문 발표" -> {{"i":4,"nov":4,"imp":4,"buzz":5}}'
+        '"Attention Is All You Need (Transformer)" -> {{"i":0,"nov":10,"imp":10,"buzz":9}}\n'
+        '"GPT-4 system card and benchmarks released" -> {{"i":1,"nov":7,"imp":8,"buzz":9}}\n'
+        '"New efficient attention mechanism, 40% speedup over baseline" -> {{"i":2,"nov":6,"imp":6,"buzz":4}}\n'
+        '"Grad student team improves image classification SOTA by 0.3%" -> {{"i":3,"nov":3,"imp":2,"buzz":1}}\n'
+        '"Survey paper on AI ethics published" -> {{"i":4,"nov":1,"imp":2,"buzz":3}}\n'
+        '"Novel 3D generation method achieving real-time rendering" -> {{"i":5,"nov":8,"imp":7,"buzz":6}}\n'
+        '"Minor ablation study on existing architecture hyperparameters" -> {{"i":6,"nov":2,"imp":1,"buzz":1}}'
     ),
     "models_products": (
-        '"OpenAI, GPT-5 공식 출시 — 추론 2배 빠르고 가격 50% 인하" -> {{"i":0,"uti":10,"imp":10,"acc":8}}\n'
-        '"Meta, Llama 4 오픈소스 웨이트 공개 (405B)" -> {{"i":1,"uti":8,"imp":9,"acc":9}}\n'
-        '"Cursor, AI 코드 에디터 v0.45 업데이트 — 새 자동완성 모델" -> {{"i":2,"uti":7,"imp":6,"acc":7}}\n'
-        '"MLflow 2.16 아티팩트 저장 개선" -> {{"i":3,"uti":6,"imp":5,"acc":8}}\n'
-        '"소형 스타트업, 특정 도메인 RAG 도구 베타 출시" -> {{"i":4,"uti":5,"imp":4,"acc":5}}'
+        '"OpenAI launches GPT-5 — 2x faster inference, 50% price cut" -> {{"i":0,"uti":10,"imp":10,"acc":8}}\n'
+        '"Meta releases Llama 4 open-source weights (405B)" -> {{"i":1,"uti":8,"imp":9,"acc":10}}\n'
+        '"Cursor AI code editor v0.45 — new autocomplete model" -> {{"i":2,"uti":6,"imp":5,"acc":7}}\n'
+        '"MLflow 2.16 artifact storage improvements" -> {{"i":3,"uti":4,"imp":3,"acc":8}}\n'
+        '"Small startup launches niche domain RAG tool in closed beta" -> {{"i":4,"uti":3,"imp":2,"acc":2}}\n'
+        '"Major cloud provider adds AI API with generous free tier" -> {{"i":5,"uti":7,"imp":7,"acc":9}}\n'
+        '"Obscure CLI tool patches a minor bug" -> {{"i":6,"uti":2,"imp":1,"acc":6}}'
     ),
     "industry_business": (
-        '"EU, AI Act 최종 시행 — 전 세계 AI 규제 기준 확립" -> {{"i":0,"mag":10,"sig":10,"brd":10}}\n'
-        '"Anthropic, $4B 투자 유치 ($60B 가치)" -> {{"i":1,"mag":9,"sig":8,"brd":7}}\n'
-        '"중견 AI 스타트업, 시리즈 B $50M 투자 유치" -> {{"i":2,"mag":6,"sig":6,"brd":5}}\n'
-        '"AI 컨퍼런스 참가 후기 / 업계 동향 칼럼" -> {{"i":3,"mag":4,"sig":5,"brd":5}}\n'
-        '"CEO 인터뷰: 향후 AI 전망 언급" -> {{"i":4,"mag":5,"sig":5,"brd":4}}'
+        '"EU AI Act final enforcement — global AI regulation benchmark" -> {{"i":0,"mag":10,"sig":10,"brd":10}}\n'
+        '"Anthropic raises $4B at $60B valuation" -> {{"i":1,"mag":9,"sig":8,"brd":7}}\n'
+        '"Mid-stage AI startup raises $50M Series B" -> {{"i":2,"mag":5,"sig":5,"brd":4}}\n'
+        '"AI conference recap / industry trend opinion column" -> {{"i":3,"mag":2,"sig":3,"brd":3}}\n'
+        '"CEO interview: mentions future AI outlook vaguely" -> {{"i":4,"mag":2,"sig":2,"brd":2}}\n'
+        '"Google restructures AI division, merges DeepMind and Brain" -> {{"i":5,"mag":8,"sig":9,"brd":8}}\n'
+        '"Local AI meetup event announcement" -> {{"i":6,"mag":1,"sig":1,"brd":1}}'
     ),
 }
 
-# 카테고리별 출력 예시 (배치 1 기준)
+# 카테고리별 출력 예시 (배치 1 기준 — 다양한 점수 시연)
 _OUTPUT_EXAMPLE_MAP = {
-    "research": '[{{"i":0,"nov":7,"imp":6,"buzz":7}}]',
-    "models_products": '[{{"i":0,"uti":7,"imp":7,"acc":7}}]',
-    "industry_business": '[{{"i":0,"mag":7,"sig":6,"brd":7}}]',
+    "research": '[{{"i":0,"nov":4,"imp":6,"buzz":3}}]',
+    "models_products": '[{{"i":0,"uti":8,"imp":5,"acc":3}}]',
+    "industry_business": '[{{"i":0,"mag":3,"sig":7,"brd":5}}]',
 }
 
 
