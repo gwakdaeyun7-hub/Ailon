@@ -921,24 +921,16 @@ _SCORE_PROMPT = """Output ONLY a single-line compact JSON array. No markdown, no
 
 Score each article on its ASSIGNED category dimensions (0-10 integers). Use ONLY the provided text.
 
-CRITICAL SCORING RULES — You MUST follow these:
+CRITICAL SCORING RULES:
 
-1. USE THE FULL 1-10 RANGE. Do NOT default to safe middle scores. A score of 5 is NOT "average" — it is mediocre. Score 7 is already good. Score 3 is poor. Commit to your judgment.
+1. USE THE FULL 1-10 RANGE. Do NOT default to safe middle scores. A score of 5 is mediocre, not average. Score 3 is poor. Score 7 is good. Score 9-10 is exceptional. Commit to your judgment.
 
-2. Expected distribution per dimension across a batch of 20 articles:
-   - 1-3: roughly 3-5 articles (routine updates, narrow scope, vague content, filler)
-   - 4-6: roughly 7-9 articles (decent but unremarkable, incremental progress)
-   - 7-8: roughly 4-6 articles (genuinely notable, clear significance)
-   - 9-10: roughly 1-2 articles (landmark, industry-shaping, historic)
-   If ALL your scores land in the 5-8 range, you are doing it WRONG.
-
-3. Anchoring rules:
-   - Before scoring, mentally rank the articles from weakest to strongest.
-   - The weakest article in a batch SHOULD get low scores (1-4). The strongest SHOULD get high scores (7-10).
-   - If an article is a routine update, minor patch, or vague rumor, score it 2-3 — not 5-6.
-   - If an article is truly groundbreaking, score it 9-10 — do not hedge to 7-8.
-
-4. NEVER cluster all dimensions at the same value. An article may have high novelty (8) but low buzz (3). Differentiate across dimensions.
+2. Scoring guidance:
+   - Routine update, minor patch, vague rumor → score 2-4
+   - Decent but unremarkable, incremental progress → score 5-6
+   - Genuinely notable, clear significance → score 7-8
+   - Groundbreaking, industry-shaping → score 9-10
+   Do NOT hedge everything to 5-7. If the article is weak, give it a low score.
 
 {scoring_rubric}
 
