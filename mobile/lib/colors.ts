@@ -57,30 +57,6 @@ export const LightColors = {
   // 태그 칩
   tagBg: '#F0F0F0',
   tagText: '#616161',
-  // 타임라인
-  timelineNode: '#6366F1',
-  timelineLine: '#E0E0E0',
-  timelineBg: '#F5F3FF',
-  // 브리핑
-  briefingBg: '#1E3A5F',
-  briefingText: '#FFFFFF',
-  briefingAccent: '#60A5FA',
-  // 관련 기사
-  relatedCardBg: '#FFFFFF',
-  relatedCardBorder: '#E5E7EB',
-  // 용어 사전 (팝오버)
-  glossaryHighlight: '#6D28D9',
-  glossaryPopoverBg: '#FFFFFF',
-  // 개인화
-  personalizedAccent: '#F59E0B',
-  personalizedChipBg: '#FEF3C7',
-  // 퀴즈
-  quizPrimary: '#3B82F6',
-  quizCorrect: '#16A34A',
-  quizIncorrect: '#DC2626',
-  quizOptionBg: '#F9FAFB',
-  quizOptionSelected: '#DBEAFE',
-  quizScoreCircle: '#6366F1',
 } as const;
 
 export const DarkColors: Record<keyof typeof LightColors, string> = {
@@ -97,16 +73,16 @@ export const DarkColors: Record<keyof typeof LightColors, string> = {
   primaryLight: '#3D1F1F',
   primaryBorder: '#5C2020',
   accent: '#FF8A65',
-  surface: '#242424',
+  surface: '#1A1A1A',
   highlightBg: '#1A2332',
   toastBg: '#333333',
   warning: '#FFB74D',
   warningLight: '#2D2013',
   warningBorder: '#3D2E1A',
-  indigoBg: '#232340',
+  indigoBg: '#1A1A2E',
   indigo: '#7986CB',
   coreTech: '#64B5F6',
-  coreTechBg: '#1E2D44',
+  coreTechBg: '#1A2332',
   placeholder: '#606060',
   success: '#66BB6A',
   scoreBiz: '#FFA726',
@@ -133,30 +109,6 @@ export const DarkColors: Record<keyof typeof LightColors, string> = {
   glossaryDesc: '#D1D5DB',
   tagBg: '#2A2A2A',
   tagText: '#BDBDBD',
-  // 타임라인
-  timelineNode: '#818CF8',
-  timelineLine: '#3A3A3A',
-  timelineBg: '#1E1B4B',
-  // 브리핑
-  briefingBg: '#0F172A',
-  briefingText: '#E2E8F0',
-  briefingAccent: '#93C5FD',
-  // 관련 기사
-  relatedCardBg: '#1E1E1E',
-  relatedCardBorder: '#374151',
-  // 용어 사전 (팝오버)
-  glossaryHighlight: '#A78BFA',
-  glossaryPopoverBg: '#1F2937',
-  // 개인화
-  personalizedAccent: '#FBBF24',
-  personalizedChipBg: '#451A03',
-  // 퀴즈
-  quizPrimary: '#60A5FA',
-  quizCorrect: '#4ADE80',
-  quizIncorrect: '#F87171',
-  quizOptionBg: '#1F2937',
-  quizOptionSelected: '#1E3A5F',
-  quizScoreCircle: '#818CF8',
 } as const;
 
 // 하위 호환성: 기존 `Colors` export 유지 (비-컴포넌트 코드용)
