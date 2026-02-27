@@ -107,6 +107,8 @@ export interface PrincipleApplication {
   technicalTerms: string[];    // 관련 기술 용어
   technicalTerms_en?: string[];
   bridgeRole?: string;         // 교량 역할
+  limitations?: string;        // 비유의 한계점
+  limitations_en?: string;
 }
 
 export interface PrincipleIntegration {
@@ -122,6 +124,8 @@ export interface PrincipleIntegration {
   impactField_en?: string;
   whyItWorks: string;          // 왜 효과적인지
   whyItWorks_en?: string;
+  keyPapers?: string[];        // 핵심 논문
+  keyPapers_en?: string[];
 }
 
 export interface PrincipleVerification {
@@ -133,6 +137,12 @@ export interface PrincipleVerification {
 export interface Principle {
   title: string;  // 융합 사례 이름
   title_en?: string;
+  connectionType?: 'direct_inspiration' | 'structural_analogy' | 'mathematical_foundation';
+  difficulty?: 'beginner' | 'intermediate' | 'advanced';
+  subtitle?: string;
+  subtitle_en?: string;
+  keywords?: string[];
+  keywords_en?: string[];
   category: string;
   superCategory: string;
 

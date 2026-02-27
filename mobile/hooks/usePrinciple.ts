@@ -1,59 +1,123 @@
 /**
  * 원리 데이터 Hook - Firestore daily_principles 컬렉션
- * 오늘 데이터 우선, 없으면 최신 문서 fallback
+ * 날짜 네비게이션 + AsyncStorage 오프라인 캐시 + SWR 패턴
  */
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { doc, getDoc, collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { db } from '@/lib/firebase';
 import type { DailyPrinciples } from '@/lib/types';
+
+const CACHE_PREFIX = 'principle_cache_';
+
+/** KST(UTC+9) 기준 오늘 날짜를 YYYY-MM-DD 형식으로 반환 */
+function getKSTDate(): string {
+  const now = new Date();
+  const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  return kst.toISOString().split('T')[0];
+}
+
+function shiftDate(dateStr: string, days: number): string {
+  const d = new Date(dateStr + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().split('T')[0];
+}
 
 export function usePrinciple() {
   const [principleData, setPrincipleData] = useState<DailyPrinciples | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentDate, setCurrentDate] = useState(getKSTDate);
+  const hasData = useRef(false);
 
-  const fetchPrinciple = useCallback(async () => {
+  const fetchByDate = useCallback(async (dateStr: string) => {
     try {
-      setLoading(true);
+      if (!hasData.current) setLoading(true);
       setError(null);
-      setPrincipleData(null);
 
-      // 오늘 날짜로 먼저 시도 (가장 빠른 경로)
-      const today = new Date().toISOString().split('T')[0];
-      const docRef = doc(db, 'daily_principles', today);
+      const docRef = doc(db, 'daily_principles', dateStr);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
-        setPrincipleData(docSnap.data() as DailyPrinciples);
+        const data = docSnap.data() as DailyPrinciples;
+        setPrincipleData(data);
+        hasData.current = true;
+        AsyncStorage.setItem(CACHE_PREFIX + dateStr, JSON.stringify(data)).catch(() => {});
         return;
       }
 
-      // 오늘 데이터 없으면 단일 쿼리로 최신 문서 1개 가져오기
-      const fallbackQuery = query(
-        collection(db, 'daily_principles'),
-        orderBy('date', 'desc'),
-        limit(1)
-      );
-      const snapshot = await getDocs(fallbackQuery);
-      if (!snapshot.empty) {
-        setPrincipleData(snapshot.docs[0].data() as DailyPrinciples);
+      // 해당 날짜 데이터 없으면 최신 문서 1개 fallback (오늘 날짜일 때만)
+      if (dateStr === getKSTDate()) {
+        const fallbackQuery = query(
+          collection(db, 'daily_principles'),
+          orderBy('date', 'desc'),
+          limit(1)
+        );
+        const snapshot = await getDocs(fallbackQuery);
+        if (!snapshot.empty) {
+          const data = snapshot.docs[0].data() as DailyPrinciples;
+          setPrincipleData(data);
+          hasData.current = true;
+          setCurrentDate(data.date);
+          AsyncStorage.setItem(CACHE_PREFIX + data.date, JSON.stringify(data)).catch(() => {});
+          return;
+        }
       }
+
+      // No data found - try cache
+      const cached = await AsyncStorage.getItem(CACHE_PREFIX + dateStr);
+      if (cached) {
+        setPrincipleData(JSON.parse(cached));
+        hasData.current = true;
+        return;
+      }
+
+      setPrincipleData(null);
     } catch (err) {
-      setError('principle.connection_error');
       console.error('usePrinciple error:', err);
+      // Try offline cache on error
+      try {
+        const cached = await AsyncStorage.getItem(CACHE_PREFIX + dateStr);
+        if (cached) {
+          setPrincipleData(JSON.parse(cached));
+          hasData.current = true;
+          return;
+        }
+      } catch {}
+      setError('principle.connection_error');
     } finally {
       setLoading(false);
     }
   }, []);
 
+  const refresh = useCallback(() => fetchByDate(currentDate), [fetchByDate, currentDate]);
+
+  const goNext = useCallback(() => {
+    const today = getKSTDate();
+    const next = shiftDate(currentDate, 1);
+    if (next <= today) {
+      setCurrentDate(next);
+    }
+  }, [currentDate]);
+
+  const goPrev = useCallback(() => {
+    setCurrentDate(prev => shiftDate(prev, -1));
+  }, []);
+
+  const canGoNext = currentDate < getKSTDate();
+
   useEffect(() => {
-    fetchPrinciple();
-  }, [fetchPrinciple]);
+    fetchByDate(currentDate);
+  }, [currentDate, fetchByDate]);
 
   return {
     principleData,
     loading,
     error,
-    refresh: fetchPrinciple,
+    refresh,
+    currentDate,
+    goNext,
+    goPrev,
+    canGoNext,
   };
 }
