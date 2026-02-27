@@ -884,13 +884,12 @@ function CategoryTabSection({
     (filteredArticles || []).filter(a => a.category === activeTab),
     [filteredArticles, activeTab]
   );
+  const articleLinks = useMemo(() => new Set(articles.map(a => a.link)), [articles]);
   const deduped = useMemo(() =>
-    (dedupedArticles || {})[activeTab] || [],
-    [dedupedArticles, activeTab]
+    ((dedupedArticles || {})[activeTab] || []).filter(a => !articleLinks.has(a.link)),
+    [dedupedArticles, activeTab, articleLinks]
   );
   const stats = allStats;
-  const dedupedLinks = useMemo(() => new Set(deduped.map(a => a.link)), [deduped]);
-
   const visible = useMemo(() => {
     if (expandLevel === 0) return articles.slice(0, Math.min(5, articles.length));
     if (expandLevel === 1) return articles;
@@ -1190,9 +1189,10 @@ function SourceHScrollSection({
 
   const name = getSourceName(sourceKey, t);
   const color = SOURCE_COLORS[sourceKey] || colors.textSecondary;
-  const first5 = articles.slice(0, 5);
-  const more5 = articles.slice(5, 10);
-  const visible = showMore ? [...first5, ...more5] : first5;
+  const capped = articles.slice(0, 10);
+  const first5 = capped.slice(0, 5);
+  const more5 = capped.slice(5);
+  const visible = showMore ? capped : first5;
 
   return (
     <View style={{ marginBottom: 24 }}>
@@ -1201,7 +1201,7 @@ function SourceHScrollSection({
         <Text style={{ fontSize: 15, fontWeight: '800', color: colors.textPrimary, flex: 1 }}>
           {name}
         </Text>
-        <Text style={{ fontSize: 11, color: colors.textSecondary }}>{articles.length}{t('news.articles_suffix')}</Text>
+        <Text style={{ fontSize: 11, color: colors.textSecondary }}>{capped.length}{t('news.articles_suffix')}</Text>
       </View>
 
       <ScrollView
@@ -1251,12 +1251,13 @@ const GeekNewsSection = React.memo(function GeekNewsSection({ articles, onArticl
   const { colors } = useTheme();
   if (!articles || articles.length === 0) return null;
 
+  const capped = React.useMemo(() => articles.slice(0, 10), [articles]);
   const visible = React.useMemo(
-    () => articles.slice(0, showMore ? 10 : 5),
-    [showMore, articles],
+    () => capped.slice(0, showMore ? 10 : 5),
+    [showMore, capped],
   );
-  const hasMore = !showMore && articles.length > 5;
-  const moreCount = Math.min(articles.length - 5, 5);
+  const hasMore = !showMore && capped.length > 5;
+  const moreCount = capped.length - 5;
   const color = SOURCE_COLORS['geeknews'] || colors.textSecondary;
   const name = getSourceName('geeknews', t);
 
@@ -1268,7 +1269,7 @@ const GeekNewsSection = React.memo(function GeekNewsSection({ articles, onArticl
       >
         <View style={{ width: 4, height: 18, borderRadius: 2, backgroundColor: color, marginRight: 8 }} />
         <Text style={{ fontSize: 15, fontWeight: '800', color: colors.textPrimary, flex: 1 }}>{name}</Text>
-        <Text style={{ fontSize: 11, color: colors.textSecondary }}>{articles.length}{t('news.articles_suffix')}</Text>
+        <Text style={{ fontSize: 11, color: colors.textSecondary }}>{capped.length}{t('news.articles_suffix')}</Text>
       </View>
 
       <View style={{ paddingHorizontal: 16, gap: 12 }}>
