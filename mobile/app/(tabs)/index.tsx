@@ -225,7 +225,7 @@ const SourceBadge = React.memo(function SourceBadge({ sourceKey, name }: { sourc
 function ScoreBadge({ article }: { article: Article }) {
   const { colors } = useTheme();
   const { score, category } = article;
-  if (!score) return null;
+  if (score == null) return null;
   const color = category === 'industry_business' ? colors.scoreBiz
     : category === 'research' ? colors.scoreResearch
     : colors.scoreProduct;
@@ -1031,7 +1031,7 @@ function CategoryTabSection({
       {/* 세로 기사 리스트 (기존 카테고리 — 맞춤 탭이면 숨김) */}
       {activeTab !== '_personalized' && <View style={{ paddingHorizontal: 16, gap: 12 }}>
         {visible.map((a, i) => {
-          const isDeduped = expandLevel >= 3 && dedupedLinks.has(a.link);
+          const isDeduped = expandLevel >= 3 && dedupedStartIdx >= 0 && i >= dedupedStartIdx;
           const isDimmed = a.ai_filtered || isDeduped;
           return (
             <React.Fragment key={`cat-${activeTab}-${i}-${a.link}`}>
