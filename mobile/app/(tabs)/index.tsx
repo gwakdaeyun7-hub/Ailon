@@ -537,10 +537,10 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
             {/* 구분선 */}
             <View style={{ height: 1, backgroundColor: colors.border, marginBottom: 16, marginHorizontal: 20 }} />
 
-            {/* H1 reorder + M2/M3/M5/M6/M13: 3-파트 요약 + 배경/태그/용어 */}
+            {/* Option C reorder: 핵심한줄 → 배경 → 주요포인트 → 왜중요해요 */}
             {oneLine ? (
               <View style={{ paddingHorizontal: 20, marginBottom: 16 }}>
-                {/* H1: One Line FIRST */}
+                {/* 1. One Line (Hook) */}
                 <View style={{ backgroundColor: colors.highlightBg, borderRadius: 10, padding: 14, marginBottom: 16, flexDirection: 'row' }}>
                   <View style={{ width: 3, backgroundColor: colors.summaryIndigo, borderRadius: 2, marginRight: 12 }} />
                   <View style={{ flex: 1 }}>
@@ -551,7 +551,22 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
                   </View>
                 </View>
 
-                {/* H1: Key Points SECOND */}
+                {/* 2. Background (Bridge — context before details) */}
+                {background ? (
+                  <View style={{ flexDirection: 'row', marginBottom: 16 }}>
+                    <View style={{ width: 3, backgroundColor: colors.textLight, borderRadius: 2, marginRight: 12 }} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 12, fontWeight: '700', color: colors.textSecondary, marginBottom: 6 }}>
+                        {t('modal.background')}
+                      </Text>
+                      <Text style={{ fontSize: 14, color: colors.summaryBody, lineHeight: 22 }}>
+                        {background}
+                      </Text>
+                    </View>
+                  </View>
+                ) : null}
+
+                {/* 3. Key Points (Detail — now with context) */}
                 {keyPoints.length > 0 && (
                   <View style={{ marginBottom: 16 }}>
                     <Text style={{ fontSize: 13, fontWeight: '700', color: colors.summaryTeal, marginBottom: 8 }}>{t('modal.key_points')}</Text>
@@ -571,22 +586,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
                   </View>
                 )}
 
-                {/* H1: Background THIRD (M2: plain text with subtle left border, M3: t() key) */}
-                {background ? (
-                  <View style={{ flexDirection: 'row', marginBottom: 16 }}>
-                    <View style={{ width: 3, backgroundColor: colors.textLight, borderRadius: 2, marginRight: 12 }} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 12, fontWeight: '700', color: colors.textSecondary, marginBottom: 6 }}>
-                        {t('modal.background')}
-                      </Text>
-                      <Text style={{ fontSize: 14, color: colors.summaryBody, lineHeight: 22 }}>
-                        {background}
-                      </Text>
-                    </View>
-                  </View>
-                ) : null}
-
-                {/* Why Important FOURTH */}
+                {/* 4. Why Important (So What — natural conclusion) */}
                 {whyImportant ? (
                   <View style={{ backgroundColor: colors.summaryWarnBg, borderRadius: 10, padding: 14, marginBottom: 16 }}>
                     <Text style={{ fontSize: 13, fontWeight: '700', color: colors.summaryWarnText, marginBottom: 4 }}>{t('modal.why_important')}</Text>
