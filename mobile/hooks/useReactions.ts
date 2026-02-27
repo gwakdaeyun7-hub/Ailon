@@ -70,14 +70,17 @@ export function useReactions(itemType: ItemType, itemId: string, contentAuthorUi
   const toggleLike = useCallback(async (): Promise<LikeResult> => {
     if (!user) return 'no_user';
 
-    // 낙관적 업데이트: 즉시 UI 반영
-    const prev = { ...data };
-    const alreadyLiked = data.likedBy.includes(user.uid);
-    setData({
-      likes: alreadyLiked ? data.likes - 1 : data.likes + 1,
-      likedBy: alreadyLiked ? data.likedBy.filter((id) => id !== user.uid) : [...data.likedBy, user.uid],
-      dislikes: data.dislikedBy.includes(user.uid) ? data.dislikes - 1 : data.dislikes,
-      dislikedBy: data.dislikedBy.filter((id) => id !== user.uid),
+    // 낙관적 업데이트: 즉시 UI 반영 (functional update로 data 의존성 제거)
+    let prev: ReactionData | null = null;
+    setData((cur) => {
+      prev = { ...cur };
+      const alreadyLiked = cur.likedBy.includes(user.uid);
+      return {
+        likes: alreadyLiked ? cur.likes - 1 : cur.likes + 1,
+        likedBy: alreadyLiked ? cur.likedBy.filter((id) => id !== user.uid) : [...cur.likedBy, user.uid],
+        dislikes: cur.dislikedBy.includes(user.uid) ? cur.dislikes - 1 : cur.dislikes,
+        dislikedBy: cur.dislikedBy.filter((id) => id !== user.uid),
+      };
     });
 
     try {
@@ -106,21 +109,24 @@ export function useReactions(itemType: ItemType, itemId: string, contentAuthorUi
       });
     } catch {
       // 실패 시 롤백
-      setData(prev);
+      if (prev) setData(prev);
     }
     return 'done';
-  }, [user, docId, contentAuthorUid, data]);
+  }, [user, docId, contentAuthorUid]);
 
   const toggleDislike = useCallback(async () => {
     if (!user) return;
 
-    const prev = { ...data };
-    const alreadyDisliked = data.dislikedBy.includes(user.uid);
-    setData({
-      likes: data.likedBy.includes(user.uid) ? data.likes - 1 : data.likes,
-      likedBy: data.likedBy.filter((id) => id !== user.uid),
-      dislikes: alreadyDisliked ? data.dislikes - 1 : data.dislikes + 1,
-      dislikedBy: alreadyDisliked ? data.dislikedBy.filter((id) => id !== user.uid) : [...data.dislikedBy, user.uid],
+    let prev: ReactionData | null = null;
+    setData((cur) => {
+      prev = { ...cur };
+      const alreadyDisliked = cur.dislikedBy.includes(user.uid);
+      return {
+        likes: cur.likedBy.includes(user.uid) ? cur.likes - 1 : cur.likes,
+        likedBy: cur.likedBy.filter((id) => id !== user.uid),
+        dislikes: alreadyDisliked ? cur.dislikes - 1 : cur.dislikes + 1,
+        dislikedBy: alreadyDisliked ? cur.dislikedBy.filter((id) => id !== user.uid) : [...cur.dislikedBy, user.uid],
+      };
     });
 
     try {
@@ -145,9 +151,9 @@ export function useReactions(itemType: ItemType, itemId: string, contentAuthorUi
         }, { merge: true });
       });
     } catch {
-      setData(prev);
+      if (prev) setData(prev);
     }
-  }, [user, docId, data]);
+  }, [user, docId]);
 
   const liked = user ? data.likedBy.includes(user.uid) : false;
   const disliked = user ? data.dislikedBy.includes(user.uid) : false;

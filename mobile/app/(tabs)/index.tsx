@@ -312,9 +312,10 @@ const HighlightScrollCard = React.memo(function HighlightScrollCard({
   );
 });
 
-function SummaryModal({ article, onClose, onOpenComments }: { article: Article | null; onClose: () => void; onOpenComments: () => void }) {
-  const { views, trackView } = useArticleViews(article?.link ?? '');
-  const { likes, liked, toggleLike } = useReactions('news', article?.link ?? '');
+// H5: SummaryModalContent — hooks를 null 체크 이후에 호출
+function SummaryModalContent({ article, onClose, onOpenComments }: { article: Article; onClose: () => void; onOpenComments: () => void }) {
+  const { views, trackView } = useArticleViews(article.link);
+  const { likes, liked, toggleLike } = useReactions('news', article.link);
   const { lang, t } = useLanguage();
   const { colors } = useTheme();
   const { user } = useAuth();
@@ -325,36 +326,39 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
   const [toastMsg, setToastMsg] = useState('');
   const [glossaryOpen, setGlossaryOpen] = useState(false);
   const toastOpacity = useRef(new Animated.Value(0)).current;
+  // M12: Toast animation ref for cleanup
+  const toastAnimRef = useRef<Animated.CompositeAnimation | null>(null);
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
-    Animated.sequence([
+    // M12: Stop previous animation before starting new one
+    if (toastAnimRef.current) toastAnimRef.current.stop();
+    const anim = Animated.sequence([
       Animated.timing(toastOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
       Animated.delay(1500),
       Animated.timing(toastOpacity, { toValue: 0, duration: 300, useNativeDriver: true }),
-    ]).start();
+    ]);
+    toastAnimRef.current = anim;
+    anim.start();
   };
 
   // 이슈 #18: 모달 열릴 때 뷰수 자동 증가 (link 기반 1회)
   useEffect(() => {
-    if (article && article.link !== viewTrackedLink.current) {
+    if (article.link !== viewTrackedLink.current) {
       viewTrackedLink.current = article.link;
       trackView();
       setGlossaryOpen(false);
     }
   }, [article, trackView]);
 
-  const bookmarked = useMemo(() => article ? isBookmarked('news', article.link) : false, [isBookmarked, article]);
+  const bookmarked = useMemo(() => isBookmarked('news', article.link), [isBookmarked, article]);
   const handleToggleBookmark = useCallback(() => {
-    if (!article) return;
     toggleBookmark('news', article.link, {
       title: getLocalizedTitle(article, lang),
       link: article.link,
       ...(article.category ? { category: article.category } : {}),
     });
   }, [toggleBookmark, article, lang]);
-
-  if (!article) return null;
 
   const sourceName = getSourceName(article.source_key || '', t);
   const sourceColor = SOURCE_COLORS[article.source_key || ''] || colors.textSecondary;
@@ -370,19 +374,20 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
     }
   };
 
+  // M8: handleShare empty catch → console.warn
   const handleShare = async () => {
     try {
-      const oneLine = getLocalizedOneLine(article, lang);
-      const keyPoints = getLocalizedKeyPoints(article, lang);
-      const whyImportant = getLocalizedWhyImportant(article, lang);
+      const shareOneLine = getLocalizedOneLine(article, lang);
+      const shareKeyPoints = getLocalizedKeyPoints(article, lang);
+      const shareWhyImportant = getLocalizedWhyImportant(article, lang);
       let body = '';
-      if (oneLine) {
-        body += `${t('share.one_line_label')}\n${oneLine}`;
-        if (keyPoints.length > 0) {
-          body += `\n\n${t('share.key_points_label')}\n${keyPoints.map((p, i) => `${i + 1}. ${p}`).join('\n')}`;
+      if (shareOneLine) {
+        body += `${t('share.one_line_label')}\n${shareOneLine}`;
+        if (shareKeyPoints.length > 0) {
+          body += `\n\n${t('share.key_points_label')}\n${shareKeyPoints.map((p, i) => `${i + 1}. ${p}`).join('\n')}`;
         }
-        if (whyImportant) {
-          body += `\n\n${t('share.why_important_label')}\n${whyImportant}`;
+        if (shareWhyImportant) {
+          body += `\n\n${t('share.why_important_label')}\n${shareWhyImportant}`;
         }
       } else if (article.summary) {
         body = article.summary;
@@ -390,28 +395,50 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
       await Share.share({
         message: `${getLocalizedTitle(article, lang)}\n\n${body}\n\n${t('share.footer')}`,
       });
-    } catch {}
+    } catch (err) {
+      console.warn('Share failed:', err);
+    }
   };
+
+  // M7: Single useMemo replacing both IIFEs
+  const { oneLine, keyPoints, whyImportant, background, tags, glossary, readMin } = useMemo(() => {
+    const ol = getLocalizedOneLine(article, lang);
+    const kp = getLocalizedKeyPoints(article, lang);
+    const wi = getLocalizedWhyImportant(article, lang);
+    const bg = getLocalizedBackground(article, lang);
+    const tg = article.tags;
+    const gl = getLocalizedGlossary(article, lang);
+    const summaryText = [ol, ...kp, wi].join('');
+    const rm = Math.max(1, Math.round(summaryText.length / 500));
+    return { oneLine: ol, keyPoints: kp, whyImportant: wi, background: bg, tags: tg, glossary: gl, readMin: rm };
+  }, [article, lang]);
+
+  const articleTitle = getLocalizedTitle(article, lang);
 
   return (
     <Modal
-      visible={!!article}
+      visible
       transparent
       animationType="slide"
       onRequestClose={onClose}
     >
       <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
-        {/* 배경 탭으로 닫기 */}
-        <Pressable style={{ flex: 1 }} onPress={onClose} />
+        {/* M9: Background overlay accessibility */}
+        <Pressable
+          style={{ flex: 1 }}
+          onPress={onClose}
+          accessibilityLabel={t('modal.close')}
+          accessibilityRole="button"
+        />
 
-        {/* 바텀시트 — 이슈 #4: accessibilityViewIsModal */}
+        {/* H3: accessibilityLabel on bottom sheet container */}
         <View style={{
           width: '100%',
           backgroundColor: colors.card,
           borderTopLeftRadius: 20,
           borderTopRightRadius: 20,
           maxHeight: '85%',
-        }} accessibilityViewIsModal={true}>
+        }} accessibilityViewIsModal={true} accessibilityLabel={articleTitle}>
           {/* 이슈 #13: 드래그 핸들 */}
           <View style={{ alignItems: 'center', paddingTop: 12 }}>
             <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: colors.border }} />
@@ -447,28 +474,39 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
               </View>
             ) : null}
 
-            {/* 소스 뱃지 + 날짜 + 조회수 + 북마크 */}
+            {/* M1: 소스 뱃지 + 날짜 + 조회수 + 읽기 시간 + 북마크 (metadata row) */}
             <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, marginTop: article.image_url ? 16 : 20 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
-                <View style={{
-                  backgroundColor: sourceColor + '18',
-                  paddingHorizontal: 8, paddingVertical: 3,
-                  borderRadius: 4,
-                }}>
-                  <Text style={{ fontSize: 11, fontWeight: '700', color: sourceColor }}>{sourceName}</Text>
-                </View>
+                {/* M11: Hide source badge if sourceName is empty */}
+                {sourceName ? (
+                  <View style={{
+                    backgroundColor: sourceColor + '18',
+                    paddingHorizontal: 8, paddingVertical: 3,
+                    borderRadius: 4,
+                  }}>
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: sourceColor }}>{sourceName}</Text>
+                  </View>
+                ) : null}
                 <Text style={{ fontSize: 12, color: colors.textSecondary }}>{formatDate(article.published, lang)}</Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
                   <Eye size={11} color={colors.textSecondary} />
                   <Text style={{ fontSize: 10, color: colors.textSecondary, fontWeight: '600' }}>{views}</Text>
                 </View>
+                {/* M1: Reading time in metadata row */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                  <Clock size={11} color={colors.textSecondary} />
+                  <Text style={{ fontSize: 10, color: colors.textSecondary, fontWeight: '600' }}>
+                    {lang === 'en' ? `${readMin}min` : `${readMin}분`}
+                  </Text>
+                </View>
               </View>
+              {/* H4: Bookmark touch target 36px → minWidth/minHeight 44px */}
               <Pressable
                 onPress={handleToggleBookmark}
                 accessibilityLabel={bookmarked ? t('bookmark.remove') : t('bookmark.add')}
                 accessibilityRole="button"
                 style={({ pressed }) => ({
-                  width: 36, height: 36, borderRadius: 10,
+                  minWidth: 44, minHeight: 44, borderRadius: 10,
                   backgroundColor: bookmarked ? colors.bookmarkActiveColor + '14' : colors.surface,
                   borderWidth: 1, borderColor: bookmarked ? colors.bookmarkActiveColor + '30' : colors.border,
                   alignItems: 'center', justifyContent: 'center',
@@ -484,171 +522,166 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
               </Pressable>
             </View>
 
-            {/* 제목 */}
-            <Text style={{
-              fontSize: 18, fontWeight: '800', color: colors.textPrimary, lineHeight: 28,
-              marginTop: 14, marginBottom: 14,
-              paddingHorizontal: 20,
-            }}>
-              {getLocalizedTitle(article, lang)}
+            {/* H3: 제목 with accessibilityRole="header" */}
+            <Text
+              accessibilityRole="header"
+              style={{
+                fontSize: 18, fontWeight: '800', color: colors.textPrimary, lineHeight: 28,
+                marginTop: 14, marginBottom: 14,
+                paddingHorizontal: 20,
+              }}
+            >
+              {articleTitle}
             </Text>
 
             {/* 구분선 */}
-            <View style={{ height: 1, backgroundColor: colors.border, marginBottom: 12, marginHorizontal: 20 }} />
+            <View style={{ height: 1, backgroundColor: colors.border, marginBottom: 16, marginHorizontal: 20 }} />
 
-            {/* 읽기 시간 — 오른쪽 정렬 */}
-            {(() => {
-              const summaryText = [
-                getLocalizedOneLine(article, lang),
-                ...getLocalizedKeyPoints(article, lang),
-                getLocalizedWhyImportant(article, lang),
-              ].join('');
-              const readMin = Math.max(1, Math.round(summaryText.length / 500));
-              return (
-                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 4, paddingHorizontal: 20, marginBottom: 14 }}>
-                  <Clock size={12} color={colors.textLight} />
-                  <Text style={{ fontSize: 11, color: colors.textLight }}>
-                    {lang === 'en' ? `${readMin} min` : `${readMin}분`}
-                  </Text>
+            {/* H1 reorder + M2/M3/M5/M6/M13: 3-파트 요약 + 배경/태그/용어 */}
+            {oneLine ? (
+              <View style={{ paddingHorizontal: 20, marginBottom: 16 }}>
+                {/* H1: One Line FIRST */}
+                <View style={{ backgroundColor: colors.highlightBg, borderRadius: 10, padding: 14, marginBottom: 16, flexDirection: 'row' }}>
+                  <View style={{ width: 3, backgroundColor: colors.summaryIndigo, borderRadius: 2, marginRight: 12 }} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 13, fontWeight: '600', color: colors.summaryIndigo, marginBottom: 6 }}>{t('modal.one_line')}</Text>
+                    <Text style={{ fontSize: 16, color: colors.textPrimary, lineHeight: 28, fontWeight: '700' }}>
+                      {oneLine}
+                    </Text>
+                  </View>
                 </View>
-              );
-            })()}
 
-            {/* 3-파트 요약 + 배경/태그/용어 — 이슈 #1: 하드코딩 색상 수정 */}
-            {(() => {
-              const oneLine = getLocalizedOneLine(article, lang);
-              const keyPoints = getLocalizedKeyPoints(article, lang);
-              const whyImportant = getLocalizedWhyImportant(article, lang);
-              const background = getLocalizedBackground(article, lang);
-              const tags = article.tags;
-              const glossary = getLocalizedGlossary(article, lang);
-              if (oneLine) {
-                return (
-                  <View style={{ paddingHorizontal: 20, marginBottom: 16 }}>
-                    {/* 배경 맥락 (Task 5) */}
-                    {background ? (
-                      <View style={{ backgroundColor: colors.surface, borderRadius: 10, padding: 14, marginBottom: 16 }}>
-                        <Text style={{ fontSize: 12, fontWeight: '700', color: colors.textSecondary, marginBottom: 6 }}>
-                          {lang === 'en' ? 'Background' : '배경'}
-                        </Text>
-                        <Text style={{ fontSize: 14, color: colors.summaryBody, lineHeight: 22 }}>
-                          {background}
-                        </Text>
+                {/* H1: Key Points SECOND */}
+                {keyPoints.length > 0 && (
+                  <View style={{ marginBottom: 16 }}>
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: colors.summaryTeal, marginBottom: 8 }}>{t('modal.key_points')}</Text>
+                    {keyPoints.map((point, idx) => (
+                      <View key={idx} style={{ flexDirection: 'row', marginBottom: 16, paddingRight: 4, alignItems: 'flex-start' }}>
+                        <View style={{
+                          width: 22, height: 22, borderRadius: 11,
+                          backgroundColor: colors.summaryTeal,
+                          alignItems: 'center', justifyContent: 'center',
+                          marginRight: 10, marginTop: 1,
+                        }}>
+                          <Text style={{ fontSize: 12, color: '#FFFFFF', fontWeight: '700' }}>{idx + 1}</Text>
+                        </View>
+                        <Text style={{ fontSize: 14, color: colors.summaryBody, lineHeight: 22, flex: 1 }}>{point}</Text>
                       </View>
-                    ) : null}
+                    ))}
+                  </View>
+                )}
 
-                    {/* 핵심 한줄 (Task 3: 인디케이터 바 + 폰트 조정) */}
-                    <View style={{ backgroundColor: colors.highlightBg, borderRadius: 10, padding: 14, marginBottom: 16, flexDirection: 'row' }}>
-                      <View style={{ width: 3, backgroundColor: colors.summaryIndigo, borderRadius: 2, marginRight: 12 }} />
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 13, fontWeight: '600', color: colors.summaryIndigo, marginBottom: 6 }}>{t('modal.one_line')}</Text>
-                        <Text style={{ fontSize: 16, color: colors.textPrimary, lineHeight: 28, fontWeight: '700' }}>
-                          {oneLine}
-                        </Text>
-                      </View>
+                {/* H1: Background THIRD (M2: plain text with subtle left border, M3: t() key) */}
+                {background ? (
+                  <View style={{ flexDirection: 'row', marginBottom: 16 }}>
+                    <View style={{ width: 3, backgroundColor: colors.textLight, borderRadius: 2, marginRight: 12 }} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 12, fontWeight: '700', color: colors.textSecondary, marginBottom: 6 }}>
+                        {t('modal.background')}
+                      </Text>
+                      <Text style={{ fontSize: 14, color: colors.summaryBody, lineHeight: 22 }}>
+                        {background}
+                      </Text>
                     </View>
+                  </View>
+                ) : null}
 
-                    {/* 주요 포인트 (Task 4: 원형 뱃지 + 간격 증가) */}
-                    {keyPoints.length > 0 && (
-                      <View style={{ marginBottom: 16 }}>
-                        <Text style={{ fontSize: 13, fontWeight: '700', color: colors.summaryTeal, marginBottom: 8 }}>{t('modal.key_points')}</Text>
-                        {keyPoints.map((point, idx) => (
-                          <View key={idx} style={{ flexDirection: 'row', marginBottom: 16, paddingRight: 4, alignItems: 'flex-start' }}>
-                            <View style={{
-                              width: 22, height: 22, borderRadius: 11,
-                              backgroundColor: colors.summaryTeal,
-                              alignItems: 'center', justifyContent: 'center',
-                              marginRight: 10, marginTop: 1,
-                            }}>
-                              <Text style={{ fontSize: 12, color: '#FFFFFF', fontWeight: '700' }}>{idx + 1}</Text>
-                            </View>
-                            <Text style={{ fontSize: 14, color: colors.summaryBody, lineHeight: 22, flex: 1 }}>{point}</Text>
+                {/* Why Important FOURTH */}
+                {whyImportant ? (
+                  <View style={{ backgroundColor: colors.summaryWarnBg, borderRadius: 10, padding: 14, marginBottom: 16 }}>
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: colors.summaryWarnText, marginBottom: 4 }}>{t('modal.why_important')}</Text>
+                    <Text style={{ fontSize: 14, color: colors.summaryBody, lineHeight: 24 }}>
+                      {whyImportant}
+                    </Text>
+                  </View>
+                ) : null}
+
+                {/* M13: Tags section heading + 키워드 태그 (M3: t() key) */}
+                {tags && tags.length > 0 ? (
+                  <View style={{ marginBottom: glossary.length > 0 ? 16 : 0 }}>
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: colors.textSecondary, marginBottom: 8 }}>
+                      {t('modal.tags')}
+                    </Text>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                      {tags.map((tag, idx) => (
+                        <View key={idx} style={{
+                          backgroundColor: colors.surface,
+                          paddingHorizontal: 10, paddingVertical: 5,
+                          borderRadius: 12,
+                        }}>
+                          <Text style={{ fontSize: 12, color: colors.textSecondary, fontWeight: '500' }}>{tag}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                ) : null}
+
+                {/* M6: Glossary toggle accessibility + M3: t() key */}
+                {glossary.length > 0 ? (
+                  <View style={{ borderRadius: 10, borderWidth: 1, borderColor: colors.border, overflow: 'hidden', marginBottom: 16 }}>
+                    <Pressable
+                      onPress={() => setGlossaryOpen(!glossaryOpen)}
+                      accessibilityRole="button"
+                      accessibilityLabel={t('modal.glossary')}
+                      accessibilityState={{ expanded: glossaryOpen }}
+                      style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14 }}
+                    >
+                      <Text style={{ fontSize: 13, fontWeight: '700', color: colors.textPrimary }}>
+                        {t('modal.glossary')}
+                      </Text>
+                      <View style={{ transform: [{ rotate: glossaryOpen ? '180deg' : '0deg' }] }}>
+                        <ChevronDown size={16} color={colors.textSecondary} />
+                      </View>
+                    </Pressable>
+                    {glossaryOpen ? (
+                      <View style={{ paddingHorizontal: 14, paddingBottom: 14 }}>
+                        {glossary.map((item, idx) => (
+                          <View key={idx} style={{ marginBottom: idx < glossary.length - 1 ? 10 : 0 }}>
+                            <Text style={{ fontSize: 13, fontWeight: '700', color: colors.summaryIndigo, marginBottom: 2 }}>{item.term}</Text>
+                            <Text style={{ fontSize: 13, color: colors.summaryBody, lineHeight: 20 }}>{item.desc}</Text>
                           </View>
                         ))}
-                      </View>
-                    )}
-
-                    {/* 왜 중요해요? */}
-                    {whyImportant ? (
-                      <View style={{ backgroundColor: colors.summaryWarnBg, borderRadius: 10, padding: 14, marginBottom: tags && tags.length > 0 ? 16 : 0 }}>
-                        <Text style={{ fontSize: 13, fontWeight: '700', color: colors.summaryWarnText, marginBottom: 4 }}>{t('modal.why_important')}</Text>
-                        <Text style={{ fontSize: 14, color: colors.summaryBody, lineHeight: 24 }}>
-                          {whyImportant}
-                        </Text>
-                      </View>
-                    ) : null}
-
-                    {/* 키워드 태그 (Task 6) */}
-                    {tags && tags.length > 0 ? (
-                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: glossary.length > 0 ? 16 : 0 }}>
-                        {tags.map((tag, idx) => (
-                          <View key={idx} style={{
-                            backgroundColor: colors.surface,
-                            paddingHorizontal: 10, paddingVertical: 5,
-                            borderRadius: 12,
-                          }}>
-                            <Text style={{ fontSize: 12, color: colors.textSecondary, fontWeight: '500' }}>{tag}</Text>
-                          </View>
-                        ))}
-                      </View>
-                    ) : null}
-
-                    {/* 용어 해설 (Task 7) */}
-                    {glossary.length > 0 ? (
-                      <View style={{ borderRadius: 10, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' }}>
-                        <Pressable
-                          onPress={() => setGlossaryOpen(!glossaryOpen)}
-                          style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14 }}
-                        >
-                          <Text style={{ fontSize: 13, fontWeight: '700', color: colors.textPrimary }}>
-                            {lang === 'en' ? 'Glossary' : '용어 해설'}
-                          </Text>
-                          <View style={{ transform: [{ rotate: glossaryOpen ? '180deg' : '0deg' }] }}>
-                            <ChevronDown size={16} color={colors.textSecondary} />
-                          </View>
-                        </Pressable>
-                        {glossaryOpen ? (
-                          <View style={{ paddingHorizontal: 14, paddingBottom: 14 }}>
-                            {glossary.map((item, idx) => (
-                              <View key={idx} style={{ marginBottom: idx < glossary.length - 1 ? 10 : 0 }}>
-                                <Text style={{ fontSize: 13, fontWeight: '700', color: colors.summaryIndigo, marginBottom: 2 }}>{item.term}</Text>
-                                <Text style={{ fontSize: 13, color: colors.summaryBody, lineHeight: 20 }}>{item.desc}</Text>
-                              </View>
-                            ))}
-                          </View>
-                        ) : null}
                       </View>
                     ) : null}
                   </View>
-                );
-              }
-              if (article.summary) {
-                return (
-                  <Text style={{
-                    fontSize: 15, color: colors.summaryBody, lineHeight: 28, letterSpacing: 0.2, marginBottom: 16,
-                    paddingHorizontal: 20,
-                  }}>
-                    {article.summary}
+                ) : null}
+
+                {/* M5: "View Original" button at bottom of summary */}
+                <Pressable
+                  onPress={handleOpenOriginal}
+                  accessibilityLabel={t('modal.view_original')}
+                  accessibilityRole="link"
+                  style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12 }}
+                >
+                  <ExternalLink size={14} color={colors.textSecondary} />
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: colors.textSecondary }}>
+                    {t('modal.view_original')}
                   </Text>
-                );
-              }
-              return (
-                <View style={{ alignItems: 'center', paddingVertical: 24, paddingHorizontal: 20 }}>
-                  <Text style={{ fontSize: 14, fontWeight: '600', color: colors.textSecondary, marginBottom: 4 }}>
-                    {t('modal.no_summary')}
-                  </Text>
-                  <Text style={{ fontSize: 13, color: colors.textSecondary, marginBottom: 12 }}>
-                    {t('modal.check_original')}
-                  </Text>
-                  <Pressable
-                    onPress={handleOpenOriginal}
-                    style={{ paddingHorizontal: 20, paddingVertical: 10, backgroundColor: colors.textPrimary, borderRadius: 8 }}
-                  >
-                    <Text style={{ color: colors.card, fontSize: 13, fontWeight: '700' }}>{t('modal.view_original')}</Text>
-                  </Pressable>
-                </View>
-              );
-            })()}
+                </Pressable>
+              </View>
+            ) : article.summary ? (
+              <Text style={{
+                fontSize: 15, color: colors.summaryBody, lineHeight: 28, letterSpacing: 0.2, marginBottom: 16,
+                paddingHorizontal: 20,
+              }}>
+                {article.summary}
+              </Text>
+            ) : (
+              <View style={{ alignItems: 'center', paddingVertical: 24, paddingHorizontal: 20 }}>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: colors.textSecondary, marginBottom: 4 }}>
+                  {t('modal.no_summary')}
+                </Text>
+                <Text style={{ fontSize: 13, color: colors.textSecondary, marginBottom: 12 }}>
+                  {t('modal.check_original')}
+                </Text>
+                <Pressable
+                  onPress={handleOpenOriginal}
+                  style={{ paddingHorizontal: 20, paddingVertical: 10, backgroundColor: colors.textPrimary, borderRadius: 8 }}
+                >
+                  <Text style={{ color: colors.card, fontSize: 13, fontWeight: '700' }}>{t('modal.view_original')}</Text>
+                </Pressable>
+              </View>
+            )}
 
           </ScrollView>
 
@@ -686,11 +719,11 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
             </Pressable>
           </View>
 
-          {/* 인라인 토스트 */}
+          {/* M4: Colors.toastBg → colors.toastBg */}
           {toastMsg ? (
             <Animated.View style={{
               position: 'absolute', top: 20, left: 20, right: 20,
-              backgroundColor: Colors.toastBg, borderRadius: 10, paddingVertical: 10, paddingHorizontal: 16,
+              backgroundColor: colors.toastBg, borderRadius: 10, paddingVertical: 10, paddingHorizontal: 16,
               alignItems: 'center', opacity: toastOpacity,
             }} pointerEvents="none" accessibilityLiveRegion="assertive">
               <Text style={{ color: '#FFF', fontSize: 13, fontWeight: '600' }}>{toastMsg}</Text>
@@ -701,6 +734,13 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
     </Modal>
   );
 }
+
+// H5: SummaryModal returns null before hooks when article is null
+// H7: React.memo wrapper
+const SummaryModal = React.memo(function SummaryModal({ article, onClose, onOpenComments }: { article: Article | null; onClose: () => void; onOpenComments: () => void }) {
+  if (!article) return null;
+  return <SummaryModalContent article={article} onClose={onClose} onOpenComments={onOpenComments} />;
+});
 
 function HighlightSection({ highlights, onArticlePress, allStats }: { highlights: Article[]; onArticlePress: (article: Article) => void; allStats: Record<string, BatchStats> }) {
   const stats = allStats;
@@ -1206,6 +1246,10 @@ export default function NewsScreen() {
     }
   }, [modalArticle]);
 
+  // M10: Extract onClose inline functions to useCallback
+  const handleModalClose = useCallback(() => setModalArticle(null), []);
+  const handleCommentClose = useCallback(() => setCommentArticleLink(null), []);
+
   useFocusEffect(
     useCallback(() => {
       setActiveTab('news');
@@ -1416,12 +1460,12 @@ export default function NewsScreen() {
       </ScrollView>
 
       {/* 요약 모달 */}
-      <SummaryModal article={modalArticle} onClose={() => setModalArticle(null)} onOpenComments={handleOpenComments} />
+      <SummaryModal article={modalArticle} onClose={handleModalClose} onOpenComments={handleOpenComments} />
 
       {/* 댓글 시트 (모달과 같은 레벨) */}
       <CommentSheet
         visible={!!commentArticleLink}
-        onClose={() => setCommentArticleLink(null)}
+        onClose={handleCommentClose}
         itemType="news"
         itemId={commentArticleLink ?? ''}
       />
