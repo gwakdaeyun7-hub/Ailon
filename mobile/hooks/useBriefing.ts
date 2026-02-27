@@ -3,7 +3,7 @@
  */
 
 import { useEffect, useState, useCallback } from 'react';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { DailyBriefing } from '@/lib/types';
 
@@ -20,10 +20,18 @@ export function useBriefing() {
   const fetchBriefing = useCallback(async () => {
     try {
       setLoading(true);
+      // 1) 오늘 날짜 브리핑 시도
       const today = getKSTDateString();
       const snap = await getDoc(doc(db, 'daily_briefings', today));
       if (snap.exists()) {
         setBriefing(snap.data() as DailyBriefing);
+        return;
+      }
+      // 2) 오늘 것이 없으면 가장 최근 브리핑으로 fallback
+      const q = query(collection(db, 'daily_briefings'), orderBy('date', 'desc'), limit(1));
+      const qs = await getDocs(q);
+      if (!qs.empty) {
+        setBriefing(qs.docs[0].data() as DailyBriefing);
       }
     } catch (e) {
       console.error('useBriefing error:', e);

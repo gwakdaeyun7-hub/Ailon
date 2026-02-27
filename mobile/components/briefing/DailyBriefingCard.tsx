@@ -6,12 +6,10 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { Newspaper, Volume2, VolumeX } from 'lucide-react-native';
+import * as Speech from 'expo-speech';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useBriefing } from '@/hooks/useBriefing';
-
-let Speech: any = null;
-try { Speech = require('expo-speech'); } catch {}
 
 export const DailyBriefingCard = React.memo(function DailyBriefingCard() {
   const { lang, t } = useLanguage();
@@ -69,7 +67,7 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard() {
               {briefing.story_count}{t('briefing.stories')}
             </Text>
           </View>
-          {Speech && (
+          {text ? (
             <Pressable
               onPress={handleTTS}
               accessibilityLabel={speaking ? t('briefing.stop') : t('briefing.listen')}
@@ -85,7 +83,7 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard() {
                 : <Volume2 size={16} color={colors.textSecondary} />
               }
             </Pressable>
-          )}
+          ) : null}
         </View>
 
         {/* Body */}
