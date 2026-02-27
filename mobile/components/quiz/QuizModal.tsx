@@ -76,8 +76,9 @@ export function QuizModal({ visible, onClose }: Props) {
   }
 
   const q: QuizQuestion = questions[currentQ];
-  const qText = lang === 'en' ? q.question_en : q.question_ko;
-  const options = lang === 'en' ? q.options_en : q.options_ko;
+  if (!q) return null;
+  const qText = lang === 'en' ? (q.question_en || q.question_ko) : (q.question_ko || q.question_en);
+  const options = (lang === 'en' ? q.options_en : q.options_ko) ?? [];
   const answered = answers[currentQ] !== undefined;
   const isCorrect = answered && answers[currentQ] === q.correct_index;
   const explanation = lang === 'en' ? q.explanation_en : q.explanation_ko;
