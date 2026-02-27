@@ -1325,8 +1325,8 @@ def categorizer_node(state: NewsGraphState) -> dict:
     unique_count = len(candidates) - deduped_count
     print(f"  [분류] {unique_count}개 분류 중... (당일 {today_count}개, 중복 {deduped_count}개 보존)")
 
-    # 분류 대상: _llm_category가 없고 중복이 아닌 기사
-    need_classify = [(i, a) for i, a in enumerate(candidates) if not a.get("_llm_category") and not a.get("_deduped")]
+    # 분류 대상: _llm_category가 없는 기사 (중복 기사 포함 — 정확한 카테고리 배치를 위해)
+    need_classify = [(i, a) for i, a in enumerate(candidates) if not a.get("_llm_category")]
     already_classified = sum(1 for a in candidates if a.get("_llm_category"))
     if already_classified:
         print(f"    [분류] {already_classified}개 이미 분류됨, {len(need_classify)}개 분류 필요")
@@ -1364,10 +1364,8 @@ def categorizer_node(state: NewsGraphState) -> dict:
         classified = sum(1 for a in candidates if a.get("_llm_category"))
         print(f"    [분류] 완료: {classified}/{len(candidates)}개 분류됨")
 
-    # 미분류 기사에 기본 카테고리 부여 (중복 기사는 제외 — selector에서 원본 매칭)
+    # 미분류 기사에 기본 카테고리 부여 (중복 기사 포함)
     for a in candidates:
-        if a.get("_deduped"):
-            continue
         if not a.get("_llm_category") or a["_llm_category"] not in VALID_CATEGORIES:
             a["_llm_category"] = "industry_business"
 
@@ -1659,23 +1657,7 @@ def selector_node(state: NewsGraphState) -> dict:
         else:
             categorized["industry_business"].append(a)
 
-    # 중복 기사를 원본 기사의 카테고리로 분류
-    for d in deduped_out:
-        # 중복 기사는 분류를 거치지 않았으므로, 제목 유사도로 원본 카테고리 추정
-        orig_title = _normalize_title(d.get("title", ""))
-        matched_cat = "industry_business"
-        for cat, articles in categorized.items():
-            for a in articles:
-                a_title = _normalize_title(a.get("title", ""))
-                if orig_title and a_title and SequenceMatcher(None, orig_title, a_title).ratio() >= DEDUP_THRESHOLD:
-                    matched_cat = cat
-                    break
-            else:
-                continue
-            break
-        d["_llm_category"] = matched_cat
-
-    # 카테고리별 중복 기사 분류
+    # 카테고리별 중복 기사 분류 (카테고리 분류기에서 이미 _llm_category 할당됨)
     deduped_by_cat: dict[str, list[dict]] = {k: [] for k in category_order}
     for d in deduped_out:
         cat = d.get("_llm_category", "industry_business")
