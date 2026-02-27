@@ -139,11 +139,19 @@ def save_news_to_firestore(result: dict):
         old = existing_doc.to_dict()
         print("  [병합] 기존 문서 발견 — 오전+오후 병합 수행")
 
-        # highlights: 병합 → score 내림차순 → 상위 3개
+        # highlights: 병합 → 카테고리별 최고 점수 1개씩
+        merged_hl = _merge_articles(old.get("highlights", []), highlights)
+        hl_by_cat: dict[str, dict] = {}
+        for a in merged_hl:
+            cat = a.get("category", "")
+            prev = hl_by_cat.get(cat)
+            if not prev or a.get("score", 0) > prev.get("score", 0):
+                hl_by_cat[cat] = a
         highlights = sorted(
-            _merge_articles(old.get("highlights", []), highlights),
-            key=lambda a: a.get("score", 0), reverse=True,
-        )[:3]
+            hl_by_cat.values(),
+            key=lambda a: (a.get("score", 0), a.get("published", "")),
+            reverse=True,
+        )
 
         # categorized_articles: 카테고리별 병합 → score 내림차순
         old_cat = old.get("categorized_articles", {})
