@@ -24,6 +24,30 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Daily briefings - 모두 읽기 가능
+    match /daily_briefings/{date} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Daily quizzes - 모두 읽기 가능
+    match /daily_quizzes/{date} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Articles collection - 모두 읽기 가능
+    match /articles/{articleId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Glossary terms - 모두 읽기 가능
+    match /glossary_terms/{termId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
 
     // Principles collection (레거시) - 모두 읽기 가능
     match /principles/{principleId} {

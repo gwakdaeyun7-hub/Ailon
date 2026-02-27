@@ -1,15 +1,16 @@
 """
-뉴스 수집 파이프라인 -- LangGraph 7-노드 (EN/KO 진정한 병렬 분기)
+뉴스 수집 파이프라인 -- LangGraph 8-노드 (EN/KO 진정한 병렬 분기)
 
-collector --> [en_process, ko_process] (병렬 Send) --> categorizer --> ranker --> selector --> assembler
+collector --> [en_process, ko_process] (병렬 Send) --> categorizer --> ranker --> entity_extractor --> selector --> assembler
 
-1. collector:     16개 소스 수집 + 이미지/본문 통합 스크래핑 + LLM AI 필터
-2. en_process:    영어 기사 번역+요약 (thinking 비활성화, 배치 5)  -- 병렬
-3. ko_process:    한국어 기사 요약 (thinking 비활성화, 배치 2)     -- 병렬
-4. categorizer:   LLM 카테고리 분류 (research / models_products / industry_business)
-5. ranker:        카테고리별 직접 순위 매기기 (카테고리당 1회 LLM 호출, 순위→점수 역산: 1위=100, 꼴등=30)
-6. selector:      하이라이트 Top 3 + 카테고리별 Top 25 + 품질 검증
-7. assembler:     한국 소스별 분리 + 최종 결과 + 타이밍 리포트
+1. collector:          16개 소스 수집 + 이미지/본문 통합 스크래핑 + LLM AI 필터
+2. en_process:         영어 기사 번역+요약 (thinking 비활성화, 배치 5)  -- 병렬
+3. ko_process:         한국어 기사 요약 (thinking 비활성화, 배치 2)     -- 병렬
+4. categorizer:        LLM 카테고리 분류 (research / models_products / industry_business)
+5. ranker:             카테고리별 직접 순위 매기기 (카테고리당 1회 LLM 호출, 순위→점수 역산: 1위=100, 꼴등=30)
+6. entity_extractor:   엔티티 추출 + topic_cluster_id 부여 (10개 배치 병렬)
+7. selector:           하이라이트 Top 3 + 카테고리별 Top 25 + 품질 검증
+8. assembler:          한국 소스별 분리 + 최종 결과 + 타이밍 리포트
 
 점수 체계: 카테고리별 전체 기사 순위 → 선형 보간 점수 (1위=100, 꼴등=30)
 """
@@ -1237,6 +1238,116 @@ def ranker_node(state: NewsGraphState) -> dict:
     return {"scored_candidates": candidates}
 
 
+# ─── Node 5.5: entity_extractor (엔티티 추출 + 토픽 클러스터링) ───
+_ENTITY_EXTRACT_PROMPT = """You are an AI news entity extractor. Given a list of AI news articles, extract key entities and assign a topic_cluster_id to each article.
+
+Entity types (use ONLY these): "model", "company", "person", "technology", "concept", "dataset", "framework"
+
+topic_cluster_id format: "domain/specific_topic"
+Examples: "nlp/language_models", "vision/image_generation", "robotics/autonomous_driving", "ml/training_methods", "infra/compute", "business/funding", "regulation/policy", "audio/speech", "multimodal/agents"
+
+Articles:
+{article_text}
+
+Return a JSON array with exactly {count} elements, one per article, in the same order:
+[{{"index": 0, "entities": [{{"name": "GPT-5", "type": "model"}}, {{"name": "OpenAI", "type": "company"}}], "topic_cluster_id": "nlp/language_models"}}, ...]
+
+Rules:
+- "index" must match the [N] number of each article
+- "entities": 1-5 most important entities per article. Use exact names as they appear.
+- "topic_cluster_id": one string in "domain/topic" format
+- Output ONLY the JSON array, no explanation
+"""
+
+_ENTITY_TYPES = {"model", "company", "person", "technology", "concept", "dataset", "framework"}
+
+
+def _extract_entities_batch(batch: list[dict], batch_idx: int) -> list[dict]:
+    """단일 배치에서 엔티티 추출 + topic_cluster_id 부여. 실패 시 원본 반환."""
+    article_text = ""
+    for i, a in enumerate(batch):
+        title = a.get("display_title") or a.get("title", "")
+        one_line = a.get("one_line") or a.get("one_line_en") or ""
+        article_text += f"\n[{i}] {title} | {one_line}"
+
+    prompt = _ENTITY_EXTRACT_PROMPT.format(
+        article_text=article_text,
+        count=len(batch),
+    )
+
+    try:
+        llm = get_llm(temperature=0, max_tokens=4096, thinking=False, json_mode=True)
+        content = _llm_invoke_with_retry(llm, prompt, max_retries=2)
+        results = _parse_llm_json(content)
+
+        if isinstance(results, dict):
+            results = next((v for v in results.values() if isinstance(v, list)), [])
+        if not isinstance(results, list):
+            raise ValueError(f"Expected list, got {type(results)}")
+
+        # index -> result 매핑
+        idx_map = {}
+        for r in results:
+            if isinstance(r, dict) and "index" in r:
+                idx_map[int(r["index"])] = r
+
+        applied = 0
+        for i, a in enumerate(batch):
+            r = idx_map.get(i)
+            if not r:
+                continue
+            # entities 검증: type이 유효한 것만 보존
+            entities = r.get("entities", [])
+            valid_entities = [
+                e for e in entities
+                if isinstance(e, dict) and e.get("name") and e.get("type") in _ENTITY_TYPES
+            ]
+            if valid_entities:
+                a["entities"] = valid_entities
+            cluster = r.get("topic_cluster_id", "")
+            if isinstance(cluster, str) and "/" in cluster:
+                a["topic_cluster_id"] = cluster
+            applied += 1
+
+        print(f"    [entity batch {batch_idx}] {applied}/{len(batch)}개 적용")
+
+    except Exception as e:
+        print(f"    [entity batch {batch_idx}] 실패, 스킵: {e}")
+
+    return batch
+
+
+@_safe_node("entity_extractor")
+def entity_extractor_node(state: NewsGraphState) -> dict:
+    """기사별 엔티티 추출 + topic_cluster_id 부여. 10개씩 배치 병렬 처리."""
+    candidates = state.get("scored_candidates", [])
+    if not candidates:
+        return {"scored_candidates": []}
+
+    # 10개씩 배치 분할
+    batch_size = 10
+    batches = [candidates[i:i + batch_size] for i in range(0, len(candidates), batch_size)]
+    print(f"    엔티티 추출: {len(candidates)}개 기사 → {len(batches)}개 배치")
+
+    with ThreadPoolExecutor(max_workers=min(len(batches), 4)) as executor:
+        futures = {
+            executor.submit(_extract_entities_batch, batch, idx): idx
+            for idx, batch in enumerate(batches)
+        }
+        for future in as_completed(futures):
+            try:
+                future.result()
+            except Exception as e:
+                print(f"    [entity_extractor] 배치 에러: {e}")
+
+    # 통계 로그
+    with_entities = sum(1 for a in candidates if a.get("entities"))
+    with_cluster = sum(1 for a in candidates if a.get("topic_cluster_id"))
+    print(f"    엔티티 추출 완료: entities={with_entities}/{len(candidates)}, cluster={with_cluster}/{len(candidates)}")
+
+    return {"scored_candidates": candidates}
+
+
 # ─── Node 6: selector (하이라이트 Top 3 + 카테고리별 Top 25 + 품질 검증) ───
 HIGHLIGHT_COUNT = 3
 CATEGORY_TOP_N = 25
@@ -1519,6 +1630,7 @@ def _build_graph():
     graph.add_node("ko_process", ko_process_node)
     graph.add_node("categorizer", categorizer_node)
     graph.add_node("ranker", ranker_node)
+    graph.add_node("entity_extractor", entity_extractor_node)
     graph.add_node("selector", selector_node)
     graph.add_node("assembler", assembler_node)
 
@@ -1531,9 +1643,10 @@ def _build_graph():
     graph.add_edge("en_process", "categorizer")
     graph.add_edge("ko_process", "categorizer")
 
-    # categorizer -> ranker -> selector (단순 체인)
+    # categorizer -> ranker -> entity_extractor -> selector (단순 체인)
     graph.add_edge("categorizer", "ranker")
-    graph.add_edge("ranker", "selector")
+    graph.add_edge("ranker", "entity_extractor")
+    graph.add_edge("entity_extractor", "selector")
 
     graph.add_edge("selector", "assembler")
     graph.add_edge("assembler", END)
@@ -1544,7 +1657,7 @@ def _build_graph():
 # ─── 메인 파이프라인 ───
 def run_news_pipeline() -> dict:
     print("=" * 60)
-    print("[START] 뉴스 수집 파이프라인 (LangGraph 7-노드, EN/KO 병렬)")
+    print("[START] 뉴스 수집 파이프라인 (LangGraph 8-노드, EN/KO 병렬)")
     print("=" * 60)
 
     app = _build_graph()

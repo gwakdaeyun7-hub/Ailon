@@ -44,6 +44,9 @@ import { QuizEntryCard } from '@/components/quiz/QuizEntryCard';
 import { QuizModal } from '@/components/quiz/QuizModal';
 import { TimelineSection } from '@/components/shared/TimelineSection';
 import { RelatedArticlesSection } from '@/components/shared/RelatedArticlesSection';
+import { HighlightedText } from '@/components/shared/HighlightedText';
+import { PersonalizedFeed } from '@/components/feed/PersonalizedFeed';
+import { useGlossaryDB } from '@/hooks/useGlossaryDB';
 
 // expo-notifications (optional dependency) — 이슈 #25: any 타입 수정
 let Notifications: typeof import('expo-notifications') | null = null;
@@ -320,6 +323,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
   const [toastMsg, setToastMsg] = useState('');
   const [glossaryOpen, setGlossaryOpen] = useState(false);
   const toastOpacity = useRef(new Animated.Value(0)).current;
+  const { allTerms: glossaryDBTerms } = useGlossaryDB();
   // M12: Toast animation ref for cleanup
   const toastAnimRef = useRef<Animated.CompositeAnimation | null>(null);
 
@@ -574,7 +578,11 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
                         }}>
                           <Text style={{ fontSize: 12, color: '#FFFFFF', fontWeight: '700' }}>{idx + 1}</Text>
                         </View>
-                        <Text style={{ fontSize: 14, color: colors.summaryBody, lineHeight: 22, flex: 1 }}>{point}</Text>
+                        <HighlightedText
+                          text={point}
+                          glossaryTerms={glossaryDBTerms}
+                          style={{ fontSize: 14, color: colors.summaryBody, lineHeight: 22, flex: 1 }}
+                        />
                       </View>
                     ))}
                   </View>
@@ -584,9 +592,11 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
                 {whyImportant ? (
                   <View style={{ backgroundColor: colors.summaryWarnBg, borderRadius: 10, padding: 14, marginBottom: 16 }}>
                     <Text style={{ fontSize: 13, fontWeight: '700', color: colors.summaryWarnText, marginBottom: 4 }}>{t('modal.why_important')}</Text>
-                    <Text style={{ fontSize: 14, color: colors.summaryBody, lineHeight: 24 }}>
-                      {whyImportant}
-                    </Text>
+                    <HighlightedText
+                      text={whyImportant}
+                      glossaryTerms={glossaryDBTerms}
+                      style={{ fontSize: 14, color: colors.summaryBody, lineHeight: 24 }}
+                    />
                   </View>
                 ) : null}
 
@@ -859,9 +869,9 @@ const HScrollCard = React.memo(function HScrollCard({
 
 // ─── Section 2: 카테고리 탭 + 세로 리스트 ──────────────────────────────
 function CategoryTabSection({
-  categorizedArticles, categoryOrder, onArticlePress, allStats, filteredArticles, dedupedArticles,
+  categorizedArticles, categoryOrder, onArticlePress, allStats, filteredArticles, dedupedArticles, userLikedLinks,
 }: {
-  categorizedArticles: Record<string, Article[]>; categoryOrder: string[]; onArticlePress: (article: Article) => void; allStats: Record<string, BatchStats>; filteredArticles?: Article[]; dedupedArticles?: Record<string, Article[]>;
+  categorizedArticles: Record<string, Article[]>; categoryOrder: string[]; onArticlePress: (article: Article) => void; allStats: Record<string, BatchStats>; filteredArticles?: Article[]; dedupedArticles?: Record<string, Article[]>; userLikedLinks?: string[];
 }) {
   const [activeTab, setActiveTab] = useState(categoryOrder[0] || 'research');
   // 0=초기 5개, 1=전체 카테고리 기사, 2=+AI 필터 제외, 3=+중복 기사
@@ -918,6 +928,30 @@ function CategoryTabSection({
           style={{ flex: 1 }}
           accessibilityRole="tablist"
         >
+          {/* 맞춤 탭 */}
+          <Pressable
+            key="_personalized"
+            onPress={() => handleTabChange('_personalized')}
+            accessibilityLabel={t('feed.personalized')}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: activeTab === '_personalized' }}
+            style={{
+              paddingHorizontal: 14, paddingVertical: 10,
+              minHeight: 44,
+              borderRadius: 16,
+              backgroundColor: activeTab === '_personalized' ? colors.primary : colors.card,
+              borderWidth: 1,
+              borderColor: activeTab === '_personalized' ? colors.primary : colors.border,
+              justifyContent: 'center',
+            }}
+          >
+            <Text style={{
+              fontSize: 12, fontWeight: '700',
+              color: activeTab === '_personalized' ? '#FFF' : colors.textSecondary,
+            }}>
+              {t('feed.personalized')}
+            </Text>
+          </Pressable>
           {categoryOrder.map(catKey => {
             const isActive = catKey === activeTab;
             const color = CATEGORY_COLORS[catKey] || colors.textSecondary;
@@ -951,8 +985,51 @@ function CategoryTabSection({
         </ScrollView>
       </View>
 
-      {/* 세로 기사 리스트 */}
-      <View style={{ paddingHorizontal: 16, gap: 12 }}>
+      {/* 맞춤 피드 */}
+      {activeTab === '_personalized' ? (
+        <PersonalizedFeed
+          articles={Object.values(categorizedArticles).flat()}
+          userLikes={userLikedLinks || []}
+          renderCard={(a, idx) => (
+            <View key={`pf-${idx}-${a.link}`} style={{ paddingHorizontal: 16, marginBottom: 12 }}>
+              <Pressable
+                onPress={() => onArticlePress(a)}
+                style={({ pressed }) => ({
+                  height: 120, backgroundColor: colors.card, borderRadius: 14, overflow: 'hidden',
+                  borderWidth: 1, borderColor: colors.border, opacity: pressed ? 0.85 : 1,
+                })}
+              >
+                <View style={{ flexDirection: 'row', flex: 1 }}>
+                  {a.image_url ? (
+                    <View style={{ width: 118, height: 118, backgroundColor: colors.border, borderRadius: 8, overflow: 'hidden' }}>
+                      <Image source={a.image_url} style={{ width: 118, height: 118 }} contentFit="cover" transition={200} recyclingKey={a.link} />
+                    </View>
+                  ) : (
+                    <View style={{ width: 118, height: 118, backgroundColor: colors.border, borderRadius: 8, alignItems: 'center', justifyContent: 'center' }}>
+                      <Newspaper size={24} color={colors.textLight} />
+                    </View>
+                  )}
+                  <View style={{ flex: 1, padding: 14, justifyContent: 'space-between' }}>
+                    <View>
+                      <SourceBadge sourceKey={a.source_key} name={getSourceName(a.source_key || '', t)} />
+                      <TitleText style={{ fontSize: 14, fontWeight: '700', color: colors.textPrimary, lineHeight: 20, marginTop: 6 }} numberOfLines={2}>
+                        {getLocalizedTitle(a, lang)}
+                      </TitleText>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <Text style={{ fontSize: 11, color: colors.textSecondary }}>{formatDate(a.published, lang)}</Text>
+                      <ArticleStats likes={allStats[a.link]?.likes} views={allStats[a.link]?.views} comments={allStats[a.link]?.comments} />
+                    </View>
+                  </View>
+                </View>
+              </Pressable>
+            </View>
+          )}
+        />
+      ) : null}
+
+      {/* 세로 기사 리스트 (기존 카테고리 — 맞춤 탭이면 숨김) */}
+      {activeTab !== '_personalized' && <View style={{ paddingHorizontal: 16, gap: 12 }}>
         {visible.map((a, i) => {
           const isDeduped = dedupedLinks.has(a.link);
           const isDimmed = a.ai_filtered || isDeduped;
@@ -1045,8 +1122,9 @@ function CategoryTabSection({
             </React.Fragment>
           );
         })}
-      </View>
+      </View>}
 
+      {activeTab !== '_personalized' && <>
       {/* 더보기 1단계: 전체 카테고리 기사 */}
       {remaining > 0 && (
         <Pressable
@@ -1092,6 +1170,7 @@ function CategoryTabSection({
           </View>
         </Pressable>
       )}
+      </>}
     </View>
   );
 }
@@ -1474,6 +1553,7 @@ export default function NewsScreen() {
               allStats={allStats}
               filteredArticles={newsData?.filtered_articles}
               dedupedArticles={newsData?.deduped_articles}
+              userLikedLinks={Object.entries(allStats).filter(([, s]) => s.likes > 0).map(([link]) => link)}
             />
 
             {/* 구분선: 카테고리 → 소스별 */}
