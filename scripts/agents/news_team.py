@@ -711,7 +711,7 @@ def ko_process_node(state: NewsGraphState) -> dict:
 
 
 # ─── 중복 제거 ───
-DEDUP_THRESHOLD = 0.55  # 유사도 임계값 (낮출수록 공격적)
+DEDUP_THRESHOLD = 0.45  # 유사도 임계값 (낮출수록 공격적)
 
 
 def _normalize_title(title: str) -> str:
@@ -735,7 +735,12 @@ def _extract_url_key(link: str) -> str:
 
 
 def _deduplicate_candidates(candidates: list[dict], mark_only: bool = False, threshold: float | None = None) -> list[dict]:
-    """다층 중복 제거: URL 완전 일치 → 원본 제목 유사도 → 번역 제목 유사도.
+    """다층 중복 제거:
+    Layer 1: URL 완전 일치
+    Layer 2: 원본 제목(영문) 유사도
+    Layer 3: 번역 제목(한국어) 유사도
+    Layer 4: 엔티티 교집합(>=2) + topic_cluster_id 일치
+    Layer 5: one_line(한줄 요약) 유사도
     발행일 가장 오래된(원본) 기사 유지.
     mark_only=True 면 제거 대신 _deduped=True 마킹 (전체 리스트 반환).
     threshold: 제목 유사도 임계값 (None이면 DEDUP_THRESHOLD 사용)."""
@@ -768,19 +773,37 @@ def _deduplicate_candidates(candidates: list[dict], mark_only: bool = False, thr
         orig_title = _normalize_title(c.get("title", ""))
         # Layer 3: 번역 제목(한국어) 유사도
         disp_title = _normalize_title(c.get("display_title") or c.get("title", ""))
+        # Layer 4 준비: 엔티티 이름 집합 + topic_cluster_id
+        c_entities = {e.get("name", "").lower() for e in c.get("entities", []) if e.get("name")}
+        c_cluster = c.get("topic_cluster_id", "")
+        # Layer 5 준비: one_line 정규화
+        c_oneline = _normalize_title(c.get("one_line", ""))
 
         is_dup = False
         for k in kept:
-            # 원본 제목 비교
+            # Layer 2: 원본 제목 비교
             k_orig = _normalize_title(k.get("title", ""))
             if orig_title and k_orig and SequenceMatcher(None, orig_title, k_orig).ratio() >= thr:
                 is_dup = True
                 break
-            # 번역 제목 비교
+            # Layer 3: 번역 제목 비교
             k_disp = _normalize_title(k.get("display_title") or k.get("title", ""))
             if disp_title and k_disp and SequenceMatcher(None, disp_title, k_disp).ratio() >= thr:
                 is_dup = True
                 break
+            # Layer 4: 엔티티 교집합 >= 2 AND topic_cluster_id 동일
+            if c_entities and c_cluster:
+                k_entities = {e.get("name", "").lower() for e in k.get("entities", []) if e.get("name")}
+                k_cluster = k.get("topic_cluster_id", "")
+                if k_entities and k_cluster and c_cluster == k_cluster and len(c_entities & k_entities) >= 2:
+                    is_dup = True
+                    break
+            # Layer 5: one_line(한줄 요약) 유사도
+            if c_oneline:
+                k_oneline = _normalize_title(k.get("one_line", ""))
+                if k_oneline and SequenceMatcher(None, c_oneline, k_oneline).ratio() >= 0.50:
+                    is_dup = True
+                    break
 
         if is_dup:
             removed += 1
