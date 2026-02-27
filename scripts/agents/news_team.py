@@ -870,22 +870,42 @@ VALID_CATEGORIES = {"research", "models_products", "industry_business"}
 
 _CLASSIFY_PROMPT = """Output ONLY a JSON array. No markdown, no explanation. Start with '['.
 
-Classify each article into exactly ONE category — the best fit.
+Classify each article by following Step 1 → Step 2 → Step 3 in order. Stop at the first YES.
 
-## Categories
-- research: 논문, 연구 결과, 벤치마크, 알고리즘 발견 (학술/과학)
-- models_products: 모델·제품·도구의 출시, 공개, 업데이트 (사용 가능한 것)
-- industry_business: 투자, M&A, 규제, 전략, 시장 분석, 인사 등 비즈니스 전반
+## Step 1: research?
+YES if the article's **main subject** is a scientific/technical finding, method, or evaluation:
+- paper/논문/study/연구 published or presented
+- new algorithm, architecture, or training method proposed
+- benchmark/SOTA results or evaluation of methods
+- dataset released for research purposes
+- theoretical analysis, scaling law, survey of techniques
 
-## Examples
-"MIT, 트랜스포머 대체 아키텍처 논문 발표" → research
-"Alibaba Qwen 팀, Qwen 3.5 모델 시리즈 공개" → models_products
-"Meta, AMD와 수십억 달러 칩 계약 체결" → industry_business
-"논문 + 코드/모델 동시 공개" → research
-"AI 범죄 악용 우려 확산, 전문가 연구 필요 촉구" → industry_business (우려/경고 기사는 논문이 아님)
-"OpenAI COO, AI 시장 전망 발표" → industry_business (경영진 발언/분석)
-"Google, Gemma 3n 오픈소스 웨이트 공개" → models_products (사용 가능한 모델 공개)
-"Anthropic, AI Fluency Index 리포트 발표" → industry_business (리포트/인덱스 = 비즈니스)
+MUST contain at least one: paper, 논문, study, 연구, benchmark, SOTA, architecture, algorithm, method, dataset, evaluation, survey, scaling law, preprint, arXiv, findings, 발견
+
+NOT research (common traps):
+- "연구 필요 촉구" / "우려 확산" = opinion/industry, not a paper
+- company blog about strategy citing research ≠ research
+- industry report / index / whitepaper = industry_business
+- 경영진 발언에서 연구 언급 = industry_business
+
+## Step 2: models_products?
+YES if the article announces something users can **download, access, or use**:
+- model weights or API released/updated (출시/공개/업데이트/릴리스)
+- new app, tool, platform, SDK, framework launched
+- open-source release with usable artifact
+- new feature added to existing product (신기능)
+- pricing or availability change for a product
+
+Key test: "Can a developer or user DO something new after this announcement?"
+
+NOT models_products (common traps):
+- rumor/leak about upcoming product = industry_business
+- paper + code/weights released together → research (primary = paper)
+- partnership to "build" something future = industry_business
+- product comparison/review article = industry_business
+
+## Step 3: industry_business (default)
+Everything else: funding, M&A, regulation, strategy, market analysis, exec hires, opinions, events, partnerships, reports, forecasts, lawsuits, policy.
 
 Articles:
 {article_text}
