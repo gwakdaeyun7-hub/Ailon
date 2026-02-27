@@ -872,14 +872,17 @@ Output exactly {count} JSON object(s):
 # --- 스코어링 전용 프롬프트 (scoring only, category pre-assigned) ---
 _SCORE_PROMPT = """Output ONLY a single-line compact JSON array. No markdown, no explanation. Start with '['.
 
-Score each article on its ASSIGNED category dimensions (0-10 integers). Use ONLY the provided text. If information is insufficient, score LOW (1-2), not middle.
+Score each article on its ASSIGNED category dimensions (0-10 integers). Use ONLY the provided text.
 
-CRITICAL scoring distribution rule:
-- Most articles should score 2-5 on each dimension. This is NORMAL.
-- Score 7-8: top ~10% of articles. Requires strong, concrete evidence in the text.
-- Score 9-10: historic/landmark events only (1-2 per month in the entire AI industry).
-- Score 0-1: trivially irrelevant or content-free.
-- When uncertain between two scores, ALWAYS pick the LOWER one.
+IMPORTANT CONTEXT: These articles have already been curated as noteworthy AI news. They have passed multiple relevance filters, so they inherently carry value. Score them generously to reflect this pre-selection.
+
+Scoring distribution guide:
+- Most articles should score 6-8 on each dimension. This is the EXPECTED range for curated AI news.
+- Score 5: below-average article with limited substance or very narrow scope.
+- Score 3-4: genuinely low-value — vague rumors, trivial updates, or filler content.
+- Score 1-2: content-free or completely irrelevant (should be rare in curated feeds).
+- Score 9-10: major milestone or landmark event. Expected a few times per week in the fast-moving AI industry.
+- When uncertain between two scores, pick the HIGHER one — these articles earned their place in the feed.
 
 {scoring_rubric}
 

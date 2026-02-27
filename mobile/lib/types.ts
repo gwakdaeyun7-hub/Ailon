@@ -74,36 +74,54 @@ export interface LearnMoreLink {
 
 export interface DeepDive {
   history: string;              // 원리의 발견/발전 역사
+  history_en?: string;
   mechanism: string;            // 작동 원리 상세 설명
+  mechanism_en?: string;
   formula?: string;             // 수식/공식 (해당시)
   visualExplanation?: string;   // 시각적 설명 텍스트
   relatedPrinciples: string[];  // 관련 원리들
+  relatedPrinciples_en?: string[];
   modernRelevance: string;      // 현대적 의미/응용
+  modernRelevance_en?: string;
 }
 
 export interface PrincipleFoundation {
   principle: string;        // 기본 원리 설명
+  principle_en?: string;
   keyIdea: string;          // 핵심 아이디어 한 줄
+  keyIdea_en?: string;
   everydayAnalogy: string;  // 일상 비유
+  everydayAnalogy_en?: string;
   scientificContext?: string; // 학문에서의 중요성
+  scientificContext_en?: string;
   deepDive?: DeepDive;
 }
 
 export interface PrincipleApplication {
   applicationField: string;   // 응용 분야
+  applicationField_en?: string;
   description: string;         // 응용 설명
+  description_en?: string;
   mechanism: string;           // 응용 메커니즘
+  mechanism_en?: string;
   technicalTerms: string[];    // 관련 기술 용어
+  technicalTerms_en?: string[];
   bridgeRole?: string;         // 교량 역할
 }
 
 export interface PrincipleIntegration {
   problemSolved: string;       // 해결한 문제
+  problemSolved_en?: string;
   solution: string;            // 해결 방법
+  solution_en?: string;
   targetField: string;         // 영향받은 학문
+  targetField_en?: string;
   realWorldExamples: string[]; // 실제 사례들
+  realWorldExamples_en?: string[];
   impactField: string;         // 영향 분야
+  impactField_en?: string;
   whyItWorks: string;          // 왜 효과적인지
+  whyItWorks_en?: string;
 }
 
 export interface PrincipleVerification {
@@ -114,6 +132,7 @@ export interface PrincipleVerification {
 
 export interface Principle {
   title: string;  // 융합 사례 이름
+  title_en?: string;
   category: string;
   superCategory: string;
 
@@ -129,8 +148,11 @@ export interface DailyPrinciples {
   discipline_key: string;
   discipline_info: {
     name: string;
+    name_en?: string;
     focus: string;
+    focus_en?: string;
     ai_connection: string;
+    ai_connection_en?: string;
     superCategory: string;
   };
   principle: Principle;  // 단일 원리 (3단계 구조)

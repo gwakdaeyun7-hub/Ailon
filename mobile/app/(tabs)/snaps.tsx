@@ -46,6 +46,22 @@ function formatDate(dateStr?: string, lang?: string): string {
   }
 }
 
+// ─── 로컬라이즈 헬퍼 (영어 필드 우선, 없으면 한국어 폴백) ──────────────────
+function L(ko: string, en: string | undefined, lang: string): string {
+  if (lang === 'en' && en) return en;
+  return ko;
+}
+
+function LArr(ko: string[], en: string[] | undefined, lang: string): string[] {
+  if (lang === 'en' && en && en.length > 0) return en;
+  return ko;
+}
+
+function getDisciplineName(data: DailyPrinciples, lang: string): string {
+  if (lang === 'en' && data.discipline_info.name_en) return data.discipline_info.name_en;
+  return data.discipline_info.name;
+}
+
 // ─── 서브 탭 타입 ──────────────────────────────────────────────────────────
 type SubTab = 'insight' | 'deepdive';
 
@@ -151,11 +167,11 @@ function FoundationCard({ principle, lang }: { principle: Principle; lang: strin
           marginBottom: 8,
         }}
       >
-        {foundation.keyIdea}
+        {L(foundation.keyIdea, foundation.keyIdea_en, lang)}
       </Text>
 
       <Text style={{ fontSize: 15, lineHeight: 22, color: colors.textPrimary }}>
-        {foundation.principle}
+        {L(foundation.principle, foundation.principle_en, lang)}
       </Text>
 
       <CalloutBox>
@@ -163,7 +179,7 @@ function FoundationCard({ principle, lang }: { principle: Principle; lang: strin
           {lang === 'en' ? 'Everyday Analogy' : '일상 속 비유'}
         </Text>
         <Text style={{ fontSize: 14, lineHeight: 20, color: colors.textSecondary }}>
-          {foundation.everydayAnalogy}
+          {L(foundation.everydayAnalogy, foundation.everydayAnalogy_en, lang)}
         </Text>
       </CalloutBox>
     </View>
@@ -205,22 +221,22 @@ function ApplicationCard({ principle, lang }: { principle: Principle; lang: stri
         }}
       >
         <Text style={{ fontSize: 12, fontWeight: '700', color: colors.indigo }}>
-          {application.applicationField}
+          {L(application.applicationField, application.applicationField_en, lang)}
         </Text>
       </View>
 
       <Text style={{ fontSize: 15, lineHeight: 22, color: colors.textPrimary, marginBottom: 10 }}>
-        {application.description}
+        {L(application.description, application.description_en, lang)}
       </Text>
 
       <Text style={{ fontSize: 14, lineHeight: 20, color: colors.textSecondary, marginBottom: 14 }}>
-        {application.mechanism}
+        {L(application.mechanism, application.mechanism_en, lang)}
       </Text>
 
       {/* 기술 용어 칩 */}
       {application.technicalTerms.length > 0 && (
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-          {application.technicalTerms.map((term) => (
+          {LArr(application.technicalTerms, application.technicalTerms_en, lang).map((term) => (
             <Chip key={term} label={term} />
           ))}
         </View>
@@ -261,17 +277,17 @@ function IntegrationCard({ principle, lang }: { principle: Principle; lang: stri
           marginBottom: 8,
         }}
       >
-        {integration.problemSolved}
+        {L(integration.problemSolved, integration.problemSolved_en, lang)}
       </Text>
 
       <Text style={{ fontSize: 15, lineHeight: 22, color: colors.textPrimary, marginBottom: 14 }}>
-        {integration.solution}
+        {L(integration.solution, integration.solution_en, lang)}
       </Text>
 
       {/* 실제 사례 */}
       {integration.realWorldExamples.length > 0 && (
         <View style={{ marginBottom: 12 }}>
-          {integration.realWorldExamples.map((example, i) => (
+          {LArr(integration.realWorldExamples, integration.realWorldExamples_en, lang).map((example, i) => (
             <View key={i} style={{ flexDirection: 'row', marginBottom: 6, paddingRight: 8 }}>
               <Text style={{ fontSize: 14, color: colors.textSecondary, marginRight: 8 }}>•</Text>
               <Text style={{ fontSize: 14, lineHeight: 20, color: colors.textSecondary, flex: 1 }}>
@@ -287,7 +303,7 @@ function IntegrationCard({ principle, lang }: { principle: Principle; lang: stri
           {lang === 'en' ? 'Why It Works' : '왜 효과적인가'}
         </Text>
         <Text style={{ fontSize: 14, lineHeight: 20, color: colors.textSecondary }}>
-          {integration.whyItWorks}
+          {L(integration.whyItWorks, integration.whyItWorks_en, lang)}
         </Text>
       </CalloutBox>
     </View>
@@ -340,7 +356,7 @@ function DeepDiveContent({ deepDive, lang }: { deepDive: DeepDive; lang: string 
         title={lang === 'en' ? 'History' : '발견의 역사'}
       >
         <Text style={{ fontSize: 15, lineHeight: 22, color: colors.textPrimary }}>
-          {deepDive.history}
+          {L(deepDive.history, deepDive.history_en, lang)}
         </Text>
       </DeepDiveSection>
 
@@ -352,7 +368,7 @@ function DeepDiveContent({ deepDive, lang }: { deepDive: DeepDive; lang: string 
         title={lang === 'en' ? 'Mechanism' : '작동 원리'}
       >
         <Text style={{ fontSize: 15, lineHeight: 22, color: colors.textPrimary }}>
-          {deepDive.mechanism}
+          {L(deepDive.mechanism, deepDive.mechanism_en, lang)}
         </Text>
       </DeepDiveSection>
 
@@ -394,7 +410,7 @@ function DeepDiveContent({ deepDive, lang }: { deepDive: DeepDive; lang: string 
           title={lang === 'en' ? 'Related Principles' : '관련 원리'}
         >
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-            {deepDive.relatedPrinciples.map((rp) => (
+            {LArr(deepDive.relatedPrinciples, deepDive.relatedPrinciples_en, lang).map((rp) => (
               <Chip key={rp} label={rp} />
             ))}
           </View>
@@ -409,7 +425,7 @@ function DeepDiveContent({ deepDive, lang }: { deepDive: DeepDive; lang: string 
         title={lang === 'en' ? 'Modern Relevance' : '현대적 의의'}
       >
         <Text style={{ fontSize: 15, lineHeight: 22, color: colors.textPrimary }}>
-          {deepDive.modernRelevance}
+          {L(deepDive.modernRelevance, deepDive.modernRelevance_en, lang)}
         </Text>
       </DeepDiveSection>
     </>
@@ -479,7 +495,7 @@ export default function SnapsScreen() {
                 }}
               >
                 <Text style={{ fontSize: 11, fontWeight: '700', color: colors.primary }}>
-                  {principleData.discipline_info.name}
+                  {getDisciplineName(principleData, lang)}
                 </Text>
               </View>
               <Text style={{ fontSize: 12, color: colors.textSecondary }}>

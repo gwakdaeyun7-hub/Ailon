@@ -25,6 +25,24 @@ from agents.principle_seeds import PRINCIPLE_SEEDS
 # ─── KST 타임존 ───
 _KST = timezone(timedelta(hours=9))
 
+# ─── 학문 분야 한→영 매핑 ───
+_DISCIPLINE_NAME_EN: dict[str, str] = {
+    "제어공학": "Control Engineering",
+    "전기/전자공학": "Electrical & Electronic Engineering",
+    "정보/통신공학": "Information & Communications Engineering",
+    "최적화공학": "Optimization Engineering",
+    "로보틱스": "Robotics",
+    "물리학": "Physics",
+    "생물학": "Biology",
+    "신경과학": "Neuroscience",
+    "수학": "Mathematics",
+    "통계학": "Statistics",
+    "심리학/인지과학": "Psychology / Cognitive Science",
+    "경제학/게임이론": "Economics / Game Theory",
+    "철학/논리학": "Philosophy / Logic",
+    "언어학": "Linguistics",
+}
+
 
 # ─── State 정의 ───
 class PrincipleGraphState(TypedDict):
@@ -127,54 +145,93 @@ def seed_selector(state: PrincipleGraphState) -> dict:
 # ─── Node 2: content_generator ───
 _CONTENT_PROMPT = """당신은 학제간 AI 인사이트 콘텐츠 전문가입니다.
 아래 주어진 시드 데이터를 기반으로, 한국 공학계열 대학생을 위한 교육 콘텐츠를 JSON으로 생성하세요.
+한국어와 영어를 모두 생성해야 합니다. 영어 필드는 _en 접미사로 구분합니다.
 
-## 시드 데이터 (사실로 취급할 것)
+## 시드 데이터 (기본 방향으로 활용하되, 사실적 정확성을 우선할 것)
 - 학문 분야: {discipline_name}
 - 원리 이름: {principle_name} ({principle_name_en})
 - AI 연결점: {ai_connection} ({ai_connection_en})
 - 해결 문제: {problem_solved}
 
+## 핵심 원칙
+1. 역사적 사실을 정확히 기술할 것 (핵심 인물/년도/논문 포함)
+2. "직접적 영감(direct inspiration)"과 "구조적 유사성(structural analogy)"을 명확히 구분할 것
+3. 비유가 성립하지 않는 한계점도 application 섹션에서 반드시 언급할 것
+4. 확실하지 않은 연결은 "~로 해석되기도 한다" 식으로 표현할 것
+
 ## 출력 JSON 구조 (반드시 이 구조를 정확히 따를 것)
 
 {{
   "title": "{principle_name}과(와) {ai_connection}",
+  "title_en": "{principle_name_en} and {ai_connection_en}",
+  "connectionType": "direct_inspiration 또는 structural_analogy 또는 mathematical_foundation 중 하나 (이 원리-AI 연결의 성격을 정직하게 분류)",
   "foundation": {{
     "principle": "원리 설명 (3-4문장, {discipline_name}에서 이 원리가 무엇인지 설명)",
+    "principle_en": "Principle explanation in English (3-4 sentences)",
     "keyIdea": "핵심 아이디어 한 줄 요약",
+    "keyIdea_en": "Key idea one-line summary in English",
     "everydayAnalogy": "일상생활 비유로 쉽게 설명",
+    "everydayAnalogy_en": "Everyday analogy in English",
     "scientificContext": "{discipline_name}에서 이 원리의 중요성 (2-3문장)",
+    "scientificContext_en": "Scientific context in English (2-3 sentences)",
     "deepDive": {{
-      "history": "이 원리의 발견/발전 역사 (3-5문장)",
+      "history": "이 원리의 발견/발전 역사 (3-5문장, 반드시 핵심 인물과 년도 포함)",
+      "history_en": "History of discovery/development in English (3-5 sentences, must include key figures and years)",
       "mechanism": "작동 원리를 단계별로 상세 설명 (3-5문장)",
+      "mechanism_en": "Step-by-step mechanism in English (3-5 sentences)",
       "formula": "관련 수식이 있으면 LaTeX 형태로, 없으면 빈 문자열",
       "visualExplanation": "시각적으로 이해할 수 있는 설명 (도표나 프로세스를 글로 묘사)",
       "relatedPrinciples": ["관련 원리 1", "관련 원리 2"],
-      "modernRelevance": "현대 과학/기술에서의 의미 (2-3문장)"
+      "relatedPrinciples_en": ["Related principle 1 in English", "Related principle 2 in English"],
+      "modernRelevance": "현대 과학/기술에서의 의미 (2-3문장)",
+      "modernRelevance_en": "Modern relevance in English (2-3 sentences)"
     }}
   }},
   "application": {{
     "applicationField": "AI/머신러닝에서의 적용 분야",
+    "applicationField_en": "Application field in AI/ML in English",
     "description": "{ai_connection}이 어떻게 적용되는지 (3-4문장)",
-    "mechanism": "구체적 메커니즘 설명 (원리→AI 기술 변환 과정)",
+    "description_en": "How it is applied in English (3-4 sentences)",
+    "mechanism": "구체적 메커니즘 설명 (원리에서 AI 기술로의 변환 과정: 무엇이 보존되고 무엇이 추상화되었는지)",
+    "mechanism_en": "Specific mechanism in English (what was preserved and what was abstracted away)",
     "technicalTerms": ["관련 기술 용어1", "관련 기술 용어2", "관련 기술 용어3"],
-    "bridgeRole": "{discipline_name}의 {principle_name}이 AI에서 어떤 교량 역할을 하는지"
+    "technicalTerms_en": ["Technical term 1", "Technical term 2", "Technical term 3"],
+    "bridgeRole": "{discipline_name}의 {principle_name}이 AI에서 어떤 교량 역할을 하는지",
+    "limitations": "이 비유/연결이 성립하지 않는 한계점 (1-2문장)",
+    "limitations_en": "Where this analogy/connection breaks down (1-2 sentences)"
   }},
   "integration": {{
     "problemSolved": "{problem_solved}",
+    "problemSolved_en": "Problem solved in English",
     "solution": "이 원리를 적용해 어떻게 해결하는지 (2-3문장)",
+    "solution_en": "Solution in English (2-3 sentences)",
     "targetField": "영향받은 AI 세부 분야",
+    "targetField_en": "Target field in English",
     "realWorldExamples": ["실제 사례 1", "실제 사례 2", "실제 사례 3"],
+    "realWorldExamples_en": ["Real-world example 1", "Real-world example 2", "Real-world example 3"],
     "impactField": "이 통합이 가장 큰 영향을 미치는 분야",
-    "whyItWorks": "왜 이 접근이 효과적인지 (2-3문장)"
+    "impactField_en": "Impact field in English",
+    "whyItWorks": "왜 이 접근이 효과적인지 (2-3문장)",
+    "whyItWorks_en": "Why it works in English (2-3 sentences)",
+    "keyPapers": ["핵심 논문 (저자, 년도) 1", "핵심 논문 (저자, 년도) 2"],
+    "keyPapers_en": ["Key paper (Author, Year) 1", "Key paper (Author, Year) 2"]
   }}
 }}
 
 ## 작성 지침
-- 한국어로 작성하되, 전문 용어는 영어 병기 가능
-- 사실에 기반하여 작성 (시드 데이터의 원리-AI 매핑을 그대로 활용)
+- 한국어 필드는 한국어로 작성하되, 전문 용어는 영어 병기 가능
+- _en 접미사 필드는 자연스러운 영어로 작성 (번역투 금지)
+- 사실에 기반하여 작성 (확인 가능한 논문/인물/년도를 포함)
+- 연결의 강도를 정직하게 표현 (모든 연결이 직접적 영감은 아님을 인지)
 - 공학계열 대학생이 이해할 수 있는 수준으로 작성
 - 각 필드의 지시사항(문장 수 등)을 준수
-- JSON만 출력 (추가 설명 없이)"""
+- JSON만 출력 (추가 설명 없이)
+
+## 흔한 오류 주의사항
+- 역전파(Backpropagation)는 생물학적으로 비합리적(biologically implausible)함을 해당 시 명시할 것
+- 인공 신경망은 실제 뇌의 동작 방식과 근본적으로 다름을 인지할 것
+- 날짜/인물 확신이 없으면 "약 ~년" 또는 "~으로 알려져 있다"로 표현할 것
+- 사후적 비유(structural analogy)를 직접적 영감(direct inspiration)으로 오해하지 말 것"""
 
 
 @_safe_node("content_generator")
@@ -184,7 +241,7 @@ def content_generator(state: PrincipleGraphState) -> dict:
     if not seed:
         return {"errors": ["content_generator: seed가 비어있음"]}
 
-    llm = get_llm(temperature=0.7, max_tokens=8192, thinking=False, json_mode=True)
+    llm = get_llm(temperature=0.7, max_tokens=12288, thinking=False, json_mode=True)
 
     prompt = _CONTENT_PROMPT.format(
         discipline_name=seed["discipline_name"],
@@ -199,7 +256,7 @@ def content_generator(state: PrincipleGraphState) -> dict:
     content = json.loads(response.content)
 
     # 필수 키 검증
-    required_keys = {"title", "foundation", "application", "integration"}
+    required_keys = {"title", "connectionType", "foundation", "application", "integration"}
     missing = required_keys - set(content.keys())
     if missing:
         return {"errors": [f"content_generator: 필수 키 누락: {missing}"], "content": content}
@@ -209,10 +266,10 @@ def content_generator(state: PrincipleGraphState) -> dict:
 
 
 # ─── Node 3: verifier ───
-_VERIFY_PROMPT = """당신은 과학/공학 사실 검증 전문가입니다.
-아래 콘텐츠가 시드 데이터를 기반으로 사실적으로 정확한지 검증하세요.
+_VERIFY_PROMPT = """당신은 학제간 과학/공학 사실 검증 전문가입니다.
+아래 콘텐츠가 사실적으로 정확한지 엄격하게 검증하세요.
 
-## 시드 데이터 (정답 기준)
+## 시드 데이터 (참고용)
 - 학문 분야: {discipline_name}
 - 원리: {principle_name} ({principle_name_en})
 - AI 연결: {ai_connection} ({ai_connection_en})
@@ -221,16 +278,22 @@ _VERIFY_PROMPT = """당신은 과학/공학 사실 검증 전문가입니다.
 ## 검증 대상 콘텐츠
 {content_json}
 
-## 검증 기준
-1. 원리 설명이 {discipline_name}의 {principle_name}에 대해 사실적으로 정확한가?
-2. AI 적용 설명이 {ai_connection}과 실제로 관련 있는가?
-3. 전체적으로 팩트 오류가 없는가?
+## 검증 기준 (각 항목별로 평가)
+1. **원리 정확성**: {discipline_name}의 {principle_name} 설명이 학술적으로 정확한가? 핵심 인물/년도가 올바른가?
+2. **매핑 정확성**: 원리에서 AI 기술로의 연결이 실제로 존재하는 학술적 관계인가? 직접 영감인가, 사후적 비유인가?
+3. **연결 강도(connectionType)**: connectionType 분류가 적절한가? (direct_inspiration/structural_analogy/mathematical_foundation)
+4. **한계점(limitations)**: 비유의 한계가 정직하게 기술되었는가?
+5. **팩트 오류**: 날짜, 인물, 논문명 등 구체적 사실에 오류가 없는가?
+6. **과장 여부**: 연결의 강도가 과장되지 않았는가?
 
 ## 출력 (JSON만)
 {{
   "verified": true 또는 false,
-  "confidence": 0.0~1.0 (정확도에 대한 확신도),
-  "factCheck": "검증 이유를 1-2문장으로"
+  "confidence": 0.0~1.0 (전체 정확도에 대한 확신도),
+  "principleAccuracy": 0.0~1.0 (원리 설명 정확도),
+  "mappingAccuracy": 0.0~1.0 (원리-AI 매핑 정확도),
+  "factCheck": "검증 이유를 2-3문장으로",
+  "issues": ["발견된 문제점 1", "발견된 문제점 2"] 또는 빈 배열
 }}"""
 
 
@@ -251,7 +314,7 @@ def verifier(state: PrincipleGraphState) -> dict:
         ai_connection=seed["ai_connection"],
         ai_connection_en=seed["ai_connection_en"],
         problem_solved=seed["problem_solved"],
-        content_json=json.dumps(content, ensure_ascii=False, indent=2)[:4000],
+        content_json=json.dumps(content, ensure_ascii=False, indent=2)[:8000],
     )
 
     response = llm.invoke([HumanMessage(content=prompt)])
@@ -321,12 +384,16 @@ def assembler(state: PrincipleGraphState) -> dict:
         "discipline_key": seed["discipline"],
         "discipline_info": {
             "name": seed["discipline_name"],
+            "name_en": _DISCIPLINE_NAME_EN.get(seed["discipline_name"], seed["discipline_name"]),
             "focus": seed["principle_name"],
+            "focus_en": seed.get("principle_name_en", ""),
             "ai_connection": seed["ai_connection"],
+            "ai_connection_en": seed.get("ai_connection_en", ""),
             "superCategory": seed["super_category"],
         },
         "principle": {
             "title": content.get("title", ""),
+            "title_en": content.get("title_en", ""),
             "category": seed["discipline_name"],
             "superCategory": seed["super_category"],
             "foundation": content.get("foundation", {}),
