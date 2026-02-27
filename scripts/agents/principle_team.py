@@ -49,22 +49,58 @@ _DISCIPLINE_NAME_EN: dict[str, str] = {
 
 
 # ─── 안전 JSON 파싱 ───
+_VALID_JSON_ESCAPES = frozenset('"\\/bfnrtu')
+
+
+def _fix_invalid_escapes(s: str) -> str:
+    """JSON 표준 외 이스케이프(\LaTeX, \sigma 등)를 \\\\ 로 복구."""
+    result = []
+    i = 0
+    while i < len(s):
+        if s[i] == '\\' and i + 1 < len(s):
+            if s[i + 1] in _VALID_JSON_ESCAPES:
+                result.append(s[i:i+2])
+                i += 2
+            else:
+                result.append('\\\\')
+                i += 1
+        else:
+            result.append(s[i])
+            i += 1
+    return ''.join(result)
+
+
 def _safe_json_parse(text: str) -> dict:
-    """LLM 응답에서 JSON 추출. 코드펜스나 여분의 텍스트도 처리."""
+    """LLM 응답에서 JSON 추출. 코드펜스·잘못된 이스케이프도 처리."""
     text = text.strip()
     # 코드펜스 제거
     m = re.search(r'```(?:json)?\s*([\s\S]*?)```', text)
     if m:
         text = m.group(1).strip()
+
+    # 1차: 원본 시도
     try:
         return json.loads(text)
     except json.JSONDecodeError:
-        # JSON 부분만 추출 시도
-        start = text.find('{')
-        end = text.rfind('}')
+        pass
+
+    # 2차: invalid escape 복구 후 시도
+    fixed = _fix_invalid_escapes(text)
+    try:
+        return json.loads(fixed)
+    except json.JSONDecodeError:
+        pass
+
+    # 3차: JSON 영역만 추출
+    for candidate in [text, fixed]:
+        start = candidate.find('{')
+        end = candidate.rfind('}')
         if start != -1 and end != -1:
-            return json.loads(text[start:end+1])
-        raise
+            try:
+                return json.loads(candidate[start:end+1])
+            except json.JSONDecodeError:
+                continue
+    raise json.JSONDecodeError("No valid JSON found", text[:200], 0)
 
 
 def _llm_invoke_with_retry(llm, messages, max_retries: int = 3):

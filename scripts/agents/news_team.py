@@ -1287,6 +1287,11 @@ def _extract_entities_batch(batch: list[dict], batch_idx: int) -> list[dict]:
         for r in results:
             if isinstance(r, dict) and "index" in r:
                 idx_map[int(r["index"])] = r
+        # index 매칭 실패 시 순서 기반 폴백
+        if not idx_map and len(results) == len(batch):
+            for i, r in enumerate(results):
+                if isinstance(r, dict):
+                    idx_map[i] = r
 
         applied = 0
         for i, a in enumerate(batch):

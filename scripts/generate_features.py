@@ -252,6 +252,8 @@ Articles:
         llm = get_llm(temperature=0.2, max_tokens=4096, thinking=False, json_mode=True)
         resp = llm.invoke(prompt)
         quizzes = _parse_llm_json(resp.content if hasattr(resp, "content") else str(resp))
+        if isinstance(quizzes, dict):
+            quizzes = next((v for v in quizzes.values() if isinstance(v, list)), [])
         if not isinstance(quizzes, list) or len(quizzes) == 0:
             print("  [퀴즈 실패] 잘못된 응답 형식")
             return None
