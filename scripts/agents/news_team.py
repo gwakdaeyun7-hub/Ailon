@@ -73,6 +73,7 @@ class NewsGraphState(TypedDict):
     source_articles: dict[str, list[dict]]
     source_order: list[str]
     filtered_articles: list[dict]
+    deduped_articles: dict[str, list[dict]]
     total_count: int
     # 노드별 소요 시간 (초)
     node_timings: Annotated[dict[str, float], _merge_dicts]
@@ -722,9 +723,10 @@ def _extract_url_key(link: str) -> str:
     return f"{p.netloc.lower()}{path}"
 
 
-def _deduplicate_candidates(candidates: list[dict]) -> list[dict]:
+def _deduplicate_candidates(candidates: list[dict], mark_only: bool = False) -> list[dict]:
     """다층 중복 제거: URL 완전 일치 → 원본 제목 유사도 → 번역 제목 유사도.
-    발행일 가장 오래된(원본) 기사 유지."""
+    발행일 가장 오래된(원본) 기사 유지.
+    mark_only=True 면 제거 대신 _deduped=True 마킹 (전체 리스트 반환)."""
     if len(candidates) <= 1:
         return candidates
 
@@ -737,12 +739,15 @@ def _deduplicate_candidates(candidates: list[dict]) -> list[dict]:
     kept: list[dict] = []
     seen_urls: set[str] = set()
     removed = 0
+    dupes: list[dict] = []
 
     for c in sorted_cands:
         # Layer 1: URL 완전 일치
         url_key = _extract_url_key(c.get("link", ""))
         if url_key and url_key in seen_urls:
             removed += 1
+            c["_deduped"] = True
+            dupes.append(c)
             continue
 
         # Layer 2: 원본 제목(영문) 유사도
@@ -765,13 +770,19 @@ def _deduplicate_candidates(candidates: list[dict]) -> list[dict]:
 
         if is_dup:
             removed += 1
+            c["_deduped"] = True
+            dupes.append(c)
         else:
+            c["_deduped"] = False
             kept.append(c)
             if url_key:
                 seen_urls.add(url_key)
 
     if removed > 0:
         print(f"  [중복 제거] {removed}개 중복 기사 제거 ({len(candidates)} → {len(kept)}개)")
+
+    if mark_only:
+        return kept + dupes
     return kept
 
 
@@ -1252,17 +1263,20 @@ def categorizer_node(state: NewsGraphState) -> dict:
     if not candidates:
         return {"scored_candidates": [], "scorer_retry_count": 0}
 
-    candidates = _deduplicate_candidates(candidates)
+    candidates = _deduplicate_candidates(candidates, mark_only=True)
 
     today_count = 0
     for c in candidates:
         c["_is_today"] = _is_today(c)
         if c["_is_today"]:
             today_count += 1
-    print(f"  [분류] {len(candidates)}개 분류 중... (당일 {today_count}개)")
 
-    # 분류 대상: _llm_category가 없는 기사
-    need_classify = [(i, a) for i, a in enumerate(candidates) if not a.get("_llm_category")]
+    deduped_count = sum(1 for c in candidates if c.get("_deduped"))
+    unique_count = len(candidates) - deduped_count
+    print(f"  [분류] {unique_count}개 분류 중... (당일 {today_count}개, 중복 {deduped_count}개 보존)")
+
+    # 분류 대상: _llm_category가 없고 중복이 아닌 기사
+    need_classify = [(i, a) for i, a in enumerate(candidates) if not a.get("_llm_category") and not a.get("_deduped")]
     already_classified = sum(1 for a in candidates if a.get("_llm_category"))
     if already_classified:
         print(f"    [분류] {already_classified}개 이미 분류됨, {len(need_classify)}개 분류 필요")
@@ -1579,9 +1593,11 @@ def selector_node(state: NewsGraphState) -> dict:
     highlight_ids = set(id(c) for c in highlights)
     remaining = [c for c in candidates if id(c) not in highlight_ids]
 
-    # AI 필터 통과 기사와 필터 제외 기사 분리
-    passed = [a for a in remaining if not a.get("_ai_filtered")]
-    filtered_out = [a for a in remaining if a.get("_ai_filtered")]
+    # 중복 기사 / AI 필터 제외 / 통과 기사 분리
+    deduped_out = [a for a in remaining if a.get("_deduped")]
+    non_deduped = [a for a in remaining if not a.get("_deduped")]
+    passed = [a for a in non_deduped if not a.get("_ai_filtered")]
+    filtered_out = [a for a in non_deduped if a.get("_ai_filtered")]
 
     categorized: dict[str, list[dict]] = {k: [] for k in category_order}
     for a in passed:
@@ -1590,6 +1606,34 @@ def selector_node(state: NewsGraphState) -> dict:
             categorized[cat].append(a)
         else:
             categorized["industry_business"].append(a)
+
+    # 중복 기사를 원본 기사의 카테고리로 분류
+    for d in deduped_out:
+        # 중복 기사는 분류를 거치지 않았으므로, 제목 유사도로 원본 카테고리 추정
+        orig_title = _normalize_title(d.get("title", ""))
+        matched_cat = "industry_business"
+        for cat, articles in categorized.items():
+            for a in articles:
+                a_title = _normalize_title(a.get("title", ""))
+                if orig_title and a_title and SequenceMatcher(None, orig_title, a_title).ratio() >= DEDUP_THRESHOLD:
+                    matched_cat = cat
+                    break
+            else:
+                continue
+            break
+        d["_llm_category"] = matched_cat
+
+    # 카테고리별 중복 기사 분류
+    deduped_by_cat: dict[str, list[dict]] = {k: [] for k in category_order}
+    for d in deduped_out:
+        cat = d.get("_llm_category", "industry_business")
+        if cat in deduped_by_cat:
+            deduped_by_cat[cat].append(d)
+        else:
+            deduped_by_cat["industry_business"].append(d)
+    dedup_counts = {k: len(v) for k, v in deduped_by_cat.items() if v}
+    if dedup_counts:
+        print(f"  [중복 보존] 카테고리별: {dedup_counts}")
 
     # ── Step 3: 카테고리별 Top 25 + 당일 3개 보장 ──
     for cat in category_order:
@@ -1636,6 +1680,7 @@ def selector_node(state: NewsGraphState) -> dict:
         "categorized_articles": categorized,
         "category_order": category_order,
         "filtered_articles": filtered_out,
+        "deduped_articles": deduped_by_cat,
     }
 
 
@@ -1675,12 +1720,15 @@ def assembler_node(state: NewsGraphState) -> dict:
     )
 
     filtered_articles = state.get("filtered_articles", [])
+    deduped_articles = state.get("deduped_articles", {})
+    deduped_total = sum(len(v) for v in deduped_articles.values())
 
-    print(f"\n[DONE] 뉴스 파이프라인 완료: 총 {total}개 (+ AI 필터 제외 {len(filtered_articles)}개)")
+    print(f"\n[DONE] 뉴스 파이프라인 완료: 총 {total}개 (+ AI 필터 {len(filtered_articles)}개 + 중복 {deduped_total}개)")
     print(f"  하이라이트: {len(state.get('highlights', []))}개")
     print(f"  카테고리별: {sum(len(v) for v in state.get('categorized_articles', {}).values())}개")
     print(f"  소스별 섹션: {sum(len(v) for v in source_articles.values())}개")
     print(f"  AI 필터 제외: {len(filtered_articles)}개")
+    print(f"  중복 보존: {deduped_total}개")
 
     # 타이밍 리포트
     timings = state.get("node_timings", {})
@@ -1785,6 +1833,7 @@ def run_news_pipeline() -> dict:
         "source_articles": {},
         "source_order": [],
         "filtered_articles": [],
+        "deduped_articles": {},
         "total_count": 0,
         "node_timings": {},
         "errors": [],
@@ -1804,6 +1853,7 @@ def run_news_pipeline() -> dict:
         "source_articles": result.get("source_articles", {}),
         "source_order": result.get("source_order", []),
         "filtered_articles": result.get("filtered_articles", []),
+        "deduped_articles": result.get("deduped_articles", {}),
         "total_count": result.get("total_count", 0),
         "errors": errors,
     }

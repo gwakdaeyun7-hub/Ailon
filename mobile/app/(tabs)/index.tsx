@@ -823,12 +823,12 @@ const HScrollCard = React.memo(function HScrollCard({
 
 // ─── Section 2: 카테고리 탭 + 세로 리스트 ──────────────────────────────
 function CategoryTabSection({
-  categorizedArticles, categoryOrder, onArticlePress, allStats, filteredArticles,
+  categorizedArticles, categoryOrder, onArticlePress, allStats, filteredArticles, dedupedArticles,
 }: {
-  categorizedArticles: Record<string, Article[]>; categoryOrder: string[]; onArticlePress: (article: Article) => void; allStats: Record<string, BatchStats>; filteredArticles?: Article[];
+  categorizedArticles: Record<string, Article[]>; categoryOrder: string[]; onArticlePress: (article: Article) => void; allStats: Record<string, BatchStats>; filteredArticles?: Article[]; dedupedArticles?: Record<string, Article[]>;
 }) {
   const [activeTab, setActiveTab] = useState(categoryOrder[0] || 'research');
-  // 0=초기 5개, 1=전체 카테고리 기사, 2=AI 필터 제외 기사 포함
+  // 0=초기 5개, 1=전체 카테고리 기사, 2=+AI 필터 제외, 3=+중복 기사
   const [expandLevel, setExpandLevel] = useState(0);
   const { lang, t } = useLanguage();
   const { colors } = useTheme();
@@ -838,17 +838,23 @@ function CategoryTabSection({
     (filteredArticles || []).filter(a => a.category === activeTab),
     [filteredArticles, activeTab]
   );
+  const deduped = useMemo(() =>
+    (dedupedArticles || {})[activeTab] || [],
+    [dedupedArticles, activeTab]
+  );
   const stats = allStats;
 
   const visible = useMemo(() => {
     if (expandLevel === 0) return articles.slice(0, Math.min(5, articles.length));
     if (expandLevel === 1) return articles;
-    // expandLevel >= 2: 카테고리 기사 + 해당 카테고리의 AI 필터 제외 기사
-    return [...articles, ...filtered];
-  }, [articles, filtered, expandLevel]);
+    if (expandLevel === 2) return [...articles, ...filtered];
+    // expandLevel >= 3: 카테고리 기사 + AI 필터 제외 + 중복 기사
+    return [...articles, ...filtered, ...deduped];
+  }, [articles, filtered, deduped, expandLevel]);
 
   const remaining = expandLevel === 0 ? articles.length - Math.min(5, articles.length) : 0;
   const hasFiltered = expandLevel === 1 && filtered.length > 0;
+  const hasDeduped = expandLevel === 2 && deduped.length > 0;
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
@@ -990,6 +996,21 @@ function CategoryTabSection({
           <View style={{ paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}>
             <Text style={{ fontSize: 13, fontWeight: '700', color: colors.textLight }}>
               {lang === 'en' ? `+${filtered.length} filtered` : `+${filtered.length}개 필터 제외 기사`}
+            </Text>
+          </View>
+        </Pressable>
+      )}
+
+      {/* 더보기 3단계: 중복 제거된 기사 포함 */}
+      {hasDeduped && (
+        <Pressable
+          onPress={() => setExpandLevel(3)}
+          accessibilityRole="button"
+          style={{ alignItems: 'center', paddingVertical: 12, marginHorizontal: 16 }}
+        >
+          <View style={{ paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: colors.textLight }}>
+              {lang === 'en' ? `+${deduped.length} similar` : `+${deduped.length}개 유사 기사`}
             </Text>
           </View>
         </Pressable>
@@ -1367,6 +1388,7 @@ export default function NewsScreen() {
               onArticlePress={handleArticlePress}
               allStats={allStats}
               filteredArticles={newsData?.filtered_articles}
+              dedupedArticles={newsData?.deduped_articles}
             />
 
             {/* 구분선: 카테고리 → 소스별 */}

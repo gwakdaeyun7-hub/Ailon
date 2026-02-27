@@ -110,6 +110,12 @@ def save_news_to_firestore(result: dict):
     # AI 필터 제외 기사 (분류+점수 포함, 전체 파이프라인 통과)
     filtered_articles = _flatten_list(result.get("filtered_articles", []))
 
+    # 중복 제거된 기사 (카테고리별)
+    deduped_articles = {
+        cat: _flatten_list(articles)
+        for cat, articles in result.get("deduped_articles", {}).items()
+    }
+
     doc_ref = db.collection("daily_news").document(today)
     doc_data = {
         "date": today,
@@ -119,6 +125,7 @@ def save_news_to_firestore(result: dict):
         "source_articles": source_articles,
         "source_order": result.get("source_order", []),
         "filtered_articles": filtered_articles,
+        "deduped_articles": deduped_articles,
         "total_count": result.get("total_count", 0),
         "updated_at": firestore.SERVER_TIMESTAMP,
     }
