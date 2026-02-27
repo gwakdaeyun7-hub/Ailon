@@ -8,7 +8,6 @@ const translations: Record<string, Record<Language, string>> = {
   // ─── 탭 이름 ───
   'tab.news': { ko: 'AI 트렌드', en: 'AI Trends' },
   'tab.snaps': { ko: '학문 스낵', en: 'Snacks' },
-  'tab.ideas': { ko: '시너지 랩', en: 'Synergy' },
   'tab.saved': { ko: '저장', en: 'Saved' },
   'tab.profile': { ko: '프로필', en: 'Profile' },
 
@@ -63,11 +62,11 @@ const translations: Record<string, Record<Language, string>> = {
   'auth.google_login': { ko: 'Google로 로그인', en: 'Sign in with Google' },
   'auth.google_start': { ko: 'Google로 시작하기', en: 'Continue with Google' },
   'auth.login_failed': { ko: '로그인에 실패했어요. 다시 시도해주세요.', en: 'Login failed. Please try again.' },
-  'auth.tagline': { ko: 'AI 트렌드 / 학문 원리 / 융합 아이디어', en: 'AI Trends / Academic Principles / Synergy Ideas' },
+  'auth.tagline': { ko: 'AI 트렌드 / 학문 원리', en: 'AI Trends / Academic Principles' },
   'auth.discover': { ko: '매일 새로운 인사이트를 발견하세요', en: 'Discover new insights every day' },
   'auth.discover_desc': {
-    ko: 'AI 뉴스, 다양한 학문의 핵심 원리, 그리고\nAI와 학문이 만나는 융합 아이디어까지',
-    en: 'AI news, core principles from various fields,\nand ideas where AI meets academia',
+    ko: 'AI 뉴스와 다양한 학문의 핵심 원리를\n매일 새롭게 만나보세요',
+    en: 'AI news and core principles from various fields,\ndelivered fresh every day',
   },
   'auth.terms': {
     ko: '로그인하면 이용약관 및 개인정보처리방침에\n동의하는 것으로 간주됩니다.',
@@ -115,7 +114,6 @@ const translations: Record<string, Record<Language, string>> = {
   'saved.view_original': { ko: '원문 보기', en: 'View original' },
   'saved.type_news': { ko: '뉴스', en: 'News' },
   'saved.type_principle': { ko: '원리', en: 'Principles' },
-  'saved.type_idea': { ko: '아이디어', en: 'Ideas' },
 
   // ─── 스낵/원리 (snaps.tsx) ───
   'snaps.title': { ko: '학문 스낵', en: 'Snacks' },
@@ -141,11 +139,6 @@ const translations: Record<string, Record<Language, string>> = {
   'snaps.no_content_desc': { ko: '새로운 학문 인사이트를 준비하고 있어요', en: 'New academic insights are being prepared' },
   'principle.connection_error': { ko: '연결에 문제가 있어요', en: 'Connection error' },
   'principle.retry': { ko: '다시 시도', en: 'Retry' },
-
-  // ─── 아이디어 ───
-  'ideas.title': { ko: '시너지 랩', en: 'Synergy' },
-  'placeholder.preparing': { ko: '준비 중이에요', en: 'Coming soon' },
-  'placeholder.preparing_desc': { ko: '새로운 콘텐츠를 준비하고 있어요', en: 'New content is being prepared' },
 
   // ─── 소스 이름 ───
   'source.aitimes': { ko: 'AI타임스', en: 'AI Times' },

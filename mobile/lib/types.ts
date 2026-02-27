@@ -160,77 +160,6 @@ export interface DailyPrinciples {
 }
 
 // ---------------------------------------------------------------------------
-// Synergy Idea & Daily Synergy Ideas
-// ---------------------------------------------------------------------------
-
-export interface RoadmapPhase {
-  phase: number;
-  title: string;
-  duration: string;
-  tasks: string[];
-  techStack: string[];
-}
-
-export interface TechnicalRoadmap {
-  phases: RoadmapPhase[];
-  totalDuration: string;
-  techStack: string[];
-}
-
-export interface MarketFeasibility {
-  tam: string;
-  competitors: string[];
-  differentiation: string;
-  revenueModel: string;
-  feasibilityScore: number;
-}
-
-export interface SynergyIdea {
-  concept_name: string;
-  problem_addressed?: string;
-  description?: string;
-  narrative?: string;
-  key_innovation?: string;
-  target_users?: string;
-  implementation_sketch?: string;
-  required_tech?: string[];
-  feasibility_score?: number;
-  novelty_score?: number;
-  impact_score?: number;
-  total_score?: number;
-  challenges?: string[];
-  improvements?: string[];
-  tags?: string[];
-  first_step?: string;
-  implementation_plan?: {
-    today: string;
-    this_week: string;
-    this_month: string;
-  };
-  news_source?: { title: string; link: string };
-  principle_source?: { title: string; category: string; superCategory?: string };
-  technical_roadmap?: TechnicalRoadmap;
-  market_feasibility?: MarketFeasibility;
-}
-
-export interface DailySynergyIdeas {
-  date: string;
-  ideas: SynergyIdea[];
-  count: number;
-  source_news_count: number;
-  source_discipline: string;
-  source_principle: string;
-  agent_metadata?: {
-    problems_found: number;
-    ideas_generated: number;
-    ideas_evaluated: number;
-    ideas_final: number;
-    run_timestamp: string;
-  };
-  updated_at: Timestamp | string | null;
-}
-
-// ---------------------------------------------------------------------------
 // User Profile & Auth
 // ---------------------------------------------------------------------------
 
@@ -251,7 +180,7 @@ export interface BookmarkMeta {
 }
 
 export interface Bookmark {
-  type: 'news' | 'principle' | 'snap' | 'idea';
+  type: 'news' | 'principle' | 'snap';
   itemId: string;
   createdAt: Timestamp | string | null;
   metadata?: BookmarkMeta;
@@ -260,7 +189,7 @@ export interface Bookmark {
 export interface UserFeedback {
   id?: string;
   userId: string;
-  itemType: 'news' | 'snap' | 'idea';
+  itemType: 'news' | 'snap';
   itemId: string;
   reaction: 'like' | 'dislike';
   createdAt: Timestamp | string | null;

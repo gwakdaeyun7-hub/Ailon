@@ -9,7 +9,7 @@
 import React, { useMemo, useCallback } from 'react';
 import { View, Text, FlatList, Pressable, Linking, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Bookmark, ExternalLink, Trash2, Newspaper, BookOpen, Lightbulb } from 'lucide-react-native';
+import { Bookmark, ExternalLink, Trash2, Newspaper, BookOpen } from 'lucide-react-native';
 import { useAuth } from '@/hooks/useAuth';
 import { useBookmarks } from '@/hooks/useBookmarks';
 import { useLanguage } from '@/context/LanguageContext';
@@ -24,7 +24,6 @@ function useTypeConfig(colors: ThemeColors) {
     news: { label: t('saved.type_news'), color: colors.primary, bgColor: colors.primaryLight, Icon: Newspaper },
     snap: { label: t('saved.type_principle'), color: colors.coreTech, bgColor: colors.coreTechBg, Icon: BookOpen },
     principle: { label: t('saved.type_principle'), color: colors.coreTech, bgColor: colors.coreTechBg, Icon: BookOpen },
-    idea: { label: t('saved.type_idea'), color: colors.accent, bgColor: colors.warningLight, Icon: Lightbulb },
   } as const;
 }
 
@@ -126,14 +125,13 @@ export default function SavedScreen() {
     return db_ - da;
   }), [bookmarks]);
 
-  const { newsCount, snapCount, ideaCount } = useMemo(() => {
-    let news = 0, snap = 0, idea = 0;
+  const { newsCount, snapCount } = useMemo(() => {
+    let news = 0, snap = 0;
     for (const b of bookmarks) {
       if (b.type === 'news') news++;
       else if (b.type === 'snap' || b.type === 'principle') snap++;
-      else if (b.type === 'idea') idea++;
     }
-    return { newsCount: news, snapCount: snap, ideaCount: idea };
+    return { newsCount: news, snapCount: snap };
   }, [bookmarks]);
 
   const handleDelete = useCallback((bookmark: BookmarkType) => {
@@ -219,12 +217,6 @@ export default function SavedScreen() {
             <View style={{ flex: 1, backgroundColor: colors.coreTechBg, borderRadius: 14, paddingVertical: 12, alignItems: 'center', justifyContent: 'center', minHeight: 56 }}>
               <Text style={{ color: colors.coreTech, fontSize: 20, fontWeight: '800' }}>{snapCount}</Text>
               <Text style={{ color: colors.coreTech, fontSize: 11, fontWeight: '600', marginTop: 2 }}>{t('saved.type_principle')}</Text>
-            </View>
-          )}
-          {ideaCount > 0 && (
-            <View style={{ flex: 1, backgroundColor: colors.warningLight, borderRadius: 14, paddingVertical: 12, alignItems: 'center', justifyContent: 'center', minHeight: 56 }}>
-              <Text style={{ color: colors.accent, fontSize: 20, fontWeight: '800' }}>{ideaCount}</Text>
-              <Text style={{ color: colors.accent, fontSize: 11, fontWeight: '600', marginTop: 2 }}>{t('saved.type_idea')}</Text>
             </View>
           )}
         </View>
