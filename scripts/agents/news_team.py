@@ -480,8 +480,9 @@ def _llm_ai_filter_batch(articles: list[dict], source_key: str = "") -> set[int]
     article_text = ""
     for i, a in enumerate(articles):
         title = a.get("title", "")
-        desc = (a.get("description", "") or "")[:120]
-        article_text += f"\n[{i}] {title} | {desc}"
+        body = a.get("body", "")
+        context = body[:200] if body else (a.get("description", "") or "")[:200]
+        article_text += f"\n[{i}] {title} | {context}"
 
     if is_ko:
         prompt = f"""IMPORTANT: Output ONLY a valid JSON array of integers. No thinking, no markdown.
