@@ -218,27 +218,16 @@ const SourceBadge = React.memo(function SourceBadge({ sourceKey, name }: { sourc
   );
 });
 
-// ─── 점수 뱃지 (이슈 #10: 색상 토큰화) ──────────────────────────────────
+// ─── 점수 뱃지 ──────────────────────────────────────────────────────────
 function ScoreBadge({ article }: { article: Article }) {
   const { colors } = useTheme();
-  const { score, score_novelty: nov, score_rigor: rig, score_buzz: buzz,
-    score_utility: uti, score_impact: imp, score_access: acc,
-    score_market: mag, score_signal: sig, score_breadth: brd } = article;
+  const { score, category } = article;
   if (!score) return null;
-  const isBiz = !!(mag || sig || brd);
-  const isResearch = !!(nov || rig || buzz);
-  const isMP = !!(uti || imp || acc);
+  const color = category === 'industry_business' ? colors.scoreBiz
+    : category === 'research' ? colors.scoreResearch
+    : colors.scoreProduct;
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-      <Text style={{ fontSize: 11, color: isBiz ? colors.scoreBiz : isResearch ? colors.scoreResearch : colors.scoreProduct, fontWeight: '700' }}>{score}</Text>
-      {isBiz ? (
-        <Text style={{ fontSize: 11, color: colors.scoreBiz }}>M{mag} S{sig} B{brd}</Text>
-      ) : isResearch ? (
-        <Text style={{ fontSize: 11, color: colors.scoreResearch }}>N{nov} I{rig} B{buzz}</Text>
-      ) : isMP ? (
-        <Text style={{ fontSize: 11, color: colors.scoreProduct }}>U{uti} I{imp} A{acc}</Text>
-      ) : null}
-    </View>
+    <Text style={{ fontSize: 11, color, fontWeight: '700' }}>{score}</Text>
   );
 }
 

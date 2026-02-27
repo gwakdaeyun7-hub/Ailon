@@ -1,28 +1,17 @@
 """
 뉴스 수집 파이프라인 -- LangGraph 7-노드 (EN/KO 진정한 병렬 분기)
 
-collector --> [en_process, ko_process] (병렬 Send) --> categorizer --> scorer --> selector --> assembler
-                                                                       ^  |
-                                                                       +--+ (커버리지 < 90% 시 재시도)
+collector --> [en_process, ko_process] (병렬 Send) --> categorizer --> ranker --> selector --> assembler
 
 1. collector:     16개 소스 수집 + 이미지/본문 통합 스크래핑 + LLM AI 필터
 2. en_process:    영어 기사 번역+요약 (thinking 비활성화, 배치 5)  -- 병렬
 3. ko_process:    한국어 기사 요약 (thinking 비활성화, 배치 2)     -- 병렬
 4. categorizer:   LLM 카테고리 분류 (research / models_products / industry_business)
-5. scorer:        카테고리별 LLM 평가 (research: nov*4+imp*3+buzz*3, models_products: uti*4+imp*3+acc*3, industry_business: mag*4+sig*3+brd*3, 만점 100)
-6. selector:      하이라이트 Top 3 + 카테고리별 Top 25 + 품질 검증 (기존 ranker+classifier 통합)
+5. ranker:        카테고리별 직접 순위 매기기 (카테고리당 1회 LLM 호출, 순위→점수 역산: 1위=100, 꼴등=30)
+6. selector:      하이라이트 Top 3 + 카테고리별 Top 25 + 품질 검증
 7. assembler:     한국 소스별 분리 + 최종 결과 + 타이밍 리포트
 
-개선 사항:
-- EN/KO Send API 병렬 실행 (순차 -> 병렬, ~2x 속도 개선)
-- 노드별 에러 핸들링 (한 노드 실패 시 파이프라인 전체 중단 방지)
-- 불필요한 state 필드 제거 (en_done, ko_done, quality_retry, category_pool)
-- quality_gate 를 selector 에 통합 (실효 없는 노드 제거)
-- ranker + classifier 를 selector 로 통합 (둘 다 정렬/필터링만 수행, LLM 호출 없음)
-- 노드별 소요 시간 측정
-- sources Annotated 리듀서로 EN/KO 결과 안전 머지
-
-점수 체계: 카테고리별 차등 (research: nov*4+imp*3+buzz*3, models_products: uti*4+imp*3+acc*3, industry_business: mag*4+sig*3+brd*3, 만점 100)
+점수 체계: 카테고리별 전체 기사 순위 → 선형 보간 점수 (1위=100, 꼴등=30)
 """
 
 import json
@@ -66,7 +55,6 @@ class NewsGraphState(TypedDict):
     # sources: 소스키 -> 기사 리스트. EN/KO 병렬 노드가 각각 자기 소스만 반환하므로 merge 리듀서 사용.
     sources: Annotated[dict[str, list[dict]], _merge_dicts]
     scored_candidates: list[dict]
-    scorer_retry_count: int
     highlights: list[dict]
     categorized_articles: dict[str, list[dict]]
     category_order: list[str]
@@ -814,20 +802,7 @@ def _deduplicate_candidates(candidates: list[dict], mark_only: bool = False, thr
     return kept
 
 
-# ─── Node 4: categorizer (카테고리 분류) + Node 5: scorer (3 LLM차원, 병렬 배치) ───
-# research 가중치
-W_NOVELTY = 4       # 신규성/독창성 (research)
-W_RIGOR = 3         # 영향력/파급력 (research)
-W_BUZZ = 3          # 화제성/대중 관심 (research)
-# models_products 가중치
-W_UTILITY = 4       # 실용성 (models_products)
-W_IMPACT = 3        # 생태계 영향 (models_products)
-W_ACCESS = 3        # 접근성 (models_products)
-# industry_business 가중치
-W_MARKET = 4        # 시장 규모 (industry_business)
-W_SIGNAL = 3        # 전략적 시그널 (industry_business)
-W_BREADTH = 3       # 이해관계자 범위 (industry_business)
-SCORER_BATCH_SIZE = 5
+# ─── Node 4: categorizer (카테고리 분류) + Node 5: ranker (직접 순위) ───
 VALID_CATEGORIES = {"research", "models_products", "industry_business"}
 
 # --- 분류 전용 프롬프트 (classification only) ---
@@ -917,183 +892,118 @@ Articles:
 Output exactly {count} JSON object(s):
 [{{"i":0,"cat":"<category>"}}]"""
 
-# --- 스코어링 전용 프롬프트 (scoring only, category pre-assigned) ---
-_SCORE_PROMPT = """Output ONLY a single-line compact JSON array. No markdown, no explanation. Start with '['.
+# --- 랭킹 프롬프트 (카테고리별 직접 순위) ---
+_RANK_PROMPT = """Output ONLY a JSON array of integers. No markdown, no explanation. Start with '['.
 
-Score each article on its ASSIGNED category dimensions (0-10 integers). Use ONLY the provided text.
+You are ranking {count} AI news articles by importance and interest for someone who follows AI.
 
-CRITICAL SCORING RULES:
-
-1. USE THE FULL 1-10 RANGE. Do NOT default to safe middle scores. A score of 5 is mediocre, not average. Score 3 is poor. Score 7 is good. Score 9-10 is exceptional. Commit to your judgment.
-
-2. Scoring guidance:
-   - Routine update, minor patch, vague rumor → score 2-4
-   - Decent but unremarkable, incremental progress → score 5-6
-   - Genuinely notable, clear significance → score 7-8
-   - Groundbreaking, industry-shaping → score 9-10
-   Do NOT hedge everything to 5-7. If the article is weak, give it a low score.
-
-3. COMPARATIVE SCORING (when multiple articles are given):
-   - Compare all articles in this batch AGAINST EACH OTHER before assigning scores.
-   - The weakest article in the batch should receive scores in the 2-4 range.
-   - The strongest article in the batch should receive scores in the 8-10 range.
-   - SPREAD scores across the full range. If you give all articles similar scores, you are doing it wrong.
-   - Rank articles from weakest to strongest first, then assign scores that reflect their relative quality.
-   - The gap between the best and worst article's scores should be at least 4 points on each dimension.
-
-{scoring_rubric}
-
-## Calibration examples (use these as absolute anchors)
-{calibration_examples}
+Criteria (single question): "How important and interesting is this news to someone who actively follows AI?"
+Consider: significance of the event, potential impact, novelty, and broad appeal.
 
 Articles:
 {article_text}
 
-Output exactly {count} JSON object(s) as a single-line compact JSON array:
-{output_example}"""
+Output a JSON array of article indices ordered from MOST important to LEAST important.
+Example for 5 articles: [3, 0, 4, 1, 2] means article 3 is most important, article 2 is least.
 
-# --- 카테고리별 스코어링 루브릭 ---
-
-_RUBRIC_RESEARCH = """### Category: research -> score nov, imp, buzz (each 0-10 integer)
-- nov (Novelty): How new/original is the research compared to prior work?
-  1: Exact replication, trivial parameter change, or pure survey with no new insight
-  2-3: Minor variation of existing method, incremental SOTA improvement (<1%), routine benchmark evaluation
-  4-5: Meaningful improvement on existing framework — new dataset, better architecture, solid engineering contribution
-  6-7: New technique or architecture with clear novelty, significant SOTA improvement, introduces a useful concept
-  8: Changes the approach for its subfield — researchers will adopt this method
-  9: Opens an entirely new research direction or solves a long-standing open problem
-  10: Paradigm shift — will be in AI history textbooks (Transformer, AlphaFold, diffusion models)
-- imp (Impact): Downstream influence on follow-up research and industry
-  1: No practical follow-up expected, already superseded, or too narrow to matter
-  2-3: Cited only within a narrow subfield, no industry relevance
-  4-5: Useful reference for researchers in the specific area, may inspire follow-up work
-  6-7: Cross-field influence expected, open-source implementations likely, industry teams will evaluate
-  8: Major labs will immediately build on this, shifts competitive dynamics in the field
-  9: Reshapes R&D priorities across multiple organizations
-  10: Redirects the entire industry's R&D direction
-- buzz (Buzz): Would non-specialists find this interesting?
-  1: Extremely narrow technical niche, zero public interest
-  2-3: Only specialists in that exact subfield would care
-  4-5: Interesting to people who actively follow AI research
-  6-7: Tech media would cover it, generates discussion on social media
-  8: Mainstream media coverage, general public takes notice
-  9: Dominates tech news cycle for days, widely shared beyond AI community
-  10: Global headline news — even non-tech people discuss it"""
-
-_RUBRIC_MODELS_PRODUCTS = """### Category: models_products -> score uti, imp, acc (each 0-10 integer)
-- uti (Utility): How practically useful is this to end users right now?
-  1: Broken, unusable, or purely theoretical with no working artifact
-  2-3: Demo/experiment level — toy project, extremely narrow niche, or barely functional
-  4-5: Useful to a specific subset of developers/users, meaningful update to existing tool
-  6-7: Clearly useful to its target audience, improves existing workflows noticeably
-  8: Broadly applicable across many user segments, clear advantage over competitors
-  9: Immediately adopted by large user base, becomes a default tool in its category
-  10: Transforms how people work — everyone can use it (ChatGPT launch level)
-- imp (Impact): How much does this affect the AI ecosystem and industry?
-  1: Irrelevant to the broader ecosystem, no competitive significance
-  2-3: Bug fix, minor UI tweak, routine maintenance release
-  4-5: Meaningful update for existing users of that product, but limited industry effect
-  6-7: Affects competitive dynamics in its segment, competitors take notice
-  8: Raises the industry baseline — becomes the new standard others must match
-  9: Forces strategic pivots across multiple companies
-  10: Completely reshapes the industry landscape (GPT-4 launch, Llama 2 open-source level)
-- acc (Accessibility): How easy is it to access and use?
-  1: Announced but not available, or requires special partnership/NDA
-  2-3: Invite-only / closed beta / waitlist required / prohibitively expensive
-  4-5: Paid-only at reasonable price, or free tier with significant limitations
-  6-7: Free tier is genuinely usable, public API available, reasonable pricing
-  8: Open-source with weights available, free to use
-  9: Fully open-source with permissive license, easy to deploy
-  10: Fully open, permissive license, no restrictions on commercial use, plug-and-play"""
-
-_RUBRIC_INDUSTRY_BUSINESS = """### Category: industry_business -> score mag, sig, brd (each 0-10 integer)
-- mag (Magnitude): Scale and concreteness of the event
-  1: Vague rumor with no source, event promotion, or content-free announcement
-  2-3: Gossip, unconfirmed leak, minor hire, small event recap, opinion piece with no news
-  4-5: $10M-$100M deal, startup funding round, corporate partnership, notable executive move
-  6-7: $100M-$1B deal, major corporate strategy announcement, national-level regulation
-  8: $1B+ deal, Big Tech strategic pivot, major government policy shift
-  9: $5B+ deal, industry-reshaping M&A, multinational regulatory framework
-  10: $10B+ scale, once-in-a-decade industry restructuring (EU AI Act level)
-- sig (Signal): Strategic signal strength for industry direction
-  1: Routine operational news, press release with no substance
-  2-3: Repetitive pattern (minor quarterly earnings change), predictable move
-  4-5: Suggests a directional change for a specific company, reflects emerging industry trend
-  6-7: Signals competitive or strategic shift in the sector, prompts analyst commentary
-  8: Expected to trigger chain reactions across multiple companies, marks start of a new trend
-  9: Redefines competitive dynamics for an entire segment
-  10: Changes the rules of the game for the whole industry (OpenAI for-profit pivot, NVIDIA export controls)
-- brd (Breadth): Range of affected stakeholders
-  1: Internal issue of a single small company, no external relevance
-  2-3: Affects only direct competitors or a handful of stakeholders
-  4-5: Affects multiple companies in the same sector/vertical
-  6-7: Affects an entire industry segment or geographic region
-  8: Cross-industry impact, meaningful to general consumers
-  9: Affects global AI ecosystem plus adjacent industries
-  10: Global AI ecosystem + non-AI industries + general public all affected"""
-
-# 카테고리 -> 루브릭 매핑
-_RUBRIC_MAP = {
-    "research": _RUBRIC_RESEARCH,
-    "models_products": _RUBRIC_MODELS_PRODUCTS,
-    "industry_business": _RUBRIC_INDUSTRY_BUSINESS,
-}
-
-# 카테고리별 캘리브레이션 예시 (전 범위 1-10 분포 시연)
-_CALIBRATION_MAP = {
-    "research": (
-        '"Attention Is All You Need (Transformer)" -> {{"i":0,"nov":10,"imp":10,"buzz":9}}\n'
-        '"GPT-4 system card and benchmarks released" -> {{"i":1,"nov":7,"imp":8,"buzz":9}}\n'
-        '"New efficient attention mechanism, 40% speedup over baseline" -> {{"i":2,"nov":6,"imp":6,"buzz":4}}\n'
-        '"Grad student team improves image classification SOTA by 0.3%" -> {{"i":3,"nov":3,"imp":2,"buzz":1}}\n'
-        '"Survey paper on AI ethics published" -> {{"i":4,"nov":1,"imp":2,"buzz":3}}\n'
-        '"Novel 3D generation method achieving real-time rendering" -> {{"i":5,"nov":8,"imp":7,"buzz":6}}\n'
-        '"Minor ablation study on existing architecture hyperparameters" -> {{"i":6,"nov":2,"imp":1,"buzz":1}}'
-    ),
-    "models_products": (
-        '"OpenAI launches GPT-5 — 2x faster inference, 50% price cut" -> {{"i":0,"uti":10,"imp":10,"acc":8}}\n'
-        '"Meta releases Llama 4 open-source weights (405B)" -> {{"i":1,"uti":8,"imp":9,"acc":10}}\n'
-        '"Cursor AI code editor v0.45 — new autocomplete model" -> {{"i":2,"uti":6,"imp":5,"acc":7}}\n'
-        '"MLflow 2.16 artifact storage improvements" -> {{"i":3,"uti":4,"imp":3,"acc":8}}\n'
-        '"Small startup launches niche domain RAG tool in closed beta" -> {{"i":4,"uti":3,"imp":2,"acc":2}}\n'
-        '"Major cloud provider adds AI API with generous free tier" -> {{"i":5,"uti":7,"imp":7,"acc":9}}\n'
-        '"Obscure CLI tool patches a minor bug" -> {{"i":6,"uti":2,"imp":1,"acc":6}}'
-    ),
-    "industry_business": (
-        '"EU AI Act final enforcement — global AI regulation benchmark" -> {{"i":0,"mag":10,"sig":10,"brd":10}}\n'
-        '"Anthropic raises $4B at $60B valuation" -> {{"i":1,"mag":9,"sig":8,"brd":7}}\n'
-        '"Mid-stage AI startup raises $50M Series B" -> {{"i":2,"mag":5,"sig":5,"brd":4}}\n'
-        '"AI conference recap / industry trend opinion column" -> {{"i":3,"mag":2,"sig":3,"brd":3}}\n'
-        '"CEO interview: mentions future AI outlook vaguely" -> {{"i":4,"mag":2,"sig":2,"brd":2}}\n'
-        '"Google restructures AI division, merges DeepMind and Brain" -> {{"i":5,"mag":8,"sig":9,"brd":8}}\n'
-        '"Local AI meetup event announcement" -> {{"i":6,"mag":1,"sig":1,"brd":1}}'
-    ),
-}
-
-# 카테고리별 출력 예시 (배치 1 기준 — 다양한 점수 시연)
-_OUTPUT_EXAMPLE_MAP = {
-    "research": '[{{"i":0,"nov":2,"imp":3,"buzz":1}},{{"i":1,"nov":5,"imp":4,"buzz":3}},{{"i":2,"nov":7,"imp":6,"buzz":5}},{{"i":3,"nov":9,"imp":8,"buzz":7}},{{"i":4,"nov":3,"imp":2,"buzz":2}}]',
-    "models_products": '[{{"i":0,"uti":3,"imp":2,"acc":4}},{{"i":1,"uti":6,"imp":5,"acc":7}},{{"i":2,"uti":9,"imp":8,"acc":6}},{{"i":3,"uti":4,"imp":3,"acc":8}},{{"i":4,"uti":7,"imp":7,"acc":9}}]',
-    "industry_business": '[{{"i":0,"mag":2,"sig":3,"brd":2}},{{"i":1,"mag":5,"sig":4,"brd":3}},{{"i":2,"mag":8,"sig":7,"brd":6}},{{"i":3,"mag":3,"sig":2,"brd":1}},{{"i":4,"mag":9,"sig":8,"brd":7}}]',
-}
+Output exactly {count} indices (0 to {count_minus_1}):"""
 
 
-_scorer_lock = __import__("threading").Lock()
-_scorer_call_ts: list[float] = []  # 최근 API 호출 시각 기록
+def _rank_to_score(rank: int, total: int) -> int:
+    """순위(0-based)에서 점수를 선형 보간. 1위=100, 꼴등=30."""
+    if total <= 1:
+        return 100
+    return round(100 - (100 - 30) * rank / (total - 1))
 
 
-def _scorer_throttle():
-    """Gemini 레이트리밋 방지: 최근 5초 내 호출이 3개 이상이면 대기"""
-    wait = 0
-    with _scorer_lock:
-        now = time.time()
-        _scorer_call_ts[:] = [t for t in _scorer_call_ts if now - t < 5]
-        if len(_scorer_call_ts) >= 3:
-            wait = 5.0 - (now - _scorer_call_ts[0]) + 0.2
-    if wait > 0:
-        time.sleep(wait)
-    with _scorer_lock:
-        _scorer_call_ts.append(time.time())
+def _rank_category(articles: list[dict], category: str) -> list[tuple[int, int, int]]:
+    """카테고리 내 기사들의 순위를 LLM으로 매김.
+
+    Returns: list of (local_idx, rank_0based, score)
+    """
+    count = len(articles)
+    if count == 0:
+        return []
+    if count == 1:
+        return [(0, 0, 100)]
+
+    article_text = ""
+    for i, a in enumerate(articles):
+        title = a.get("display_title") or a.get("title", "")
+        body = a.get("body", "")
+        context = body[:500] if body else (a.get("description", "") or "")[:200]
+        article_text += f"\n[{i}] {title} | {context}"
+
+    prompt = _RANK_PROMPT.format(
+        count=count,
+        count_minus_1=count - 1,
+        article_text=article_text,
+    )
+
+    try:
+        llm = get_llm(temperature=0.0, max_tokens=2048, thinking=False, json_mode=True)
+        content = _llm_invoke_with_retry(llm, prompt, max_retries=2)
+        ranking = _parse_llm_json(content)
+
+        # 응답이 dict인 경우 배열 추출
+        if isinstance(ranking, dict):
+            ranking = next((v for v in ranking.values() if isinstance(v, list)), [])
+
+        if not isinstance(ranking, list):
+            raise ValueError(f"Expected list, got {type(ranking)}")
+
+        # 유효성 검증: 모든 인덱스가 0~count-1 범위 내
+        int_ranking = []
+        for r in ranking:
+            try:
+                idx = int(r)
+                if 0 <= idx < count:
+                    int_ranking.append(idx)
+            except (ValueError, TypeError):
+                continue
+
+        # 중복/누락 처리
+        seen = set()
+        deduped = []
+        for idx in int_ranking:
+            if idx not in seen:
+                seen.add(idx)
+                deduped.append(idx)
+
+        # 누락된 인덱스를 뒤에 추가
+        for i in range(count):
+            if i not in seen:
+                deduped.append(i)
+
+        if len(deduped) != count:
+            raise ValueError(f"Ranking length mismatch: {len(deduped)} vs {count}")
+
+        results = []
+        for rank, local_idx in enumerate(deduped):
+            score = _rank_to_score(rank, count)
+            results.append((local_idx, rank, score))
+
+        # 로그: Top 5
+        print(f"    [{category}] 순위 결정 ({count}개):")
+        for local_idx, rank, score in sorted(results, key=lambda x: x[1])[:5]:
+            title = (articles[local_idx].get("display_title") or articles[local_idx].get("title", ""))[:50]
+            print(f"      #{rank+1} [{score}점] {title}")
+
+        return results
+
+    except Exception as e:
+        print(f"    [RANKER 폴백] {category}: {e} — published 최신순 사용")
+        # 폴백: published 날짜 최신순
+        indexed = list(range(count))
+        indexed.sort(
+            key=lambda i: articles[i].get("published", ""),
+            reverse=True,
+        )
+        results = []
+        for rank, local_idx in enumerate(indexed):
+            score = _rank_to_score(rank, count)
+            results.append((local_idx, rank, score))
+        return results
 
 
 CLASSIFY_BATCH_SIZE = 1
@@ -1113,7 +1023,6 @@ def _classify_batch(batch: list[dict], offset: int) -> list[dict]:
 
     prompt = _CLASSIFY_PROMPT.format(article_text=article_text, count=len(batch))
     try:
-        _scorer_throttle()
         llm = get_llm(temperature=0.0, max_tokens=2048, thinking=False, json_mode=True)
         content = _llm_invoke_with_retry(llm, prompt, max_retries=2)
         results = _parse_llm_json(content)
@@ -1192,145 +1101,6 @@ def _classify_batch_with_retry(batch: list[dict], offset: int) -> list[dict]:
     return results
 
 
-def _score_batch(batch: list[dict], offset: int, category: str = "") -> list[dict]:
-    """스코어링 전용 LLM 호출. 카테고리가 확정된 기사 배치를 받아 점수만 반환.
-
-    Args:
-        batch: 기사 리스트 (모두 같은 카테고리)
-        offset: 글로벌 인덱스 오프셋
-        category: 확정된 카테고리 (research / models_products / industry_business)
-    """
-    if not category:
-        print(f"    [SCORER ERROR] category 미지정, offset={offset}")
-        return []
-
-    scoring_rubric = _RUBRIC_MAP.get(category, _RUBRIC_MAP["models_products"])
-    calibration_examples = _CALIBRATION_MAP.get(category, _CALIBRATION_MAP["models_products"])
-    output_example = _OUTPUT_EXAMPLE_MAP.get(category, _OUTPUT_EXAMPLE_MAP["models_products"])
-
-    article_text = ""
-    for i, a in enumerate(batch):
-        title = a.get("display_title") or a.get("title", "")
-        body = a.get("body", "")
-        context = body[:500] if body else a.get("description", "")[:200]
-        article_text += f"\n[{i}] {title} | {context}"
-
-    prompt = _SCORE_PROMPT.format(
-        scoring_rubric=scoring_rubric,
-        calibration_examples=calibration_examples,
-        article_text=article_text,
-        count=len(batch),
-        output_example=output_example,
-    )
-    try:
-        _scorer_throttle()  # 레이트리밋 방지
-        llm = get_llm(temperature=0.0, max_tokens=4096, thinking=False, json_mode=True)
-        content = _llm_invoke_with_retry(llm, prompt, max_retries=2)
-        scores = _parse_llm_json(content)
-        if not isinstance(scores, list):
-            scores = next((v for v in scores.values() if isinstance(v, list)), [])
-
-        # 빈 응답 진단 (레이트리밋으로 [] 또는 {} 반환 시)
-        if not scores:
-            preview = str(content)[:150] if content else "EMPTY"
-            print(f"    [SCORER 빈 응답] offset={offset}, cat={category}, size={len(batch)}, raw={preview}")
-            return []
-
-        for s in scores:
-            if isinstance(s, dict):
-                raw_idx = s.get("i", s.get("index", -1))
-                try:
-                    s["_global_idx"] = offset + int(raw_idx)
-                except (ValueError, TypeError):
-                    pass
-
-        # 폴백: "i" 필드 없지만 개수가 맞으면 순서대로 매핑
-        valid = [s for s in scores if isinstance(s, dict) and "_global_idx" in s]
-        if not valid and len([s for s in scores if isinstance(s, dict)]) == len(batch):
-            print(f"    [SCORER 폴백] i값 없음 → 순서 매핑 (offset={offset}, {len(batch)}개)")
-            for idx, s in enumerate(scores):
-                if isinstance(s, dict):
-                    s["_global_idx"] = offset + idx
-            valid = [s for s in scores if isinstance(s, dict) and "_global_idx" in s]
-
-        if len(valid) < len(batch):
-            raw_indices = [s.get("i", s.get("index", "MISSING")) for s in scores if isinstance(s, dict)]
-            print(f"    [SCORER 진단] offset={offset}, cat={category}, 요청={len(batch)}개, 파싱={len(scores)}개, 유효={len(valid)}개, i값={raw_indices}")
-        return valid
-    except Exception as e:
-        print(f"    [SCORER ERROR] 배치 offset={offset}, cat={category}, size={len(batch)}: {type(e).__name__}: {e}")
-        return []
-
-
-def _score_batch_with_retry(batch: list[dict], offset: int, category: str = "") -> list[dict]:
-    """스코어링 배치 재시도: 실패 시 배치 분할."""
-    scores = _score_batch(batch, offset, category)
-    if not scores:
-        if len(batch) <= 1:
-            return []
-        mid = len(batch) // 2
-        print(f"    [RETRY] 배치 분할: {len(batch)}개 -> {mid} + {len(batch) - mid}")
-        left = _score_batch(batch[:mid], offset, category)
-        right = _score_batch(batch[mid:], offset + mid, category)
-        scores = left + right
-    # 부분 성공: 누락된 기사 개별 재시도
-    if 0 < len(scores) < len(batch):
-        scored_indices = {s.get("_global_idx", -1) - offset for s in scores}
-        missing = [(i, batch[i]) for i in range(len(batch)) if i not in scored_indices]
-        if missing:
-            print(f"    [RETRY] 부분 누락 {len(missing)}개 개별 재시도")
-            for mi, article in missing:
-                single = _score_batch([article], offset + mi, category)
-                scores.extend(single)
-    return scores
-
-
-def _apply_scores_to_candidate(candidate: dict, score_dict: dict, category: str) -> None:
-    """스코어링 결과를 기사 dict에 적용. 카테고리에 맞는 점수만 설정."""
-    # 점수 필드 초기화
-    candidate["_score_novelty"] = 0
-    candidate["_score_rigor"] = 0
-    candidate["_score_buzz"] = 0
-    candidate["_score_utility"] = 0
-    candidate["_score_impact"] = 0
-    candidate["_score_access"] = 0
-    candidate["_score_market"] = 0
-    candidate["_score_signal"] = 0
-    candidate["_score_breadth"] = 0
-
-    if category == "research":
-        nov = min(10, max(0, score_dict.get("nov", 0)))
-        imp = min(10, max(0, score_dict.get("imp", 0)))
-        buzz = min(10, max(0, score_dict.get("buzz", 0)))
-        candidate["_score_novelty"] = nov
-        candidate["_score_rigor"] = imp
-        candidate["_score_buzz"] = buzz
-        candidate["_total_score"] = nov * W_NOVELTY + imp * W_RIGOR + buzz * W_BUZZ
-    elif category == "industry_business":
-        mag = min(10, max(0, score_dict.get("mag", 0)))
-        sig = min(10, max(0, score_dict.get("sig", 0)))
-        brd = min(10, max(0, score_dict.get("brd", 0)))
-        candidate["_score_market"] = mag
-        candidate["_score_signal"] = sig
-        candidate["_score_breadth"] = brd
-        candidate["_total_score"] = mag * W_MARKET + sig * W_SIGNAL + brd * W_BREADTH
-    else:  # models_products
-        utility = min(10, max(0, score_dict.get("uti", 0)))
-        impact = min(10, max(0, score_dict.get("imp", 0)))
-        access = min(10, max(0, score_dict.get("acc", 0)))
-        candidate["_score_utility"] = utility
-        candidate["_score_impact"] = impact
-        candidate["_score_access"] = access
-        candidate["_total_score"] = utility * W_UTILITY + impact * W_IMPACT + access * W_ACCESS
-    candidate["_llm_scored"] = True
-
-    if candidate.get("_total_score", 0) >= 80:
-        title = (candidate.get("display_title") or candidate.get("title", ""))[:40]
-        actual_cat = candidate.get("_llm_category", "?")
-        mismatch = " !! MISMATCH" if actual_cat != category else ""
-        print(f"    [HIGH SCORE 진단] scored_as={category}, llm_cat={actual_cat}{mismatch}, score={candidate['_total_score']}, raw={score_dict} | {title}")
-
-
 @_safe_node("categorizer")
 def categorizer_node(state: NewsGraphState) -> dict:
     """카테고리 분류 노드.
@@ -1345,7 +1115,7 @@ def categorizer_node(state: NewsGraphState) -> dict:
             candidates.append(a)
 
     if not candidates:
-        return {"scored_candidates": [], "scorer_retry_count": 0}
+        return {"scored_candidates": []}
 
     candidates = _deduplicate_candidates(candidates, mark_only=True)
 
@@ -1408,156 +1178,63 @@ def categorizer_node(state: NewsGraphState) -> dict:
         count = sum(1 for a in candidates if a.get("_llm_category") == cat)
         print(f"    [그룹] {cat}: {count}개")
 
-    return {"scored_candidates": candidates, "scorer_retry_count": 0}
+    return {"scored_candidates": candidates}
 
 
-@_safe_node("scorer")
-def scorer_node(state: NewsGraphState) -> dict:
-    """카테고리별 LLM 스코어링.
-
-    categorizer_node에서 _llm_category가 설정된 기사를 받아
-    카테고리별 그룹화 후 _score_batch로 점수만 부여한다.
-    """
-    retry_count = state.get("scorer_retry_count", 0)
+@_safe_node("ranker")
+def ranker_node(state: NewsGraphState) -> dict:
+    """카테고리별 직접 순위 매기기. 카테고리당 1회 LLM 호출."""
     candidates = state.get("scored_candidates", [])
-
     if not candidates:
-        return {"scored_candidates": [], "scorer_retry_count": retry_count + 1}
+        return {"scored_candidates": []}
 
-    if retry_count > 0:
-        for c in candidates:
-            if not c.get("_llm_scored"):
-                c.pop("_total_score", None)
+    # 카테고리별 그룹화 (deduped 제외)
+    cat_groups: dict[str, list[tuple[int, dict]]] = {
+        "research": [], "models_products": [], "industry_business": [],
+    }
+    for i, a in enumerate(candidates):
+        if a.get("_deduped"):
+            continue
+        cat = a.get("_llm_category", "industry_business")
+        cat_groups.get(cat, cat_groups["industry_business"]).append((i, a))
 
-    unscored_pairs = [(i, candidates[i]) for i in range(len(candidates)) if not candidates[i].get("_llm_scored") and not candidates[i].get("_deduped")]
-    # 정렬: (index, article) 쌍을 함께 정렬하여 인덱스 매핑 유지
-    unscored_pairs.sort(key=lambda x: (x[1].get("link", ""), x[1].get("title", "")))
-    unscored_indices = [i for i, _ in unscored_pairs]
-    unscored = [a for _, a in unscored_pairs]
-
-    print(f"  [스코어링] {len(unscored)}/{len(candidates)}개 평가 중...")
-
-    if unscored:
-
-        # 카테고리별 그룹화 (3개 카테고리 모두 스코어링)
-        SCORED_CATEGORIES = {"research", "models_products", "industry_business"}
-        cat_groups: dict[str, list[tuple[int, dict]]] = {cat: [] for cat in SCORED_CATEGORIES}
-        for i, a in enumerate(unscored):
-            cat = a.get("_llm_category", "industry_business")
-            if cat not in cat_groups:
-                cat_groups["industry_business"].append((i, a))
-            else:
-                cat_groups[cat].append((i, a))
-
-        for cat, group in cat_groups.items():
+    for cat, group in cat_groups.items():
+        if group:
             print(f"    [그룹] {cat}: {len(group)}개")
 
-        # 카테고리별 스코어링 (병렬 배치)
-        batch_size = SCORER_BATCH_SIZE if retry_count == 0 else max(1, SCORER_BATCH_SIZE // 2)
-
-        # 모든 카테고리의 배치를 평탄화하여 병렬 제출
-        all_score_tasks: list[tuple[list[dict], list[int], int, str]] = []  # (batch_articles, batch_local_indices, offset, category)
+    # 3개 카테고리 병렬 랭킹
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        futures = {}
         for cat, group in cat_groups.items():
-            if not group:
-                continue
-            group_articles = [a for _, a in group]
-            group_local_indices = [i for i, _ in group]
-            for b_start in range(0, len(group_articles), batch_size):
-                b_articles = group_articles[b_start:b_start + batch_size]
-                b_indices = group_local_indices[b_start:b_start + batch_size]
-                all_score_tasks.append((b_articles, b_indices, b_start, cat))
+            if group:
+                articles = [a for _, a in group]
+                futures[executor.submit(_rank_category, articles, cat)] = (cat, group)
 
-        print(f"    [스코어링] {len(all_score_tasks)}개 배치 병렬 실행")
+        for future in as_completed(futures):
+            cat, group = futures[future]
+            try:
+                ranked = future.result()
+                for local_idx, rank, score in ranked:
+                    global_idx = group[local_idx][0]
+                    candidates[global_idx]["_rank"] = rank
+                    candidates[global_idx]["_total_score"] = score
+                    candidates[global_idx]["_llm_scored"] = True
+            except Exception as e:
+                print(f"  [RANKER ERROR] {cat}: {e}")
 
-        with ThreadPoolExecutor(max_workers=3) as executor:
-            future_to_score = {
-                executor.submit(_score_batch_with_retry, task[0], task[2], task[3]): task
-                for task in all_score_tasks
-            }
-            batch_done = 0
-            for future in as_completed(future_to_score):
-                task = future_to_score[future]
-                b_articles, b_indices, b_offset, cat = task
-                batch_done += 1
-                try:
-                    scores = future.result()
-                except Exception as e:
-                    print(f"    [SCORER ERROR] {cat} 배치 future 실패: {e}")
-                    continue
+    # deduped 기사: 최하위 점수
+    for a in candidates:
+        if a.get("_deduped") and "_total_score" not in a:
+            a["_total_score"] = 20
+            a["_rank"] = 9999
 
-                applied = 0
-                for s in scores:
-                    global_idx = s.get("_global_idx", -1)
-                    batch_local = global_idx - b_offset
-                    if 0 <= batch_local < len(b_articles):
-                        unscored_local = b_indices[batch_local]
-                        gi = unscored_indices[unscored_local]
-                        _apply_scores_to_candidate(candidates[gi], s, cat)
-                        applied += 1
+    # 미랭킹 기사 폴백
+    for a in candidates:
+        if "_total_score" not in a:
+            a["_total_score"] = 25
+            a["_rank"] = 9999
 
-                print(f"    스코어 배치 {batch_done}/{len(all_score_tasks)} ({cat}): {applied}/{len(b_articles)}개")
-
-    # 폴백: 미평가 기사에 카테고리별 낮은 기본 점수
-    for c in candidates:
-        cat = c.get("_llm_category", "industry_business")
-        if "_total_score" not in c:
-            c["_score_novelty"] = 0
-            c["_score_rigor"] = 0
-            c["_score_buzz"] = 0
-            c["_score_utility"] = 0
-            c["_score_impact"] = 0
-            c["_score_access"] = 0
-            c["_score_market"] = 0
-            c["_score_signal"] = 0
-            c["_score_breadth"] = 0
-            if cat == "research":
-                c["_score_novelty"] = 2
-                c["_score_rigor"] = 2
-                c["_score_buzz"] = 2
-                c["_total_score"] = 2 * W_NOVELTY + 2 * W_RIGOR + 2 * W_BUZZ
-            elif cat == "models_products":
-                c["_score_utility"] = 2
-                c["_score_impact"] = 2
-                c["_score_access"] = 2
-                c["_total_score"] = 2 * W_UTILITY + 2 * W_IMPACT + 2 * W_ACCESS
-            else:
-                c["_score_market"] = 2
-                c["_score_signal"] = 2
-                c["_score_breadth"] = 2
-                c["_total_score"] = 2 * W_MARKET + 2 * W_SIGNAL + 2 * W_BREADTH
-
-    llm_count = len([c for c in candidates if c.get("_llm_scored")])
-    print(f"  [스코어링] LLM 평가: {llm_count}/{len(candidates)}개")
-
-    # 카테고리별 점수 통계
-    for cat in ("research", "models_products", "industry_business"):
-        cat_articles = [c for c in candidates if c.get("_llm_category") == cat and c.get("_llm_scored")]
-        if not cat_articles:
-            continue
-        scores = [c.get("_total_score", 0) for c in cat_articles]
-        avg_s = sum(scores) / len(scores)
-        print(f"    [{cat}] {len(cat_articles)}개 | 평균 {avg_s:.1f} | 최소 {min(scores)} | 최대 {max(scores)}")
-        for rank, c in enumerate(sorted(cat_articles, key=lambda x: x.get("_total_score", 0), reverse=True)[:3]):
-            title = (c.get("display_title") or c.get("title", ""))[:50]
-            print(f"      Top{rank+1}: [{c.get('_total_score', 0)}점] {title}")
-
-    # 80점 이상 고점 기사 플래깅
-    high_scorers = [c for c in candidates if c.get("_total_score", 0) >= 80 and c.get("_llm_scored")]
-    if high_scorers:
-        print(f"  [주의] 80점 이상 기사 {len(high_scorers)}개:")
-        for c in sorted(high_scorers, key=lambda x: x.get("_total_score", 0), reverse=True):
-            title = (c.get("display_title") or c.get("title", ""))[:60]
-            cat = c.get("_llm_category", "?")
-            score = c.get("_total_score", 0)
-            if cat == "research":
-                dims = f"nov={c.get('_score_novelty',0)} imp={c.get('_score_rigor',0)} buzz={c.get('_score_buzz',0)}"
-            elif cat == "models_products":
-                dims = f"uti={c.get('_score_utility',0)} imp={c.get('_score_impact',0)} acc={c.get('_score_access',0)}"
-            else:
-                dims = f"mag={c.get('_score_market',0)} sig={c.get('_score_signal',0)} brd={c.get('_score_breadth',0)}"
-            print(f"    [{score}점] [{cat}] {dims} | {title}")
-
-    return {"scored_candidates": candidates, "scorer_retry_count": retry_count + 1}
+    return {"scored_candidates": candidates}
 
 
 # ─── Node 6: selector (하이라이트 Top 3 + 카테고리별 Top 25 + 품질 검증) ───
@@ -1833,21 +1510,6 @@ def _route_after_collector(state: NewsGraphState) -> list[Send]:
     ]
 
 
-def _route_after_scorer(state: NewsGraphState) -> str:
-    """스코어 커버리지 < 90% 이고 재시도 < 2 이면 재시도"""
-    candidates = state.get("scored_candidates", [])
-    retry_count = state.get("scorer_retry_count", 0)
-    if not candidates:
-        return "selector"
-    scorable = [c for c in candidates if not c.get("_deduped")]
-    llm_scored = len([c for c in scorable if c.get("_llm_scored")])
-    coverage = llm_scored / len(scorable) if scorable else 1.0
-    if coverage < 0.9 and retry_count < 2:
-        print(f"  [라우팅] 스코어 커버리지 {coverage:.0%} < 90% (scorable {len(scorable)}개) -> 재시도")
-        return "scorer"
-    return "selector"
-
-
 # ─── 그래프 구성 (EN/KO 진정한 병렬 분기) ───
 def _build_graph():
     graph = StateGraph(NewsGraphState)
@@ -1856,7 +1518,7 @@ def _build_graph():
     graph.add_node("en_process", en_process_node)
     graph.add_node("ko_process", ko_process_node)
     graph.add_node("categorizer", categorizer_node)
-    graph.add_node("scorer", scorer_node)
+    graph.add_node("ranker", ranker_node)
     graph.add_node("selector", selector_node)
     graph.add_node("assembler", assembler_node)
 
@@ -1869,14 +1531,9 @@ def _build_graph():
     graph.add_edge("en_process", "categorizer")
     graph.add_edge("ko_process", "categorizer")
 
-    # categorizer -> scorer
-    graph.add_edge("categorizer", "scorer")
-
-    # scorer -> 커버리지 부족 시 재시도 루프
-    graph.add_conditional_edges("scorer", _route_after_scorer, {
-        "scorer": "scorer",
-        "selector": "selector",
-    })
+    # categorizer -> ranker -> selector (단순 체인)
+    graph.add_edge("categorizer", "ranker")
+    graph.add_edge("ranker", "selector")
 
     graph.add_edge("selector", "assembler")
     graph.add_edge("assembler", END)
@@ -1894,7 +1551,6 @@ def run_news_pipeline() -> dict:
     result = app.invoke({
         "sources": {},
         "scored_candidates": [],
-        "scorer_retry_count": 0,
         "highlights": [],
         "categorized_articles": {},
         "category_order": [],

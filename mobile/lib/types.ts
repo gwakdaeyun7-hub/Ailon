@@ -26,15 +26,7 @@ export interface Article {
   source_key?: string;
   image_url?: string;
   score?: number;
-  score_novelty?: number;
-  score_rigor?: number;
-  score_buzz?: number;
-  score_utility?: number;
-  score_impact?: number;
-  score_access?: number;
-  score_market?: number;
-  score_signal?: number;
-  score_breadth?: number;
+  rank?: number;
   category?: string;
   background?: string;
   background_en?: string;

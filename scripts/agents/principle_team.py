@@ -11,6 +11,7 @@ seed_selector → content_generator → verifier → assembler
 
 import json
 import random
+import re
 import time
 from datetime import datetime, timedelta, timezone
 from typing import TypedDict
@@ -41,7 +42,44 @@ _DISCIPLINE_NAME_EN: dict[str, str] = {
     "경제학/게임이론": "Economics / Game Theory",
     "철학/논리학": "Philosophy / Logic",
     "언어학": "Linguistics",
+    "화학": "Chemistry",
+    "사회학": "Sociology",
+    "의학/생명과학": "Medicine / Life Sciences",
 }
+
+
+# ─── 안전 JSON 파싱 ───
+def _safe_json_parse(text: str) -> dict:
+    """LLM 응답에서 JSON 추출. 코드펜스나 여분의 텍스트도 처리."""
+    text = text.strip()
+    # 코드펜스 제거
+    m = re.search(r'```(?:json)?\s*([\s\S]*?)```', text)
+    if m:
+        text = m.group(1).strip()
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        # JSON 부분만 추출 시도
+        start = text.find('{')
+        end = text.rfind('}')
+        if start != -1 and end != -1:
+            return json.loads(text[start:end+1])
+        raise
+
+
+def _llm_invoke_with_retry(llm, messages, max_retries: int = 3):
+    """LLM 호출 + 지수 백오프 재시도 (API 오류/파싱 오류 대응)."""
+    for attempt in range(max_retries):
+        try:
+            response = llm.invoke(messages)
+            return response
+        except Exception as e:
+            if attempt < max_retries - 1:
+                wait = 2 ** attempt
+                print(f"  [LLM retry] 시도 {attempt+1}/{max_retries} 실패: {e}, {wait}s 대기")
+                time.sleep(wait)
+            else:
+                raise
 
 
 # ─── State 정의 ───
@@ -257,14 +295,28 @@ def content_generator(state: PrincipleGraphState) -> dict:
         problem_solved=seed["problem_solved"],
     )
 
-    response = llm.invoke([HumanMessage(content=prompt)])
-    content = json.loads(response.content)
+    response = _llm_invoke_with_retry(llm, [HumanMessage(content=prompt)])
+    content = _safe_json_parse(response.content)
 
-    # 필수 키 검증
+    # 필수 키 검증 (top-level)
     required_keys = {"title", "connectionType", "foundation", "application", "integration"}
     missing = required_keys - set(content.keys())
     if missing:
         return {"errors": [f"content_generator: 필수 키 누락: {missing}"], "content": content}
+
+    # 중첩 필드 검증
+    _nested_required = {
+        "foundation": {"principle", "keyIdea", "everydayAnalogy"},
+        "application": {"applicationField", "description", "mechanism", "technicalTerms"},
+        "integration": {"problemSolved", "solution", "realWorldExamples", "whyItWorks"},
+    }
+    for section, keys in _nested_required.items():
+        section_data = content.get(section, {})
+        if not isinstance(section_data, dict):
+            return {"errors": [f"content_generator: {section}이 dict가 아님"], "content": content}
+        nested_missing = keys - set(section_data.keys())
+        if nested_missing:
+            print(f"  [content_generator] 경고: {section} 내 누락 키: {nested_missing}")
 
     print(f"  [content_generator] 생성 완료: {content.get('title', '?')}")
     return {"content": content}
@@ -322,8 +374,8 @@ def verifier(state: PrincipleGraphState) -> dict:
         content_json=json.dumps(content, ensure_ascii=False, indent=2)[:8000],
     )
 
-    response = llm.invoke([HumanMessage(content=prompt)])
-    verification = json.loads(response.content)
+    response = _llm_invoke_with_retry(llm, [HumanMessage(content=prompt)])
+    verification = _safe_json_parse(response.content)
 
     verified = verification.get("verified", False)
     confidence = verification.get("confidence", 0.0)

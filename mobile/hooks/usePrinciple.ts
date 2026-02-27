@@ -101,10 +101,15 @@ export function usePrinciple() {
   }, [currentDate]);
 
   const goPrev = useCallback(() => {
-    setCurrentDate(prev => shiftDate(prev, -1));
+    const minDate = shiftDate(getKSTDate(), -30);
+    setCurrentDate(prev => {
+      const next = shiftDate(prev, -1);
+      return next >= minDate ? next : prev;
+    });
   }, []);
 
   const canGoNext = currentDate < getKSTDate();
+  const canGoPrev = currentDate > shiftDate(getKSTDate(), -30);
 
   useEffect(() => {
     fetchByDate(currentDate);
@@ -119,5 +124,6 @@ export function usePrinciple() {
     goNext,
     goPrev,
     canGoNext,
+    canGoPrev,
   };
 }

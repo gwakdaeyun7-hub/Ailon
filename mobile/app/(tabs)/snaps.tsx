@@ -197,6 +197,9 @@ function ApplicationCard({ principle, lang }: { principle: Principle; lang: stri
   const { colors } = useTheme();
   const { t } = useLanguage();
   const { application } = principle;
+  const [mechExpanded, setMechExpanded] = useState(false);
+  const mechanismText = L(application.mechanism, application.mechanism_en, lang);
+  const showToggle = mechanismText.length > 120;
   return (
     <View style={{
       backgroundColor: colors.card, borderRadius: 16, padding: 20,
@@ -211,10 +214,18 @@ function ApplicationCard({ principle, lang }: { principle: Principle; lang: stri
       <Text style={{ fontSize: 15, lineHeight: 23, color: colors.textPrimary, marginBottom: 12 }}>
         {L(application.description, application.description_en, lang)}
       </Text>
-      <Text style={{ fontSize: 14, lineHeight: 21, color: colors.textSecondary, marginBottom: 14 }}>
-        {L(application.mechanism, application.mechanism_en, lang)}
+      <Text style={{ fontSize: 14, lineHeight: 21, color: colors.textSecondary }} numberOfLines={!showToggle || mechExpanded ? undefined : 3}>
+        {mechanismText}
       </Text>
-      {application.technicalTerms.length > 0 && (
+      {showToggle && (
+        <Pressable onPress={() => setMechExpanded(v => !v)} style={{ marginTop: 4, marginBottom: 14 }}>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: colors.indigo }}>
+            {mechExpanded ? (lang === 'en' ? 'Show less' : '접기') : (lang === 'en' ? 'Show more' : '더 보기')}
+          </Text>
+        </Pressable>
+      )}
+      {!showToggle && <View style={{ height: 14 }} />}
+      {application.technicalTerms?.length > 0 && (
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: application.limitations ? 14 : 0 }}>
           {LArr(application.technicalTerms, application.technicalTerms_en, lang).map((term) => (
             <Chip key={term} label={term} />
@@ -257,7 +268,7 @@ function IntegrationCard({ principle, lang }: { principle: Principle; lang: stri
       <Text style={{ fontSize: 15, lineHeight: 23, color: colors.textPrimary, marginBottom: 14 }}>
         {L(integration.solution, integration.solution_en, lang)}
       </Text>
-      {integration.realWorldExamples.length > 0 && (
+      {integration.realWorldExamples?.length > 0 && (
         <View style={{ marginBottom: 12 }}>
           {LArr(integration.realWorldExamples, integration.realWorldExamples_en, lang).map((example, i) => (
             <View key={i} style={{ flexDirection: 'row', marginBottom: 6, paddingRight: 8 }}>
@@ -329,7 +340,7 @@ function DeepDiveContent({ deepDive, lang }: { deepDive: DeepDive; lang: string 
           </View>
         </DeepDiveSection>
       )}
-      {deepDive.relatedPrinciples.length > 0 && (
+      {deepDive.relatedPrinciples?.length > 0 && (
         <DeepDiveSection icon={<Link2 size={16} color={colors.success} />} iconBg={colors.surface} title={t('snaps.related')}>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
             {LArr(deepDive.relatedPrinciples, deepDive.relatedPrinciples_en, lang).map((rp) => <Chip key={rp} label={rp} />)}
@@ -473,7 +484,7 @@ function SegmentControl({ activeTab, onTabChange, colors, t }: {
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function SnapsScreen() {
-  const { principleData, loading, error, refresh, currentDate, goNext, goPrev, canGoNext } = usePrinciple();
+  const { principleData, loading, error, refresh, currentDate, goNext, goPrev, canGoNext, canGoPrev } = usePrinciple();
   const { t, lang } = useLanguage();
   const { colors } = useTheme();
 
@@ -516,7 +527,8 @@ export default function SnapsScreen() {
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <Text style={{ fontSize: 15, fontWeight: '600', color: colors.textDim }}>{t('snaps.title')}</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <Pressable onPress={goPrev} style={{ minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}
+              <Pressable onPress={goPrev} disabled={!canGoPrev}
+                style={{ minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center', opacity: canGoPrev ? 1 : 0.3 }}
                 accessibilityLabel={lang === 'en' ? 'Previous day' : '이전 날짜'} accessibilityRole="button">
                 <ChevronLeft size={20} color={colors.textSecondary} />
               </Pressable>
@@ -599,6 +611,20 @@ export default function SnapsScreen() {
                 <ApplicationCard principle={principle} lang={lang} />
                 <StepConnector />
                 <IntegrationCard principle={principle} lang={lang} />
+                {/* Deep Dive nudge */}
+                {deepDive && activeTab === 'insight' && (
+                  <Pressable onPress={() => setActiveTab('deepdive')} style={{
+                    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    backgroundColor: colors.indigoBg, borderRadius: 12, padding: 14, marginTop: 16,
+                    borderWidth: 1, borderColor: colors.border,
+                  }}>
+                    <BookOpen size={16} color={colors.indigo} />
+                    <Text style={{ fontSize: 13, fontWeight: '600', color: colors.indigo }}>
+                      {lang === 'en' ? 'Explore the Deep Dive for more details' : '딥다이브 탭에서 더 자세히 알아보기'}
+                    </Text>
+                    <ChevronRight size={14} color={colors.indigo} />
+                  </Pressable>
+                )}
               </>
             ) : (
               <DeepDiveContent deepDive={deepDive} lang={lang} />
