@@ -486,29 +486,29 @@ def _llm_ai_filter_batch(articles: list[dict], source_key: str = "") -> set[int]
     if is_ko:
         prompt = f"""IMPORTANT: Output ONLY a valid JSON array of integers. No thinking, no markdown.
 
-You are filtering news articles. Return indices of articles that are RELATED to AI.
+You are filtering news articles. Return indices of articles that are DIRECTLY related to AI.
 
-Decision rule: Ask "Does this article have a meaningful connection to AI?" If yes, include. Only exclude articles that have NO relevance to AI at all.
+Decision rule: Ask "Is AI the main topic or a core part of this article?" If not, EXCLUDE.
 
-When in doubt, INCLUDE.
+When in doubt, EXCLUDE.
 
-INCLUDE -- any meaningful AI connection:
+INCLUDE -- AI must be central:
 - Model releases, benchmarks, architecture advances
 - AI research papers and technical breakthroughs
 - AI-powered products/tools and their features
 - AI frameworks/libraries (PyTorch, LangChain, etc.)
 - AI regulation, policy, ethics discussions
 - AI industry news (funding, M&A, partnerships involving AI companies)
-- AI adoption stories in any industry
-- Hardware/semiconductors related to AI (GPUs, NPUs, AI chips)
-- AI's impact on society, jobs, education
-- Tutorials, guides, opinions about AI
+- Hardware/semiconductors specifically for AI (GPUs, NPUs, AI chips)
+- AI's direct impact on society, jobs, education
 
-EXCLUDE -- no real AI connection:
-- Non-tech subjects using AI as a passing buzzword (real estate, food, self-help)
+EXCLUDE:
+- General tech news where AI is not the main focus
+- Non-tech subjects using AI as a passing buzzword
 - Celebrity, entertainment, politics with no AI substance
 - Government PR, tourism, regional marketing
-- Articles where "AI" only appears in a section tag but content is unrelated
+- Programming tutorials unrelated to AI/ML
+- Articles where "AI" only appears in a tag but content is unrelated
 
 Articles:
 {article_text}
@@ -518,26 +518,27 @@ Return the indices of AI-related articles as a JSON array:
     else:
         prompt = f"""IMPORTANT: Output ONLY a valid JSON array of integers. No thinking, no markdown.
 
-You are filtering news articles from international tech media. These sources already focus on tech/AI, so apply a VERY lenient filter. Include almost everything unless it is clearly unrelated to technology.
+You are filtering news articles from international tech media. Return indices of articles that are RELATED to AI and tech.
 
-Decision rule: Ask "Could this article be even slightly interesting to someone who follows AI and tech?" If yes, include.
+Decision rule: Ask "Is this article relevant to someone who specifically follows AI?" If not, EXCLUDE.
 
-When in doubt, ALWAYS INCLUDE.
+When in doubt, EXCLUDE.
 
-INCLUDE -- be very generous:
+INCLUDE:
 - Anything about AI, ML, LLMs, deep learning, neural networks
-- Tech company news (Google, OpenAI, Meta, Microsoft, Apple, etc.)
-- Software engineering, cloud, data, developer tools
-- Hardware, chips, GPUs, computing infrastructure
-- Tech regulation, policy, digital rights
-- Startups, funding, acquisitions in tech/AI
-- Science and research that could relate to AI
-- Any tech product or service
+- AI company news (OpenAI, Anthropic, Google DeepMind, Meta AI, etc.)
+- AI-powered products, tools, and services
+- Hardware and chips for AI (GPUs, TPUs, AI accelerators)
+- AI regulation, policy, ethics
+- AI startups, funding, acquisitions
+- AI research and science
+- Developer tools and frameworks for AI/ML
 
-EXCLUDE -- only if clearly irrelevant:
+EXCLUDE:
+- General tech news unrelated to AI (e.g., phone reviews, app updates)
 - Pure lifestyle, cooking, sports, celebrity gossip
 - Non-tech politics or social issues
-- Articles with zero tech or AI connection
+- Software engineering topics with no AI connection
 
 Articles:
 {article_text}
