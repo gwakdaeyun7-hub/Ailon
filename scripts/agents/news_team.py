@@ -1652,12 +1652,21 @@ def assembler_node(state: NewsGraphState) -> dict:
     def _pub_key(a: dict):
         return _parse_published(a.get("published", "")) or _epoch
 
+    # 한국 소스 전체를 합쳐서 중복 제거 후 다시 분리
+    all_ko: list[dict] = []
     for s in SOURCES:
         key = s["key"]
         if key in SOURCE_SECTION_SOURCES and sources.get(key):
-            sorted_articles = sorted(sources[key], key=_pub_key, reverse=True)
-            source_articles[key] = sorted_articles[:10]
+            all_ko.extend(sources[key])
             source_order.append(key)
+
+    if all_ko:
+        all_ko = _deduplicate_candidates(all_ko)
+
+    for key in source_order:
+        ko_for_key = [a for a in all_ko if a.get("source_key") == key]
+        sorted_articles = sorted(ko_for_key, key=_pub_key, reverse=True)
+        source_articles[key] = sorted_articles[:10]
 
     total = (
         len(state.get("highlights", []))
