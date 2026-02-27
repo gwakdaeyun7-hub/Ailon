@@ -885,8 +885,12 @@ function CategoryTabSection({
   }, [articles, filtered, deduped, expandLevel]);
 
   const remaining = expandLevel === 0 ? articles.length - Math.min(5, articles.length) : 0;
-  const hasFiltered = expandLevel === 1 && filtered.length > 0;
-  const hasDeduped = expandLevel === 2 && deduped.length > 0;
+  // 모든 카테고리 기사가 이미 표시된 상태인지 (expandLevel 1 이상이거나, 기사가 5개 이하라 0에서 전부 보임)
+  const allArticlesShown = expandLevel >= 1 || (expandLevel === 0 && remaining === 0);
+  // 필터 제외 기사 버튼: 모든 카테고리 기사가 보이고, 아직 필터 기사를 추가하지 않은 상태
+  const hasFiltered = allArticlesShown && expandLevel < 2 && filtered.length > 0;
+  // 중복 기사 버튼: 필터 기사까지 보인 상태이거나, 필터 기사가 없어서 바로 보여야 하는 경우
+  const hasDeduped = deduped.length > 0 && allArticlesShown && expandLevel < 3 && !hasFiltered;
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);

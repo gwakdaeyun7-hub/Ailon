@@ -747,12 +747,15 @@ def _extract_url_key(link: str) -> str:
     return f"{p.netloc.lower()}{path}"
 
 
-def _deduplicate_candidates(candidates: list[dict], mark_only: bool = False) -> list[dict]:
+def _deduplicate_candidates(candidates: list[dict], mark_only: bool = False, threshold: float | None = None) -> list[dict]:
     """다층 중복 제거: URL 완전 일치 → 원본 제목 유사도 → 번역 제목 유사도.
     발행일 가장 오래된(원본) 기사 유지.
-    mark_only=True 면 제거 대신 _deduped=True 마킹 (전체 리스트 반환)."""
+    mark_only=True 면 제거 대신 _deduped=True 마킹 (전체 리스트 반환).
+    threshold: 제목 유사도 임계값 (None이면 DEDUP_THRESHOLD 사용)."""
     if len(candidates) <= 1:
         return candidates
+
+    thr = threshold if threshold is not None else DEDUP_THRESHOLD
 
     _epoch = datetime(2000, 1, 1, tzinfo=timezone.utc)
     sorted_cands = sorted(
@@ -783,12 +786,12 @@ def _deduplicate_candidates(candidates: list[dict], mark_only: bool = False) -> 
         for k in kept:
             # 원본 제목 비교
             k_orig = _normalize_title(k.get("title", ""))
-            if orig_title and k_orig and SequenceMatcher(None, orig_title, k_orig).ratio() >= DEDUP_THRESHOLD:
+            if orig_title and k_orig and SequenceMatcher(None, orig_title, k_orig).ratio() >= thr:
                 is_dup = True
                 break
             # 번역 제목 비교
             k_disp = _normalize_title(k.get("display_title") or k.get("title", ""))
-            if disp_title and k_disp and SequenceMatcher(None, disp_title, k_disp).ratio() >= DEDUP_THRESHOLD:
+            if disp_title and k_disp and SequenceMatcher(None, disp_title, k_disp).ratio() >= thr:
                 is_dup = True
                 break
 
@@ -1747,6 +1750,7 @@ def assembler_node(state: NewsGraphState) -> dict:
         return _parse_published(a.get("published", "")) or _epoch
 
     # 한국 소스 전체를 합쳐서 중복 제거 후 다시 분리
+    # 한국어 뉴스는 고유명사 공유가 많아 임계값을 높게 설정 (0.55 → 0.75)
     all_ko: list[dict] = []
     for s in SOURCES:
         key = s["key"]
@@ -1755,7 +1759,7 @@ def assembler_node(state: NewsGraphState) -> dict:
             source_order.append(key)
 
     if all_ko:
-        all_ko = _deduplicate_candidates(all_ko)
+        all_ko = _deduplicate_candidates(all_ko, threshold=0.75)
 
     for key in source_order:
         ko_for_key = [a for a in all_ko if a.get("source_key") == key]
@@ -1821,10 +1825,11 @@ def _route_after_scorer(state: NewsGraphState) -> str:
     retry_count = state.get("scorer_retry_count", 0)
     if not candidates:
         return "selector"
-    llm_scored = len([c for c in candidates if c.get("_llm_scored")])
-    coverage = llm_scored / len(candidates)
+    scorable = [c for c in candidates if not c.get("_deduped")]
+    llm_scored = len([c for c in scorable if c.get("_llm_scored")])
+    coverage = llm_scored / len(scorable) if scorable else 1.0
     if coverage < 0.9 and retry_count < 2:
-        print(f"  [라우팅] 스코어 커버리지 {coverage:.0%} < 90% -> 재시도")
+        print(f"  [라우팅] 스코어 커버리지 {coverage:.0%} < 90% (scorable {len(scorable)}개) -> 재시도")
         return "scorer"
     return "selector"
 
