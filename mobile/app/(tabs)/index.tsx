@@ -22,7 +22,7 @@ import { Image } from 'expo-image';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import {
-  Bell, RefreshCw, ThumbsUp, Eye, Share2, ExternalLink, MessageCircle, X, Cpu, Newspaper, Bookmark, ChevronDown,
+  Bell, RefreshCw, ThumbsUp, Eye, Share2, ExternalLink, MessageCircle, X, Cpu, Newspaper, Bookmark, ChevronDown, Clock,
 } from 'lucide-react-native';
 import { useNews } from '@/hooks/useNews';
 import { useDrawer } from '@/context/DrawerContext';
@@ -496,7 +496,7 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
             {/* 구분선 */}
             <View style={{ height: 1, backgroundColor: colors.border, marginBottom: 12, marginHorizontal: 20 }} />
 
-            {/* AI 요약 메타: 읽기 시간 + 생성 시점 */}
+            {/* 읽기 시간 — 오른쪽 정렬 */}
             {(() => {
               const summaryText = [
                 getLocalizedOneLine(article, lang),
@@ -504,20 +504,12 @@ function SummaryModal({ article, onClose, onOpenComments }: { article: Article |
                 getLocalizedWhyImportant(article, lang),
               ].join('');
               const readMin = Math.max(1, Math.round(summaryText.length / 500));
-              const pubDate = article.published ? formatDate(article.published, lang) : '';
               return (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, marginBottom: 14 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 4, paddingHorizontal: 20, marginBottom: 14 }}>
+                  <Clock size={12} color={colors.textLight} />
                   <Text style={{ fontSize: 11, color: colors.textLight }}>
-                    {lang === 'en' ? `${readMin} min read` : `${readMin}분 분량`}
+                    {lang === 'en' ? `${readMin} min` : `${readMin}분`}
                   </Text>
-                  {pubDate ? (
-                    <>
-                      <Text style={{ fontSize: 11, color: colors.textLight }}>·</Text>
-                      <Text style={{ fontSize: 11, color: colors.textLight }}>
-                        {lang === 'en' ? `AI summary · ${pubDate}` : `AI 요약 · ${pubDate}`}
-                      </Text>
-                    </>
-                  ) : null}
                 </View>
               );
             })()}
