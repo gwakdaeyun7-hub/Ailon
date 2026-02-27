@@ -203,6 +203,9 @@ assert CATEGORY_SOURCES.isdisjoint(SOURCE_SECTION_SOURCES), \
 
 
 # ─── 날짜 유틸 ───────────────────────────────────────────────────────────
+MAX_ARTICLE_AGE_DAYS = 5  # 이보다 오래된 기사는 수집에서 제외
+
+
 def _parse_date(date_str: str):
     if not date_str:
         return None
@@ -311,7 +314,7 @@ def _fetch_scrape_source(source_config: dict) -> list[dict]:
     name = source_config["name"]
     url = source_config["scrape_url"]
     max_items = source_config.get("max_items", 20)
-    days = source_config.get("days", 30)
+    days = source_config.get("days", MAX_ARTICLE_AGE_DAYS)
     lang = source_config.get("lang", "ko")
     ai_filter = source_config.get("ai_filter", False)
 
@@ -407,7 +410,7 @@ def fetch_source(source_config: dict) -> list[dict]:
     name = source_config["name"]
     rss_url = source_config["rss_url"]
     max_items = source_config.get("max_items", 10)
-    days = source_config.get("days", 30)
+    days = source_config.get("days", MAX_ARTICLE_AGE_DAYS)
     lang = source_config.get("lang", "en")
     ai_filter = source_config.get("ai_filter", False)
     rss_image_field = source_config.get("rss_image_field", "")
