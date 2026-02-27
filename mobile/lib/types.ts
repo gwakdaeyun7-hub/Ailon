@@ -42,6 +42,17 @@ export interface Article {
   glossary?: { term: string; desc: string }[];
   glossary_en?: { term: string; desc: string }[];
   ai_filtered?: boolean;
+  // AI 기능 확장 필드
+  entities?: ArticleEntity[];
+  topic_cluster_id?: string;
+  related_ids?: string[];
+  timeline_ids?: string[];
+  article_id?: string;
+}
+
+export interface ArticleEntity {
+  name: string;
+  type: string;
 }
 
 export interface DailyNews {
@@ -203,4 +214,51 @@ export interface UserFeedback {
   itemId: string;
   reaction: 'like' | 'dislike';
   createdAt: Timestamp | string | null;
+}
+
+// ---------------------------------------------------------------------------
+// AI Features: Briefing, Quiz, Glossary, Timeline
+// ---------------------------------------------------------------------------
+
+export interface DailyBriefing {
+  date: string;
+  briefing_ko: string;
+  briefing_en: string;
+  story_count: number;
+  article_ids: string[];
+  updated_at: Timestamp | string | null;
+}
+
+export interface QuizQuestion {
+  question_ko: string;
+  question_en: string;
+  options_ko: string[];
+  options_en: string[];
+  correct_index: number;
+  difficulty: 'easy' | 'medium' | 'hard';
+  explanation_ko: string;
+  explanation_en: string;
+  source_article_id?: string;
+}
+
+export interface DailyQuiz {
+  date: string;
+  questions: QuizQuestion[];
+  updated_at: Timestamp | string | null;
+}
+
+export interface GlossaryTerm {
+  term_ko: string;
+  term_en: string;
+  desc_ko: string;
+  desc_en: string;
+  article_ids: string[];
+  updated_at?: Timestamp | string | null;
+}
+
+export interface TimelineNode {
+  article_id: string;
+  title: string;
+  date: string;
+  source: string;
 }

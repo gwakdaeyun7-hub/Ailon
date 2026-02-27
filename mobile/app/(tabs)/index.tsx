@@ -39,6 +39,11 @@ import type { Article } from '@/lib/types';
 import { Colors } from '@/lib/colors';
 import type { Language } from '@/lib/translations';
 import type { BatchStats } from '@/hooks/useBatchStats';
+import { DailyBriefingCard } from '@/components/briefing/DailyBriefingCard';
+import { QuizEntryCard } from '@/components/quiz/QuizEntryCard';
+import { QuizModal } from '@/components/quiz/QuizModal';
+import { TimelineSection } from '@/components/shared/TimelineSection';
+import { RelatedArticlesSection } from '@/components/shared/RelatedArticlesSection';
 
 // expo-notifications (optional dependency) — 이슈 #25: any 타입 수정
 let Notifications: typeof import('expo-notifications') | null = null;
@@ -645,6 +650,16 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
                     ) : null}
                   </View>
                 ) : null}
+
+                {/* Timeline: 관련 과거 기사 타임라인 */}
+                {article.timeline_ids && article.timeline_ids.length > 0 && (
+                  <TimelineSection timelineIds={article.timeline_ids} />
+                )}
+
+                {/* Related Articles: 관련 기사 가로 스크롤 */}
+                {article.related_ids && article.related_ids.length > 0 && (
+                  <RelatedArticlesSection relatedIds={article.related_ids} />
+                )}
 
                 {/* M5: "View Original" button at bottom of summary */}
                 <Pressable
@@ -1272,6 +1287,7 @@ export default function NewsScreen() {
   const [commentArticleLink, setCommentArticleLink] = useState<string | null>(null);
   const [notifModalVisible, setNotifModalVisible] = useState(false);
   const [notifications, setNotifications] = useState<DeliveredNotification[]>([]);
+  const [quizVisible, setQuizVisible] = useState(false);
   const { openDrawer, setActiveTab } = useDrawer();
   const { lang, t } = useLanguage();
   const { colors, isDark } = useTheme();
@@ -1455,6 +1471,9 @@ export default function NewsScreen() {
           </>
         ) : (
           <>
+            {/* Daily Briefing */}
+            <DailyBriefingCard />
+
             {/* Section 1: 하이라이트 */}
             <HighlightSection highlights={highlights} onArticlePress={handleArticlePress} allStats={allStats} />
 
@@ -1494,6 +1513,9 @@ export default function NewsScreen() {
 
             {/* Section 4: GeekNews 세로 리스트 */}
             <GeekNewsSection articles={sourceArticles['geeknews'] || []} onArticlePress={handleArticlePress} allStats={allStats} />
+
+            {/* Daily Quiz Entry */}
+            <QuizEntryCard onPress={() => setQuizVisible(true)} />
           </>
         )}
 
@@ -1502,6 +1524,9 @@ export default function NewsScreen() {
 
       {/* 요약 모달 */}
       <SummaryModal article={modalArticle} onClose={handleModalClose} onOpenComments={handleOpenComments} />
+
+      {/* 퀴즈 모달 */}
+      <QuizModal visible={quizVisible} onClose={() => setQuizVisible(false)} />
 
       {/* 댓글 시트 (모달과 같은 레벨) */}
       <CommentSheet

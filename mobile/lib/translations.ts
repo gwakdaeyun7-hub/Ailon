@@ -173,6 +173,52 @@ const translations: Record<string, Record<Language, string>> = {
   'bookmark.remove': { ko: '북마크 제거', en: 'Remove bookmark' },
   'bookmark.add': { ko: '북마크 추가', en: 'Add bookmark' },
   'news.articles_suffix': { ko: '개', en: '' },
+
+  // ─── 브리핑 ───
+  'briefing.title': { ko: '오늘의 브리핑', en: "Today's Briefing" },
+  'briefing.listen': { ko: '듣기', en: 'Listen' },
+  'briefing.stop': { ko: '중지', en: 'Stop' },
+  'briefing.stories': { ko: '개 스토리', en: ' stories' },
+  'briefing.no_data': { ko: '브리핑 준비 중...', en: 'Preparing briefing...' },
+
+  // ─── 퀴즈 ───
+  'quiz.title': { ko: '오늘의 퀴즈', en: "Today's Quiz" },
+  'quiz.subtitle': { ko: '오늘의 AI 뉴스 퀴즈', en: "Today's AI News Quiz" },
+  'quiz.start': { ko: '퀴즈 풀기', en: 'Start Quiz' },
+  'quiz.question': { ko: '문제', en: 'Question' },
+  'quiz.of': { ko: '/', en: ' of ' },
+  'quiz.correct': { ko: '정답!', en: 'Correct!' },
+  'quiz.incorrect': { ko: '오답!', en: 'Incorrect!' },
+  'quiz.next': { ko: '다음', en: 'Next' },
+  'quiz.results': { ko: '결과', en: 'Results' },
+  'quiz.score': { ko: '점', en: ' pts' },
+  'quiz.retry': { ko: '다시 풀기', en: 'Try Again' },
+  'quiz.close': { ko: '닫기', en: 'Close' },
+  'quiz.share': { ko: '결과 공유', en: 'Share Results' },
+  'quiz.difficulty_easy': { ko: '쉬움', en: 'Easy' },
+  'quiz.difficulty_medium': { ko: '보통', en: 'Medium' },
+  'quiz.difficulty_hard': { ko: '어려움', en: 'Hard' },
+
+  // ─── 타임라인 ───
+  'modal.timeline': { ko: '관련 타임라인', en: 'Related Timeline' },
+  'timeline.past': { ko: '이전 기사', en: 'Past Articles' },
+  'timeline.no_data': { ko: '타임라인 없음', en: 'No timeline' },
+
+  // ─── 관련 기사 ───
+  'modal.related': { ko: '관련 기사', en: 'Related Articles' },
+
+  // ─── 용어 사전 DB ───
+  'glossary.title': { ko: '용어 사전', en: 'Glossary' },
+  'glossary.search': { ko: '용어 검색...', en: 'Search terms...' },
+  'glossary.no_results': { ko: '검색 결과 없음', en: 'No results' },
+  'glossary.articles': { ko: '관련 기사', en: 'Related Articles' },
+
+  // ─── 맞춤 피드 ───
+  'feed.personalized': { ko: '맞춤', en: 'For You' },
+  'feed.all': { ko: '전체', en: 'All' },
+  'feed.reason': { ko: '추천 이유', en: 'Why recommended' },
+  'feed.interest_match': { ko: '관심사 일치', en: 'Matches your interests' },
+  'feed.no_data': { ko: '맞춤 뉴스 준비 중', en: 'Personalizing...' },
 };
 
 export default translations;

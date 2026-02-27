@@ -22,6 +22,11 @@ from agents.config import initialize_firebase, get_firestore_client
 from agents.news_team import run_news_pipeline
 from agents.principle_team import run_principle_pipeline
 from notifications import send_news_notification
+from generate_features import (
+    save_articles_collection, find_related_articles,
+    generate_daily_briefing, generate_daily_quiz,
+    accumulate_glossary, build_timeline,
+)
 
 
 def _validate_output(result: dict) -> list[str]:
@@ -186,6 +191,34 @@ def run_news():
             print(f"    - {w}")
 
     save_news_to_firestore(news_result)
+
+    # ─── AI 기능 파이프라인 (6개) ───
+    print("\n  [AI 기능] 시작...")
+    try:
+        save_articles_collection(news_result)
+    except Exception as e:
+        print(f"  [articles 저장 실패] {e}")
+    try:
+        find_related_articles(news_result)
+    except Exception as e:
+        print(f"  [관련기사 실패] {e}")
+    try:
+        generate_daily_briefing(news_result)
+    except Exception as e:
+        print(f"  [브리핑 실패] {e}")
+    try:
+        generate_daily_quiz(news_result)
+    except Exception as e:
+        print(f"  [퀴즈 실패] {e}")
+    try:
+        accumulate_glossary(news_result)
+    except Exception as e:
+        print(f"  [용어사전 실패] {e}")
+    try:
+        build_timeline(news_result)
+    except Exception as e:
+        print(f"  [타임라인 실패] {e}")
+    print("  [AI 기능] 완료")
 
     try:
         send_news_notification(article_count=news_result.get("total_count", 0))
