@@ -4,9 +4,6 @@ scripts/
 docs/
 backend/
 _ul/
-*.jpg
-*.png
-*.html
 CLAUDE.md
 README.md
 PRD_AILON_COMPLETE.md
