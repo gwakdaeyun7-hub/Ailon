@@ -130,11 +130,15 @@ def _parse_llm_json(text: str):
     text = re.sub(r'\n?\s*```', '', text)
     # Gemini bold/italic 마크다운 제거 — *** 가 {} 를 대체하거나 장식으로 삽입되는 케이스 처리
     # 항상 구조적 치환을 먼저 시도 (패턴이 안 맞으면 무해하게 스킵됨)
-    # 그 후 남은 *** 를 장식으로 간주하고 제거
+    # 그 후 남은 *** 를 컨텍스트 기반으로 { 또는 } 치환
     text = re.sub(r'\[\s*\*+', '[{', text)
     text = re.sub(r'\*+\s*\]', '}]', text)
     text = re.sub(r'\*+\s*,\s*\*+', '},{', text)
-    text = re.sub(r'\*{2,}', '', text)
+    # 남은 ***: 뒤에 " 가 오면 { (객체 시작), 아니면 } (객체 끝)
+    def _star_to_brace(m):
+        after = text[m.end():].lstrip()
+        return '{' if after and after[0] == '"' else '}'
+    text = re.sub(r'\*{2,}', _star_to_brace, text)
     text = text.strip()
 
     if not text:
@@ -261,8 +265,8 @@ def _summarize_batch(batch: list[dict], batch_idx: int, translate: bool = True) 
             "\nAlso produce these English fields:\n"
             "- display_title_en: concise English headline (news-style, not a literal back-translation)\n"
             "- one_line_en: 1-sentence English summary of what happened\n"
-            "- key_points_en: EXACTLY 3 key facts in English (array of exactly 3 strings, no more, no less)\n"
-            "- why_important_en: 1-2 sentence English explanation of impact"
+            "- key_points_en: EXACTLY 3 key facts in English (array of exactly 3 strings, no more, no less). Each must contain specific data (numbers, names, specs). No vague statements.\n"
+            "- why_important_en: 1-2 sentence English explanation of impact. Must name WHO is affected and HOW specifically. Never say 'significant impact' without specifics."
         )
     else:
         task_desc = f"Summarize {len(batch)} Korean AI news articles, and also produce English summary fields."
@@ -271,8 +275,8 @@ def _summarize_batch(batch: list[dict], batch_idx: int, translate: bool = True) 
             "\nAlso produce these English fields (translate the Korean summaries to English):\n"
             "- display_title_en: concise English headline for this article\n"
             "- one_line_en: 1-sentence English summary of what happened\n"
-            "- key_points_en: EXACTLY 3 key facts in English (array of exactly 3 strings, no more, no less)\n"
-            "- why_important_en: 1-2 sentence English explanation of impact"
+            "- key_points_en: EXACTLY 3 key facts in English (array of exactly 3 strings, no more, no less). Each must contain specific data (numbers, names, specs). No vague statements.\n"
+            "- why_important_en: 1-2 sentence English explanation of impact. Must name WHO is affected and HOW specifically. Never say 'significant impact' without specifics."
         )
 
     prompt = f"""IMPORTANT: Output ONLY a valid JSON array. No thinking, no markdown. Start with '[' and end with ']'.
@@ -286,16 +290,29 @@ For each article, produce:
 - one_line: 무슨 일이 일어났는가 -- 정확히 1문장 (~이에요/~해요 체)
   - 팩트만 전달. 의견·해석·중요성 평가 금지
   - 본문에 없는 정보 추가 금지
+  - "누가 + 무엇을 했다" 구조. 부가 설명·배경·이유는 넣지 않음
   - 예: "OpenAI가 GPT-5를 공식 출시했어요"
   - 예: "Meta가 Llama 4를 오픈소스로 공개했어요"
 - key_points: 핵심 팩트 정확히 3개 (각 1문장 이내, ~이에요/~해요 체). 반드시 3개만 반환. 4개 이상 절대 금지.
-  - 숫자·모델명·성능 지표·구체적 스펙 우선
-  - one_line과 중복 금지
+  - 숫자·모델명·성능 지표·구체적 스펙·가격·날짜 등 구체적 데이터 우선
+  - one_line과 중복 금지: one_line에서 이미 말한 사실을 다른 표현으로 반복하지 않음
   - 본문에 구체적 팩트가 부족하면 2개도 허용하지만 4개 이상은 절대 불가
+  - 금지 패턴 (이런 문장은 key_points에 넣지 말 것):
+    - "많은 관심을 받고 있어요" / "주목받고 있어요" (관심·주목 표현)
+    - "~할 것으로 보여요" / "~할 전망이에요" (추측·전망)
+    - "업계에서 ~로 평가받고 있어요" (막연한 평가)
+    - 고유명사·숫자·스펙이 하나도 없는 문장
+  - 자가 검증: 각 key_point가 one_line을 읽은 사람에게 "새로운 구체적 정보"를 주는지 확인. 안 주면 삭제
   - 예: ["컨텍스트 윈도우 256K 토큰을 지원해요", "GPT-4 대비 추론 속도가 2배 빨라요", "API 가격은 50% 인하됐어요"]
-- why_important: 업계/개발자에게 미치는 영향 -- 1~2문장, ~이에요/~해요 체
+- why_important: 업계/개발자에게 미치는 구체적 영향 -- 1~2문장, ~이에요/~해요 체
   - one_line·key_points에 나온 내용 반복 금지
-  - "~에 영향을 줄 수 있어요", "~가 바뀔 수 있어요" 등 시사점 중심
+  - 반드시 구체적 대상(누구에게)과 구체적 변화(무엇이 어떻게 달라지는지)를 명시
+  - 금지 패턴 (이런 문장은 쓰지 말 것):
+    - "업계에 큰 영향을 줄 수 있어요" (대상·변화 불명확)
+    - "주목할 만한 변화예요" / "의미 있는 행보예요" (내용 없는 평가)
+    - "경쟁이 더 치열해질 것으로 보여요" (구체성 없는 전망)
+  - 좋은 예: "오픈소스 개발자들이 상용 수준 모델을 무료로 파인튜닝할 수 있게 돼요"
+  - 좋은 예: "기존 GPT-4 API 사용자는 코드 수정 없이 자동으로 업그레이드돼요"
 {en_fields_rule}
 - background: 이 뉴스를 이해하기 위한 배경 맥락 1~2문장 (~이에요/~해요 체)
   - 이전 사건이나 관련 배경 정보를 포함해요
@@ -645,13 +662,18 @@ def collector_node(state: NewsGraphState) -> dict:
         if dropped:
             print(f"    [{key}] 5일 이전 기사 {dropped}개 제외")
     # 소스별 기사 수집 현황
-    print("\n  ─── 소스별 기사 현황 (최근 5일) ───")
+    print(f"\n  {'소스':<22} {'전체':>4}  {'당일':>4}")
+    print(f"  {'─'*34}")
+    total_all = 0
     total_today = 0
     for key, articles in sources.items():
         today_count = sum(1 for a in articles if _is_today(a))
+        total_all += len(articles)
         total_today += today_count
-        print(f"    [{key}] {len(articles)}개 / 당일 {today_count}개")
-    print(f"  ─── 당일 기사 합계: {total_today}개 ───\n")
+        if len(articles) > 0:
+            print(f"  {key:<22} {len(articles):>4}  {today_count:>4}")
+    print(f"  {'─'*34}")
+    print(f"  {'합계':<22} {total_all:>4}  {total_today:>4}\n")
     enrich_and_scrape(sources)
     filter_imageless(sources)
     _llm_filter_sources(sources)  # 제거 대신 _ai_filtered 마킹
@@ -1555,26 +1577,19 @@ def selector_node(state: NewsGraphState) -> dict:
         categorized[cat] = _select_category_top_n(categorized[cat])
         print(f"    {cat}: {total}개 (당일 {today_count}) -> Top {len(categorized[cat])}개")
 
-    # 카테고리별 최종 선정 기사 목록
+    # 카테고리별 최종 선정 기사 Top 3
     for cat in category_order:
         articles = categorized[cat]
         if not articles:
             continue
-        print(f"  --- [{cat}] 최종 선정 {len(articles)}개 ---")
-        for idx, a in enumerate(articles[:5]):
-            title = (a.get("display_title") or a.get("title", ""))[:50]
-            score = a.get("_total_score", 0)
-            is_today = "당일" if a.get("_is_today") else "이전"
-            print(f"    {idx+1}. [{score}점] [{is_today}] {title}")
-        if len(articles) > 5:
-            print(f"    ... 외 {len(articles) - 5}개")
+        top3 = articles[:3]
+        titles = " / ".join((a.get("display_title") or a.get("title", ""))[:30] for a in top3)
+        print(f"    {cat}: {len(articles)}개 — {titles}")
 
     # ── Step 4: 품질 검증 ──
     h_count = len(highlights)
     cat_counts = {cat: len(articles) for cat, articles in categorized.items()}
     min_cat = min(cat_counts.values()) if cat_counts else 0
-
-    print(f"  [품질] 하이라이트 {h_count}/3, 카테고리 {cat_counts}")
 
     issues = []
     if h_count < 3:
@@ -1633,22 +1648,37 @@ def assembler_node(state: NewsGraphState) -> dict:
     deduped_articles = state.get("deduped_articles", {})
     deduped_total = sum(len(v) for v in deduped_articles.values())
 
-    print(f"\n[DONE] 뉴스 파이프라인 완료: 총 {total}개 (+ AI 필터 {len(filtered_articles)}개 + 중복 {deduped_total}개)")
-    print(f"  하이라이트: {len(state.get('highlights', []))}개")
-    print(f"  카테고리별: {sum(len(v) for v in state.get('categorized_articles', {}).values())}개")
-    print(f"  소스별 섹션: {sum(len(v) for v in source_articles.values())}개")
-    print(f"  AI 필터 제외: {len(filtered_articles)}개")
-    print(f"  중복 보존: {deduped_total}개")
+    # 최종 결과 요약
+    h_count = len(state.get('highlights', []))
+    cat_count = sum(len(v) for v in state.get('categorized_articles', {}).values())
+    src_count = sum(len(v) for v in source_articles.values())
+    cat_detail = {k: len(v) for k, v in state.get('categorized_articles', {}).items() if v}
+    ent_count = sum(1 for c in state.get("scored_candidates", []) if c.get("entities"))
+    ent_total = len(state.get("scored_candidates", []))
+
+    print(f"\n{'='*50}")
+    print(f"  뉴스 파이프라인 결과 요약")
+    print(f"{'='*50}")
+    print(f"  하이라이트    {h_count}개")
+    print(f"  카테고리별    {cat_count}개  {cat_detail}")
+    print(f"  소스별 섹션   {src_count}개")
+    print(f"  AI 필터 제외  {len(filtered_articles)}개")
+    print(f"  중복 보존     {deduped_total}개")
+    print(f"  엔티티 추출   {ent_count}/{ent_total}개")
+    print(f"  ────────────────────")
+    print(f"  총 출력       {total}개")
 
     # 타이밍 리포트
     timings = state.get("node_timings", {})
     if timings:
-        print(f"\n  --- 노드별 소요 시간 ---")
+        print(f"\n  노드별 소요 시간:")
         total_time = 0.0
         for nname, elapsed in timings.items():
-            print(f"    {nname}: {elapsed}s")
+            bar = '█' * max(1, int(elapsed / 10))
+            print(f"    {nname:<20} {elapsed:>6.1f}s  {bar}")
             total_time += elapsed
-        print(f"    합계: {total_time:.1f}s")
+        print(f"    {'합계':<20} {total_time:>6.1f}s")
+    print(f"{'='*50}")
 
     return {
         "source_articles": source_articles,

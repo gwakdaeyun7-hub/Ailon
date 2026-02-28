@@ -80,12 +80,15 @@ def _safe_json_parse(text: str) -> dict:
     if m:
         text = m.group(1).strip()
 
-    # Gemini *** 마크다운 제거 — 구조적 치환 후 잔여 제거
+    # Gemini *** 마크다운 제거 — 구조적 치환 후 컨텍스트 기반 치환
     if re.search(r'\*{2,}', text):
         text = re.sub(r'\[\s*\*+', '[{', text)
         text = re.sub(r'\*+\s*\]', '}]', text)
         text = re.sub(r'\*+\s*,\s*\*+', '},{', text)
-        text = re.sub(r'\*{2,}', '', text)
+        def _star_to_brace(m):
+            after = text[m.end():].lstrip()
+            return '{' if after and after[0] == '"' else '}'
+        text = re.sub(r'\*{2,}', _star_to_brace, text)
     text = text.strip()
 
     # 1차: 원본 시도
