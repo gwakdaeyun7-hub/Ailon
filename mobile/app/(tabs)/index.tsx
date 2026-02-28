@@ -650,11 +650,6 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
                   </View>
                 ) : null}
 
-                {/* Timeline: 관련 과거 기사 타임라인 */}
-                {article.timeline_ids && article.timeline_ids.length > 0 && (
-                  <TimelineSection timelineIds={article.timeline_ids} />
-                )}
-
                 {/* Related Articles: 관련 기사 가로 스크롤 */}
                 {article.related_ids && article.related_ids.length > 0 && (
                   <RelatedArticlesSection relatedIds={article.related_ids} />
@@ -1419,6 +1414,15 @@ export default function NewsScreen() {
   const sourceArticles = newsData?.source_articles ?? EMPTY_RECORD;
   const sourceOrder = newsData?.source_order ?? DEFAULT_SOURCE_ORDER;
 
+  // 하이라이트 기사들의 timeline_ids 통합 (중복 제거)
+  const timelineIds = React.useMemo(() => {
+    const ids = new Set<string>();
+    for (const a of highlights) {
+      if (a.timeline_ids) a.timeline_ids.forEach(id => ids.add(id));
+    }
+    return Array.from(ids);
+  }, [highlights]);
+
   // ─── 레거시 폴백 (기존 articles 배열 데이터) ───
   const legacyGrouped = React.useMemo(() => {
     const grouped: Record<string, Article[]> = {};
@@ -1542,6 +1546,9 @@ export default function NewsScreen() {
           <>
             {/* Daily Briefing */}
             <DailyBriefingCard />
+
+            {/* Timeline: 하이라이트 관련 과거 기사 */}
+            <TimelineSection timelineIds={timelineIds} />
 
             {/* Section 1: 하이라이트 */}
             <HighlightSection highlights={highlights} onArticlePress={handleArticlePress} allStats={allStats} />

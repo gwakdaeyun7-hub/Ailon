@@ -1,9 +1,10 @@
 /**
- * Timeline Section — 요약 모달 내 관련 타임라인 표시
+ * Timeline Section — 메인 화면 하이라이트 위에 표시
+ * 하이라이트 기사들의 timeline_ids를 모아 과거 관련 기사 타임라인 표시
  */
 
 import React from 'react';
-import { View, Text, Pressable, Linking } from 'react-native';
+import { View, Text, Pressable, Linking, ScrollView } from 'react-native';
 import { Clock } from 'lucide-react-native';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
@@ -24,56 +25,61 @@ export const TimelineSection = React.memo(function TimelineSection({ timelineIds
 
   const nodes = timelineIds
     .map(id => articles[id])
-    .filter((a): a is Article => !!a);
+    .filter((a): a is Article => !!a)
+    .sort((a, b) => (b.published ?? '').localeCompare(a.published ?? ''));
 
   if (nodes.length === 0) return null;
 
   return (
-    <View style={{ paddingHorizontal: 20, marginBottom: 16 }}>
-      <Text style={{ fontSize: 13, fontWeight: '700', color: colors.textSecondary, marginBottom: 10 }}>
-        {t('modal.timeline')}
-      </Text>
-      <View style={{ paddingLeft: 12 }}>
-        {nodes.map((node, idx) => {
+    <View style={{ paddingHorizontal: 24, marginBottom: 24 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+        <Clock size={16} color={colors.textSecondary} />
+        <Text style={{ fontSize: 15, fontWeight: '700', color: colors.textPrimary }}>
+          {t('modal.timeline')}
+        </Text>
+      </View>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
+        {nodes.slice(0, 10).map((node, idx) => {
           const title = lang === 'en'
             ? (node.display_title_en || node.display_title || node.title)
             : (node.display_title || node.title);
           const date = node.published?.split('T')[0] ?? '';
-          const isLast = idx === nodes.length - 1;
 
           return (
-            <View key={node.article_id || idx} style={{ flexDirection: 'row', minHeight: 48 }}>
-              {/* Timeline line + dot */}
-              <View style={{ width: 20, alignItems: 'center' }}>
+            <Pressable
+              key={node.article_id || idx}
+              onPress={() => node.link && Linking.openURL(node.link)}
+              style={{
+                width: 200,
+                backgroundColor: colors.cardBg,
+                borderRadius: 12,
+                padding: 14,
+                borderWidth: 1,
+                borderColor: colors.border,
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
                 <View style={{
-                  width: 10, height: 10, borderRadius: 5,
+                  width: 8, height: 8, borderRadius: 4,
                   backgroundColor: colors.summaryIndigo,
-                  marginTop: 4,
                 }} />
-                {!isLast && (
-                  <View style={{ width: 2, flex: 1, backgroundColor: colors.border, marginTop: 2 }} />
-                )}
+                <Text style={{ fontSize: 11, color: colors.textSecondary }}>{date}</Text>
               </View>
-              {/* Content */}
-              <Pressable
-                onPress={() => node.link && Linking.openURL(node.link)}
-                style={{ flex: 1, paddingLeft: 8, paddingBottom: isLast ? 0 : 12 }}
+              <Text
+                style={{ fontSize: 13, color: colors.textPrimary, fontWeight: '600', lineHeight: 18 }}
+                numberOfLines={3}
               >
-                <Text style={{ fontSize: 13, color: colors.textPrimary, fontWeight: '600', lineHeight: 18 }} numberOfLines={2}>
-                  {title}
+                {title}
+              </Text>
+              {node.source && (
+                <Text style={{ fontSize: 11, color: colors.textSecondary, marginTop: 6 }}>
+                  {node.source}
                 </Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                  <Clock size={10} color={colors.textSecondary} />
-                  <Text style={{ fontSize: 11, color: colors.textSecondary }}>{date}</Text>
-                  {node.source && (
-                    <Text style={{ fontSize: 11, color: colors.textSecondary }}>· {node.source}</Text>
-                  )}
-                </View>
-              </Pressable>
-            </View>
+              )}
+            </Pressable>
           );
         })}
-      </View>
+      </ScrollView>
     </View>
   );
 });
