@@ -739,7 +739,7 @@ def ko_process_node(state: NewsGraphState) -> dict:
 
 
 # ─── 중복 제거 ───
-DEDUP_THRESHOLD = 0.45  # 유사도 임계값 (낮출수록 공격적)
+DEDUP_THRESHOLD = 0.35  # 유사도 임계값 (낮출수록 공격적)
 
 
 def _normalize_title(title: str) -> str:
@@ -749,6 +749,20 @@ def _normalize_title(title: str) -> str:
     t = re.sub(r'[^\w\s]', '', t)       # 특수문자 제거
     t = re.sub(r'\s+', ' ', t).strip()   # 공백 정리
     return t
+
+
+def _extract_key_tokens(text: str) -> set[str]:
+    """제목/요약에서 핵심 토큰(고유명사·숫자) 추출 — 중복 비교용"""
+    t = re.sub(r'[^\w\s]', ' ', text)
+    tokens = set()
+    for w in t.split():
+        # 숫자 포함 토큰 (금액, 수량 등)
+        if re.search(r'\d', w):
+            tokens.add(re.sub(r'[^\d]', '', w))  # 순수 숫자만
+        # 영문 고유명사 (2글자 이상, 첫 글자 대문자 or 전체 대문자)
+        elif re.match(r'[A-Z]', w) and len(w) >= 2:
+            tokens.add(w.lower())
+    return tokens
 
 
 def _extract_url_key(link: str) -> str:
@@ -765,10 +779,11 @@ def _extract_url_key(link: str) -> str:
 def _deduplicate_candidates(candidates: list[dict], mark_only: bool = False, threshold: float | None = None) -> list[dict]:
     """다층 중복 제거:
     Layer 1: URL 완전 일치
-    Layer 2: 원본 제목(영문) 유사도
-    Layer 3: 번역 제목(한국어) 유사도
-    Layer 4: 엔티티 교집합(>=2) + topic_cluster_id 일치
-    Layer 5: one_line(한줄 요약) 유사도
+    Layer 2: 원본 제목(영문) 유사도 (>=0.35)
+    Layer 3: 번역 제목(한국어) 유사도 (>=0.35)
+    Layer 4: 엔티티 교집합(>=1) + topic_cluster_id 일치
+    Layer 5: one_line(한줄 요약) 유사도 (>=0.40)
+    Layer 6: 핵심 토큰(고유명사 2개+숫자 1개) 겹침
     발행일 가장 오래된(원본) 기사 유지.
     mark_only=True 면 제거 대신 _deduped=True 마킹 (전체 리스트 반환).
     threshold: 제목 유사도 임계값 (None이면 DEDUP_THRESHOLD 사용)."""
@@ -806,6 +821,8 @@ def _deduplicate_candidates(candidates: list[dict], mark_only: bool = False, thr
         c_cluster = c.get("topic_cluster_id", "")
         # Layer 5 준비: one_line 정규화
         c_oneline = _normalize_title(c.get("one_line", ""))
+        # Layer 6 준비: 핵심 토큰 (고유명사·숫자)
+        c_key_tokens = _extract_key_tokens(c.get("title", "") + " " + c.get("display_title", ""))
 
         is_dup = False
         for k in kept:
@@ -819,19 +836,29 @@ def _deduplicate_candidates(candidates: list[dict], mark_only: bool = False, thr
             if disp_title and k_disp and SequenceMatcher(None, disp_title, k_disp).ratio() >= thr:
                 is_dup = True
                 break
-            # Layer 4: 엔티티 교집합 >= 2 AND topic_cluster_id 동일
+            # Layer 4: 엔티티 교집합 + topic_cluster_id 동일
             if c_entities and c_cluster:
                 k_entities = {e.get("name", "").lower() for e in k.get("entities", []) if e.get("name")}
                 k_cluster = k.get("topic_cluster_id", "")
-                if k_entities and k_cluster and c_cluster == k_cluster and len(c_entities & k_entities) >= 2:
+                if k_entities and k_cluster and c_cluster == k_cluster and len(c_entities & k_entities) >= 1:
                     is_dup = True
                     break
             # Layer 5: one_line(한줄 요약) 유사도
             if c_oneline:
                 k_oneline = _normalize_title(k.get("one_line", ""))
-                if k_oneline and SequenceMatcher(None, c_oneline, k_oneline).ratio() >= 0.50:
+                if k_oneline and SequenceMatcher(None, c_oneline, k_oneline).ratio() >= 0.40:
                     is_dup = True
                     break
+            # Layer 6: 핵심 토큰 겹침 (고유명사 2개 이상 + 숫자 1개 이상 공유)
+            if len(c_key_tokens) >= 3:
+                k_key_tokens = _extract_key_tokens(k.get("title", "") + " " + k.get("display_title", ""))
+                if len(k_key_tokens) >= 3:
+                    overlap = c_key_tokens & k_key_tokens
+                    names_overlap = sum(1 for t in overlap if not t.isdigit())
+                    nums_overlap = sum(1 for t in overlap if t.isdigit())
+                    if names_overlap >= 2 and nums_overlap >= 1:
+                        is_dup = True
+                        break
 
         if is_dup:
             removed += 1
