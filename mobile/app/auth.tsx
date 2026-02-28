@@ -3,11 +3,13 @@ import { View, Text, Pressable, ActivityIndicator, SafeAreaView } from 'react-na
 import { router } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/context/LanguageContext';
+import { useTheme } from '@/context/ThemeContext';
 import { Zap } from 'lucide-react-native';
 
 export default function AuthScreen() {
   const { user, signInWithGoogle } = useAuth();
   const { t } = useLanguage();
+  const { colors } = useTheme();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,7 +39,7 @@ export default function AuthScreen() {
       {/* Top gradient-like section */}
       <View
         style={{
-          backgroundColor: '#E53935',
+          backgroundColor: colors.primary,
           paddingTop: 60,
           paddingBottom: 48,
           borderBottomLeftRadius: 32,
@@ -92,7 +94,7 @@ export default function AuthScreen() {
             paddingHorizontal: 24,
             borderRadius: 16,
             borderWidth: 1,
-            borderColor: '#F0F0F0',
+            borderColor: colors.border,
             elevation: 3,
             shadowColor: '#000',
             shadowOffset: { width: 0, height: 2 },
@@ -101,11 +103,11 @@ export default function AuthScreen() {
           }}
         >
           {loading ? (
-            <ActivityIndicator color="#E53935" />
+            <ActivityIndicator color={colors.primary} />
           ) : (
             <>
               <Text style={{ fontSize: 20, fontWeight: '700', color: '#4285F4' }}>G</Text>
-              <Text style={{ color: '#212121', fontWeight: '600', fontSize: 16 }}>{t('auth.google_start')}</Text>
+              <Text style={{ color: colors.textPrimary, fontWeight: '600', fontSize: 16 }}>{t('auth.google_start')}</Text>
             </>
           )}
         </Pressable>

@@ -196,9 +196,9 @@ function FoundationCard({ principle, lang }: { principle: Principle; lang: strin
 function ApplicationCard({ principle, lang }: { principle: Principle; lang: string }) {
   const { colors } = useTheme();
   const { t } = useLanguage();
-  const { application } = principle;
+  const application = principle.application ?? {} as any;
   const [mechExpanded, setMechExpanded] = useState(false);
-  const mechanismText = L(application.mechanism, application.mechanism_en, lang);
+  const mechanismText = L(application.mechanism, application.mechanism_en, lang) || '';
   const showToggle = mechanismText.length > 120;
   return (
     <View style={{

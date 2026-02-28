@@ -17,9 +17,9 @@ interface Props {
 }
 
 const DIFFICULTY_COLORS: Record<string, string> = {
-  easy: '#22C55E',
-  medium: '#F59E0B',
-  hard: '#EF4444',
+  easy: '#15803D',
+  medium: '#B45309',
+  hard: '#9A3412',
 };
 
 export function QuizModal({ visible, onClose }: Props) {
@@ -163,13 +163,13 @@ export function QuizModal({ visible, onClose }: Props) {
 
             if (answered) {
               if (correct) {
-                optBg = '#22C55E18';
-                optBorder = '#22C55E';
-                optTextColor = '#16A34A';
+                optBg = '#15803D18';
+                optBorder = '#15803D';
+                optTextColor = '#15803D';
               } else if (selected && !correct) {
-                optBg = '#EF444418';
-                optBorder = '#EF4444';
-                optTextColor = '#DC2626';
+                optBg = '#9A341218';
+                optBorder = '#9A3412';
+                optTextColor = '#9A3412';
               }
             } else if (selected) {
               optBg = colors.summaryIndigo + '18';
@@ -190,13 +190,13 @@ export function QuizModal({ visible, onClose }: Props) {
               >
                 <View style={{
                   width: 28, height: 28, borderRadius: 14,
-                  backgroundColor: answered && correct ? '#22C55E' : colors.surface,
+                  backgroundColor: answered && correct ? '#15803D' : colors.surface,
                   alignItems: 'center', justifyContent: 'center', marginRight: 12,
                 }}>
                   {answered && correct ? (
                     <Check size={14} color="#FFF" />
                   ) : answered && selected && !correct ? (
-                    <XCircle size={14} color="#EF4444" />
+                    <XCircle size={14} color="#9A3412" />
                   ) : (
                     <Text style={{ fontSize: 13, fontWeight: '600', color: colors.textSecondary }}>
                       {String.fromCharCode(65 + idx)}
@@ -211,10 +211,10 @@ export function QuizModal({ visible, onClose }: Props) {
           {/* Feedback */}
           {answered && (
             <View style={{
-              backgroundColor: isCorrect ? '#22C55E10' : '#EF444410',
+              backgroundColor: isCorrect ? '#15803D10' : '#9A341210',
               borderRadius: 12, padding: 14, marginTop: 8, marginBottom: 16,
             }}>
-              <Text style={{ fontSize: 14, fontWeight: '700', color: isCorrect ? '#16A34A' : '#DC2626', marginBottom: 4 }}>
+              <Text style={{ fontSize: 14, fontWeight: '700', color: isCorrect ? '#15803D' : '#9A3412', marginBottom: 4 }}>
                 {isCorrect ? t('quiz.correct') : t('quiz.incorrect')}
               </Text>
               <Text style={{ fontSize: 13, color: colors.textPrimary, lineHeight: 20 }}>{explanation}</Text>

@@ -38,6 +38,7 @@ import { NewsCardSkeleton } from '@/components/shared/LoadingSkeleton';
 import { CommentSheet } from '@/components/shared/CommentSheet';
 import type { Article } from '@/lib/types';
 import { Colors } from '@/lib/colors';
+import { FontFamily } from '@/lib/theme';
 import type { Language } from '@/lib/translations';
 import type { BatchStats } from '@/hooks/useBatchStats';
 import { DailyBriefingCard } from '@/components/briefing/DailyBriefingCard';
@@ -292,7 +293,7 @@ const HighlightScrollCard = React.memo(function HighlightScrollCard({
         <View style={{ width: HIGHLIGHT_CARD_WIDTH - 28 }}>
           <SourceBadge sourceKey={article.source_key} name={getSourceName(article.source_key || '', t)} />
           <TitleText
-            style={{ fontSize: 15, fontWeight: '700', color: colors.textPrimary, lineHeight: 22, marginTop: 6 }}
+            style={{ fontSize: 15, fontWeight: '700', color: colors.textPrimary, lineHeight: 22, marginTop: 6, fontFamily: FontFamily.serif }}
             numberOfLines={2}
           >
             {getLocalizedTitle(article, lang)}
@@ -527,7 +528,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
               style={{
                 fontSize: 18, fontWeight: '700', color: colors.textPrimary, lineHeight: 28,
                 marginTop: 14, marginBottom: 14,
-                paddingHorizontal: 20,
+                paddingHorizontal: 20, fontFamily: FontFamily.serif,
               }}
             >
               {articleTitle}
@@ -763,7 +764,7 @@ function HighlightSection({ highlights, onArticlePress, allStats }: { highlights
     <View style={{ paddingTop: 12, paddingBottom: 24, backgroundColor: colors.highlightBg }}>
       {/* 섹션 헤더 */}
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 14 }}>
-        <Text style={{ fontSize: 17, fontWeight: '700', color: colors.textPrimary }}>{t('news.highlight_title')}</Text>
+        <Text style={{ fontSize: 17, fontWeight: '700', color: colors.textPrimary, fontFamily: FontFamily.serif }}>{t('news.highlight_title')}</Text>
         <Text style={{ fontSize: 11, color: colors.textSecondary, marginLeft: 8 }}>Top {highlights.length}</Text>
       </View>
 
@@ -845,7 +846,7 @@ const HScrollCard = React.memo(function HScrollCard({
         <View style={{ width: CARD_WIDTH - 28 }}>
           {showSourceBadge && <SourceBadge sourceKey={article.source_key} name={getSourceName(article.source_key || '', t)} />}
           <TitleText
-            style={{ fontSize: 13, fontWeight: '700', color: colors.textPrimary, lineHeight: 18, marginTop: showSourceBadge ? 6 : 0 }}
+            style={{ fontSize: 13, fontWeight: '700', color: colors.textPrimary, lineHeight: 18, marginTop: showSourceBadge ? 6 : 0, fontFamily: FontFamily.serif }}
             numberOfLines={2}
           >
             {getLocalizedTitle(article, lang)}
@@ -915,7 +916,7 @@ function CategoryTabSection({
     <View style={{ marginBottom: 24 }}>
       {/* 섹션 헤더 + 카테고리 탭 */}
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 16 }}>
-        <Text style={{ fontSize: 17, fontWeight: '700', color: colors.textPrimary, marginRight: 12 }}>{t('news.category_title')}</Text>
+        <Text style={{ fontSize: 17, fontWeight: '700', color: colors.textPrimary, marginRight: 12, fontFamily: FontFamily.serif }}>{t('news.category_title')}</Text>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -1007,7 +1008,7 @@ function CategoryTabSection({
                   <View style={{ flex: 1, padding: 14, justifyContent: 'space-between' }}>
                     <View>
                       <SourceBadge sourceKey={a.source_key} name={getSourceName(a.source_key || '', t)} />
-                      <TitleText style={{ fontSize: 14, fontWeight: '700', color: colors.textPrimary, lineHeight: 22, marginTop: 6 }} numberOfLines={2}>
+                      <TitleText style={{ fontSize: 14, fontWeight: '700', color: colors.textPrimary, lineHeight: 22, marginTop: 6, fontFamily: FontFamily.serif }} numberOfLines={2}>
                         {getLocalizedTitle(a, lang)}
                       </TitleText>
                     </View>
@@ -1098,7 +1099,7 @@ function CategoryTabSection({
                         )}
                       </View>
                       <TitleText
-                        style={{ fontSize: 14, fontWeight: '700', color: isDimmed ? colors.textSecondary : colors.textPrimary, lineHeight: 22, marginTop: 6 }}
+                        style={{ fontSize: 14, fontWeight: '700', color: isDimmed ? colors.textSecondary : colors.textPrimary, lineHeight: 22, marginTop: 6, fontFamily: FontFamily.serif }}
                         numberOfLines={2}
                       >
                         {getLocalizedTitle(a, lang)}
@@ -1194,7 +1195,7 @@ function SourceHScrollSection({
     <View style={{ marginBottom: 24 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 14 }}>
         <View style={{ width: 4, height: 18, borderRadius: 2, backgroundColor: color, marginRight: 8 }} />
-        <Text style={{ fontSize: 15, fontWeight: '700', color: colors.textPrimary, flex: 1 }}>
+        <Text style={{ fontSize: 15, fontWeight: '700', color: colors.textPrimary, flex: 1, fontFamily: FontFamily.serif }}>
           {name}
         </Text>
         <Text style={{ fontSize: 11, color: colors.textSecondary }}>{capped.length}{t('news.articles_suffix')}</Text>
@@ -1264,7 +1265,7 @@ const GeekNewsSection = React.memo(function GeekNewsSection({ articles, onArticl
         accessibilityRole="header"
       >
         <View style={{ width: 4, height: 18, borderRadius: 2, backgroundColor: color, marginRight: 8 }} />
-        <Text style={{ fontSize: 15, fontWeight: '700', color: colors.textPrimary, flex: 1 }}>{name}</Text>
+        <Text style={{ fontSize: 15, fontWeight: '700', color: colors.textPrimary, flex: 1, fontFamily: FontFamily.serif }}>{name}</Text>
         <Text style={{ fontSize: 11, color: colors.textSecondary }}>{capped.length}{t('news.articles_suffix')}</Text>
       </View>
 
@@ -1287,7 +1288,7 @@ const GeekNewsSection = React.memo(function GeekNewsSection({ articles, onArticl
           >
             <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
               <TitleText
-                style={{ fontSize: 14, fontWeight: '700', color: colors.textPrimary, lineHeight: 22, flex: 1, marginRight: 8 }}
+                style={{ fontSize: 14, fontWeight: '700', color: colors.textPrimary, lineHeight: 22, flex: 1, marginRight: 8, fontFamily: FontFamily.serif }}
                 numberOfLines={2}
               >
                 {getLocalizedTitle(a, lang)}
@@ -1488,7 +1489,7 @@ export default function NewsScreen() {
           <Text style={{ color: colors.card, fontSize: 16, fontWeight: '800' }}>A</Text>
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 24, fontWeight: '800', color: colors.textPrimary }}>{t('news.header')}</Text>
+          <Text style={{ fontSize: 24, fontWeight: '800', color: colors.textPrimary, fontFamily: FontFamily.serifItalic }}>{t('news.header')}</Text>
           {totalArticles > 0 && (
             <Text style={{ fontSize: 12, color: colors.textSecondary }}>
               {(() => {
@@ -1574,7 +1575,7 @@ export default function NewsScreen() {
             {sourceOrder.some(key => (sourceArticles[key]?.length ?? 0) > 0) && (
               <View style={{ paddingHorizontal: 16, marginBottom: 20, marginTop: 16 }}>
                 <View style={{ height: 8, backgroundColor: colors.surface, borderRadius: 4, marginBottom: 20 }} />
-                <Text style={{ fontSize: 16, fontWeight: '700', color: colors.textPrimary }}>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: colors.textPrimary, fontFamily: FontFamily.serif }}>
                   {t('news.source_title')}
                 </Text>
                 <Text style={{ fontSize: 12, color: colors.textSecondary, marginTop: 4 }}>

@@ -39,4 +39,11 @@ export const cardShadow = {
   shadowRadius: 4,
 } as const;
 
+export const FontFamily = {
+  serif: 'Lora-Bold',
+  serifItalic: 'Lora-BoldItalic',
+  serifRegular: 'Lora-Regular',
+  sans: undefined, // system default
+} as const;
+
 export const MIN_TOUCH_TARGET = 44;

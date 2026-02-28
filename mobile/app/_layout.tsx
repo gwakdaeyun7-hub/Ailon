@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
+import { useFonts } from 'expo-font';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { DrawerProvider } from '@/context/DrawerContext';
 import { LanguageProvider } from '@/context/LanguageContext';
@@ -16,10 +17,6 @@ function InnerLayout() {
   const { colors, isDark } = useTheme();
   useNotifications();
 
-  useEffect(() => {
-    SplashScreen.hideAsync();
-  }, []);
-
   return (
     <>
       <StatusBar style={isDark ? 'light' : 'dark'} translucent />
@@ -33,6 +30,19 @@ function InnerLayout() {
 }
 
 export default function RootLayout() {
+  const [fontsLoaded] = useFonts({
+    'Lora-Regular': require('../assets/fonts/Lora-Regular.ttf'),
+    'Lora-Italic': require('../assets/fonts/Lora-Italic.ttf'),
+    'Lora-Bold': require('../assets/fonts/Lora-Bold.ttf'),
+    'Lora-BoldItalic': require('../assets/fonts/Lora-BoldItalic.ttf'),
+  });
+
+  useEffect(() => {
+    if (fontsLoaded) SplashScreen.hideAsync();
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded) return null;
+
   return (
     <SafeAreaProvider>
       <ThemeProvider>
