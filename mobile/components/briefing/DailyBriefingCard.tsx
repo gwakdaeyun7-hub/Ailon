@@ -6,8 +6,7 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { Newspaper, Volume2, VolumeX } from 'lucide-react-native';
-let Speech: typeof import('expo-speech') | null = null;
-try { Speech = require('expo-speech'); } catch {}
+import Speech from '@/lib/speech';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useBriefing } from '@/hooks/useBriefing';
