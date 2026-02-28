@@ -125,18 +125,12 @@ def _parse_llm_json(text: str):
     text = re.sub(r'```[a-zA-Z]*\s*\n?', '', text)
     text = re.sub(r'\n?\s*```', '', text)
     # Gemini bold/italic 마크다운 제거 — *** 가 {} 를 대체하거나 장식으로 삽입되는 케이스 처리
-    # 패턴 A (장식): [{***"i":0***}] — {} 가 이미 있고 *** 는 장식
-    # 패턴 B (대체): [***"i":0***]   — {} 없이 *** 가 {} 역할
-    has_braces = '{' in text
-    if has_braces:
-        # {} 가 이미 있으면 *** 는 장식 — 전부 제거
-        text = re.sub(r'\*{2,}', '', text)
-    else:
-        # {} 없이 *** 가 {} 를 대체한 경우 — 구조적 치환
-        text = re.sub(r'\[\s*\*+', '[{', text)
-        text = re.sub(r'\*+\s*\]', '}]', text)
-        text = re.sub(r'\*+\s*,\s*\*+', '},{', text)
-        text = re.sub(r'\*{2,}', '', text)
+    # 항상 구조적 치환을 먼저 시도 (패턴이 안 맞으면 무해하게 스킵됨)
+    # 그 후 남은 *** 를 장식으로 간주하고 제거
+    text = re.sub(r'\[\s*\*+', '[{', text)
+    text = re.sub(r'\*+\s*\]', '}]', text)
+    text = re.sub(r'\*+\s*,\s*\*+', '},{', text)
+    text = re.sub(r'\*{2,}', '', text)
     text = text.strip()
 
     if not text:

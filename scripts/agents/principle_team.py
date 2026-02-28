@@ -71,12 +71,22 @@ def _fix_invalid_escapes(s: str) -> str:
 
 
 def _safe_json_parse(text: str) -> dict:
-    """LLM 응답에서 JSON 추출. 코드펜스·잘못된 이스케이프도 처리."""
+    """LLM 응답에서 JSON 추출. 코드펜스·잘못된 이스케이프·Gemini *** 마크다운도 처리."""
     text = text.strip()
+    # <thinking> 태그 제거
+    text = re.sub(r'<think(?:ing)?>.*?</think(?:ing)?>', '', text, flags=re.DOTALL)
     # 코드펜스 제거
     m = re.search(r'```(?:json)?\s*([\s\S]*?)```', text)
     if m:
         text = m.group(1).strip()
+
+    # Gemini *** 마크다운 제거 — 구조적 치환 후 잔여 제거
+    if re.search(r'\*{2,}', text):
+        text = re.sub(r'\[\s*\*+', '[{', text)
+        text = re.sub(r'\*+\s*\]', '}]', text)
+        text = re.sub(r'\*+\s*,\s*\*+', '},{', text)
+        text = re.sub(r'\*{2,}', '', text)
+    text = text.strip()
 
     # 1차: 원본 시도
     try:
@@ -398,7 +408,7 @@ def verifier(state: PrincipleGraphState) -> dict:
     if not content:
         return {"verification": {"verified": False, "confidence": 0.0, "factCheck": "콘텐츠 없음"}}
 
-    llm = get_llm(temperature=0.0, max_tokens=1024, thinking=False, json_mode=True)
+    llm = get_llm(temperature=0.0, max_tokens=2048, thinking=False, json_mode=True)
 
     prompt = _VERIFY_PROMPT.format(
         discipline_name=seed["discipline_name"],
