@@ -263,7 +263,7 @@ def _summarize_batch(batch: list[dict], batch_idx: int, translate: bool = True) 
             "\nAlso produce these English fields:\n"
             "- display_title_en: concise English headline (news-style, not a literal back-translation)\n"
             "- one_line_en: 1-sentence English summary of what happened\n"
-            "- key_points_en: 3 key facts in English (array of strings)\n"
+            "- key_points_en: EXACTLY 3 key facts in English (array of exactly 3 strings, no more, no less)\n"
             "- why_important_en: 1-2 sentence English explanation of impact"
         )
     else:
@@ -273,7 +273,7 @@ def _summarize_batch(batch: list[dict], batch_idx: int, translate: bool = True) 
             "\nAlso produce these English fields (translate the Korean summaries to English):\n"
             "- display_title_en: concise English headline for this article\n"
             "- one_line_en: 1-sentence English summary of what happened\n"
-            "- key_points_en: 3 key facts in English (array of strings)\n"
+            "- key_points_en: EXACTLY 3 key facts in English (array of exactly 3 strings, no more, no less)\n"
             "- why_important_en: 1-2 sentence English explanation of impact"
         )
 
@@ -290,10 +290,10 @@ For each article, produce:
   - 본문에 없는 정보 추가 금지
   - 예: "OpenAI가 GPT-5를 공식 출시했어요"
   - 예: "Meta가 Llama 4를 오픈소스로 공개했어요"
-- key_points: 핵심 팩트 3개 (각 1문장 이내, ~이에요/~해요 체)
+- key_points: 핵심 팩트 정확히 3개 (각 1문장 이내, ~이에요/~해요 체). 반드시 3개만 반환. 4개 이상 절대 금지.
   - 숫자·모델명·성능 지표·구체적 스펙 우선
   - one_line과 중복 금지
-  - 본문에 구체적 팩트가 부족하면 2개도 허용
+  - 본문에 구체적 팩트가 부족하면 2개도 허용하지만 4개 이상은 절대 불가
   - 예: ["컨텍스트 윈도우 256K 토큰을 지원해요", "GPT-4 대비 추론 속도가 2배 빨라요", "API 가격은 50% 인하됐어요"]
 - why_important: 업계/개발자에게 미치는 영향 -- 1~2문장, ~이에요/~해요 체
   - one_line·key_points에 나온 내용 반복 금지
@@ -368,7 +368,7 @@ def _apply_batch_results(batch: list[dict], results: list[dict]) -> int:
             why_important = r.get("why_important", "")
             if one_line or key_points:
                 batch[ridx]["one_line"] = one_line
-                batch[ridx]["key_points"] = key_points if isinstance(key_points, list) else []
+                batch[ridx]["key_points"] = (key_points if isinstance(key_points, list) else [])[:3]
                 batch[ridx]["why_important"] = why_important
                 # summary 폴백 (레거시 호환)
                 parts = [one_line]
@@ -386,7 +386,7 @@ def _apply_batch_results(batch: list[dict], results: list[dict]) -> int:
                 batch[ridx]["one_line_en"] = r["one_line_en"]
             kp_en = r.get("key_points_en", [])
             if kp_en:
-                batch[ridx]["key_points_en"] = kp_en if isinstance(kp_en, list) else []
+                batch[ridx]["key_points_en"] = (kp_en if isinstance(kp_en, list) else [])[:3]
             if r.get("why_important_en"):
                 batch[ridx]["why_important_en"] = r["why_important_en"]
             # background / tags / glossary 필드
