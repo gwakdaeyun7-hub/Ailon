@@ -1,0 +1,13 @@
+.claude/
+frontend/
+scripts/
+docs/
+backend/
+_ul/
+*.jpg
+*.png
+*.html
+CLAUDE.md
+README.md
+PRD_AILON_COMPLETE.md
+GEMINI_MODELS_REFERENCE.md

@@ -51,7 +51,7 @@ ENV/
 firebase-credentials.json
 serviceAccountKey.json
 *-firebase-adminsdk-*.json
-google-services.json
+# google-services.json — EAS 빌드에 필요하므로 커밋 허용
 
 # IDEs
 .vscode/
