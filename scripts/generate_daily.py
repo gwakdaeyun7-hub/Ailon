@@ -81,7 +81,6 @@ def save_news_to_firestore(result: dict):
             {
                 "title": a.get("title", ""),
                 "display_title": a.get("display_title", "") or a.get("title", ""),
-                "description": a.get("description", ""),
                 "summary": a.get("summary", "") or a.get("description", "")[:300],
                 "one_line": a.get("one_line", ""),
                 "key_points": a.get("key_points", []),
@@ -118,12 +117,30 @@ def save_news_to_firestore(result: dict):
         for src, articles in result.get("source_articles", {}).items()
     }
 
-    # AI 필터 제외 기사 (분류+점수 포함, 전체 파이프라인 통과)
-    filtered_articles = _flatten_list(result.get("filtered_articles", []))
+    # AI 필터 제외/중복 기사 — 경량 저장 (확장 뷰에서만 사용)
+    def _flatten_light(articles: list[dict]) -> list[dict]:
+        return [
+            {
+                "title": a.get("title", ""),
+                "display_title": a.get("display_title", "") or a.get("title", ""),
+                "one_line": a.get("one_line", ""),
+                "display_title_en": a.get("display_title_en", ""),
+                "one_line_en": a.get("one_line_en", ""),
+                "link": a.get("link", ""),
+                "published": a.get("published", ""),
+                "source": a.get("source", ""),
+                "source_key": a.get("source_key", ""),
+                "image_url": a.get("image_url", ""),
+                "score": a.get("_total_score", 0),
+                "rank": a.get("_rank", 0),
+                "category": a.get("_llm_category", ""),
+            }
+            for a in articles
+        ]
 
-    # 중복 제거된 기사 (카테고리별)
+    filtered_articles = _flatten_light(result.get("filtered_articles", []))
     deduped_articles = {
-        cat: _flatten_list(articles)
+        cat: _flatten_light(articles)
         for cat, articles in result.get("deduped_articles", {}).items()
     }
 
