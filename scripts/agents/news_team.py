@@ -1288,59 +1288,89 @@ Rules:
 _ENTITY_TYPES = {"model", "company", "person", "technology", "concept", "dataset", "framework"}
 
 
+def _normalize_entity_type(t: str) -> str | None:
+    """엔티티 타입 퍼지 매칭: 'models' → 'model' 등"""
+    if not t:
+        return None
+    t = t.lower().strip()
+    if t in _ENTITY_TYPES:
+        return t
+    # 복수형 → 단수형
+    if t.endswith("s") and t[:-1] in _ENTITY_TYPES:
+        return t[:-1]
+    # 흔한 동의어
+    _ALIASES = {"org": "company", "organization": "company", "lib": "framework", "library": "framework", "tool": "framework"}
+    return _ALIASES.get(t)
+
+
 def _extract_entities_batch(batch: list[dict], batch_idx: int) -> list[dict]:
-    """단일 배치에서 엔티티 추출 + topic_cluster_id 부여. 실패 시 원본 반환."""
-    article_text = ""
-    for i, a in enumerate(batch):
-        title = a.get("display_title") or a.get("title", "")
-        one_line = a.get("one_line") or a.get("one_line_en") or ""
-        article_text += f"\n[{i}] {title} | {one_line}"
+    """단일 배치에서 엔티티 추출 + topic_cluster_id 부여. 실패 시 재시도 후 원본 반환."""
+    def _build_prompt(articles: list[dict]) -> str:
+        article_text = ""
+        for i, a in enumerate(articles):
+            title = a.get("display_title") or a.get("title", "")
+            one_line = a.get("one_line") or a.get("one_line_en") or ""
+            kps = a.get("key_points", [])
+            kps_str = (" | " + " | ".join(kps[:2])) if isinstance(kps, list) and kps else ""
+            article_text += f"\n[{i}] {title} | {one_line}{kps_str}"
+        return _ENTITY_EXTRACT_PROMPT.format(article_text=article_text, count=len(articles))
 
-    prompt = _ENTITY_EXTRACT_PROMPT.format(
-        article_text=article_text,
-        count=len(batch),
-    )
-
-    try:
-        llm = get_llm(temperature=0, max_tokens=4096, thinking=False, json_mode=True)
-        content = _llm_invoke_with_retry(llm, prompt, max_retries=2)
-        results = _parse_llm_json(content)
-
+    def _apply_results(results: list, articles: list[dict]) -> int:
         if isinstance(results, dict):
             results = next((v for v in results.values() if isinstance(v, list)), [])
         if not isinstance(results, list):
-            raise ValueError(f"Expected list, got {type(results)}")
+            return 0
 
         # index -> result 매핑
         idx_map = {}
         for r in results:
             if isinstance(r, dict) and "index" in r:
-                idx_map[int(r["index"])] = r
+                try:
+                    idx_map[int(r["index"])] = r
+                except (ValueError, TypeError):
+                    pass
         # index 매칭 실패 시 순서 기반 폴백
-        if not idx_map and len(results) == len(batch):
+        if not idx_map and len(results) == len(articles):
             for i, r in enumerate(results):
                 if isinstance(r, dict):
                     idx_map[i] = r
 
         applied = 0
-        for i, a in enumerate(batch):
+        for i, a in enumerate(articles):
             r = idx_map.get(i)
             if not r:
                 continue
-            # entities 검증: type이 유효한 것만 보존
             entities = r.get("entities", [])
             valid_entities = [
                 e for e in entities
-                if isinstance(e, dict) and e.get("name") and e.get("type") in _ENTITY_TYPES
+                if isinstance(e, dict) and e.get("name") and _normalize_entity_type(e.get("type", ""))
             ]
+            for e in valid_entities:
+                e["type"] = _normalize_entity_type(e["type"])
             if valid_entities:
                 a["entities"] = valid_entities
             cluster = r.get("topic_cluster_id", "")
             if isinstance(cluster, str) and "/" in cluster:
                 a["topic_cluster_id"] = cluster
-            applied += 1
+            if valid_entities or a.get("topic_cluster_id"):
+                applied += 1
+        return applied
 
+    try:
+        llm = get_llm(temperature=0, max_tokens=4096, thinking=False, json_mode=True)
+        content = _llm_invoke_with_retry(llm, _build_prompt(batch), max_retries=2)
+        results = _parse_llm_json(content)
+        applied = _apply_results(results, batch)
         print(f"    [entity batch {batch_idx}] {applied}/{len(batch)}개 적용")
+
+        # 실패한 기사만 재시도 (배치 절반 이상 실패 시)
+        missed = [a for a in batch if not a.get("entities")]
+        if missed and len(missed) >= len(batch) // 2:
+            print(f"    [entity batch {batch_idx}] {len(missed)}개 재시도...")
+            content2 = _llm_invoke_with_retry(llm, _build_prompt(missed), max_retries=2)
+            results2 = _parse_llm_json(content2)
+            retry_applied = _apply_results(results2, missed)
+            print(f"    [entity batch {batch_idx}] 재시도 {retry_applied}/{len(missed)}개 적용")
 
     except Exception as e:
         print(f"    [entity batch {batch_idx}] 실패, 스킵: {e}")
@@ -1350,13 +1380,13 @@ def _extract_entities_batch(batch: list[dict], batch_idx: int) -> list[dict]:
 
 @_safe_node("entity_extractor")
 def entity_extractor_node(state: NewsGraphState) -> dict:
-    """기사별 엔티티 추출 + topic_cluster_id 부여. 10개씩 배치 병렬 처리."""
+    """기사별 엔티티 추출 + topic_cluster_id 부여. 5개씩 배치 병렬 처리."""
     candidates = state.get("scored_candidates", [])
     if not candidates:
         return {"scored_candidates": []}
 
-    # 10개씩 배치 분할
-    batch_size = 10
+    # 5개씩 배치 분할 (Gemini 안정성 향상)
+    batch_size = 5
     batches = [candidates[i:i + batch_size] for i in range(0, len(candidates), batch_size)]
     print(f"    엔티티 추출: {len(candidates)}개 기사 → {len(batches)}개 배치")
 

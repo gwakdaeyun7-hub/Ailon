@@ -258,6 +258,16 @@ Articles:
             print("  [퀴즈 실패] 잘못된 응답 형식")
             return None
 
+        # 5문제 미달 시 1회 재시도
+        if len(quizzes) < 5:
+            print(f"  [퀴즈] {len(quizzes)}/5문제 — 재시도...")
+            resp2 = llm.invoke(prompt)
+            retry = _parse_llm_json(resp2.content if hasattr(resp2, "content") else str(resp2))
+            if isinstance(retry, dict):
+                retry = next((v for v in retry.values() if isinstance(v, list)), [])
+            if isinstance(retry, list) and len(retry) > len(quizzes):
+                quizzes = retry
+
         for q in quizzes:
             if isinstance(q, dict):
                 src_idx = q.get("source_article_index", -1)
