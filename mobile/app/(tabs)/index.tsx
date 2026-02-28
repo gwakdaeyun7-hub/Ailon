@@ -292,7 +292,7 @@ const HighlightScrollCard = React.memo(function HighlightScrollCard({
         <View style={{ width: HIGHLIGHT_CARD_WIDTH - 28 }}>
           <SourceBadge sourceKey={article.source_key} name={getSourceName(article.source_key || '', t)} />
           <TitleText
-            style={{ fontSize: 15, fontWeight: '800', color: colors.textPrimary, lineHeight: 21, marginTop: 6 }}
+            style={{ fontSize: 15, fontWeight: '700', color: colors.textPrimary, lineHeight: 22, marginTop: 6 }}
             numberOfLines={2}
           >
             {getLocalizedTitle(article, lang)}
@@ -525,7 +525,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
             <Text
               accessibilityRole="header"
               style={{
-                fontSize: 18, fontWeight: '800', color: colors.textPrimary, lineHeight: 28,
+                fontSize: 18, fontWeight: '700', color: colors.textPrimary, lineHeight: 28,
                 marginTop: 14, marginBottom: 14,
                 paddingHorizontal: 20,
               }}
@@ -544,7 +544,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
                   <View style={{ width: 3, backgroundColor: colors.summaryIndigo, borderRadius: 2, marginRight: 12 }} />
                   <View style={{ flex: 1 }}>
                     <Text style={{ fontSize: 13, fontWeight: '600', color: colors.summaryIndigo, marginBottom: 6 }}>{t('modal.one_line')}</Text>
-                    <Text style={{ fontSize: 16, color: colors.textPrimary, lineHeight: 28, fontWeight: '700' }}>
+                    <Text style={{ fontSize: 16, color: colors.textPrimary, lineHeight: 24, fontWeight: '700' }}>
                       {oneLine}
                     </Text>
                   </View>
@@ -671,7 +671,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
               </View>
             ) : article.summary ? (
               <Text style={{
-                fontSize: 15, color: colors.summaryBody, lineHeight: 28, letterSpacing: 0.2, marginBottom: 16,
+                fontSize: 15, color: colors.summaryBody, lineHeight: 24, letterSpacing: 0.2, marginBottom: 16,
                 paddingHorizontal: 20,
               }}>
                 {article.summary}
@@ -763,7 +763,7 @@ function HighlightSection({ highlights, onArticlePress, allStats }: { highlights
     <View style={{ paddingTop: 12, paddingBottom: 24, backgroundColor: colors.highlightBg }}>
       {/* 섹션 헤더 */}
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 14 }}>
-        <Text style={{ fontSize: 17, fontWeight: '800', color: colors.textPrimary }}>{t('news.highlight_title')}</Text>
+        <Text style={{ fontSize: 17, fontWeight: '700', color: colors.textPrimary }}>{t('news.highlight_title')}</Text>
         <Text style={{ fontSize: 11, color: colors.textSecondary, marginLeft: 8 }}>Top {highlights.length}</Text>
       </View>
 
@@ -915,7 +915,7 @@ function CategoryTabSection({
     <View style={{ marginBottom: 24 }}>
       {/* 섹션 헤더 + 카테고리 탭 */}
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 16 }}>
-        <Text style={{ fontSize: 17, fontWeight: '800', color: colors.textPrimary, marginRight: 12 }}>{t('news.category_title')}</Text>
+        <Text style={{ fontSize: 17, fontWeight: '700', color: colors.textPrimary, marginRight: 12 }}>{t('news.category_title')}</Text>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -1007,7 +1007,7 @@ function CategoryTabSection({
                   <View style={{ flex: 1, padding: 14, justifyContent: 'space-between' }}>
                     <View>
                       <SourceBadge sourceKey={a.source_key} name={getSourceName(a.source_key || '', t)} />
-                      <TitleText style={{ fontSize: 14, fontWeight: '700', color: colors.textPrimary, lineHeight: 20, marginTop: 6 }} numberOfLines={2}>
+                      <TitleText style={{ fontSize: 14, fontWeight: '700', color: colors.textPrimary, lineHeight: 22, marginTop: 6 }} numberOfLines={2}>
                         {getLocalizedTitle(a, lang)}
                       </TitleText>
                     </View>
@@ -1086,19 +1086,19 @@ function CategoryTabSection({
                         <SourceBadge sourceKey={a.source_key} name={getSourceName(a.source_key || '', t)} />
                         {a.ai_filtered && (
                           <View style={{ backgroundColor: colors.textLight, borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 }}>
-                            <Text style={{ fontSize: 9, fontWeight: '700', color: '#FFF' }}>FILTERED</Text>
+                            <Text style={{ fontSize: 11, fontWeight: '700', color: '#FFF' }}>FILTERED</Text>
                           </View>
                         )}
                         {isDeduped && (
                           <View style={{ backgroundColor: '#D97706', borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 }}>
-                            <Text style={{ fontSize: 9, fontWeight: '700', color: '#FFF' }}>
+                            <Text style={{ fontSize: 11, fontWeight: '700', color: '#FFF' }}>
                               {lang === 'en' ? 'SIMILAR' : '유사'}
                             </Text>
                           </View>
                         )}
                       </View>
                       <TitleText
-                        style={{ fontSize: 14, fontWeight: '700', color: isDimmed ? colors.textSecondary : colors.textPrimary, lineHeight: 20, marginTop: 6 }}
+                        style={{ fontSize: 14, fontWeight: '700', color: isDimmed ? colors.textSecondary : colors.textPrimary, lineHeight: 22, marginTop: 6 }}
                         numberOfLines={2}
                       >
                         {getLocalizedTitle(a, lang)}
@@ -1194,7 +1194,7 @@ function SourceHScrollSection({
     <View style={{ marginBottom: 24 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 14 }}>
         <View style={{ width: 4, height: 18, borderRadius: 2, backgroundColor: color, marginRight: 8 }} />
-        <Text style={{ fontSize: 15, fontWeight: '800', color: colors.textPrimary, flex: 1 }}>
+        <Text style={{ fontSize: 15, fontWeight: '700', color: colors.textPrimary, flex: 1 }}>
           {name}
         </Text>
         <Text style={{ fontSize: 11, color: colors.textSecondary }}>{capped.length}{t('news.articles_suffix')}</Text>
@@ -1264,7 +1264,7 @@ const GeekNewsSection = React.memo(function GeekNewsSection({ articles, onArticl
         accessibilityRole="header"
       >
         <View style={{ width: 4, height: 18, borderRadius: 2, backgroundColor: color, marginRight: 8 }} />
-        <Text style={{ fontSize: 15, fontWeight: '800', color: colors.textPrimary, flex: 1 }}>{name}</Text>
+        <Text style={{ fontSize: 15, fontWeight: '700', color: colors.textPrimary, flex: 1 }}>{name}</Text>
         <Text style={{ fontSize: 11, color: colors.textSecondary }}>{capped.length}{t('news.articles_suffix')}</Text>
       </View>
 
@@ -1287,7 +1287,7 @@ const GeekNewsSection = React.memo(function GeekNewsSection({ articles, onArticl
           >
             <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
               <TitleText
-                style={{ fontSize: 14, fontWeight: '700', color: colors.textPrimary, lineHeight: 20, flex: 1, marginRight: 8 }}
+                style={{ fontSize: 14, fontWeight: '700', color: colors.textPrimary, lineHeight: 22, flex: 1, marginRight: 8 }}
                 numberOfLines={2}
               >
                 {getLocalizedTitle(a, lang)}
@@ -1309,7 +1309,7 @@ const GeekNewsSection = React.memo(function GeekNewsSection({ articles, onArticl
           accessibilityRole="button"
           style={{ alignItems: 'center', paddingVertical: 14, minHeight: 44, justifyContent: 'center' }}
         >
-          <Text style={{ fontSize: 13, fontWeight: '600', color: Colors.primary }}>{t('news.show_more')} ({moreCount})</Text>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: colors.primary }}>{t('news.show_more')} ({moreCount})</Text>
         </Pressable>
       )}
     </View>
@@ -1500,7 +1500,7 @@ export default function NewsScreen() {
               })()}
             </Text>
           )}
-          <View style={{ width: 40, height: 3, backgroundColor: Colors.primary, borderRadius: 2, marginTop: 12 }} />
+          <View style={{ width: 40, height: 3, backgroundColor: colors.primary, borderRadius: 2, marginTop: 12 }} />
         </View>
         <Pressable onPress={openNotifications} accessibilityLabel={t('notification.title')} accessibilityRole="button" style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
           <Bell size={22} color={colors.textSecondary} />
@@ -1524,14 +1524,14 @@ export default function NewsScreen() {
               <RefreshCw size={28} color={colors.errorColor} />
             </View>
             <Text style={{ color: colors.textPrimary, fontWeight: '700', fontSize: 16, marginBottom: 8 }}>{t(error)}</Text>
-            <Pressable onPress={refresh} style={{ backgroundColor: Colors.primary, paddingHorizontal: 28, paddingVertical: 12, borderRadius: 12 }}>
+            <Pressable onPress={refresh} style={{ backgroundColor: colors.primary, paddingHorizontal: 28, paddingVertical: 12, borderRadius: 12 }}>
               <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 15 }}>{t('news.retry')}</Text>
             </Pressable>
           </View>
         ) : totalArticles === 0 ? (
           <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 40 }}>
-            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: Colors.primaryLight, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-              <Cpu size={28} color={Colors.primary} />
+            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: colors.primaryLight, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+              <Cpu size={28} color={colors.primary} />
             </View>
             <Text style={{ fontSize: 15, fontWeight: '600', color: colors.textPrimary, marginBottom: 4 }}>{t('news.no_news')}</Text>
           </View>
@@ -1574,7 +1574,7 @@ export default function NewsScreen() {
             {sourceOrder.some(key => (sourceArticles[key]?.length ?? 0) > 0) && (
               <View style={{ paddingHorizontal: 16, marginBottom: 20, marginTop: 16 }}>
                 <View style={{ height: 8, backgroundColor: colors.surface, borderRadius: 4, marginBottom: 20 }} />
-                <Text style={{ fontSize: 16, fontWeight: '800', color: colors.textPrimary }}>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: colors.textPrimary }}>
                   {t('news.source_title')}
                 </Text>
                 <Text style={{ fontSize: 12, color: colors.textSecondary, marginTop: 4 }}>
