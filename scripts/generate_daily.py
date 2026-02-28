@@ -23,6 +23,7 @@ from agents.news_team import run_news_pipeline
 from agents.principle_team import run_principle_pipeline
 from notifications import send_news_notification
 from generate_features import (
+    _article_id,
     save_articles_collection, find_related_articles,
     generate_daily_briefing, generate_daily_quiz,
     accumulate_glossary, build_timeline,
@@ -79,6 +80,7 @@ def save_news_to_firestore(result: dict):
     def _flatten_list(articles: list[dict]) -> list[dict]:
         return [
             {
+                "article_id": _article_id(a.get("link", "")),
                 "title": a.get("title", ""),
                 "display_title": a.get("display_title", "") or a.get("title", ""),
                 "summary": a.get("summary", "") or a.get("description", "")[:300],

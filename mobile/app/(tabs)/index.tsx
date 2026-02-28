@@ -30,6 +30,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useReactions } from '@/hooks/useReactions';
 import { useArticleViews } from '@/hooks/useArticleViews';
+import { useArticles } from '@/hooks/useArticle';
 import { useBatchStats } from '@/hooks/useBatchStats';
 import { useBookmarks } from '@/hooks/useBookmarks';
 import { useAuth } from '@/hooks/useAuth';
@@ -1414,14 +1415,19 @@ export default function NewsScreen() {
   const sourceArticles = newsData?.source_articles ?? EMPTY_RECORD;
   const sourceOrder = newsData?.source_order ?? DEFAULT_SOURCE_ORDER;
 
-  // 하이라이트 기사들의 timeline_ids 통합 (중복 제거)
+  // 하이라이트 기사들의 article_id로 articles 컬렉션에서 timeline_ids 조회
+  const highlightArticleIds = React.useMemo(
+    () => highlights.map(a => a.article_id).filter((id): id is string => !!id),
+    [highlights],
+  );
+  const { articles: highlightFullArticles } = useArticles(highlightArticleIds);
   const timelineIds = React.useMemo(() => {
     const ids = new Set<string>();
-    for (const a of highlights) {
+    for (const a of Object.values(highlightFullArticles)) {
       if (a.timeline_ids) a.timeline_ids.forEach(id => ids.add(id));
     }
     return Array.from(ids);
-  }, [highlights]);
+  }, [highlightFullArticles]);
 
   // ─── 레거시 폴백 (기존 articles 배열 데이터) ───
   const legacyGrouped = React.useMemo(() => {
