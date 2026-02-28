@@ -98,8 +98,8 @@ def _to_kst_date(dt: datetime) -> datetime:
     return dt.astimezone(_KST).replace(hour=0, minute=0, second=0, microsecond=0)
 
 
-def _is_today(article: dict) -> bool:
-    """KST 기준 오늘 또는 어제 기사인지 판별"""
+def _is_recent(article: dict, days: int = 3) -> bool:
+    """KST 기준 최근 N일 이내 기사인지 판별 (기본 3일)"""
     pub = article.get("published", "")
     if not pub:
         return False
@@ -108,9 +108,13 @@ def _is_today(article: dict) -> bool:
         return False
     now_kst = datetime.now(_KST)
     article_date = _to_kst_date(dt)
-    today_date = _to_kst_date(now_kst)
-    yesterday_date = today_date - timedelta(days=1)
-    return article_date >= yesterday_date
+    cutoff_date = _to_kst_date(now_kst) - timedelta(days=days - 1)
+    return article_date >= cutoff_date
+
+
+def _is_today(article: dict) -> bool:
+    """KST 기준 오늘 또는 어제 기사인지 판별"""
+    return _is_recent(article, days=2)
 
 
 # ─── JSON 파싱 유틸리티 ───
@@ -633,13 +637,20 @@ def _safe_node(node_name: str):
 def collector_node(state: NewsGraphState) -> dict:
     """모든 소스 수집 + 이미지/본문 통합 스크래핑 + 이미지 필터 + LLM AI 필터"""
     sources = fetch_all_sources()
-    # 소스별 당일 기사 수집 현황
-    print("\n  ─── 소스별 당일 기사 현황 ───")
+    # 최근 5일 이내 기사만 유지
+    for key in list(sources.keys()):
+        before = len(sources[key])
+        sources[key] = [a for a in sources[key] if _is_recent(a, days=5)]
+        dropped = before - len(sources[key])
+        if dropped:
+            print(f"    [{key}] 5일 이전 기사 {dropped}개 제외")
+    # 소스별 기사 수집 현황
+    print("\n  ─── 소스별 기사 현황 (최근 5일) ───")
     total_today = 0
     for key, articles in sources.items():
         today_count = sum(1 for a in articles if _is_today(a))
         total_today += today_count
-        print(f"    [{key}] 전체 {len(articles)}개 / 당일 {today_count}개")
+        print(f"    [{key}] {len(articles)}개 / 당일 {today_count}개")
     print(f"  ─── 당일 기사 합계: {total_today}개 ───\n")
     enrich_and_scrape(sources)
     filter_imageless(sources)
@@ -1418,8 +1429,14 @@ def _select_category_top_n(articles: list[dict], n: int = CATEGORY_TOP_N, today_
 @_safe_node("selector")
 def selector_node(state: NewsGraphState) -> dict:
     """하이라이트 Top 3 선정 + 카테고리별 Top 25 + 품질 검증 (기존 ranker+classifier 통합)"""
-    candidates = state.get("scored_candidates", [])
+    all_candidates = state.get("scored_candidates", [])
     category_order = ["research", "models_products", "industry_business"]
+
+    # 표시용: 최근 3일 이내 기사만 (수집은 5일이지만 앱에서는 3일만 표시)
+    candidates = [c for c in all_candidates if _is_recent(c, days=3)]
+    older = len(all_candidates) - len(candidates)
+    if older:
+        print(f"  [선정] 3일 이전 기사 {older}개 표시 제외 (수집 보존)")
 
     if not candidates:
         return {
