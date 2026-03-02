@@ -137,6 +137,8 @@ const translations: Record<string, Record<Language, string>> = {
   'snaps.no_deepdive': { ko: '딥다이브 콘텐츠가 아직 없어요', en: 'Deep dive content not available yet' },
   'snaps.no_content': { ko: '아직 콘텐츠가 없어요', en: 'No content yet' },
   'snaps.no_content_desc': { ko: '새로운 학문 인사이트를 준비하고 있어요', en: 'New academic insights are being prepared' },
+  'snaps.show_more': { ko: '자세히 보기', en: 'Show more' },
+  'snaps.show_less': { ko: '접기', en: 'Show less' },
   'principle.connection_error': { ko: '연결에 문제가 있어요', en: 'Connection error' },
   'principle.retry': { ko: '다시 시도', en: 'Retry' },
 

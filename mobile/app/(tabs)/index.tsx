@@ -935,22 +935,21 @@ function CategoryTabSection({
               paddingHorizontal: 14, paddingVertical: 10,
               minHeight: 44,
               borderRadius: 16,
-              backgroundColor: activeTab === '_personalized' ? colors.primary : colors.card,
+              backgroundColor: activeTab === '_personalized' ? colors.primary : colors.primaryLight,
               borderWidth: 1,
-              borderColor: activeTab === '_personalized' ? colors.primary : colors.border,
+              borderColor: activeTab === '_personalized' ? colors.primary : colors.primaryLight,
               justifyContent: 'center',
             }}
           >
             <Text style={{
               fontSize: 12, fontWeight: '700',
-              color: activeTab === '_personalized' ? '#FFF' : colors.textSecondary,
+              color: activeTab === '_personalized' ? colors.card : colors.primary,
             }}>
               {t('feed.personalized')}
             </Text>
           </Pressable>
           {categoryOrder.map(catKey => {
             const isActive = catKey === activeTab;
-            const color = CATEGORY_COLORS[catKey] || colors.textSecondary;
             const catName = getCategoryName(catKey, t);
             return (
               <Pressable
@@ -963,15 +962,15 @@ function CategoryTabSection({
                   paddingHorizontal: 14, paddingVertical: 10,
                   minHeight: 44,
                   borderRadius: 16,
-                  backgroundColor: isActive ? color : colors.card,
+                  backgroundColor: isActive ? colors.primary : colors.primaryLight,
                   borderWidth: 1,
-                  borderColor: isActive ? color : colors.border,
+                  borderColor: isActive ? colors.primary : colors.primaryLight,
                   justifyContent: 'center',
                 }}
               >
                 <Text style={{
                   fontSize: 12, fontWeight: '700',
-                  color: isActive ? '#FFF' : colors.textSecondary,
+                  color: isActive ? colors.card : colors.primary,
                 }}>
                   {catName}
                 </Text>

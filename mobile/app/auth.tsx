@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
+import { FontFamily } from '@/lib/theme';
 import { Zap } from 'lucide-react-native';
 
 export default function AuthScreen() {
@@ -61,7 +62,7 @@ export default function AuthScreen() {
           >
             <Zap size={40} color="#FFFFFF" strokeWidth={2.5} />
           </View>
-          <Text style={{ fontSize: 32, fontWeight: '800', color: '#FFFFFF', marginBottom: 4 }}>
+          <Text style={{ fontSize: 32, fontWeight: '800', color: '#FFFFFF', marginBottom: 4, fontFamily: FontFamily.serifItalic }}>
             Ailon
           </Text>
           <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)', textAlign: 'center', lineHeight: 20 }}>

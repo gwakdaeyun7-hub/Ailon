@@ -20,7 +20,7 @@ import { useNotificationSettings } from '@/hooks/useNotificationSettings';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useRouter } from 'expo-router';
-import { cardShadow } from '@/lib/theme';
+import { cardShadow, FontFamily } from '@/lib/theme';
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuth();
@@ -86,7 +86,7 @@ export default function ProfileScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top']}>
       {/* Header */}
       <View style={{ paddingHorizontal: 16, paddingTop: 20, paddingBottom: 12 }}>
-        <Text style={{ color: colors.textPrimary, fontSize: 24, fontWeight: '800' }}>{t('profile.title')}</Text>
+        <Text style={{ color: colors.textPrimary, fontSize: 24, fontWeight: '800', fontFamily: FontFamily.serifItalic }}>{t('profile.title')}</Text>
         <View style={{ width: 40, height: 3, backgroundColor: colors.primary, borderRadius: 2, marginTop: 12 }} />
       </View>
 

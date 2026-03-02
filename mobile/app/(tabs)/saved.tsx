@@ -14,7 +14,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useBookmarks } from '@/hooks/useBookmarks';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
-import { cardShadow } from '@/lib/theme';
+import { cardShadow, FontFamily } from '@/lib/theme';
 import type { ThemeColors } from '@/lib/colors';
 import type { Bookmark as BookmarkType } from '@/lib/types';
 
@@ -71,7 +71,7 @@ function SavedItemCard({
 
       {/* 제목 */}
       <Text
-        style={{ color: colors.textPrimary, fontWeight: '700', fontSize: 16, lineHeight: 22, marginBottom: 4 }}
+        style={{ color: colors.textPrimary, fontWeight: '700', fontSize: 16, lineHeight: 22, marginBottom: 4, fontFamily: FontFamily.serif }}
         numberOfLines={2}
       >
         {meta?.title ?? bookmark.itemId}
@@ -192,7 +192,7 @@ export default function SavedScreen() {
       <View style={{ paddingHorizontal: 16, paddingTop: 20, paddingBottom: 12 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <View>
-            <Text style={{ color: colors.textPrimary, fontSize: 24, fontWeight: '800' }}>{t('saved.title')}</Text>
+            <Text style={{ color: colors.textPrimary, fontSize: 24, fontWeight: '800', fontFamily: FontFamily.serifItalic }}>{t('saved.title')}</Text>
             <Text style={{ color: colors.textDim, fontSize: 14, marginTop: 4 }}>
               {sorted.length > 0 ? `${sorted.length}${t('saved.total')}` : t('saved.empty')}
             </Text>
