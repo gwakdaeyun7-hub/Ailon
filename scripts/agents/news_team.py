@@ -559,26 +559,31 @@ Return the indices of AI-related articles as a JSON array:
     else:
         prompt = f"""IMPORTANT: Output ONLY a valid JSON array of integers. No thinking, no markdown.
 
-You are filtering news articles from international tech media. These sources already focus on tech/AI, so apply a VERY lenient filter. Include almost everything unless it is clearly unrelated to technology.
-
-Decision rule: Ask "Could this article be even slightly interesting to someone who follows AI and tech?" If yes, include.
+You are filtering news articles from international tech/AI media. While these sources cover technology broadly, NOT every article is relevant to AI. Your job: keep articles DIRECTLY related to AI and adjacent advanced technology. Remove general tech news with no meaningful AI connection.
 
 When in doubt, EXCLUDE.
 
-INCLUDE -- be very generous:
-- Anything about AI, ML, LLMs, deep learning, neural networks
-- Tech company news (Google, OpenAI, Meta, Microsoft, Apple, etc.)
-- Software engineering, cloud, data, developer tools
-- Hardware, chips, GPUs, computing infrastructure
-- Tech regulation, policy, digital rights
-- Startups, funding, acquisitions in tech/AI
-- Science and research that could relate to AI
-- Any tech product or service
+INCLUDE:
+- AI, ML, LLMs, deep learning, neural networks, foundation models
+- AI company news and strategy (OpenAI, Anthropic, Google DeepMind, Meta AI, etc.)
+- AI chips, GPUs, TPUs, AI-specific hardware and infrastructure
+- AI regulation, policy, safety, ethics
+- Cloud AI services, AI APIs, AI developer tools and frameworks
+- AI-powered products, features, and applications
+- Robotics, autonomous systems, computer vision
+- Data infrastructure and tools for AI/ML
+- AI research, benchmarks, new techniques
+- Startups and funding in AI/ML space
+- Science and research with clear AI/ML connection
 
-EXCLUDE -- only if clearly irrelevant:
-- Pure lifestyle, cooking, sports, celebrity gossip
+EXCLUDE:
+- General consumer tech (phone reviews, gadgets, apps) with no AI angle
+- Generic software updates or features unrelated to AI
+- Pure cybersecurity news without AI connection
+- General business/finance even from tech companies (unless AI is the focus)
+- Lifestyle, entertainment, sports, celebrity news
 - Non-tech politics or social issues
-- Articles with zero tech or AI connection
+- Articles where "AI" is mentioned only in passing, not as the main topic
 
 Articles:
 {article_text}

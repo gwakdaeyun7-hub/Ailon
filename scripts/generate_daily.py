@@ -196,13 +196,27 @@ def save_news_to_firestore(result: dict):
         # filtered_articles: 병합
         filtered_articles = _merge_articles(old.get("filtered_articles", []), filtered_articles)
 
-        # deduped_articles: 카테고리별 병합
+        # deduped_articles: 카테고리별 병합 (크로스-카테고리 중복 제거)
         old_dedup = old.get("deduped_articles", {})
-        all_dedup_cats = set(list(old_dedup.keys()) + list(deduped_articles.keys()))
+        # 신규 dedup 기사의 link 수집 → 기존 모든 카테고리에서 해당 link 제거
+        # (카테고리 이동 + score 갱신 보장)
+        new_dedup_links: set[str] = set()
+        for cat_arts in deduped_articles.values():
+            for a in cat_arts:
+                link = a.get("link", "")
+                if link:
+                    new_dedup_links.add(link)
+        cleaned_old_dedup = {
+            cat: [a for a in arts if a.get("link", "") not in new_dedup_links]
+            for cat, arts in old_dedup.items()
+        }
+        all_dedup_cats = set(list(cleaned_old_dedup.keys()) + list(deduped_articles.keys()))
         deduped_articles = {
-            cat: _merge_articles(old_dedup.get(cat, []), deduped_articles.get(cat, []))
+            cat: _merge_articles(cleaned_old_dedup.get(cat, []), deduped_articles.get(cat, []))
             for cat in all_dedup_cats
         }
+        # 빈 카테고리 제거
+        deduped_articles = {cat: arts for cat, arts in deduped_articles.items() if arts}
 
     # category_order, source_order: 합집합(순서 유지)
     def _union_order(existing_order: list, new_order: list) -> list:
