@@ -24,9 +24,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   BookOpen,
   Lightbulb,
-  Layers,
+  Link2,
   Zap,
-  History,
   Cpu,
   Globe,
   ChevronLeft,
@@ -132,8 +131,8 @@ function ConnectionTypeBadge({ type, colors, lang }: { type: string; colors: Rec
   const c = config[type];
   if (!c) return null;
   return (
-    <View style={{ backgroundColor: c.bg, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 3 }}>
-      <Text style={{ fontSize: 11, fontWeight: '700', color: c.color }}>{lang === 'en' ? c.en : c.ko}</Text>
+    <View style={{ backgroundColor: c.bg, borderRadius: 16, paddingHorizontal: 8, paddingVertical: 3 }}>
+      <Text style={{ fontSize: 10, fontWeight: '700', color: c.color }}>{lang === 'en' ? c.en : c.ko}</Text>
     </View>
   );
 }
@@ -147,8 +146,8 @@ function DifficultyBadge({ level, colors, lang, isDark }: { level: string; color
   const c = config[level];
   if (!c) return null;
   return (
-    <View style={{ backgroundColor: isDark ? c.darkBg : c.lightBg, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 3 }}>
-      <Text style={{ fontSize: 11, fontWeight: '700', color: isDark ? c.darkColor : c.lightColor }}>{lang === 'en' ? c.en : c.ko}</Text>
+    <View style={{ backgroundColor: isDark ? c.darkBg : c.lightBg, borderRadius: 16, paddingHorizontal: 8, paddingVertical: 3 }}>
+      <Text style={{ fontSize: 10, fontWeight: '700', color: isDark ? c.darkColor : c.lightColor }}>{lang === 'en' ? c.en : c.ko}</Text>
     </View>
   );
 }
@@ -179,7 +178,7 @@ function NotebookCard({
 
   return (
     <View style={{
-      backgroundColor: colors.card, borderRadius: 16, marginBottom: 16,
+      backgroundColor: colors.card, borderRadius: 14, marginBottom: 16,
       borderWidth: 1, borderColor: colors.border,
       overflow: 'hidden', ...cardShadow,
     }}
@@ -191,15 +190,15 @@ function NotebookCard({
         {/* Step circle + label */}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 }}>
           <View style={{
-            width: 32, height: 32, borderRadius: 16,
+            width: 28, height: 28, borderRadius: 14,
             backgroundColor: accentBg,
             borderWidth: 2, borderColor: accentColor + '30',
             alignItems: 'center', justifyContent: 'center',
           }}>
-            <IconComponent size={15} color={accentColor} />
+            <IconComponent size={14} color={accentColor} />
           </View>
           <Text style={{
-            fontSize: 11, fontWeight: '700', color: colors.textDim,
+            fontSize: 10, fontWeight: '700', color: colors.textDim,
             letterSpacing: 0.5, textTransform: 'uppercase',
           }}>
             {label}
@@ -208,8 +207,8 @@ function NotebookCard({
 
         {/* Headline */}
         <Text style={{
-          fontFamily: FontFamily.serif, fontSize: 16, fontWeight: '700',
-          color: colors.textPrimary, lineHeight: 24, marginBottom: 10,
+          fontFamily: FontFamily.serif, fontSize: 14, fontWeight: '700',
+          color: colors.textPrimary, lineHeight: 21, marginBottom: 10,
         }}>
           {headline}
         </Text>
@@ -217,7 +216,7 @@ function NotebookCard({
 
       {/* Body */}
       <Text style={{
-        fontSize: 14, lineHeight: 22, color: colors.textSecondary,
+        fontSize: 12, lineHeight: 19.2, color: colors.textSecondary,
         paddingHorizontal: 20, marginBottom: problemLine ? 10 : 12,
       }}>
         {body}
@@ -241,10 +240,10 @@ function NotebookCard({
       {subLine ? (
         <View style={{
           marginHorizontal: 20, marginBottom: keywords && keywords.length > 0 ? 10 : 14,
-          backgroundColor: accentBg, borderRadius: 10,
-          paddingHorizontal: 12, paddingVertical: 8,
+          backgroundColor: accentBg, borderRadius: 8,
+          paddingHorizontal: 10, paddingVertical: 6,
         }}>
-          <Text style={{ fontSize: 13, lineHeight: 20, color: accentColor }}>
+          <Text style={{ fontSize: 11, lineHeight: 17, color: accentColor, fontWeight: '600' }}>
             {subLine}
           </Text>
         </View>
@@ -255,10 +254,10 @@ function NotebookCard({
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingHorizontal: 20, marginBottom: 14 }}>
           {keywords.map((kw) => (
             <View key={kw} style={{
-              backgroundColor: colors.tagBg, borderRadius: 16,
+              backgroundColor: colors.tagBg, borderRadius: 14,
               paddingHorizontal: 10, paddingVertical: 4,
             }}>
-              <Text style={{ fontSize: 11, color: colors.tagText, fontWeight: '600' }}>{kw}</Text>
+              <Text style={{ fontSize: 10, color: colors.tagText, fontWeight: '600' }}>{kw}</Text>
             </View>
           ))}
         </View>
@@ -273,12 +272,12 @@ function NotebookCard({
         <View style={{ flexDirection: 'row', gap: 5 }}>
           {[1, 2, 3].map(s => (
             <View key={s} style={{
-              width: 7, height: 7, borderRadius: 4,
+              width: 6, height: 6, borderRadius: 3,
               backgroundColor: s <= step ? accentColor : colors.border,
             }} />
           ))}
         </View>
-        <Text style={{ fontSize: 11, fontWeight: '500', color: colors.textDim }}>
+        <Text style={{ fontSize: 10, fontWeight: '500', color: colors.textDim }}>
           {nextHint}
         </Text>
       </View>
@@ -301,7 +300,7 @@ function DeepDiveAccordionSection({ icon, iconBg, title, children, defaultExpand
 
   return (
     <View style={{
-      backgroundColor: colors.card, borderRadius: 16, marginBottom: 16,
+      backgroundColor: colors.card, borderRadius: 14, marginBottom: 16,
       borderWidth: 1, borderColor: colors.border, overflow: 'hidden',
     }}>
       <Pressable
@@ -315,18 +314,18 @@ function DeepDiveAccordionSection({ icon, iconBg, title, children, defaultExpand
         accessibilityState={{ expanded }}
       >
         <View style={{
-          width: 30, height: 30, borderRadius: 10, backgroundColor: iconBg,
+          width: 26, height: 26, borderRadius: 8, backgroundColor: iconBg,
           alignItems: 'center', justifyContent: 'center', marginRight: 10,
         }}>
           {icon}
         </View>
         <Text style={{
-          flex: 1, fontSize: 13, fontWeight: '700', color: colors.textDim,
+          flex: 1, fontSize: 10, fontWeight: '700', color: colors.textDim,
           letterSpacing: 0.5, textTransform: 'uppercase',
         }}>{title}</Text>
         {expanded
-          ? <ChevronUp size={18} color={colors.textDim} />
-          : <ChevronDown size={18} color={colors.textDim} />
+          ? <ChevronUp size={14} color={colors.textDim} />
+          : <ChevronDown size={14} color={colors.textDim} />
         }
       </Pressable>
 
@@ -359,12 +358,12 @@ function DeepDiveContent({ deepDive, lang }: { deepDive: DeepDive; lang: string 
     <>
       {/* 1. Original Problem (원래 문제) */}
       <DeepDiveAccordionSection
-        icon={<History size={16} color={colors.coreTech} />}
+        icon={<Clock size={12} color={colors.coreTech} />}
         iconBg={colors.coreTechBg}
         title={t('snaps.original_problem')}
         defaultExpanded
       >
-        <Text style={{ fontSize: 15, lineHeight: 24, color: colors.textPrimary }}>
+        <Text style={{ fontSize: 12, lineHeight: 19, color: colors.textSecondary }}>
           {L(deepDive.originalProblem, deepDive.originalProblem_en, lang)}
         </Text>
       </DeepDiveAccordionSection>
@@ -372,11 +371,11 @@ function DeepDiveContent({ deepDive, lang }: { deepDive: DeepDive; lang: string 
       {/* 2. The Bridge (영감의 다리) */}
       {deepDive.bridge ? (
         <DeepDiveAccordionSection
-          icon={<Layers size={16} color={colors.indigo} />}
+          icon={<Link2 size={12} color={colors.indigo} />}
           iconBg={colors.indigoBg}
           title={t('snaps.bridge')}
         >
-          <Text style={{ fontSize: 15, lineHeight: 24, color: colors.textPrimary }}>
+          <Text style={{ fontSize: 12, lineHeight: 19, color: colors.textSecondary }}>
             {L(deepDive.bridge, deepDive.bridge_en, lang)}
           </Text>
         </DeepDiveAccordionSection>
@@ -384,23 +383,23 @@ function DeepDiveContent({ deepDive, lang }: { deepDive: DeepDive; lang: string 
 
       {/* 3. Core Intuition (핵심 직관) + formula (선택) */}
       <DeepDiveAccordionSection
-        icon={<Lightbulb size={16} color={colors.primary} />}
+        icon={<Lightbulb size={12} color={colors.primary} />}
         iconBg={colors.primaryLight}
         title={t('snaps.core_intuition')}
       >
-        <Text style={{ fontSize: 15, lineHeight: 24, color: colors.textPrimary }}>
+        <Text style={{ fontSize: 12, lineHeight: 19, color: colors.textSecondary }}>
           {L(deepDive.coreIntuition, deepDive.coreIntuition_en, lang)}
         </Text>
         {deepDive.formula ? (
-          <View style={{ backgroundColor: colors.surface, borderRadius: 12, padding: 16, marginTop: 12 }}>
+          <View style={{ backgroundColor: colors.surface, borderRadius: 10, padding: 12, marginTop: 12 }}>
             <Text style={{
-              fontSize: 11, fontWeight: '700', color: colors.textDim,
+              fontSize: 10, fontWeight: '700', color: colors.textDim,
               letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8,
             }}>
               {t('snaps.formula')}
             </Text>
             <Text style={{
-              fontSize: 14, lineHeight: 22, color: colors.textPrimary,
+              fontSize: 12, lineHeight: 19, color: colors.textPrimary,
               fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
             }}>
               {L(deepDive.formula, deepDive.formula_en, lang)}
@@ -411,11 +410,11 @@ function DeepDiveContent({ deepDive, lang }: { deepDive: DeepDive; lang: string 
 
       {/* 4. Limits (한계와 열린 질문) */}
       <DeepDiveAccordionSection
-        icon={<Globe size={16} color={colors.accent} />}
+        icon={<Globe size={12} color={colors.accent} />}
         iconBg={colors.surface}
         title={t('snaps.limits')}
       >
-        <Text style={{ fontSize: 15, lineHeight: 24, color: colors.textPrimary }}>
+        <Text style={{ fontSize: 12, lineHeight: 19, color: colors.textSecondary }}>
           {L(deepDive.limits, deepDive.limits_en, lang)}
         </Text>
       </DeepDiveAccordionSection>
@@ -632,10 +631,10 @@ export default function SnapsScreen() {
                 <View style={{
                   flexDirection: 'row', alignItems: 'center', gap: 5,
                   backgroundColor: catConfig?.bg || colors.primaryLight,
-                  borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4,
+                  borderRadius: 16, paddingHorizontal: 8, paddingVertical: 3,
                 }}>
                   {catConfig && <catConfig.Icon size={12} color={catConfig.color} />}
-                  <Text style={{ fontSize: 11, fontWeight: '700', color: catConfig?.color || colors.primary }}>
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: catConfig?.color || colors.primary }}>
                     {getDisciplineName(principleData, lang)}
                   </Text>
                 </View>
@@ -645,10 +644,10 @@ export default function SnapsScreen() {
                 {principle.readTime && (
                   <View style={{
                     flexDirection: 'row', alignItems: 'center', gap: 4,
-                    backgroundColor: colors.surface, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4,
+                    backgroundColor: colors.surface, borderRadius: 16, paddingHorizontal: 8, paddingVertical: 3,
                   }}>
-                    <Clock size={11} color={colors.textDim} />
-                    <Text style={{ fontSize: 11, fontWeight: '600', color: colors.textDim }}>{principle.readTime}</Text>
+                    <Clock size={10} color={colors.textDim} />
+                    <Text style={{ fontSize: 10, fontWeight: '600', color: colors.textDim }}>{principle.readTime}</Text>
                   </View>
                 )}
               </View>
@@ -666,10 +665,10 @@ export default function SnapsScreen() {
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
                   {LArr(principle.keywords, principle.keywords_en, lang).map((kw) => (
                     <View key={kw} style={{
-                      backgroundColor: colors.tagBg, borderRadius: 16,
-                      paddingHorizontal: 10, paddingVertical: 4,
+                      backgroundColor: colors.tagBg, borderRadius: 14,
+                      paddingHorizontal: 8, paddingVertical: 3,
                     }}>
-                      <Text style={{ fontSize: 11, color: colors.tagText, fontWeight: '600' }}>{kw}</Text>
+                      <Text style={{ fontSize: 10, color: colors.tagText, fontWeight: '600' }}>{kw}</Text>
                     </View>
                   ))}
                 </View>
@@ -763,14 +762,14 @@ export default function SnapsScreen() {
                 {deepDive && activeTab === 'insight' && (
                   <Pressable onPress={() => setActiveTab('deepdive')} style={{
                     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-                    backgroundColor: colors.indigoBg, borderRadius: 12, padding: 14,
+                    backgroundColor: colors.indigoBg, borderRadius: 10, padding: 12,
                     borderWidth: 1, borderColor: colors.border,
                   }}>
-                    <BookOpen size={16} color={colors.indigo} />
-                    <Text style={{ fontSize: 13, fontWeight: '600', color: colors.indigo }}>
+                    <BookOpen size={14} color={colors.indigo} />
+                    <Text style={{ fontSize: 12, fontWeight: '600', color: colors.indigo }}>
                       {lang === 'en' ? 'Explore the Deep Dive for more details' : '딥다이브 탭에서 더 자세히 알아보기'}
                     </Text>
-                    <ChevronRight size={14} color={colors.indigo} />
+                    <ChevronRight size={12} color={colors.indigo} />
                   </Pressable>
                 )}
               </>
