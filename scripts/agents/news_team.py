@@ -1631,7 +1631,7 @@ def selector_node(state: NewsGraphState) -> dict:
             c for c in candidates
             if c.get("_llm_category") == cat
             and c.get("_is_today")
-            and not c.get("_ai_filtered")
+            and (not c.get("_ai_filtered") or cat == "research")
         ]
         if not pool:
             print(f"  [선정] {cat}: 당일 후보 없음")
@@ -1662,8 +1662,8 @@ def selector_node(state: NewsGraphState) -> dict:
     # 중복 기사 / AI 필터 제외 / 통과 기사 분리
     deduped_out = [a for a in remaining if a.get("_deduped")]
     non_deduped = [a for a in remaining if not a.get("_deduped")]
-    passed = [a for a in non_deduped if not a.get("_ai_filtered")]
-    filtered_out = [a for a in non_deduped if a.get("_ai_filtered")]
+    passed = [a for a in non_deduped if not a.get("_ai_filtered") or a.get("_llm_category") == "research"]
+    filtered_out = [a for a in non_deduped if a.get("_ai_filtered") and a.get("_llm_category") != "research"]
 
     categorized: dict[str, list[dict]] = {k: [] for k in category_order}
     for a in passed:
@@ -1712,7 +1712,7 @@ def selector_node(state: NewsGraphState) -> dict:
         if len(categorized[cat]) < CATEGORY_MIN and deduped_by_cat.get(cat):
             used_ids = set(id(a) for a in categorized[cat])
             supplements = sorted(
-                [d for d in deduped_by_cat[cat] if id(d) not in used_ids and not d.get("_ai_filtered")],
+                [d for d in deduped_by_cat[cat] if id(d) not in used_ids and (not d.get("_ai_filtered") or cat == "research")],
                 key=lambda a: a.get("_total_score", 0), reverse=True,
             )
             need = CATEGORY_MIN - len(categorized[cat])
