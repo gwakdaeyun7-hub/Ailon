@@ -1381,10 +1381,10 @@ def ranker_node(state: NewsGraphState) -> dict:
             except Exception as e:
                 print(f"  [RANKER ERROR] {cat}: {e}")
 
-    # deduped 기사: 최하위 점수
+    # deduped 기사: 0점 (순위 없음)
     for a in candidates:
-        if a.get("_deduped") and "_total_score" not in a:
-            a["_total_score"] = 20
+        if a.get("_deduped"):
+            a["_total_score"] = 0
             a["_rank"] = 9999
 
     # 미랭킹 기사 폴백
@@ -1668,10 +1668,24 @@ def selector_node(state: NewsGraphState) -> dict:
         else:
             categorized["industry_business"].append(a)
 
-    # 카테고리별 중복 기사 분류 (카테고리 분류기에서 이미 _llm_category 할당됨)
+    # 카테고리별 중복 기사 분류 — 원본 기사의 카테고리를 상속
+    # _dedup_of (원본 link) → 원본의 _llm_category 매핑
+    link_to_cat: dict[str, str] = {}
+    for a in passed:
+        link = a.get("link", "")
+        if link:
+            link_to_cat[link] = a.get("_llm_category", "industry_business")
+    for h in highlights:
+        link = h.get("link", "")
+        if link:
+            link_to_cat[link] = h.get("_llm_category", "industry_business")
+
     deduped_by_cat: dict[str, list[dict]] = {k: [] for k in category_order}
     for d in deduped_out:
-        cat = d.get("_llm_category", "industry_business")
+        # 원본 기사의 카테고리를 따라감
+        original_link = d.get("_dedup_of", "")
+        cat = link_to_cat.get(original_link, d.get("_llm_category", "industry_business"))
+        d["_llm_category"] = cat  # 카테고리 동기화
         if cat in deduped_by_cat:
             deduped_by_cat[cat].append(d)
         else:
