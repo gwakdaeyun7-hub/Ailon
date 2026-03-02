@@ -286,7 +286,7 @@ def build_timeline(result: dict):
     try:
         db = get_firestore_client()
         today = datetime.now().strftime("%Y-%m-%d")
-        cutoff = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
+        cutoff = (datetime.now() - timedelta(days=150)).strftime("%Y-%m-%d")
 
         unique_today = _collect_unique_articles(result)
         if not unique_today:
@@ -324,11 +324,11 @@ def build_timeline(result: dict):
                 p_entities = {e.get("name", "").lower() for e in pa.get("entities", []) if isinstance(e, dict)}
                 p_tags = {t.lower() for t in pa.get("tags", []) if isinstance(t, str)}
                 overlap = len(t_terms & (p_entities | p_tags))
-                if overlap > 0:
+                if overlap >= 2:
                     scores.append((overlap, pa))
 
             scores.sort(key=lambda x: x[0], reverse=True)
-            timeline_ids = [s[1]["_doc_id"] for s in scores[:5] if s[1].get("_doc_id")]
+            timeline_ids = [s[1]["_doc_id"] for s in scores[:3] if s[1].get("_doc_id")]
             if timeline_ids:
                 target["timeline_ids"] = timeline_ids
                 aid = _article_id(target.get("link", ""))
