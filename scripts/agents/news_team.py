@@ -1002,45 +1002,48 @@ VALID_CATEGORIES = {"research", "models_products", "industry_business"}
 
 _CLASSIFY_PROMPT = """Output ONLY a JSON array. No markdown, no explanation. Start with '['.
 
-Classify each article by following Step 1 → Step 2 → Step 3 in order. Stop at the first YES.
+Classify each article into exactly ONE category. Follow Step 1 → 2 → 3 in order, stop at first YES.
 
-## Step 1: research?
-YES if the article's **main subject** is a scientific/technical finding, method, or evaluation:
-- paper/논문/study/연구 published or presented
-- new algorithm, architecture, or training method proposed
-- benchmark/SOTA results or evaluation of methods
+## Step 1: research
+The article's main focus is **technical depth** — how or why something works:
+- paper, study, or preprint (논문/연구/arXiv)
+- new algorithm, architecture, training method, or technique
+- benchmark comparison, SOTA results, performance evaluation
+- technical deep-dive explaining mechanisms, tradeoffs, or limitations
+- scaling law, ablation study, survey of techniques
 - dataset released for research purposes
-- theoretical analysis, scaling law, survey of techniques
 
-MUST contain at least one: paper, 논문, study, 연구, benchmark, SOTA, architecture, algorithm, method, dataset, evaluation, survey, scaling law, preprint, arXiv, findings, 발견
+Key test: "Does this article explain **how something works** or **measure how well it works**?"
 
-NOT research (common traps):
-- "연구 필요 촉구" / "우려 확산" = opinion/industry, not a paper
-- company blog about strategy citing research ≠ research
-- industry report / index / whitepaper = industry_business
-- 경영진 발언에서 연구 언급 = industry_business
+NOT research:
+- opinion/editorial calling for more research ("연구 필요 촉구") → industry_business
+- company strategy blog that cites a paper → industry_business
+- industry report, index, whitepaper → industry_business
 
-## Step 2: models_products?
-YES if the article's **main subject** is a new or updated model, product, or technology being **announced, unveiled, released, or launched** — even if not yet publicly available:
-- model weights or API released/updated (출시/공개/업데이트/릴리스)
-- new model announced or unveiled (발표/공개) by a company, even if access is limited or forthcoming
-- new hardware (chip, GPU, accelerator) announced or launched (발표/출시)
+## Step 2: models_products
+A **concrete, named** model, product, or technology is announced, unveiled, released, or updated:
+- new model announced or released (발표/공개/출시), even if not yet publicly available
+- new hardware (chip, GPU, accelerator) announced or launched
 - new app, tool, platform, SDK, framework launched or announced
 - open-source release with usable artifact
-- new feature added to existing product (신기능)
+- new feature or major update to existing product (신기능/업데이트)
 - pricing or availability change for a product
 
-Key test: "Is a **concrete, named** model/product/technology the centerpiece of this announcement?"
+Key test: "Is a **specific named product/model** the centerpiece of this article?"
 
-NOT models_products (common traps):
-- vague rumor/leak with no official announcement = industry_business
-- paper + code/weights released together → research (primary = paper)
-- partnership to "build" something future with no named product = industry_business
-- product comparison/review article = industry_business
-- investment, M&A, or corporate strategy mentioning a product = industry_business
+NOT models_products:
+- vague rumor/leak with no official announcement → industry_business
+- paper + code released together → research (paper is primary)
+- partnership to build something future with no named product → industry_business
+- investment or M&A that mentions a product → industry_business
 
 ## Step 3: industry_business (default)
-Everything else: funding, M&A, regulation, strategy, market analysis, exec hires, opinions, events, partnerships, reports, forecasts, lawsuits, policy.
+Everything else — the business side of AI:
+- funding, investment, M&A, valuation
+- regulation, policy, lawsuits, antitrust
+- corporate strategy, partnerships, market analysis
+- exec hires, layoffs, restructuring
+- opinions, forecasts, events, conferences
 
 Articles:
 {article_text}
