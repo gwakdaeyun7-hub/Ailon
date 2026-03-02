@@ -1021,20 +1021,23 @@ NOT research (common traps):
 - 경영진 발언에서 연구 언급 = industry_business
 
 ## Step 2: models_products?
-YES if the article announces something users can **download, access, or use**:
+YES if the article's **main subject** is a new or updated model, product, or technology being **announced, unveiled, released, or launched** — even if not yet publicly available:
 - model weights or API released/updated (출시/공개/업데이트/릴리스)
-- new app, tool, platform, SDK, framework launched
+- new model announced or unveiled (발표/공개) by a company, even if access is limited or forthcoming
+- new hardware (chip, GPU, accelerator) announced or launched (발표/출시)
+- new app, tool, platform, SDK, framework launched or announced
 - open-source release with usable artifact
 - new feature added to existing product (신기능)
 - pricing or availability change for a product
 
-Key test: "Can a developer or user DO something new after this announcement?"
+Key test: "Is a **concrete, named** model/product/technology the centerpiece of this announcement?"
 
 NOT models_products (common traps):
-- rumor/leak about upcoming product = industry_business
+- vague rumor/leak with no official announcement = industry_business
 - paper + code/weights released together → research (primary = paper)
-- partnership to "build" something future = industry_business
+- partnership to "build" something future with no named product = industry_business
 - product comparison/review article = industry_business
+- investment, M&A, or corporate strategy mentioning a product = industry_business
 
 ## Step 3: industry_business (default)
 Everything else: funding, M&A, regulation, strategy, market analysis, exec hires, opinions, events, partnerships, reports, forecasts, lawsuits, policy.
