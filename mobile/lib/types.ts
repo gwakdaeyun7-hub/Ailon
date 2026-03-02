@@ -100,13 +100,22 @@ export interface PrincipleIntegration {
 }
 
 export interface DeepDive {
-  history: string;         // 발견/발전 역사 (150~200자)
-  history_en?: string;
-  mechanism: string;       // 상세 메커니즘 (150~200자)
-  mechanism_en?: string;
-  formula?: string;        // 핵심 수식/알고리즘 (해당시)
+  originalProblem: string;      // 원래 문제: 이 원리가 처음 필요했던 학문적 맥락 (100~150자)
+  originalProblem_en?: string;
+  bridge: string;               // 영감의 다리: 누가, 어떤 통찰로 AI에 가져왔는가 (150~200자)
+  bridge_en?: string;
+  coreIntuition: string;        // 핵심 직관: 수식/알고리즘의 직관적 해석 (100~150자)
+  coreIntuition_en?: string;
+  formula?: string;             // 핵심 수식 (선택, coreIntuition과 함께 표시)
   formula_en?: string;
-  modern: string;          // 현대적 의의 + 최신 연구 동향 (150~200자)
+  limits: string;               // 한계와 열린 질문 (100~150자)
+  limits_en?: string;
+  // 하위 호환: 기존 필드 (normalizePrinciple에서 새 필드로 매핑)
+  history?: string;
+  history_en?: string;
+  mechanism?: string;
+  mechanism_en?: string;
+  modern?: string;
   modern_en?: string;
 }
 

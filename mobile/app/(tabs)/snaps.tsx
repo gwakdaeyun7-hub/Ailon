@@ -1,9 +1,9 @@
 /**
- * 학문 스낵 -- 인사이트 / 딥다이브 2-탭 구조
- * 간소화된 SnackCard (3줄 스토리) + 타임라인 레일 + DeepDive 아코디언
+ * 학문 스낵 -- Notebook 디자인 (인사이트 / 딥다이브 2-탭)
+ * 풀카드 + 프로그레스 도트 + 스텝 서클 아이콘
  *
- * 인사이트 3섹션: foundation(headline/body/analogy), application(headline/body/mechanism), integration(headline/body/impact)
- * 딥다이브: history, mechanism, formula, modern
+ * 인사이트 3단계: Discovery(원리발견) → Challenge(AI의 난제) → Impact(현실 임팩트)
+ * 딥다이브 (왜의 사슬): originalProblem → bridge → coreIntuition(+formula) → limits
  */
 
 import React, { useState, useCallback } from 'react';
@@ -28,7 +28,6 @@ import {
   Zap,
   History,
   Cpu,
-  FlaskConical,
   Globe,
   ChevronLeft,
   ChevronRight,
@@ -154,134 +153,134 @@ function DifficultyBadge({ level, colors, lang, isDark }: { level: string; color
   );
 }
 
-// --- Timeline Rail ----------------------------------------------------------
+// --- Notebook Card (full-width, progress dots) ------------------------------
 
-function TimelineRail({ children, stepColors }: { children: React.ReactNode; stepColors: string[] }) {
-  const { colors } = useTheme();
-  return (
-    <View style={{ position: 'relative', paddingLeft: 20, marginBottom: 8 }}>
-      <View style={{
-        position: 'absolute', left: 6, top: 0, bottom: 0, width: 4,
-        backgroundColor: colors.border, borderRadius: 2, overflow: 'hidden',
-      }}>
-        {stepColors.map((color, i) => (
-          <View key={i} style={{ flex: 1, backgroundColor: color, opacity: 0.3 }} />
-        ))}
-      </View>
-      {children}
-    </View>
-  );
-}
-
-function TimelineNode({ color, bg, step }: { color: string; bg: string; step: number }) {
-  return (
-    <View style={{
-      position: 'absolute', left: -20, top: 24, width: 28, height: 28,
-      borderRadius: 14, backgroundColor: bg, alignItems: 'center', justifyContent: 'center',
-      borderWidth: 2, borderColor: color, zIndex: 1,
-    }}>
-      <Text style={{ fontSize: 13, fontWeight: '800', color }}>{step}</Text>
-    </View>
-  );
-}
-
-// --- Snack Card (unified for all 3 insight sections) ------------------------
-
-interface SnackCardProps {
-  step: number;
-  emoji: string;
+interface NotebookCardProps {
+  step: 1 | 2 | 3;
   label: string;
   headline: string;
   body: string;
+  /** Optional problem line (only for Application card) */
+  problemLine?: string;
   subLine: string;
-  subEmoji: string;
-  borderColor: string;
-  nodeColor: string;
-  nodeBg: string;
-  subColor: string;
+  accentColor: string;
+  accentBg: string;
   IconComponent: React.ComponentType<{ size: number; color: string }>;
+  /** Bottom bar: progress hint */
+  nextHint: string;
   keywords?: string[];
-  isLast?: boolean;
 }
 
-function SnackCard({
-  step, emoji, label, headline, body, subLine, subEmoji,
-  borderColor, nodeColor, nodeBg, subColor, IconComponent,
-  keywords, isLast,
-}: SnackCardProps) {
+function NotebookCard({
+  step, label, headline, body, problemLine, subLine,
+  accentColor, accentBg, IconComponent, nextHint, keywords,
+}: NotebookCardProps) {
   const { colors } = useTheme();
 
   return (
-    <View style={{ position: 'relative', marginBottom: isLast ? 8 : 32 }}>
-      <TimelineNode color={nodeColor} bg={nodeBg} step={step} />
-      <View
-        style={{
-          backgroundColor: colors.card, borderRadius: 16, padding: 20,
-          borderWidth: 1, borderColor: colors.border,
-          borderLeftWidth: 4, borderLeftColor: borderColor,
-          ...cardShadow,
-        }}
-        accessibilityRole="summary"
-        accessibilityLabel={`${label}: ${headline}`}
-      >
-        {/* Section label row */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14, gap: 8 }}>
+    <View style={{
+      backgroundColor: colors.card, borderRadius: 16, marginBottom: 16,
+      borderWidth: 1, borderColor: colors.border,
+      overflow: 'hidden', ...cardShadow,
+    }}
+      accessibilityRole="summary"
+      accessibilityLabel={`${label}: ${headline}`}
+    >
+      {/* Top section */}
+      <View style={{ padding: 20, paddingBottom: 0 }}>
+        {/* Step circle + label */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 }}>
           <View style={{
-            width: 28, height: 28, borderRadius: 9,
-            backgroundColor: nodeBg, alignItems: 'center', justifyContent: 'center',
+            width: 32, height: 32, borderRadius: 16,
+            backgroundColor: accentBg,
+            borderWidth: 2, borderColor: accentColor + '30',
+            alignItems: 'center', justifyContent: 'center',
           }}>
-            <IconComponent size={14} color={nodeColor} />
+            <IconComponent size={15} color={accentColor} />
           </View>
           <Text style={{
-            fontSize: 12, fontWeight: '700', color: colors.textDim,
+            fontSize: 11, fontWeight: '700', color: colors.textDim,
             letterSpacing: 0.5, textTransform: 'uppercase',
           }}>
-            {`[${step}] ${emoji} ${label}`}
+            {label}
           </Text>
         </View>
 
-        {/* Headline -- quoted, bold */}
+        {/* Headline */}
         <Text style={{
-          fontSize: 16, fontWeight: '800', color: colors.textPrimary,
-          lineHeight: 24, marginBottom: 10,
+          fontFamily: FontFamily.serif, fontSize: 16, fontWeight: '700',
+          color: colors.textPrimary, lineHeight: 24, marginBottom: 10,
         }}>
-          {`\u201C${headline}\u201D`}
+          {headline}
         </Text>
+      </View>
 
-        {/* Body -- 2~3 lines */}
-        <Text style={{
-          fontSize: 14, lineHeight: 22, color: colors.textSecondary,
-          marginBottom: subLine ? 12 : 0,
+      {/* Body */}
+      <Text style={{
+        fontSize: 14, lineHeight: 22, color: colors.textSecondary,
+        paddingHorizontal: 20, marginBottom: problemLine ? 10 : 12,
+      }}>
+        {body}
+      </Text>
+
+      {/* Problem line (Application only) */}
+      {problemLine ? (
+        <View style={{
+          marginHorizontal: 20, marginBottom: 12,
+          backgroundColor: colors.warningLight, borderRadius: 10,
+          paddingHorizontal: 12, paddingVertical: 8,
+          borderWidth: 1, borderColor: colors.warningBorder,
         }}>
-          {body}
+          <Text style={{ fontSize: 13, lineHeight: 20, color: colors.warning, fontWeight: '600' }}>
+            {problemLine}
+          </Text>
+        </View>
+      ) : null}
+
+      {/* Sub line (analogy / mechanism / impact) */}
+      {subLine ? (
+        <View style={{
+          marginHorizontal: 20, marginBottom: keywords && keywords.length > 0 ? 10 : 14,
+          backgroundColor: accentBg, borderRadius: 10,
+          paddingHorizontal: 12, paddingVertical: 8,
+        }}>
+          <Text style={{ fontSize: 13, lineHeight: 20, color: accentColor }}>
+            {subLine}
+          </Text>
+        </View>
+      ) : null}
+
+      {/* Keywords (foundation card only) */}
+      {keywords && keywords.length > 0 && (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingHorizontal: 20, marginBottom: 14 }}>
+          {keywords.map((kw) => (
+            <View key={kw} style={{
+              backgroundColor: colors.tagBg, borderRadius: 16,
+              paddingHorizontal: 10, paddingVertical: 4,
+            }}>
+              <Text style={{ fontSize: 11, color: colors.tagText, fontWeight: '600' }}>{kw}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Bottom bar: progress dots + next hint */}
+      <View style={{
+        borderTopWidth: 1, borderTopColor: colors.border,
+        paddingHorizontal: 20, paddingVertical: 12,
+        flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+      }}>
+        <View style={{ flexDirection: 'row', gap: 5 }}>
+          {[1, 2, 3].map(s => (
+            <View key={s} style={{
+              width: 7, height: 7, borderRadius: 4,
+              backgroundColor: s <= step ? accentColor : colors.border,
+            }} />
+          ))}
+        </View>
+        <Text style={{ fontSize: 11, fontWeight: '500', color: colors.textDim }}>
+          {nextHint}
         </Text>
-
-        {/* Sub line -- colored box */}
-        {subLine ? (
-          <View style={{
-            backgroundColor: nodeBg, borderRadius: 10,
-            paddingHorizontal: 12, paddingVertical: 8,
-            marginBottom: keywords && keywords.length > 0 ? 12 : 0,
-          }}>
-            <Text style={{ fontSize: 13, lineHeight: 20, color: subColor }}>
-              {`${subEmoji} ${subLine}`}
-            </Text>
-          </View>
-        ) : null}
-
-        {/* Keywords (foundation card only) */}
-        {keywords && keywords.length > 0 && (
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
-            {keywords.map((kw) => (
-              <View key={kw} style={{
-                backgroundColor: colors.tagBg, borderRadius: 16,
-                paddingHorizontal: 10, paddingVertical: 4,
-              }}>
-                <Text style={{ fontSize: 11, color: colors.tagText, fontWeight: '600' }}>{kw}</Text>
-              </View>
-            ))}
-          </View>
-        )}
       </View>
     </View>
   );
@@ -358,34 +357,48 @@ function DeepDiveContent({ deepDive, lang }: { deepDive: DeepDive; lang: string 
   const { t } = useLanguage();
   return (
     <>
+      {/* 1. Original Problem (원래 문제) */}
       <DeepDiveAccordionSection
         icon={<History size={16} color={colors.coreTech} />}
         iconBg={colors.coreTechBg}
-        title={t('snaps.history')}
+        title={t('snaps.original_problem')}
         defaultExpanded
       >
         <Text style={{ fontSize: 15, lineHeight: 24, color: colors.textPrimary }}>
-          {L(deepDive.history, deepDive.history_en, lang)}
+          {L(deepDive.originalProblem, deepDive.originalProblem_en, lang)}
         </Text>
       </DeepDiveAccordionSection>
 
+      {/* 2. The Bridge (영감의 다리) */}
+      {deepDive.bridge ? (
+        <DeepDiveAccordionSection
+          icon={<Layers size={16} color={colors.indigo} />}
+          iconBg={colors.indigoBg}
+          title={t('snaps.bridge')}
+        >
+          <Text style={{ fontSize: 15, lineHeight: 24, color: colors.textPrimary }}>
+            {L(deepDive.bridge, deepDive.bridge_en, lang)}
+          </Text>
+        </DeepDiveAccordionSection>
+      ) : null}
+
+      {/* 3. Core Intuition (핵심 직관) + formula (선택) */}
       <DeepDiveAccordionSection
-        icon={<FlaskConical size={16} color={colors.indigo} />}
-        iconBg={colors.indigoBg}
-        title={t('snaps.deep_mechanism')}
+        icon={<Lightbulb size={16} color={colors.primary} />}
+        iconBg={colors.primaryLight}
+        title={t('snaps.core_intuition')}
       >
         <Text style={{ fontSize: 15, lineHeight: 24, color: colors.textPrimary }}>
-          {L(deepDive.mechanism, deepDive.mechanism_en, lang)}
+          {L(deepDive.coreIntuition, deepDive.coreIntuition_en, lang)}
         </Text>
-      </DeepDiveAccordionSection>
-
-      {deepDive.formula && (
-        <DeepDiveAccordionSection
-          icon={<Layers size={16} color={colors.primary} />}
-          iconBg={colors.primaryLight}
-          title={t('snaps.formula')}
-        >
-          <View style={{ backgroundColor: colors.surface, borderRadius: 12, padding: 16 }}>
+        {deepDive.formula ? (
+          <View style={{ backgroundColor: colors.surface, borderRadius: 12, padding: 16, marginTop: 12 }}>
+            <Text style={{
+              fontSize: 11, fontWeight: '700', color: colors.textDim,
+              letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8,
+            }}>
+              {t('snaps.formula')}
+            </Text>
             <Text style={{
               fontSize: 14, lineHeight: 22, color: colors.textPrimary,
               fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
@@ -393,16 +406,17 @@ function DeepDiveContent({ deepDive, lang }: { deepDive: DeepDive; lang: string 
               {L(deepDive.formula, deepDive.formula_en, lang)}
             </Text>
           </View>
-        </DeepDiveAccordionSection>
-      )}
+        ) : null}
+      </DeepDiveAccordionSection>
 
+      {/* 4. Limits (한계와 열린 질문) */}
       <DeepDiveAccordionSection
         icon={<Globe size={16} color={colors.accent} />}
         iconBg={colors.surface}
-        title={t('snaps.modern')}
+        title={t('snaps.limits')}
       >
         <Text style={{ fontSize: 15, lineHeight: 24, color: colors.textPrimary }}>
-          {L(deepDive.modern, deepDive.modern_en, lang)}
+          {L(deepDive.limits, deepDive.limits_en, lang)}
         </Text>
       </DeepDiveAccordionSection>
     </>
@@ -480,27 +494,34 @@ function SkeletonLoading() {
         <View style={{ height: 8 }} />
         <SkeletonBlock width="90%" height={16} />
       </View>
-      {[colors.coreTech, colors.indigo, colors.primary].map((stripe, i) => (
-        <React.Fragment key={i}>
-          <View style={{
-            backgroundColor: colors.card, borderRadius: 16, padding: 20,
-            borderWidth: 1, borderColor: colors.border, borderLeftWidth: 4, borderLeftColor: stripe,
-          }}>
+      {[0, 1, 2].map(i => (
+        <View key={i} style={{
+          backgroundColor: colors.card, borderRadius: 16, marginBottom: 16,
+          borderWidth: 1, borderColor: colors.border, overflow: 'hidden',
+        }}>
+          <View style={{ padding: 20, paddingBottom: 0 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }}>
-              <SkeletonBlock width={28} height={28} rounded={9} />
-              <View style={{ width: 8 }} />
-              <SkeletonBlock width={100} height={12} />
+              <SkeletonBlock width={32} height={32} rounded={16} />
+              <View style={{ width: 10 }} />
+              <SkeletonBlock width={80} height={12} />
             </View>
             <SkeletonBlock width="85%" height={16} />
-            <View style={{ height: 10 }} />
+          </View>
+          <View style={{ paddingHorizontal: 20, paddingVertical: 10 }}>
             <SkeletonBlock width="100%" height={14} />
             <View style={{ height: 6 }} />
             <SkeletonBlock width="75%" height={14} />
-            <View style={{ height: 10 }} />
+          </View>
+          <View style={{ paddingHorizontal: 20, paddingBottom: 14 }}>
             <SkeletonBlock width="90%" height={32} rounded={10} />
           </View>
-          {i < 2 && <View style={{ height: 32 }} />}
-        </React.Fragment>
+          <View style={{ borderTopWidth: 1, borderTopColor: colors.border, paddingHorizontal: 20, paddingVertical: 12, flexDirection: 'row', justifyContent: 'space-between' }}>
+            <View style={{ flexDirection: 'row', gap: 5 }}>
+              {[0, 1, 2].map(d => <SkeletonBlock key={d} width={7} height={7} rounded={4} />)}
+            </View>
+            <SkeletonBlock width={80} height={10} />
+          </View>
+        </View>
       ))}
     </View>
   );
@@ -698,62 +719,51 @@ export default function SnapsScreen() {
 
             {activeTab === 'insight' || !deepDive ? (
               <>
-                {/* Timeline rail wrapping the 3 snack cards */}
-                <TimelineRail stepColors={[colors.coreTech, colors.indigo, colors.primary]}>
-                  {/* 1. Foundation */}
-                  <SnackCard
-                    step={1}
-                    emoji={'\uD83D\uDCA1'}
-                    label={t('snaps.foundation')}
-                    headline={L(principle.foundation.headline, principle.foundation.headline_en, lang)}
-                    body={L(principle.foundation.body, principle.foundation.body_en, lang)}
-                    subLine={L(principle.foundation.analogy, principle.foundation.analogy_en, lang)}
-                    subEmoji={'\uD83D\uDCAD'}
-                    borderColor={colors.coreTech}
-                    nodeColor={colors.coreTech}
-                    nodeBg={colors.coreTechBg}
-                    subColor={colors.coreTech}
-                    IconComponent={Lightbulb}
-                    keywords={LArr(principle.keywords ?? [], principle.keywords_en, lang)}
-                  />
-                  {/* 2. Application */}
-                  <SnackCard
-                    step={2}
-                    emoji={'\u26A1'}
-                    label={t('snaps.application')}
-                    headline={L(principle.application.headline, principle.application.headline_en, lang)}
-                    body={L(principle.application.body, principle.application.body_en, lang)}
-                    subLine={L(principle.application.mechanism, principle.application.mechanism_en, lang)}
-                    subEmoji={'\uD83D\uDD27'}
-                    borderColor={colors.indigo}
-                    nodeColor={colors.indigo}
-                    nodeBg={colors.indigoBg}
-                    subColor={colors.indigo}
-                    IconComponent={Cpu}
-                  />
-                  {/* 3. Integration */}
-                  <SnackCard
-                    step={3}
-                    emoji={'\uD83C\uDF0D'}
-                    label={t('snaps.integration')}
-                    headline={L(principle.integration.headline, principle.integration.headline_en, lang)}
-                    body={L(principle.integration.body, principle.integration.body_en, lang)}
-                    subLine={L(principle.integration.impact, principle.integration.impact_en, lang)}
-                    subEmoji={'\uD83C\uDFAF'}
-                    borderColor={colors.primary}
-                    nodeColor={colors.primary}
-                    nodeBg={colors.primaryLight}
-                    subColor={colors.primary}
-                    IconComponent={Zap}
-                    isLast
-                  />
-                </TimelineRail>
+                {/* Notebook cards */}
+                {/* 1. Discovery (Foundation) */}
+                <NotebookCard
+                  step={1}
+                  label={t('snaps.foundation')}
+                  headline={L(principle.foundation.headline, principle.foundation.headline_en, lang)}
+                  body={L(principle.foundation.body, principle.foundation.body_en, lang)}
+                  subLine={L(principle.foundation.analogy, principle.foundation.analogy_en, lang)}
+                  accentColor={colors.coreTech}
+                  accentBg={colors.coreTechBg}
+                  IconComponent={Lightbulb}
+                  nextHint={t('snaps.next_application')}
+                  keywords={LArr(principle.keywords ?? [], principle.keywords_en, lang)}
+                />
+                {/* 2. Challenge & Solution (Application) */}
+                <NotebookCard
+                  step={2}
+                  label={t('snaps.application')}
+                  headline={L(principle.application.headline, principle.application.headline_en, lang)}
+                  body={L(principle.application.body, principle.application.body_en, lang)}
+                  problemLine={principle.application.problem ? `${t('snaps.problem')}: ${L(principle.application.problem, principle.application.problem_en, lang)}` : undefined}
+                  subLine={L(principle.application.mechanism, principle.application.mechanism_en, lang)}
+                  accentColor={colors.indigo}
+                  accentBg={colors.indigoBg}
+                  IconComponent={Cpu}
+                  nextHint={t('snaps.next_integration')}
+                />
+                {/* 3. Impact (Integration) */}
+                <NotebookCard
+                  step={3}
+                  label={t('snaps.integration')}
+                  headline={L(principle.integration.headline, principle.integration.headline_en, lang)}
+                  body={L(principle.integration.body, principle.integration.body_en, lang)}
+                  subLine={L(principle.integration.impact, principle.integration.impact_en, lang)}
+                  accentColor={colors.primary}
+                  accentBg={colors.primaryLight}
+                  IconComponent={Zap}
+                  nextHint={t('snaps.complete')}
+                />
 
                 {/* Deep Dive nudge */}
                 {deepDive && activeTab === 'insight' && (
                   <Pressable onPress={() => setActiveTab('deepdive')} style={{
                     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-                    backgroundColor: colors.indigoBg, borderRadius: 12, padding: 14, marginTop: 16,
+                    backgroundColor: colors.indigoBg, borderRadius: 12, padding: 14,
                     borderWidth: 1, borderColor: colors.border,
                   }}>
                     <BookOpen size={16} color={colors.indigo} />

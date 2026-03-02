@@ -40,6 +40,11 @@ function normalizePrinciple(raw: any): DailyPrinciples {
     a.headline_en = a.headline_en || a.description_en;
     a.body_en = a.body_en || a.mechanism_en;
   }
+  // Application: challenge → problem (backward compat)
+  if (a && !a.problem && a.challenge) {
+    a.problem = a.challenge;
+    a.problem_en = a.problem_en || a.challenge_en;
+  }
 
   // Integration: problemSolved → headline, solution → body, realWorldImpact → impact
   if (ig && !ig.headline && (ig.problemSolved || ig.solution)) {
@@ -51,19 +56,41 @@ function normalizePrinciple(raw: any): DailyPrinciples {
     ig.impact_en = ig.impact_en || ig.realWorldImpact_en;
   }
 
-  // DeepDive: foundation.deepDive → top-level deepDive
+  // DeepDive: foundation.deepDive → top-level deepDive (레거시 구조 호환)
   if (!p.deepDive && f?.deepDive) {
     const dd = f.deepDive;
     p.deepDive = {
-      history: dd.history || '',
-      history_en: dd.history_en,
-      mechanism: dd.mechanism || dd.coreMechanism || '',
-      mechanism_en: dd.mechanism_en || dd.coreMechanism_en,
+      originalProblem: dd.originalProblem || dd.history || '',
+      originalProblem_en: dd.originalProblem_en || dd.history_en,
+      bridge: dd.bridge || '',
+      bridge_en: dd.bridge_en,
+      coreIntuition: dd.coreIntuition || dd.mechanism || dd.coreMechanism || '',
+      coreIntuition_en: dd.coreIntuition_en || dd.mechanism_en || dd.coreMechanism_en,
       formula: dd.formula || dd.coreFormula,
       formula_en: dd.formula_en || dd.coreFormula_en,
-      modern: dd.modern || dd.modernRelevance || '',
-      modern_en: dd.modern_en || dd.modernRelevance_en,
+      limits: dd.limits || dd.modern || dd.modernRelevance || '',
+      limits_en: dd.limits_en || dd.modern_en || dd.modernRelevance_en,
     };
+  }
+
+  // DeepDive: 기존 필드(history/mechanism/modern) → 새 필드 매핑 (하위 호환)
+  if (p.deepDive) {
+    const dd = p.deepDive;
+    if (!dd.originalProblem && dd.history) {
+      dd.originalProblem = dd.history;
+      dd.originalProblem_en = dd.originalProblem_en || dd.history_en;
+    }
+    if (!dd.bridge) {
+      dd.bridge = dd.bridge || '';
+    }
+    if (!dd.coreIntuition && dd.mechanism) {
+      dd.coreIntuition = dd.mechanism;
+      dd.coreIntuition_en = dd.coreIntuition_en || dd.mechanism_en;
+    }
+    if (!dd.limits && dd.modern) {
+      dd.limits = dd.modern;
+      dd.limits_en = dd.limits_en || dd.modern_en;
+    }
   }
 
   return raw as DailyPrinciples;
