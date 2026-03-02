@@ -4,9 +4,8 @@ AI 기능 파이프라인 (6개 기능)
 1. articles 독립 컬렉션 저장
 2. 관련 기사 매칭
 3. 데일리 브리핑
-4. 퀴즈 생성
-5. 용어 사전 축적
-6. 타임라인 빌드
+4. 용어 사전 축적
+5. 타임라인 빌드
 
 generate_daily.py에서 호출됩니다.
 """
@@ -211,88 +210,6 @@ Articles:
         print(f"  [브리핑 실패] {e}")
         return None
 
-
-# ─── 4. 퀴즈 생성 ───────────────────────────────────────────────────────
-def generate_daily_quiz(result: dict):
-    """당일 주요 기사 기반 5문제 4지선다 퀴즈 생성."""
-    try:
-        from agents.config import get_llm
-        from agents.news_team import _parse_llm_json
-
-        highlights = result.get("highlights", [])[:3]
-        cat_articles = result.get("categorized_articles", {})
-        top_cats = [arts[0] for arts in cat_articles.values() if arts]
-        all_articles = highlights + top_cats[:4]
-        if len(all_articles) < 3:
-            print("  퀴즈 생략: 기사 부족")
-            return None
-
-        articles_text = ""
-        for i, a in enumerate(all_articles):
-            title = a.get("display_title", "") or a.get("title", "")
-            one_line = a.get("one_line", "")
-            kps = a.get("key_points", [])
-            kps_str = " | ".join(kps) if isinstance(kps, list) else str(kps)
-            articles_text += f"[{i}] {title} | {one_line} | {kps_str}\n"
-
-        prompt = f"""IMPORTANT: Output ONLY a valid JSON array. No markdown, no explanation. Start with '['.
-
-Generate exactly 5 multiple-choice quiz questions based on today's AI news.
-Every correct answer MUST be directly stated in the articles.
-Mix difficulty: 2 easy, 2 medium, 1 hard.
-Korean: 해요체. Proper nouns in English. correct_index is 0-based (0-3).
-Each question references a DIFFERENT article.
-
-Output 5 items:
-[{{"question_ko":"...","question_en":"...","options_ko":["A","B","C","D"],"options_en":["A","B","C","D"],"correct_index":0,"difficulty":"easy","explanation_ko":"...","explanation_en":"...","source_article_index":0}}]
-
-Articles:
-{articles_text}"""
-
-        llm = get_llm(temperature=0.2, max_tokens=4096, thinking=False, json_mode=True)
-        resp = llm.invoke(prompt)
-        quizzes = _parse_llm_json(resp.content if hasattr(resp, "content") else str(resp))
-        if isinstance(quizzes, dict):
-            quizzes = next((v for v in quizzes.values() if isinstance(v, list)), [])
-        if not isinstance(quizzes, list) or len(quizzes) == 0:
-            print("  [퀴즈 실패] 잘못된 응답 형식")
-            return None
-
-        # 5문제 미달 시 1회 재시도 (실패해도 기존 결과 보존)
-        if len(quizzes) < 5:
-            print(f"  [퀴즈] {len(quizzes)}/5문제 — 재시도...")
-            try:
-                resp2 = llm.invoke(prompt)
-                retry = _parse_llm_json(resp2.content if hasattr(resp2, "content") else str(resp2))
-                if isinstance(retry, dict):
-                    retry = next((v for v in retry.values() if isinstance(v, list)), [])
-                if isinstance(retry, list) and len(retry) > len(quizzes):
-                    quizzes = retry
-            except Exception as e:
-                print(f"  [퀴즈 재시도 실패] {e} — 기존 {len(quizzes)}문제 사용")
-
-        for q in quizzes:
-            if isinstance(q, dict):
-                src_idx = q.get("source_article_index", -1)
-                try:
-                    src_idx = int(src_idx)
-                except (ValueError, TypeError):
-                    src_idx = -1
-                if 0 <= src_idx < len(all_articles):
-                    q["source_article_id"] = _article_id(all_articles[src_idx].get("link", ""))
-
-        db = get_firestore_client()
-        today = datetime.now().strftime("%Y-%m-%d")
-        db.collection("daily_quizzes").document(today).set({
-            "date": today,
-            "questions": quizzes,
-            "updated_at": firestore.SERVER_TIMESTAMP,
-        })
-        print(f"  퀴즈 저장 완료: {len(quizzes)}문제")
-        return quizzes
-    except Exception as e:
-        print(f"  [퀴즈 실패] {e}")
-        return None
 
 
 # ─── 5. 용어 사전 축적 ──────────────────────────────────────────────────

@@ -25,7 +25,7 @@ from notifications import send_news_notification
 from generate_features import (
     _article_id,
     save_articles_collection, find_related_articles,
-    generate_daily_briefing, generate_daily_quiz,
+    generate_daily_briefing,
     accumulate_glossary, build_timeline,
 )
 
@@ -337,10 +337,6 @@ def run_news():
         generate_daily_briefing(news_result)
     except Exception as e:
         print(f"  [브리핑 실패] {e}")
-    try:
-        generate_daily_quiz(news_result)
-    except Exception as e:
-        print(f"  [퀴즈 실패] {e}")
     try:
         accumulate_glossary(news_result)
     except Exception as e:

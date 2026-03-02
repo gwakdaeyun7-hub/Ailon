@@ -42,8 +42,7 @@ import { FontFamily } from '@/lib/theme';
 import type { Language } from '@/lib/translations';
 import type { BatchStats } from '@/hooks/useBatchStats';
 import { DailyBriefingCard } from '@/components/briefing/DailyBriefingCard';
-import { QuizEntryCard } from '@/components/quiz/QuizEntryCard';
-import { QuizModal } from '@/components/quiz/QuizModal';
+
 import { TimelineSection } from '@/components/shared/TimelineSection';
 import { RelatedArticlesSection } from '@/components/shared/RelatedArticlesSection';
 import { HighlightedText } from '@/components/shared/HighlightedText';
@@ -876,10 +875,18 @@ function CategoryTabSection({
   const { lang, t } = useLanguage();
   const { colors } = useTheme();
 
-  const articles = categorizedArticles[activeTab] || [];
+  const isResearch = activeTab === 'research';
+  const rawArticles = categorizedArticles[activeTab] || [];
   const filtered = useMemo(() =>
-    (filteredArticles || []).filter(a => a.category === activeTab),
-    [filteredArticles, activeTab]
+    isResearch ? [] : (filteredArticles || []).filter(a => a.category === activeTab),
+    [filteredArticles, activeTab, isResearch]
+  );
+  // 연구 카테고리: AI 필터 제외 기사도 일반 목록에 포함
+  const articles = useMemo(() =>
+    isResearch
+      ? [...rawArticles, ...(filteredArticles || []).filter(a => a.category === 'research')]
+      : rawArticles,
+    [rawArticles, filteredArticles, isResearch]
   );
   const articleLinks = useMemo(() => new Set(articles.map(a => a.link)), [articles]);
   const deduped = useMemo(() =>
@@ -1027,7 +1034,7 @@ function CategoryTabSection({
       {activeTab !== '_personalized' && <View style={{ paddingHorizontal: 16, gap: 12 }}>
         {visible.map((a, i) => {
           const isDeduped = expandLevel >= 3 && dedupedStartIdx >= 0 && i >= dedupedStartIdx;
-          const isDimmed = a.ai_filtered || isDeduped;
+          const isDimmed = (!isResearch && a.ai_filtered) || isDeduped;
           return (
             <React.Fragment key={`cat-${activeTab}-${i}-${a.link}`}>
               {/* 섹션 구분선: AI 필터 제외 기사 */}
@@ -1084,7 +1091,7 @@ function CategoryTabSection({
                     <View>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                         <SourceBadge sourceKey={a.source_key} name={getSourceName(a.source_key || '', t)} />
-                        {a.ai_filtered && (
+                        {!isResearch && a.ai_filtered && (
                           <View style={{ backgroundColor: colors.textLight, borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 }}>
                             <Text style={{ fontSize: 11, fontWeight: '700', color: '#FFF' }}>FILTERED</Text>
                           </View>
@@ -1352,7 +1359,7 @@ export default function NewsScreen() {
   const [commentArticleLink, setCommentArticleLink] = useState<string | null>(null);
   const [notifModalVisible, setNotifModalVisible] = useState(false);
   const [notifications, setNotifications] = useState<DeliveredNotification[]>([]);
-  const [quizVisible, setQuizVisible] = useState(false);
+
   const { openDrawer, setActiveTab } = useDrawer();
   const { lang, t } = useLanguage();
   const { colors, isDark } = useTheme();
@@ -1597,8 +1604,7 @@ export default function NewsScreen() {
             {/* Section 4: GeekNews 세로 리스트 */}
             <GeekNewsSection articles={sourceArticles['geeknews'] || []} onArticlePress={handleArticlePress} allStats={allStats} />
 
-            {/* Daily Quiz Entry */}
-            <QuizEntryCard onPress={() => setQuizVisible(true)} />
+
           </>
         )}
 
@@ -1608,8 +1614,6 @@ export default function NewsScreen() {
       {/* 요약 모달 */}
       <SummaryModal article={modalArticle} onClose={handleModalClose} onOpenComments={handleOpenComments} />
 
-      {/* 퀴즈 모달 */}
-      <QuizModal visible={quizVisible} onClose={() => setQuizVisible(false)} />
 
       {/* 댓글 시트 (모달과 같은 레벨) */}
       <CommentSheet

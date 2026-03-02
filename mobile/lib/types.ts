@@ -82,6 +82,8 @@ export interface PrincipleFoundation {
 export interface PrincipleApplication {
   headline: string;        // AI 연결 타이틀 (15~20자)
   headline_en?: string;
+  problem?: string;        // AI가 부딪힌 난제 (30~50자)
+  problem_en?: string;
   body: string;            // AI 적용 설명 (80~120자)
   body_en?: string;
   mechanism: string;       // 핵심 메커니즘 한 줄 (30~50자)
@@ -185,7 +187,7 @@ export interface UserFeedback {
 }
 
 // ---------------------------------------------------------------------------
-// AI Features: Briefing, Quiz, Glossary, Timeline
+// AI Features: Briefing, Glossary, Timeline
 // ---------------------------------------------------------------------------
 
 export interface DailyBriefing {
@@ -197,23 +199,6 @@ export interface DailyBriefing {
   updated_at: Timestamp | string | null;
 }
 
-export interface QuizQuestion {
-  question_ko: string;
-  question_en: string;
-  options_ko: string[];
-  options_en: string[];
-  correct_index: number;
-  difficulty: 'easy' | 'medium' | 'hard';
-  explanation_ko: string;
-  explanation_en: string;
-  source_article_id?: string;
-}
-
-export interface DailyQuiz {
-  date: string;
-  questions: QuizQuestion[];
-  updated_at: Timestamp | string | null;
-}
 
 export interface GlossaryTerm {
   term_ko: string;
