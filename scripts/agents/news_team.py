@@ -757,7 +757,7 @@ def ko_process_node(state: NewsGraphState) -> dict:
 
 
 # ─── 중복 제거 ───
-DEDUP_THRESHOLD = 0.35  # 유사도 임계값 (낮출수록 공격적)
+DEDUP_THRESHOLD = 0.40  # 유사도 임계값 (낮출수록 공격적)
 
 
 def _normalize_title(title: str) -> str:
@@ -797,10 +797,10 @@ def _extract_url_key(link: str) -> str:
 def _deduplicate_candidates(candidates: list[dict], mark_only: bool = False, threshold: float | None = None) -> list[dict]:
     """다층 중복 제거:
     Layer 1: URL 완전 일치
-    Layer 2: 원본 제목(영문) 유사도 (>=0.35)
-    Layer 3: 번역 제목(한국어) 유사도 (>=0.35)
+    Layer 2: 원본 제목(영문) 유사도 (>=0.40)
+    Layer 3: 번역 제목(한국어) 유사도 (>=0.40)
     Layer 4: 엔티티 교집합(>=1) + topic_cluster_id 일치
-    Layer 5: one_line(한줄 요약) 유사도 (>=0.40)
+    Layer 5: one_line(한줄 요약) 유사도 (>=0.45)
     Layer 6: 핵심 토큰(고유명사 2개+숫자 1개) 겹침
     발행일 가장 오래된(원본) 기사 유지.
     mark_only=True 면 제거 대신 _deduped=True 마킹 (전체 리스트 반환).
@@ -864,7 +864,7 @@ def _deduplicate_candidates(candidates: list[dict], mark_only: bool = False, thr
             # Layer 5: one_line(한줄 요약) 유사도
             if c_oneline:
                 k_oneline = _normalize_title(k.get("one_line", ""))
-                if k_oneline and SequenceMatcher(None, c_oneline, k_oneline).ratio() >= 0.40:
+                if k_oneline and SequenceMatcher(None, c_oneline, k_oneline).ratio() >= 0.45:
                     is_dup = True
                     break
             # Layer 6: 핵심 토큰 겹침 (고유명사 2개 이상 + 숫자 1개 이상 공유)
@@ -1529,11 +1529,11 @@ def selector_node(state: NewsGraphState) -> dict:
     all_candidates = state.get("scored_candidates", [])
     category_order = ["research", "models_products", "industry_business"]
 
-    # 표시용: 최근 3일 이내 기사만 (수집은 5일이지만 앱에서는 3일만 표시)
-    candidates = [c for c in all_candidates if _is_recent(c, days=3)]
+    # 카테고리 소스(Tier 1/2): 5일치 표시, 소스별 섹션(Tier 3)은 assembler에서 최신 10개 처리
+    candidates = [c for c in all_candidates if _is_recent(c, days=5)]
     older = len(all_candidates) - len(candidates)
     if older:
-        print(f"  [선정] 3일 이전 기사 {older}개 표시 제외 (수집 보존)")
+        print(f"  [선정] 5일 이전 기사 {older}개 표시 제외 (수집 보존)")
 
     if not candidates:
         return {
@@ -1621,6 +1621,21 @@ def selector_node(state: NewsGraphState) -> dict:
         today_count = len([a for a in categorized[cat] if a.get("_is_today")])
         categorized[cat] = _select_category_top_n(categorized[cat])
         print(f"    {cat}: {total}개 (당일 {today_count}) -> Top {len(categorized[cat])}개")
+
+    # ── Step 3.5: 카테고리 최소 보장 — 부족하면 중복 보존분에서 보충 ──
+    CATEGORY_MIN = 3
+    for cat in category_order:
+        if len(categorized[cat]) < CATEGORY_MIN and deduped_by_cat.get(cat):
+            used_ids = set(id(a) for a in categorized[cat])
+            supplements = sorted(
+                [d for d in deduped_by_cat[cat] if id(d) not in used_ids and not d.get("_ai_filtered")],
+                key=lambda a: a.get("_total_score", 0), reverse=True,
+            )
+            need = CATEGORY_MIN - len(categorized[cat])
+            added = supplements[:need]
+            if added:
+                categorized[cat].extend(added)
+                print(f"    [{cat}] 중복 보존분에서 {len(added)}개 보충 (최소 {CATEGORY_MIN}개 보장)")
 
     # 카테고리별 최종 선정 기사 Top 3
     for cat in category_order:
