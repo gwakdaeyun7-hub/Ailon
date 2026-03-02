@@ -25,7 +25,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from langchain_core.messages import HumanMessage
 from langgraph.graph import StateGraph, END
 from langgraph.types import Send
-from agents.config import get_llm
+from agents.config import get_llm, get_embeddings
 from agents.tools import (
     SOURCES,
     fetch_all_sources, enrich_and_scrape, filter_imageless,
@@ -758,6 +758,25 @@ def ko_process_node(state: NewsGraphState) -> dict:
 
 # ─── 중복 제거 ───
 DEDUP_THRESHOLD = 0.40  # 유사도 임계값 (낮출수록 공격적)
+EMBED_DEDUP_THRESHOLD = 0.85  # 임베딩 코사인 유사도 임계값
+
+
+def _cosine_sim(a: list[float], b: list[float]) -> float:
+    """두 벡터의 코사인 유사도 (순수 Python)"""
+    dot = sum(x * y for x, y in zip(a, b))
+    na = sum(x * x for x in a) ** 0.5
+    nb = sum(x * x for x in b) ** 0.5
+    return dot / (na * nb) if na and nb else 0.0
+
+
+def _embed_texts(texts: list[str]) -> list[list[float]]:
+    """텍스트 리스트 → 임베딩 벡터 리스트 (배치 1회 호출)"""
+    try:
+        emb = get_embeddings()
+        return emb.embed_documents(texts)
+    except Exception as e:
+        print(f"  [임베딩 실패] {e} — Layer 7 스킵")
+        return []
 
 
 def _normalize_title(title: str) -> str:
@@ -802,7 +821,9 @@ def _deduplicate_candidates(candidates: list[dict], mark_only: bool = False, thr
     Layer 4: 엔티티 교집합(>=1) + topic_cluster_id 일치
     Layer 5: one_line(한줄 요약) 유사도 (>=0.45)
     Layer 6: 핵심 토큰(고유명사 2개+숫자 1개) 겹침
+    Layer 7: 임베딩 코사인 유사도 (>=0.85)
     발행일 가장 오래된(원본) 기사 유지.
+    중복 판정 시 _dedup_of 에 원본 기사 link 저장.
     mark_only=True 면 제거 대신 _deduped=True 마킹 (전체 리스트 반환).
     threshold: 제목 유사도 임계값 (None이면 DEDUP_THRESHOLD 사용)."""
     if len(candidates) <= 1:
@@ -816,9 +837,24 @@ def _deduplicate_candidates(candidates: list[dict], mark_only: bool = False, thr
         key=lambda c: _parse_published(c.get("published", "")) or _epoch,
     )
 
+    # Layer 7 준비: 전체 후보 임베딩 (배치 1회)
+    embed_texts = [
+        (c.get("title", "") + " " + c.get("one_line", "")).strip()
+        for c in sorted_cands
+    ]
+    embeddings = _embed_texts(embed_texts)
+    embed_map: dict[int, list[float]] = {}
+    if embeddings and len(embeddings) == len(sorted_cands):
+        for i, vec in enumerate(embeddings):
+            embed_map[id(sorted_cands[i])] = vec
+    embed_layer7 = bool(embed_map)
+    if embed_layer7:
+        print(f"  [임베딩] {len(embed_map)}개 벡터 생성 완료 — Layer 7 활성")
+
     kept: list[dict] = []
     seen_urls: set[str] = set()
     removed = 0
+    layer7_count = 0
     dupes: list[dict] = []
 
     for c in sorted_cands:
@@ -827,6 +863,11 @@ def _deduplicate_candidates(candidates: list[dict], mark_only: bool = False, thr
         if url_key and url_key in seen_urls:
             removed += 1
             c["_deduped"] = True
+            # URL 일치 — 같은 URL을 가진 kept 기사 찾기
+            for k in kept:
+                if _extract_url_key(k.get("link", "")) == url_key:
+                    c["_dedup_of"] = k.get("link", "")
+                    break
             dupes.append(c)
             continue
 
@@ -841,18 +882,23 @@ def _deduplicate_candidates(candidates: list[dict], mark_only: bool = False, thr
         c_oneline = _normalize_title(c.get("one_line", ""))
         # Layer 6 준비: 핵심 토큰 (고유명사·숫자)
         c_key_tokens = _extract_key_tokens(c.get("title", "") + " " + c.get("display_title", ""))
+        # Layer 7 준비: 임베딩 벡터
+        c_embed = embed_map.get(id(c))
 
         is_dup = False
+        matched_kept = None
         for k in kept:
             # Layer 2: 원본 제목 비교
             k_orig = _normalize_title(k.get("title", ""))
             if orig_title and k_orig and SequenceMatcher(None, orig_title, k_orig).ratio() >= thr:
                 is_dup = True
+                matched_kept = k
                 break
             # Layer 3: 번역 제목 비교
             k_disp = _normalize_title(k.get("display_title") or k.get("title", ""))
             if disp_title and k_disp and SequenceMatcher(None, disp_title, k_disp).ratio() >= thr:
                 is_dup = True
+                matched_kept = k
                 break
             # Layer 4: 엔티티 교집합 + topic_cluster_id 동일
             if c_entities and c_cluster:
@@ -860,12 +906,14 @@ def _deduplicate_candidates(candidates: list[dict], mark_only: bool = False, thr
                 k_cluster = k.get("topic_cluster_id", "")
                 if k_entities and k_cluster and c_cluster == k_cluster and len(c_entities & k_entities) >= 1:
                     is_dup = True
+                    matched_kept = k
                     break
             # Layer 5: one_line(한줄 요약) 유사도
             if c_oneline:
                 k_oneline = _normalize_title(k.get("one_line", ""))
                 if k_oneline and SequenceMatcher(None, c_oneline, k_oneline).ratio() >= 0.45:
                     is_dup = True
+                    matched_kept = k
                     break
             # Layer 6: 핵심 토큰 겹침 (고유명사 2개 이상 + 숫자 1개 이상 공유)
             if len(c_key_tokens) >= 3:
@@ -876,11 +924,21 @@ def _deduplicate_candidates(candidates: list[dict], mark_only: bool = False, thr
                     nums_overlap = sum(1 for t in overlap if t.isdigit())
                     if names_overlap >= 2 and nums_overlap >= 1:
                         is_dup = True
+                        matched_kept = k
                         break
+            # Layer 7: 임베딩 코사인 유사도
+            if embed_layer7 and c_embed:
+                k_embed = embed_map.get(id(k))
+                if k_embed and _cosine_sim(c_embed, k_embed) >= EMBED_DEDUP_THRESHOLD:
+                    is_dup = True
+                    matched_kept = k
+                    layer7_count += 1
+                    break
 
         if is_dup:
             removed += 1
             c["_deduped"] = True
+            c["_dedup_of"] = matched_kept.get("link", "") if matched_kept else ""
             dupes.append(c)
         else:
             c["_deduped"] = False
@@ -889,7 +947,8 @@ def _deduplicate_candidates(candidates: list[dict], mark_only: bool = False, thr
                 seen_urls.add(url_key)
 
     if removed > 0:
-        print(f"  [중복 제거] {removed}개 중복 기사 제거 ({len(candidates)} → {len(kept)}개)")
+        layer7_msg = f" (Layer 7 임베딩: {layer7_count}건)" if layer7_count else ""
+        print(f"  [중복 제거] {removed}개 중복 기사 제거 ({len(candidates)} → {len(kept)}개){layer7_msg}")
 
     if mark_only:
         return kept + dupes

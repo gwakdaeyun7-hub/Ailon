@@ -105,6 +105,7 @@ def save_news_to_firestore(result: dict):
                 "glossary": a.get("glossary", []),
                 "glossary_en": a.get("glossary_en", []),
                 "ai_filtered": bool(a.get("_ai_filtered", False)),
+                "dedup_of": a.get("_dedup_of", ""),
             }
             for a in articles
         ]
@@ -136,6 +137,7 @@ def save_news_to_firestore(result: dict):
                 "score": a.get("_total_score", 0),
                 "rank": a.get("_rank", 0),
                 "category": a.get("_llm_category", ""),
+                "dedup_of": a.get("_dedup_of", ""),
             }
             for a in articles
         ]

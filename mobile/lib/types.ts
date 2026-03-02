@@ -34,6 +34,7 @@ export interface Article {
   glossary?: { term: string; desc: string }[];
   glossary_en?: { term: string; desc: string }[];
   ai_filtered?: boolean;
+  dedup_of?: string;      // 중복 원본 기사 link
   // AI 기능 확장 필드
   entities?: ArticleEntity[];
   topic_cluster_id?: string;

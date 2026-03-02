@@ -9,7 +9,7 @@ import json
 import threading
 import firebase_admin
 from firebase_admin import credentials, firestore
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -31,6 +31,9 @@ HORIZONTAL_SECTIONS = {
 
 _llm_cache: dict[tuple, ChatGoogleGenerativeAI] = {}
 _llm_cache_lock = threading.Lock()
+
+_embeddings_instance: GoogleGenerativeAIEmbeddings | None = None
+_embeddings_lock = threading.Lock()
 
 
 def get_llm(temperature: float = 0.7, max_tokens: int = 2048, thinking: bool = True, json_mode: bool = False):
@@ -63,6 +66,26 @@ def get_llm(temperature: float = 0.7, max_tokens: int = 2048, thinking: bool = T
         _llm_cache[cache_key] = llm
     return llm
 
+
+
+def get_embeddings() -> GoogleGenerativeAIEmbeddings:
+    """Google text-embedding-004 임베딩 모델 (싱글톤)"""
+    global _embeddings_instance
+    with _embeddings_lock:
+        if _embeddings_instance is not None:
+            return _embeddings_instance
+
+    api_key = os.getenv("GOOGLE_API_KEY")
+    if not api_key:
+        raise ValueError("GOOGLE_API_KEY not found.")
+
+    instance = GoogleGenerativeAIEmbeddings(
+        model="models/text-embedding-004",
+        google_api_key=api_key,
+    )
+    with _embeddings_lock:
+        _embeddings_instance = instance
+    return instance
 
 
 def initialize_firebase():
