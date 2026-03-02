@@ -258,15 +258,18 @@ Articles:
             print("  [퀴즈 실패] 잘못된 응답 형식")
             return None
 
-        # 5문제 미달 시 1회 재시도
+        # 5문제 미달 시 1회 재시도 (실패해도 기존 결과 보존)
         if len(quizzes) < 5:
             print(f"  [퀴즈] {len(quizzes)}/5문제 — 재시도...")
-            resp2 = llm.invoke(prompt)
-            retry = _parse_llm_json(resp2.content if hasattr(resp2, "content") else str(resp2))
-            if isinstance(retry, dict):
-                retry = next((v for v in retry.values() if isinstance(v, list)), [])
-            if isinstance(retry, list) and len(retry) > len(quizzes):
-                quizzes = retry
+            try:
+                resp2 = llm.invoke(prompt)
+                retry = _parse_llm_json(resp2.content if hasattr(resp2, "content") else str(resp2))
+                if isinstance(retry, dict):
+                    retry = next((v for v in retry.values() if isinstance(v, list)), [])
+                if isinstance(retry, list) and len(retry) > len(quizzes):
+                    quizzes = retry
+            except Exception as e:
+                print(f"  [퀴즈 재시도 실패] {e} — 기존 {len(quizzes)}문제 사용")
 
         for q in quizzes:
             if isinstance(q, dict):

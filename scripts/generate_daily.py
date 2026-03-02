@@ -174,12 +174,24 @@ def save_news_to_firestore(result: dict):
             reverse=True,
         )
 
-        # categorized_articles: 카테고리별 병합 → score 내림차순
+        # categorized_articles: 카테고리별 병합 (크로스-카테고리 중복 제거) → score 내림차순
         old_cat = old.get("categorized_articles", {})
-        all_cats = set(list(old_cat.keys()) + list(categorized_articles.keys()))
+        # 신규 categorized 기사 link 수집 → 기존 모든 카테고리에서 제거
+        # (카테고리 변경 시 이전 카테고리의 구 데이터 잔존 방지)
+        new_cat_links: set[str] = set()
+        for cat_arts in categorized_articles.values():
+            for a in cat_arts:
+                link = a.get("link", "")
+                if link:
+                    new_cat_links.add(link)
+        cleaned_old_cat = {
+            cat: [a for a in arts if a.get("link", "") not in new_cat_links]
+            for cat, arts in old_cat.items()
+        }
+        all_cats = set(list(cleaned_old_cat.keys()) + list(categorized_articles.keys()))
         categorized_articles = {
             cat: sorted(
-                _merge_articles(old_cat.get(cat, []), categorized_articles.get(cat, [])),
+                _merge_articles(cleaned_old_cat.get(cat, []), categorized_articles.get(cat, [])),
                 key=lambda a: a.get("score", 0), reverse=True,
             )
             for cat in all_cats
@@ -215,8 +227,11 @@ def save_news_to_firestore(result: dict):
             cat: _merge_articles(cleaned_old_dedup.get(cat, []), deduped_articles.get(cat, []))
             for cat in all_dedup_cats
         }
-        # 빈 카테고리 제거
+        # 빈 카테고리 제거 + 모든 dedup 기사 score=0 강제 (구 데이터 score=20 잔존 방지)
         deduped_articles = {cat: arts for cat, arts in deduped_articles.items() if arts}
+        for arts in deduped_articles.values():
+            for a in arts:
+                a["score"] = 0
 
     # category_order, source_order: 합집합(순서 유지)
     def _union_order(existing_order: list, new_order: list) -> list:
