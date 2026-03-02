@@ -679,14 +679,7 @@ def _safe_node(node_name: str):
 def collector_node(state: NewsGraphState) -> dict:
     """모든 소스 수집 + 이미지/본문 통합 스크래핑 + 이미지 필터 + LLM AI 필터"""
     sources = fetch_all_sources()
-    # 최근 5일 이내 기사만 유지
-    for key in list(sources.keys()):
-        before = len(sources[key])
-        sources[key] = [a for a in sources[key] if _is_recent(a, days=5)]
-        dropped = before - len(sources[key])
-        if dropped:
-            print(f"    [{key}] 5일 이전 기사 {dropped}개 제외")
-    # 소스별 기사 수집 현황
+    # 소스별 기사 수집 현황 (날짜 필터는 tools.py 수집 단계에서 처리)
     print(f"\n  {'소스':<22} {'전체':>4}  {'당일':>4}")
     print(f"  {'─'*34}")
     total_all = 0
