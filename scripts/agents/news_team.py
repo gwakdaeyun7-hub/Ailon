@@ -72,6 +72,7 @@ class NewsGraphState(TypedDict):
 
 # ─── 날짜 유틸리티 ───
 def _parse_published(published: str) -> datetime | None:
+    s = published.strip()
     for fmt in (
         "%a, %d %b %Y %H:%M:%S %z",
         "%a, %d %b %Y %H:%M:%S %Z",
@@ -81,12 +82,36 @@ def _parse_published(published: str) -> datetime | None:
         "%Y-%m-%d",
     ):
         try:
-            dt = datetime.strptime(published.strip(), fmt)
+            dt = datetime.strptime(s, fmt)
             if dt.tzinfo is None:
                 dt = dt.replace(tzinfo=timezone.utc)
             return dt
         except (ValueError, AttributeError):
             continue
+    # "2026.02.28 PM 08:20" 등 한국 소스 형식
+    m = re.match(r'(\d{4})\.(\d{2})\.(\d{2})', s)
+    if m:
+        try:
+            dt = datetime(int(m.group(1)), int(m.group(2)), int(m.group(3)), tzinfo=_KST)
+            return dt
+        except ValueError:
+            pass
+    # email.utils (RFC 2822 변형) + fromisoformat 폴백
+    try:
+        from email.utils import parsedate_to_datetime
+        dt = parsedate_to_datetime(s)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt
+    except Exception:
+        pass
+    try:
+        dt = datetime.fromisoformat(s.replace('Z', '+00:00'))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt
+    except Exception:
+        pass
     return None
 
 
