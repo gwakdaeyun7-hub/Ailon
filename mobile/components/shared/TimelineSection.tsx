@@ -31,7 +31,7 @@ export const TimelineSection = React.memo(function TimelineSection({ timelineIds
   if (nodes.length === 0) return null;
 
   return (
-    <View style={{ paddingHorizontal: 24, marginBottom: 24 }}>
+    <View style={{ marginBottom: 16 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 }}>
         <Clock size={16} color={colors.textSecondary} />
         <Text style={{ fontSize: 15, fontWeight: '700', color: colors.textPrimary }}>
@@ -39,7 +39,7 @@ export const TimelineSection = React.memo(function TimelineSection({ timelineIds
         </Text>
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
-        {nodes.slice(0, 10).map((node, idx) => {
+        {nodes.slice(0, 9).map((node, idx) => {
           const title = lang === 'en'
             ? (node.display_title_en || node.display_title || node.title)
             : (node.display_title || node.title);

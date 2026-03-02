@@ -11,6 +11,7 @@ generate_daily.py에서 호출됩니다.
 """
 
 import hashlib
+import re
 from datetime import datetime, timedelta
 from firebase_admin import firestore
 from agents.config import get_firestore_client
@@ -280,13 +281,24 @@ def accumulate_glossary(result: dict):
     return total
 
 
+_TIMELINE_STOP_TERMS = {
+    "ai", "artificialintelligence", "machinelearning",
+    "ml", "technology", "tech", "deeplearning",
+}
+
+
+def _normalize_term(name: str) -> str:
+    """entity/tag 이름 정규화 — 공백·하이픈 제거, 소문자."""
+    return re.sub(r'[\s\-_]+', '', name.lower())
+
+
 # ─── 6. 타임라인 빌드 ───────────────────────────────────────────────────
 def build_timeline(result: dict):
-    """오늘 기사의 entity/tags로 최근 30일 과거 기사와 연결."""
+    """오늘 기사의 entity/tags로 최근 90일(3개월) 과거 기사와 연결."""
     try:
         db = get_firestore_client()
         today = datetime.now().strftime("%Y-%m-%d")
-        cutoff = (datetime.now() - timedelta(days=150)).strftime("%Y-%m-%d")
+        cutoff = (datetime.now() - timedelta(days=90)).strftime("%Y-%m-%d")
 
         unique_today = _collect_unique_articles(result)
         if not unique_today:
@@ -297,7 +309,7 @@ def build_timeline(result: dict):
             filter=FieldFilter("date", ">=", cutoff)
         ).where(
             filter=FieldFilter("date", "<", today)
-        ).stream()
+        ).select(["entities", "tags", "date"]).stream()
 
         past_articles = []
         for d in past_docs:
@@ -313,17 +325,18 @@ def build_timeline(result: dict):
         batch = db.batch()
         batch_count = 0
         for target in unique_today:
-            t_entities = {e.get("name", "").lower() for e in target.get("entities", []) if isinstance(e, dict)}
-            t_tags = {t.lower() for t in target.get("tags", []) if isinstance(t, str)}
-            t_terms = t_entities | t_tags
+            t_entities = {_normalize_term(e.get("name", "")) for e in target.get("entities", []) if isinstance(e, dict)}
+            t_tags = {_normalize_term(t) for t in target.get("tags", []) if isinstance(t, str)}
+            t_terms = (t_entities | t_tags) - _TIMELINE_STOP_TERMS
             if not t_terms:
                 continue
 
             scores = []
             for pa in past_articles:
-                p_entities = {e.get("name", "").lower() for e in pa.get("entities", []) if isinstance(e, dict)}
-                p_tags = {t.lower() for t in pa.get("tags", []) if isinstance(t, str)}
-                overlap = len(t_terms & (p_entities | p_tags))
+                p_entities = {_normalize_term(e.get("name", "")) for e in pa.get("entities", []) if isinstance(e, dict)}
+                p_tags = {_normalize_term(t) for t in pa.get("tags", []) if isinstance(t, str)}
+                p_terms = (p_entities | p_tags) - _TIMELINE_STOP_TERMS
+                overlap = len(t_terms & p_terms)
                 if overlap >= 2:
                     scores.append((overlap, pa))
 
