@@ -11,6 +11,64 @@ import type { DailyPrinciples } from '@/lib/types';
 
 const CACHE_PREFIX = 'principle_cache_';
 
+/**
+ * 구 Firestore 데이터(keyIdea/principle/everydayAnalogy 등)를
+ * 신 UI 구조(headline/body/analogy 등)로 정규화
+ */
+function normalizePrinciple(raw: any): DailyPrinciples {
+  if (!raw?.principle) return raw;
+
+  const p = raw.principle;
+  const f = p.foundation;
+  const a = p.application;
+  const ig = p.integration;
+
+  // Foundation: keyIdea → headline, principle → body, everydayAnalogy → analogy
+  if (f && !f.headline && f.keyIdea) {
+    f.headline = f.keyIdea;
+    f.body = f.body || f.principle || f.description || '';
+    f.analogy = f.analogy || f.everydayAnalogy || '';
+    f.headline_en = f.headline_en || f.keyIdea_en;
+    f.body_en = f.body_en || f.principle_en || f.description_en;
+    f.analogy_en = f.analogy_en || f.everydayAnalogy_en;
+  }
+
+  // Application: description → headline, mechanism → body
+  if (a && !a.headline && (a.description || a.mechanism)) {
+    a.headline = a.description || '';
+    a.body = a.body || a.mechanism || '';
+    a.headline_en = a.headline_en || a.description_en;
+    a.body_en = a.body_en || a.mechanism_en;
+  }
+
+  // Integration: problemSolved → headline, solution → body, realWorldImpact → impact
+  if (ig && !ig.headline && (ig.problemSolved || ig.solution)) {
+    ig.headline = ig.problemSolved || '';
+    ig.body = ig.body || ig.solution || '';
+    ig.impact = ig.impact || ig.realWorldImpact || '';
+    ig.headline_en = ig.headline_en || ig.problemSolved_en;
+    ig.body_en = ig.body_en || ig.solution_en;
+    ig.impact_en = ig.impact_en || ig.realWorldImpact_en;
+  }
+
+  // DeepDive: foundation.deepDive → top-level deepDive
+  if (!p.deepDive && f?.deepDive) {
+    const dd = f.deepDive;
+    p.deepDive = {
+      history: dd.history || '',
+      history_en: dd.history_en,
+      mechanism: dd.mechanism || dd.coreMechanism || '',
+      mechanism_en: dd.mechanism_en || dd.coreMechanism_en,
+      formula: dd.formula || dd.coreFormula,
+      formula_en: dd.formula_en || dd.coreFormula_en,
+      modern: dd.modern || dd.modernRelevance || '',
+      modern_en: dd.modern_en || dd.modernRelevance_en,
+    };
+  }
+
+  return raw as DailyPrinciples;
+}
+
 /** KST(UTC+9) 기준 오늘 날짜를 YYYY-MM-DD 형식으로 반환 */
 function getKSTDate(): string {
   const now = new Date();
@@ -39,7 +97,7 @@ export function usePrinciple() {
       const docRef = doc(db, 'daily_principles', dateStr);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
-        const data = docSnap.data() as DailyPrinciples;
+        const data = normalizePrinciple(docSnap.data());
         setPrincipleData(data);
         hasData.current = true;
         AsyncStorage.setItem(CACHE_PREFIX + dateStr, JSON.stringify(data)).catch(() => {});
@@ -55,7 +113,7 @@ export function usePrinciple() {
         );
         const snapshot = await getDocs(fallbackQuery);
         if (!snapshot.empty) {
-          const data = snapshot.docs[0].data() as DailyPrinciples;
+          const data = normalizePrinciple(snapshot.docs[0].data());
           setPrincipleData(data);
           hasData.current = true;
           setCurrentDate(data.date);
@@ -67,7 +125,7 @@ export function usePrinciple() {
       // No data found - try cache
       const cached = await AsyncStorage.getItem(CACHE_PREFIX + dateStr);
       if (cached) {
-        setPrincipleData(JSON.parse(cached));
+        setPrincipleData(normalizePrinciple(JSON.parse(cached)));
         hasData.current = true;
         return;
       }
@@ -79,7 +137,7 @@ export function usePrinciple() {
       try {
         const cached = await AsyncStorage.getItem(CACHE_PREFIX + dateStr);
         if (cached) {
-          setPrincipleData(JSON.parse(cached));
+          setPrincipleData(normalizePrinciple(JSON.parse(cached)));
           hasData.current = true;
           return;
         }
