@@ -67,69 +67,45 @@ export interface DailyNews {
 }
 
 // ---------------------------------------------------------------------------
-// Principle & Daily Principles (New Structure: Foundation → Application → Integration)
+// Principle & Daily Principles (Snack Structure: 인사이트 3섹션 + 딥다이브)
 // ---------------------------------------------------------------------------
 
-export interface LearnMoreLink {
-  type: 'wikipedia' | 'youtube' | 'article';
-  title: string;
-  url: string;
-}
-
-export interface DeepDive {
-  history: string;              // 원리의 발견/발전 역사
-  history_en?: string;
-  mechanism: string;            // 작동 원리 상세 설명
-  mechanism_en?: string;
-  formula?: string;             // 수식/공식 (해당시)
-  visualExplanation?: string;   // 시각적 설명 텍스트
-  relatedPrinciples: string[];  // 관련 원리들
-  relatedPrinciples_en?: string[];
-  modernRelevance: string;      // 현대적 의미/응용
-  modernRelevance_en?: string;
-}
-
 export interface PrincipleFoundation {
-  principle: string;        // 기본 원리 설명
-  principle_en?: string;
-  keyIdea: string;          // 핵심 아이디어 한 줄
-  keyIdea_en?: string;
-  everydayAnalogy: string;  // 일상 비유
-  everydayAnalogy_en?: string;
-  scientificContext?: string; // 학문에서의 중요성
-  scientificContext_en?: string;
-  deepDive?: DeepDive;
+  headline: string;        // 호기심 유발 타이틀 (15~20자)
+  headline_en?: string;
+  body: string;            // 학문 원리를 일상 언어로 설명 (80~120자)
+  body_en?: string;
+  analogy: string;         // 일상 비유 한 줄 (30~50자)
+  analogy_en?: string;
 }
 
 export interface PrincipleApplication {
-  applicationField: string;   // 응용 분야
-  applicationField_en?: string;
-  description: string;         // 응용 설명
-  description_en?: string;
-  mechanism: string;           // 응용 메커니즘
+  headline: string;        // AI 연결 타이틀 (15~20자)
+  headline_en?: string;
+  body: string;            // AI 적용 설명 (80~120자)
+  body_en?: string;
+  mechanism: string;       // 핵심 메커니즘 한 줄 (30~50자)
   mechanism_en?: string;
-  technicalTerms: string[];    // 관련 기술 용어
-  technicalTerms_en?: string[];
-  bridgeRole?: string;         // 교량 역할
-  limitations?: string;        // 비유의 한계점
-  limitations_en?: string;
 }
 
 export interface PrincipleIntegration {
-  problemSolved: string;       // 해결한 문제
-  problemSolved_en?: string;
-  solution: string;            // 해결 방법
-  solution_en?: string;
-  targetField: string;         // 영향받은 학문
-  targetField_en?: string;
-  realWorldExamples: string[]; // 실제 사례들
-  realWorldExamples_en?: string[];
-  impactField: string;         // 영향 분야
-  impactField_en?: string;
-  whyItWorks: string;          // 왜 효과적인지
-  whyItWorks_en?: string;
-  keyPapers?: string[];        // 핵심 논문
-  keyPapers_en?: string[];
+  headline: string;        // 실제 활용 타이틀 (15~20자)
+  headline_en?: string;
+  body: string;            // 실제 세계 활용 설명 (80~120자)
+  body_en?: string;
+  impact: string;          // 임팩트 한 줄 (30~50자)
+  impact_en?: string;
+}
+
+export interface DeepDive {
+  history: string;         // 발견/발전 역사 (150~200자)
+  history_en?: string;
+  mechanism: string;       // 상세 메커니즘 (150~200자)
+  mechanism_en?: string;
+  formula?: string;        // 핵심 수식/알고리즘 (해당시)
+  formula_en?: string;
+  modern: string;          // 현대적 의의 + 최신 연구 동향 (150~200자)
+  modern_en?: string;
 }
 
 export interface PrincipleVerification {
@@ -139,22 +115,21 @@ export interface PrincipleVerification {
 }
 
 export interface Principle {
-  title: string;  // 융합 사례 이름
+  title: string;
   title_en?: string;
   connectionType?: 'direct_inspiration' | 'structural_analogy' | 'mathematical_foundation';
   difficulty?: 'beginner' | 'intermediate' | 'advanced';
-  subtitle?: string;
-  subtitle_en?: string;
   keywords?: string[];
   keywords_en?: string[];
+  readTime?: string;       // '1분' | '2분'
   category: string;
   superCategory: string;
 
   foundation: PrincipleFoundation;
   application: PrincipleApplication;
   integration: PrincipleIntegration;
+  deepDive?: DeepDive;
   verification?: PrincipleVerification;
-  learn_more_links?: LearnMoreLink[];
 }
 
 export interface DailyPrinciples {

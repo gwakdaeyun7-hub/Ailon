@@ -231,99 +231,82 @@ def seed_selector(state: PrincipleGraphState) -> dict:
 
 # ─── Node 2: content_generator ───
 _CONTENT_PROMPT = """당신은 학제간 AI 인사이트 콘텐츠 전문가입니다.
-아래 주어진 시드 데이터를 기반으로, 한국 공학계열 대학생을 위한 교육 콘텐츠를 JSON으로 생성하세요.
-한국어와 영어를 모두 생성해야 합니다. 영어 필드는 _en 접미사로 구분합니다.
+아래 시드 데이터를 기반으로, 대학생이 1~2분 안에 읽을 수 있는 간결한 스낵 콘텐츠를 JSON으로 생성하세요.
+한국어와 영어를 모두 생성합니다. 영어 필드는 _en 접미사로 구분합니다.
 
-## 시드 데이터 (기본 방향으로 활용하되, 사실적 정확성을 우선할 것)
+## 시드 데이터
 - 학문 분야: {discipline_name}
-- 원리 이름: {principle_name} ({principle_name_en})
-- AI 연결점: {ai_connection} ({ai_connection_en})
+- 원리: {principle_name} ({principle_name_en})
+- AI 연결: {ai_connection} ({ai_connection_en})
 - 해결 문제: {problem_solved}
 
 ## 핵심 원칙
-1. 역사적 사실을 정확히 기술할 것 (핵심 인물/년도/논문 포함)
-2. "직접적 영감(direct inspiration)"과 "구조적 유사성(structural analogy)"을 명확히 구분할 것
-3. 비유가 성립하지 않는 한계점도 application 섹션에서 반드시 언급할 것
-4. 확실하지 않은 연결은 "~로 해석되기도 한다" 식으로 표현할 것
+1. 짧고 명확하게 — 각 필드의 글자 수 제한을 엄격히 지킬 것
+2. "직접적 영감"과 "구조적 유사성"을 정직하게 구분할 것
+3. 확실하지 않은 연결은 "~로 해석되기도 한다" 식으로 표현할 것
+4. 사실에 기반 (핵심 인물/년도 포함, 불확실하면 "약 ~년"으로 표현)
 
-## 출력 JSON 구조 (반드시 이 구조를 정확히 따를 것)
+## 출력 JSON 구조 (반드시 정확히 따를 것)
 
 {{
   "title": "{principle_name}과(와) {ai_connection}",
   "title_en": "{principle_name_en} and {ai_connection_en}",
-  "connectionType": "direct_inspiration 또는 structural_analogy 또는 mathematical_foundation 중 하나 (이 원리-AI 연결의 성격을 정직하게 분류)",
-  "difficulty": "beginner 또는 intermediate 또는 advanced (이 원리-AI 연결을 이해하는 데 필요한 수준)",
-  "subtitle": "한국어 부제목 (원리와 AI 기술의 관계를 한 줄로, 15자 이내)",
-  "subtitle_en": "English subtitle (one line, under 15 words)",
-  "keywords": ["핵심 키워드 1", "핵심 키워드 2", "핵심 키워드 3"],
-  "keywords_en": ["keyword 1", "keyword 2", "keyword 3"],
+
   "foundation": {{
-    "principle": "원리 설명 (3-4문장, {discipline_name}에서 이 원리가 무엇인지 설명)",
-    "principle_en": "Principle explanation in English (3-4 sentences)",
-    "keyIdea": "핵심 아이디어 한 줄 요약",
-    "keyIdea_en": "Key idea one-line summary in English",
-    "everydayAnalogy": "일상생활 비유로 쉽게 설명",
-    "everydayAnalogy_en": "Everyday analogy in English",
-    "scientificContext": "{discipline_name}에서 이 원리의 중요성 (2-3문장)",
-    "scientificContext_en": "Scientific context in English (2-3 sentences)",
-    "deepDive": {{
-      "history": "이 원리의 발견/발전 역사 (3-5문장, 반드시 핵심 인물과 년도 포함)",
-      "history_en": "History of discovery/development in English (3-5 sentences, must include key figures and years)",
-      "mechanism": "작동 원리를 단계별로 상세 설명 (3-5문장)",
-      "mechanism_en": "Step-by-step mechanism in English (3-5 sentences)",
-      "formula": "관련 수식이 있으면 LaTeX 형태로, 없으면 빈 문자열",
-      "visualExplanation": "시각적으로 이해할 수 있는 설명 (도표나 프로세스를 글로 묘사)",
-      "relatedPrinciples": ["관련 원리 1", "관련 원리 2"],
-      "relatedPrinciples_en": ["Related principle 1 in English", "Related principle 2 in English"],
-      "modernRelevance": "현대 과학/기술에서의 의미 (2-3문장)",
-      "modernRelevance_en": "Modern relevance in English (2-3 sentences)"
-    }}
+    "headline": "호기심을 유발하는 타이틀 (15~20자)",
+    "headline_en": "Curiosity-driven title in English",
+    "body": "이 학문 원리를 일상 언어로 쉽게 설명 (80~120자, 2~3줄)",
+    "body_en": "Explain the principle in everyday language (2-3 sentences)",
+    "analogy": "일상 비유 한 줄 (30~50자)",
+    "analogy_en": "One-line everyday analogy in English"
   }},
+
   "application": {{
-    "applicationField": "AI/머신러닝에서의 적용 분야",
-    "applicationField_en": "Application field in AI/ML in English",
-    "description": "{ai_connection}이 어떻게 적용되는지 (3-4문장)",
-    "description_en": "How it is applied in English (3-4 sentences)",
-    "mechanism": "구체적 메커니즘 설명 (원리에서 AI 기술로의 변환 과정: 무엇이 보존되고 무엇이 추상화되었는지)",
-    "mechanism_en": "Specific mechanism in English (what was preserved and what was abstracted away)",
-    "technicalTerms": ["관련 기술 용어1", "관련 기술 용어2", "관련 기술 용어3"],
-    "technicalTerms_en": ["Technical term 1", "Technical term 2", "Technical term 3"],
-    "bridgeRole": "{discipline_name}의 {principle_name}이 AI에서 어떤 교량 역할을 하는지",
-    "limitations": "이 비유/연결이 성립하지 않는 한계점 (1-2문장)",
-    "limitations_en": "Where this analogy/connection breaks down (1-2 sentences)"
+    "headline": "AI 연결 타이틀 (15~20자)",
+    "headline_en": "AI connection title in English",
+    "body": "이 원리가 AI에 어떻게 적용되는지 (80~120자, 2~3줄)",
+    "body_en": "How this principle applies to AI (2-3 sentences)",
+    "mechanism": "핵심 메커니즘 한 줄 (30~50자)",
+    "mechanism_en": "One-line core mechanism in English"
   }},
+
   "integration": {{
-    "problemSolved": "{problem_solved}",
-    "problemSolved_en": "Problem solved in English",
-    "solution": "이 원리를 적용해 어떻게 해결하는지 (2-3문장)",
-    "solution_en": "Solution in English (2-3 sentences)",
-    "targetField": "영향받은 AI 세부 분야",
-    "targetField_en": "Target field in English",
-    "realWorldExamples": ["실제 사례 1", "실제 사례 2", "실제 사례 3"],
-    "realWorldExamples_en": ["Real-world example 1", "Real-world example 2", "Real-world example 3"],
-    "impactField": "이 통합이 가장 큰 영향을 미치는 분야",
-    "impactField_en": "Impact field in English",
-    "whyItWorks": "왜 이 접근이 효과적인지 (2-3문장)",
-    "whyItWorks_en": "Why it works in English (2-3 sentences)",
-    "keyPapers": ["핵심 논문 (저자, 년도) 1", "핵심 논문 (저자, 년도) 2"],
-    "keyPapers_en": ["Key paper (Author, Year) 1", "Key paper (Author, Year) 2"]
-  }}
+    "headline": "실제 활용 타이틀 (15~20자)",
+    "headline_en": "Real-world application title in English",
+    "body": "실제 세계에서 어떻게 쓰이는지 (80~120자, 2~3줄)",
+    "body_en": "Real-world usage explanation (2-3 sentences)",
+    "impact": "임팩트 한 줄 (30~50자)",
+    "impact_en": "One-line impact statement in English"
+  }},
+
+  "deepDive": {{
+    "history": "발견/발전 역사 (150~200자, 핵심 인물/년도 포함)",
+    "history_en": "Discovery/development history in English (3-5 sentences, must include key figures and years)",
+    "mechanism": "상세 메커니즘 설명 (150~200자)",
+    "mechanism_en": "Detailed mechanism explanation in English (3-5 sentences)",
+    "formula": "핵심 수식이나 알고리즘 (LaTeX 형태, 없으면 빈 문자열)",
+    "formula_en": "Core formula or algorithm in English (LaTeX, or empty string if none)",
+    "modern": "현대적 의의 + 최신 연구 동향 (150~200자)",
+    "modern_en": "Modern significance and recent research trends in English (3-5 sentences)"
+  }},
+
+  "keywords": ["한국어 키워드 1", "한국어 키워드 2", "한국어 키워드 3"],
+  "keywords_en": ["keyword 1", "keyword 2", "keyword 3"],
+  "difficulty": "beginner 또는 intermediate 또는 advanced",
+  "connectionType": "direct_inspiration 또는 structural_analogy 또는 mathematical_foundation",
+  "readTime": "1분 또는 2분 (인사이트만 1분, 딥다이브 포함 2분)"
 }}
 
 ## 작성 지침
-- 한국어 필드는 한국어로 작성하되, 전문 용어는 영어 병기 가능
-- _en 접미사 필드는 자연스러운 영어로 작성 (번역투 금지)
-- 사실에 기반하여 작성 (확인 가능한 논문/인물/년도를 포함)
-- 연결의 강도를 정직하게 표현 (모든 연결이 직접적 영감은 아님을 인지)
-- 공학계열 대학생이 이해할 수 있는 수준으로 작성
-- 각 필드의 지시사항(문장 수 등)을 준수
+- 글자 수 제한을 반드시 준수 (headline 15~20자, body 80~120자, 한 줄 필드 30~50자, deepDive 각 150~200자)
+- 한국어 필드는 한국어, _en 필드는 자연스러운 영어 (번역투 금지)
+- 전문 용어는 영어 병기 가능 (예: "역전파(Backpropagation)")
 - JSON만 출력 (추가 설명 없이)
 
-## 흔한 오류 주의사항
-- 역전파(Backpropagation)는 생물학적으로 비합리적(biologically implausible)함을 해당 시 명시할 것
+## 흔한 오류 주의
+- 역전파는 생물학적으로 비합리적(biologically implausible)함을 해당 시 명시할 것
 - 인공 신경망은 실제 뇌의 동작 방식과 근본적으로 다름을 인지할 것
-- 날짜/인물 확신이 없으면 "약 ~년" 또는 "~으로 알려져 있다"로 표현할 것
-- 사후적 비유(structural analogy)를 직접적 영감(direct inspiration)으로 오해하지 말 것"""
+- 사후적 비유를 직접적 영감으로 오해하지 말 것"""
 
 
 @_safe_node("content_generator")
@@ -333,7 +316,7 @@ def content_generator(state: PrincipleGraphState) -> dict:
     if not seed:
         return {"errors": ["content_generator: seed가 비어있음"]}
 
-    llm = get_llm(temperature=0.7, max_tokens=12288, thinking=False, json_mode=True)
+    llm = get_llm(temperature=0.7, max_tokens=4096, thinking=False, json_mode=True)
 
     prompt = _CONTENT_PROMPT.format(
         discipline_name=seed["discipline_name"],
@@ -348,16 +331,17 @@ def content_generator(state: PrincipleGraphState) -> dict:
     content = _safe_json_parse(response.content)
 
     # 필수 키 검증 (top-level)
-    required_keys = {"title", "connectionType", "foundation", "application", "integration"}
+    required_keys = {"title", "connectionType", "foundation", "application", "integration", "deepDive"}
     missing = required_keys - set(content.keys())
     if missing:
         return {"errors": [f"content_generator: 필수 키 누락: {missing}"], "content": content}
 
     # 중첩 필드 검증
     _nested_required = {
-        "foundation": {"principle", "keyIdea", "everydayAnalogy"},
-        "application": {"applicationField", "description", "mechanism", "technicalTerms"},
-        "integration": {"problemSolved", "solution", "realWorldExamples", "whyItWorks"},
+        "foundation": {"headline", "body", "analogy"},
+        "application": {"headline", "body", "mechanism"},
+        "integration": {"headline", "body", "impact"},
+        "deepDive": {"history", "mechanism", "modern"},
     }
     for section, keys in _nested_required.items():
         section_data = content.get(section, {})
@@ -502,15 +486,15 @@ def assembler(state: PrincipleGraphState) -> dict:
             "title_en": content.get("title_en", ""),
             "connectionType": content.get("connectionType", "structural_analogy"),
             "difficulty": content.get("difficulty", "intermediate"),
-            "subtitle": content.get("subtitle", ""),
-            "subtitle_en": content.get("subtitle_en", ""),
             "keywords": content.get("keywords", []),
             "keywords_en": content.get("keywords_en", []),
+            "readTime": content.get("readTime", "1분"),
             "category": seed["discipline_name"],
             "superCategory": seed["super_category"],
             "foundation": content.get("foundation", {}),
             "application": content.get("application", {}),
             "integration": content.get("integration", {}),
+            "deepDive": content.get("deepDive", {}),
             "verification": verification or {},
         },
         "updated_at": fs.SERVER_TIMESTAMP,
