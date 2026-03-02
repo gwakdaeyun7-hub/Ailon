@@ -1764,7 +1764,7 @@ def assembler_node(state: NewsGraphState) -> dict:
     def _pub_key(a: dict):
         return _parse_published(a.get("published", "")) or _epoch
 
-    # 한국 소스: 중복 제거 없이 AI 필터 기사만 분리
+    # 한국 소스: AI 필터 분리 + 최근 5일 이내만 + 날짜순 Top 10
     ko_filtered_out: list[dict] = []
     for s in SOURCES:
         key = s["key"]
@@ -1773,7 +1773,11 @@ def assembler_node(state: NewsGraphState) -> dict:
             passed = [a for a in sources[key] if not a.get("_ai_filtered")]
             filtered = [a for a in sources[key] if a.get("_ai_filtered")]
             ko_filtered_out.extend(filtered)
-            sorted_articles = sorted(passed, key=_pub_key, reverse=True)
+            # 최근 5일 이내 기사만 (주간 인기 등 오래된 기사 제외)
+            recent = [a for a in passed if _is_recent(a, days=5)]
+            if len(recent) < len(passed):
+                print(f"    [{key}] 날짜 필터: {len(passed) - len(recent)}개 제외 (5일 초과)")
+            sorted_articles = sorted(recent, key=_pub_key, reverse=True)
             source_articles[key] = sorted_articles[:10]
 
     total = (
