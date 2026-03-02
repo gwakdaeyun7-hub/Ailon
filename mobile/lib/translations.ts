@@ -199,6 +199,12 @@ const translations: Record<string, Record<Language, string>> = {
   'feed.reason': { ko: '추천 이유', en: 'Why recommended' },
   'feed.interest_match': { ko: '관심사 일치', en: 'Matches your interests' },
   'feed.no_data': { ko: '맞춤 뉴스 준비 중', en: 'Personalizing...' },
+
+  // ─── AI 스토리 타임라인 ───
+  'story.title': { ko: 'AI 스토리', en: 'AI Stories' },
+  'story.count': { ko: '개 스토리', en: ' stories' },
+  'story.summary': { ko: '정리하면', en: 'In summary' },
+  'story.no_data': { ko: '오늘의 스토리를 준비하고 있어요', en: 'Preparing today\'s stories' },
 };
 
 export default translations;

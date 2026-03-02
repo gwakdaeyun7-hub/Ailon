@@ -48,6 +48,12 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Daily story timeline - 모두 읽기 가능
+    match /daily_story_timeline/{date} {
+      allow read: if true;
+      allow write: if false;
+    }
+
 
     // Principles collection (레거시) - 모두 읽기 가능
     match /principles/{principleId} {

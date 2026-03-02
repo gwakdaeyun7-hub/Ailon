@@ -224,3 +224,35 @@ export interface TimelineNode {
   date: string;
   source: string;
 }
+
+// ---------------------------------------------------------------------------
+// Story Timeline (AI 스토리 타임라인)
+// ---------------------------------------------------------------------------
+
+export interface StoryNode {
+  type: 'narration' | 'article';
+  text_ko?: string;
+  text_en?: string;
+  article_id?: string;
+  title_ko?: string;
+  title_en?: string;
+  source?: string;
+  link?: string;
+  image_url?: string;
+  date: string;
+}
+
+export interface StoryThread {
+  story_id: string;
+  title_ko: string;
+  title_en: string;
+  nodes: StoryNode[];
+  summary_ko: string;
+  summary_en: string;
+}
+
+export interface DailyStoryTimeline {
+  date: string;
+  stories: StoryThread[];
+  updated_at?: any;
+}

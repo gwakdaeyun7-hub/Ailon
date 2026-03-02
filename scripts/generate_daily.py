@@ -27,6 +27,7 @@ from generate_features import (
     save_articles_collection, find_related_articles,
     generate_daily_briefing,
     accumulate_glossary, build_timeline,
+    generate_story_timeline,
 )
 
 
@@ -197,6 +198,13 @@ def save_news_to_firestore(result: dict):
             for cat in all_cats
         }
 
+        # 하이라이트 기사를 카테고리에서 제거 (오전/오후 병합 시 중복 방지)
+        hl_links = {a.get("link", "") for a in highlights if a.get("link")}
+        categorized_articles = {
+            cat: [a for a in arts if a.get("link", "") not in hl_links]
+            for cat, arts in categorized_articles.items()
+        }
+
         # source_articles: 소스별 병합
         old_src = old.get("source_articles", {})
         all_srcs = set(list(old_src.keys()) + list(source_articles.keys()))
@@ -345,6 +353,10 @@ def run_news():
         build_timeline(news_result)
     except Exception as e:
         print(f"  [타임라인 실패] {e}")
+    try:
+        generate_story_timeline(news_result)
+    except Exception as e:
+        print(f"  [스토리 타임라인 실패] {e}")
     print("  [AI 기능] 완료")
 
     try:

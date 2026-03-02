@@ -42,6 +42,7 @@ import { FontFamily } from '@/lib/theme';
 import type { Language } from '@/lib/translations';
 import type { BatchStats } from '@/hooks/useBatchStats';
 import { DailyBriefingCard } from '@/components/briefing/DailyBriefingCard';
+import { StoryTimeline } from '@/components/shared/StoryTimeline';
 
 import { TimelineSection } from '@/components/shared/TimelineSection';
 import { RelatedArticlesSection } from '@/components/shared/RelatedArticlesSection';
@@ -1419,13 +1420,15 @@ export default function NewsScreen() {
   const rawHighlights = newsData?.highlights ?? EMPTY_ARTICLES;
   const highlights = React.useMemo(() => sortByDateThenScore(rawHighlights), [rawHighlights]);
   const rawCategorized = newsData?.categorized_articles ?? EMPTY_RECORD;
+  // 하이라이트에 있는 기사를 카테고리에서 제외 (중복 표시 방지)
+  const highlightLinks = React.useMemo(() => new Set(rawHighlights.map(a => a.link)), [rawHighlights]);
   const categorizedArticles = React.useMemo(() => {
     const sorted: Record<string, Article[]> = {};
     for (const [cat, articles] of Object.entries(rawCategorized)) {
-      sorted[cat] = sortByDateThenScore(articles);
+      sorted[cat] = sortByDateThenScore(articles.filter(a => !highlightLinks.has(a.link)));
     }
     return sorted;
-  }, [rawCategorized]);
+  }, [rawCategorized, highlightLinks]);
   const categoryOrder = newsData?.category_order ?? DEFAULT_CATEGORY_ORDER;
   const sourceArticles = newsData?.source_articles ?? EMPTY_RECORD;
   const sourceOrder = newsData?.source_order ?? DEFAULT_SOURCE_ORDER;
@@ -1555,6 +1558,9 @@ export default function NewsScreen() {
           <>
             {/* Daily Briefing */}
             <DailyBriefingCard />
+
+            {/* Story Timeline (above highlights) */}
+            <StoryTimeline date={newsData?.date ?? ''} />
 
             {/* Section 1: 하이라이트 */}
             <HighlightSection highlights={highlights} onArticlePress={handleArticlePress} allStats={allStats} />
