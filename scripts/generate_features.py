@@ -13,9 +13,12 @@ generate_daily.py에서 호출됩니다.
 
 import hashlib
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from firebase_admin import firestore
+from langchain_core.messages import HumanMessage
 from agents.config import get_firestore_client
+
+_KST = timezone(timedelta(hours=9))
 
 
 def _article_id(url: str) -> str:
@@ -45,7 +48,7 @@ def save_articles_collection(result: dict):
     """기사를 articles/{article_id} 컬렉션에 개별 저장 (듀얼 라이트)."""
     try:
         db = get_firestore_client()
-        today = datetime.now().strftime("%Y-%m-%d")
+        today = datetime.now(_KST).strftime("%Y-%m-%d")
         unique = _collect_unique_articles(result)
         if not unique:
             return
@@ -100,8 +103,8 @@ def save_articles_collection(result: dict):
         # daily_news에 article_ids 참조 추가
         try:
             db.collection("daily_news").document(today).update({"article_ids": article_ids})
-        except Exception:
-            pass  # daily_news 문서가 아직 없을 수 있음
+        except Exception as e:
+            print(f"  [WARN] article_ids 업데이트 실패: {e}")
 
         print(f"  articles 컬렉션: {len(unique)}개 기사 저장")
     except Exception as e:
@@ -181,7 +184,7 @@ Articles:
 {articles_text}"""
 
         llm = get_llm(temperature=0.3, max_tokens=4096, thinking=False, json_mode=True)
-        resp = llm.invoke(prompt)
+        resp = llm.invoke([HumanMessage(content=prompt)])
         data = _parse_llm_json(resp.content if hasattr(resp, "content") else str(resp))
         if not isinstance(data, dict) or "briefing_ko" not in data:
             print("  [브리핑 실패] 잘못된 응답 형식")
@@ -198,7 +201,7 @@ Articles:
                 article_ids.append(_article_id(all_articles[idx].get("link", "")))
 
         db = get_firestore_client()
-        today = datetime.now().strftime("%Y-%m-%d")
+        today = datetime.now(_KST).strftime("%Y-%m-%d")
         db.collection("daily_briefings").document(today).set({
             "date": today,
             "briefing_ko": data.get("briefing_ko", ""),
@@ -227,6 +230,8 @@ def accumulate_glossary(result: dict):
         aid = _article_id(a.get("link", ""))
         g_ko = a.get("glossary", [])
         g_en = a.get("glossary_en", [])
+        # EN glossary를 term 기준 dict로 변환 (인덱스 대신 term 매칭)
+        en_by_term = {g.get("term", "").strip().lower(): g for g in g_en if isinstance(g, dict)} if g_en else {}
         for i, item in enumerate(g_ko):
             if not isinstance(item, dict):
                 continue
@@ -234,9 +239,11 @@ def accumulate_glossary(result: dict):
             desc_ko = item.get("desc", "").strip()
             term_en = ""
             desc_en = ""
-            if i < len(g_en) and isinstance(g_en[i], dict):
-                term_en = g_en[i].get("term", "").strip()
-                desc_en = g_en[i].get("desc", "").strip()
+            # term 기반 매칭: KO 용어의 term을 키로 EN dict에서 lookup
+            en_match = en_by_term.get(term_ko.lower())
+            if en_match:
+                term_en = en_match.get("term", "").strip()
+                desc_en = en_match.get("desc", "").strip()
             if not term_ko and not term_en:
                 continue
             normalized = (term_en or term_ko).lower().replace(" ", "_").replace("/", "_")[:64]
@@ -286,6 +293,9 @@ def accumulate_glossary(result: dict):
 _TIMELINE_STOP_TERMS = {
     "ai", "artificialintelligence", "machinelearning",
     "ml", "technology", "tech", "deeplearning",
+    "openai", "google", "meta", "microsoft", "anthropic",
+    "llm", "model", "chatgpt", "api", "nvidia", "apple", "amazon",
+    "data", "cloud", "software", "hardware", "robot", "robotics",
 }
 
 
@@ -299,8 +309,8 @@ def build_timeline(result: dict):
     """오늘 기사의 entity/tags로 최근 90일(3개월) 과거 기사와 연결."""
     try:
         db = get_firestore_client()
-        today = datetime.now().strftime("%Y-%m-%d")
-        cutoff = (datetime.now() - timedelta(days=90)).strftime("%Y-%m-%d")
+        today = datetime.now(_KST).strftime("%Y-%m-%d")
+        cutoff = (datetime.now(_KST) - timedelta(days=90)).strftime("%Y-%m-%d")
 
         unique_today = _collect_unique_articles(result)
         if not unique_today:
@@ -370,8 +380,8 @@ def generate_story_timeline(result: dict):
         from agents.news_team import _parse_llm_json
 
         db = get_firestore_client()
-        today = datetime.now().strftime("%Y-%m-%d")
-        cutoff = (datetime.now() - timedelta(days=90)).strftime("%Y-%m-%d")
+        today = datetime.now(_KST).strftime("%Y-%m-%d")
+        cutoff = (datetime.now(_KST) - timedelta(days=90)).strftime("%Y-%m-%d")
 
         # ── 1. Collect today's articles ──
         unique_today = _collect_unique_articles(result)
@@ -528,7 +538,7 @@ Article clusters:
 {clusters_text}"""
 
         llm = get_llm(temperature=0.3, max_tokens=4096, thinking=False, json_mode=True)
-        resp = llm.invoke(prompt)
+        resp = llm.invoke([HumanMessage(content=prompt)])
         data = _parse_llm_json(resp.content if hasattr(resp, "content") else str(resp))
         if not isinstance(data, dict) or "stories" not in data:
             print("  [스토리 타임라인 실패] 잘못된 응답 형식")
@@ -546,9 +556,9 @@ Article clusters:
             flat_articles.extend(ca)
 
         stories = []
-        for story in stories_raw:
+        for si, story in enumerate(stories_raw):
             title_ko = story.get("title_ko", "")
-            story_id = hashlib.md5(title_ko.encode()).hexdigest()[:8]
+            story_id = f"{today}_{si}_{hashlib.md5(title_ko.encode()).hexdigest()[:6]}"
             nodes = []
             for node in story.get("nodes", []):
                 if node.get("type") == "narration":

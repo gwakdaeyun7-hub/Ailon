@@ -271,7 +271,7 @@ def _summarize_batch(batch: list[dict], batch_idx: int, translate: bool = True) 
     batch_text = ""
     for i, a in enumerate(batch):
         body = a.get("body", "")
-        max_body = 1200 if not translate else 2500
+        max_body = 2000 if not translate else 2500
         content = body[:max_body] if body else a.get("description", "")[:500]
         batch_text += f"\n[{i+1}] 제목: {a['title']}\n    본문: {content}\n"
 
@@ -410,7 +410,10 @@ def _apply_batch_results(batch: list[dict], results: list[dict]) -> int:
             why_important = r.get("why_important", "")
             if one_line or key_points:
                 batch[ridx]["one_line"] = one_line
-                batch[ridx]["key_points"] = (key_points if isinstance(key_points, list) else [])[:3]
+                kp = (key_points if isinstance(key_points, list) else [])[:3]
+                if len(kp) < 3:
+                    print(f"    [WARN] key_points only {len(kp)} for: {batch[ridx].get('title', '')[:50]}")
+                batch[ridx]["key_points"] = kp
                 batch[ridx]["why_important"] = why_important
                 # summary 폴백 (레거시 호환)
                 parts = [one_line]
@@ -718,18 +721,33 @@ def en_process_node(state: NewsGraphState) -> dict:
     ko_process 와 병렬 실행해도 안전하다.
     """
     en_articles: list[dict] = []
+    ko_fallback_count = 0
     en_source_keys: set[str] = set()
     for key in CATEGORY_SOURCES:
         for a in state["sources"].get(key, []):
             if a.get("lang") != "ko":
                 en_articles.append(a)
                 en_source_keys.add(key)
+            else:
+                # 한국어 기사가 CATEGORY_SOURCES에 포함된 경우 폴백 처리
+                en_source_keys.add(key)
+                if not a.get("display_title"):
+                    a["display_title"] = a.get("title", "")
+                if not a.get("summary"):
+                    body = a.get("body", "")
+                    desc = a.get("description", "")
+                    a["summary"] = (body[:200] if body else desc[:200]) if (body or desc) else ""
+                if not a.get("one_line"):
+                    a["one_line"] = a.get("title", "")
+                ko_fallback_count += 1
 
     if en_articles:
         print(f"\n  --- EN 브랜치: {len(en_articles)}개 번역+요약 ---")
         _process_articles(en_articles, translate=True, batch_size=5)
     else:
         print("  [EN] 영어 기사 없음")
+    if ko_fallback_count:
+        print(f"  [EN] 한국어 기사 {ko_fallback_count}개 폴백 처리")
 
     # 처리한 소스 키만 반환 -- 리듀서가 기존 state 에 머지
     partial_sources = {key: state["sources"][key] for key in en_source_keys if key in state["sources"]}
@@ -1079,10 +1097,10 @@ Output exactly {count} indices (0 to {count_minus_1}):"""
 
 
 def _rank_to_score(rank: int, total: int) -> int:
-    """순위(0-based)에서 점수를 선형 보간. 1위=100, 꼴등=0."""
+    """순위(0-based)에서 점수를 선형 보간. 1위=100, 꼴등=30."""
     if total <= 1:
         return 100
-    return round(100 - 100 * rank / (total - 1))
+    return round(30 + 70 * (total - 1 - rank) / max(total - 1, 1))
 
 
 def _rank_category(articles: list[dict], category: str) -> list[tuple[int, int, int]]:
@@ -1175,7 +1193,7 @@ def _rank_category(articles: list[dict], category: str) -> list[tuple[int, int, 
         return results
 
 
-CLASSIFY_BATCH_SIZE = 1
+CLASSIFY_BATCH_SIZE = 10
 
 
 def _classify_batch(batch: list[dict], offset: int) -> list[dict]:
@@ -1400,7 +1418,7 @@ def ranker_node(state: NewsGraphState) -> dict:
     # 미랭킹 기사 폴백
     for a in candidates:
         if "_total_score" not in a:
-            a["_total_score"] = 25
+            a["_total_score"] = 20
             a["_rank"] = 9999
 
     return {"scored_candidates": candidates}
@@ -1593,7 +1611,10 @@ def _select_category_top_n(articles: list[dict], n: int = CATEGORY_TOP_N, today_
             selected.append(a)
             used.add(id(a))
 
-    # 3) 날짜(일) 최신순 → 같은 날짜+점수 같으면 시간 최신순
+    # 3) N개 제한 적용
+    selected = selected[:n]
+
+    # 4) 날짜(일) 최신순 → 같은 날짜+점수 같으면 시간 최신순
     selected.sort(key=lambda a: (_day_key(a), a.get("_total_score", 0), _time_key(a)), reverse=True)
     return selected
 
@@ -1632,6 +1653,7 @@ def selector_node(state: NewsGraphState) -> dict:
     highlights: list[dict] = []
     for cat in HIGHLIGHT_CATEGORIES:
         # 당일(_is_today) + 해당 카테고리 + AI 필터 통과
+        # research 카테고리는 AI 필터와 무관하게 항상 포함 (논문/연구는 AI 관련성 판별이 불필요)
         pool = [
             c for c in candidates
             if c.get("_llm_category") == cat
@@ -1665,6 +1687,7 @@ def selector_node(state: NewsGraphState) -> dict:
     remaining = [c for c in candidates if id(c) not in highlight_ids]
 
     # 중복 기사 / AI 필터 제외 / 통과 기사 분리
+    # research 카테고리는 AI 필터와 무관하게 항상 포함 (논문/연구는 AI 관련성 판별이 불필요)
     deduped_out = [a for a in remaining if a.get("_deduped")]
     non_deduped = [a for a in remaining if not a.get("_deduped")]
     passed = [a for a in non_deduped if not a.get("_ai_filtered") or a.get("_llm_category") == "research"]
@@ -1716,6 +1739,7 @@ def selector_node(state: NewsGraphState) -> dict:
     for cat in category_order:
         if len(categorized[cat]) < CATEGORY_MIN and deduped_by_cat.get(cat):
             used_ids = set(id(a) for a in categorized[cat])
+            # research 카테고리는 AI 필터와 무관하게 항상 포함 (논문/연구는 AI 관련성 판별이 불필요)
             supplements = sorted(
                 [d for d in deduped_by_cat[cat] if id(d) not in used_ids and (not d.get("_ai_filtered") or cat == "research")],
                 key=lambda a: a.get("_total_score", 0), reverse=True,

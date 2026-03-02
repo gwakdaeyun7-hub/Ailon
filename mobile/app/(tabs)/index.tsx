@@ -448,12 +448,12 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
           </View>
 
           {/* X 닫기 버튼 */}
-          <View style={{ flexDirection: 'row', justifyContent: 'flex-end', paddingTop: 8, paddingBottom: 12, paddingHorizontal: 20 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'flex-end', paddingTop: 8, paddingBottom: 12, paddingHorizontal: 28 }}>
             <Pressable
               onPress={onClose}
               accessibilityLabel={t('modal.close')}
               accessibilityRole="button"
-              style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' }}
+              style={{ width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' }}
             >
               <X size={16} color={colors.textSecondary} />
             </Pressable>
@@ -466,7 +466,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
           >
             {/* 썸네일 */}
             {article.image_url ? (
-              <View style={{ width: '100%', height: 200, backgroundColor: colors.border }}>
+              <View style={{ marginHorizontal: 28, borderRadius: 12, overflow: 'hidden', height: 200, backgroundColor: colors.border }}>
                 <Image
                   source={article.image_url}
                   style={{ width: '100%', height: 200 }}
@@ -478,16 +478,16 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
             ) : null}
 
             {/* M1: 소스 뱃지 + 날짜 + 조회수 + 읽기 시간 + 북마크 (metadata row) */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, marginTop: article.image_url ? 16 : 20 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 28, marginTop: article.image_url ? 16 : 20 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
                 {/* M11: Hide source badge if sourceName is empty */}
                 {sourceName ? (
                   <View style={{
-                    backgroundColor: sourceColor + '18',
-                    paddingHorizontal: 8, paddingVertical: 3,
+                    backgroundColor: sourceColor + '10',
+                    paddingHorizontal: 7, paddingVertical: 2,
                     borderRadius: 4,
                   }}>
-                    <Text style={{ fontSize: 11, fontWeight: '700', color: sourceColor }}>{sourceName}</Text>
+                    <Text style={{ fontSize: 10, fontWeight: '600', color: sourceColor }}>{sourceName}</Text>
                   </View>
                 ) : null}
                 <Text style={{ fontSize: 12, color: colors.textSecondary }}>{formatDate(article.published, lang)}</Text>
@@ -529,94 +529,95 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
             <Text
               accessibilityRole="header"
               style={{
-                fontSize: 18, fontWeight: '700', color: colors.textPrimary, lineHeight: 28,
-                marginTop: 14, marginBottom: 14,
-                paddingHorizontal: 20, fontFamily: FontFamily.serif,
+                fontSize: 24, fontWeight: '700', color: colors.textPrimary, lineHeight: 34,
+                letterSpacing: -0.5,
+                marginTop: 18, marginBottom: 20,
+                paddingHorizontal: 28, fontFamily: FontFamily.serif,
               }}
             >
               {articleTitle}
             </Text>
 
             {/* 구분선 */}
-            <View style={{ height: 1, backgroundColor: colors.border, marginBottom: 16, marginHorizontal: 20 }} />
+            <View style={{ height: 0.5, backgroundColor: colors.border, marginBottom: 24, marginHorizontal: 28, opacity: 0.7 }} />
 
             {/* Option C reorder: 핵심한줄 → 배경 → 주요포인트 → 왜중요해요 */}
             {oneLine ? (
-              <View style={{ paddingHorizontal: 20, marginBottom: 16 }}>
+              <View style={{ paddingHorizontal: 28, marginBottom: 16 }}>
                 {/* 1. One Line (Hook) */}
-                <View style={{ backgroundColor: colors.highlightBg, borderRadius: 10, padding: 14, marginBottom: 16, flexDirection: 'row' }}>
-                  <View style={{ width: 3, backgroundColor: colors.summaryIndigo, borderRadius: 2, marginRight: 12 }} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 13, fontWeight: '600', color: colors.summaryIndigo, marginBottom: 6 }}>{t('modal.one_line')}</Text>
-                    <Text style={{ fontSize: 16, color: colors.textPrimary, lineHeight: 24, fontWeight: '700' }}>
-                      {oneLine}
-                    </Text>
-                  </View>
+                <View style={{ marginBottom: 24 }}>
+                  <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 1.5, color: colors.summaryIndigo, marginBottom: 8 }}>{t('modal.one_line').toUpperCase()}</Text>
+                  <Text style={{ fontSize: 17, color: colors.textPrimary, lineHeight: 26, fontWeight: '600' }}>
+                    {oneLine}
+                  </Text>
                 </View>
+                <View style={{ height: 0.5, backgroundColor: colors.border, opacity: 0.7, marginBottom: 24 }} />
 
                 {/* 2. Background (Bridge — context before details) */}
                 {background ? (
-                  <View style={{ flexDirection: 'row', marginBottom: 16 }}>
-                    <View style={{ width: 3, backgroundColor: colors.textLight, borderRadius: 2, marginRight: 12 }} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 12, fontWeight: '700', color: colors.textSecondary, marginBottom: 6 }}>
-                        {t('modal.background')}
-                      </Text>
-                      <Text style={{ fontSize: 14, color: colors.summaryBody, lineHeight: 22 }}>
-                        {background}
-                      </Text>
-                    </View>
+                  <View style={{ marginBottom: 24 }}>
+                    <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 1.5, color: colors.textSecondary, marginBottom: 8 }}>
+                      {t('modal.background').toUpperCase()}
+                    </Text>
+                    <Text style={{ fontSize: 15, color: colors.summaryBody, lineHeight: 24 }}>
+                      {background}
+                    </Text>
+                    <View style={{ height: 0.5, backgroundColor: colors.border, opacity: 0.7, marginTop: 24 }} />
                   </View>
                 ) : null}
 
                 {/* 3. Key Points (Detail — now with context) */}
                 {keyPoints.length > 0 && (
-                  <View style={{ marginBottom: 16 }}>
-                    <Text style={{ fontSize: 13, fontWeight: '700', color: colors.summaryTeal, marginBottom: 8 }}>{t('modal.key_points')}</Text>
+                  <View style={{ marginBottom: 24 }}>
+                    <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 1.5, color: colors.summaryTeal, marginBottom: 12 }}>{t('modal.key_points').toUpperCase()}</Text>
                     {keyPoints.map((point, idx) => (
                       <View key={idx} style={{ flexDirection: 'row', marginBottom: 16, paddingRight: 4, alignItems: 'flex-start' }}>
                         <View style={{
                           width: 22, height: 22, borderRadius: 11,
-                          backgroundColor: colors.summaryTeal,
+                          backgroundColor: 'transparent',
+                          borderWidth: 1.5,
+                          borderColor: colors.summaryTeal,
                           alignItems: 'center', justifyContent: 'center',
                           marginRight: 10, marginTop: 1,
                         }}>
-                          <Text style={{ fontSize: 12, color: '#FFFFFF', fontWeight: '700' }}>{idx + 1}</Text>
+                          <Text style={{ fontSize: 12, color: colors.summaryTeal, fontWeight: '700' }}>{idx + 1}</Text>
                         </View>
                         <HighlightedText
                           text={point}
                           glossaryTerms={glossaryDBTerms}
-                          style={{ fontSize: 14, color: colors.summaryBody, lineHeight: 22, flex: 1 }}
+                          style={{ fontSize: 15, color: colors.summaryBody, lineHeight: 24, flex: 1 }}
                         />
                       </View>
                     ))}
+                    <View style={{ height: 0.5, backgroundColor: colors.border, opacity: 0.7, marginTop: 8 }} />
                   </View>
                 )}
 
                 {/* 4. Why Important (So What — natural conclusion) */}
                 {whyImportant ? (
-                  <View style={{ backgroundColor: colors.summaryWarnBg, borderRadius: 10, padding: 14, marginBottom: 16 }}>
-                    <Text style={{ fontSize: 13, fontWeight: '700', color: colors.summaryWarnText, marginBottom: 4 }}>{t('modal.why_important')}</Text>
+                  <View style={{ marginBottom: 24 }}>
+                    <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 1.5, color: colors.summaryWarnText, marginBottom: 8 }}>{t('modal.why_important').toUpperCase()}</Text>
                     <HighlightedText
                       text={whyImportant}
                       glossaryTerms={glossaryDBTerms}
-                      style={{ fontSize: 14, color: colors.summaryBody, lineHeight: 24 }}
+                      style={{ fontSize: 15, color: colors.summaryBody, lineHeight: 24 }}
                     />
+                    <View style={{ height: 0.5, backgroundColor: colors.border, opacity: 0.7, marginTop: 24 }} />
                   </View>
                 ) : null}
 
                 {/* M13: Tags section heading + 키워드 태그 (M3: t() key) */}
                 {tags && tags.length > 0 ? (
-                  <View style={{ marginBottom: glossary.length > 0 ? 16 : 0 }}>
-                    <Text style={{ fontSize: 13, fontWeight: '700', color: colors.textSecondary, marginBottom: 8 }}>
-                      {t('modal.tags')}
+                  <View style={{ marginBottom: glossary.length > 0 ? 24 : 0 }}>
+                    <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 1.5, color: colors.textSecondary, marginBottom: 10 }}>
+                      {t('modal.tags').toUpperCase()}
                     </Text>
                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                       {tags.map((tag, idx) => (
                         <View key={idx} style={{
                           backgroundColor: colors.surface,
                           paddingHorizontal: 10, paddingVertical: 5,
-                          borderRadius: 12,
+                          borderRadius: 6,
                         }}>
                           <Text style={{ fontSize: 12, color: colors.textSecondary, fontWeight: '500' }}>{tag}</Text>
                         </View>
@@ -627,7 +628,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
 
                 {/* M6: Glossary toggle accessibility + M3: t() key */}
                 {glossary.length > 0 ? (
-                  <View style={{ borderRadius: 10, borderWidth: 1, borderColor: colors.border, overflow: 'hidden', marginBottom: 16 }}>
+                  <View style={{ borderRadius: 8, borderWidth: 0.5, borderColor: colors.border, overflow: 'hidden', marginBottom: 24 }}>
                     <Pressable
                       onPress={() => setGlossaryOpen(!glossaryOpen)}
                       accessibilityRole="button"
@@ -670,7 +671,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
                   onPress={handleOpenOriginal}
                   accessibilityLabel={t('modal.view_original')}
                   accessibilityRole="link"
-                  style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12 }}
+                  style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 14, borderWidth: 1, borderColor: colors.border, borderRadius: 8 }}
                 >
                   <ExternalLink size={14} color={colors.textSecondary} />
                   <Text style={{ fontSize: 13, fontWeight: '600', color: colors.textSecondary }}>
@@ -681,12 +682,12 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
             ) : article.summary ? (
               <Text style={{
                 fontSize: 15, color: colors.summaryBody, lineHeight: 24, letterSpacing: 0.2, marginBottom: 16,
-                paddingHorizontal: 20,
+                paddingHorizontal: 28,
               }}>
                 {article.summary}
               </Text>
             ) : (
-              <View style={{ alignItems: 'center', paddingVertical: 24, paddingHorizontal: 20 }}>
+              <View style={{ alignItems: 'center', paddingVertical: 24, paddingHorizontal: 28 }}>
                 <Text style={{ fontSize: 14, fontWeight: '600', color: colors.textSecondary, marginBottom: 4 }}>
                   {t('modal.no_summary')}
                 </Text>
@@ -707,7 +708,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
           {/* 고정 하단 액션 바 — 탭 바와 동일한 균등 배치 */}
           <View style={{
             flexDirection: 'row',
-            borderTopWidth: 1,
+            borderTopWidth: 0.5,
             borderTopColor: colors.border,
             backgroundColor: colors.card,
             paddingBottom: Math.max(insets.bottom, 10),
@@ -716,7 +717,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
               onPress={handleLike}
               accessibilityLabel={liked ? t('modal.unlike') : t('modal.like')}
               accessibilityRole="button"
-              style={{ flex: 1, alignItems: 'center', paddingVertical: 12 }}
+              style={{ flex: 1, alignItems: 'center', paddingVertical: 14 }}
             >
               <ThumbsUp size={22} color={liked ? colors.likeActiveColor : colors.textDim} />
             </Pressable>
@@ -724,7 +725,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
               onPress={onOpenComments}
               accessibilityLabel={t('modal.comment')}
               accessibilityRole="button"
-              style={{ flex: 1, alignItems: 'center', paddingVertical: 12 }}
+              style={{ flex: 1, alignItems: 'center', paddingVertical: 14 }}
             >
               <MessageCircle size={22} color={colors.textDim} />
             </Pressable>
@@ -732,7 +733,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
               onPress={handleShare}
               accessibilityLabel={t('modal.share')}
               accessibilityRole="button"
-              style={{ flex: 1, alignItems: 'center', paddingVertical: 12 }}
+              style={{ flex: 1, alignItems: 'center', paddingVertical: 14 }}
             >
               <Share2 size={22} color={colors.textDim} />
             </Pressable>

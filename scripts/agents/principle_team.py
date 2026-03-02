@@ -370,6 +370,7 @@ def content_generator(state: PrincipleGraphState) -> dict:
 
 # ─── Node 3: verifier ───
 _VERIFY_PROMPT = """당신은 학제간 과학/공학 사실 검증 전문가입니다.
+Think step-by-step before making your judgment.
 아래 콘텐츠가 사실적으로 정확한지 엄격하게 검증하세요.
 
 ## 시드 데이터 (참고용)

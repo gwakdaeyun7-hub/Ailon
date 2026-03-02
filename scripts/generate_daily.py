@@ -12,7 +12,7 @@ import argparse
 import sys
 import os
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from firebase_admin import firestore
 
 # scripts 디렉토리를 path에 추가
@@ -29,6 +29,8 @@ from generate_features import (
     accumulate_glossary, build_timeline,
     generate_story_timeline,
 )
+
+_KST = timezone(timedelta(hours=9))
 
 
 def _validate_output(result: dict) -> list[str]:
@@ -60,23 +62,28 @@ def _validate_output(result: dict) -> list[str]:
 
 
 def _merge_articles(existing: list[dict], new: list[dict]) -> list[dict]:
-    """link 기준 병합. 중복 시 신규(최신 수집) 우선."""
+    """link 기준 병합. 중복 시 신규(최신 수집) 우선. link 없으면 title 폴백."""
     seen = {}
     for a in new:
         link = a.get("link", "")
-        if link:
-            seen[link] = a
+        key = link if link else a.get("title", "")
+        if not key:
+            continue
+        seen[key] = a
     for a in existing:
         link = a.get("link", "")
-        if link and link not in seen:
-            seen[link] = a
+        key = link if link else a.get("title", "")
+        if not key:
+            continue
+        if key not in seen:
+            seen[key] = a
     return list(seen.values())
 
 
 def save_news_to_firestore(result: dict):
     """뉴스 결과를 Firestore에 저장 (3-Section 구조: highlights + categorized + source_articles)"""
     db = get_firestore_client()
-    today = datetime.now().strftime("%Y-%m-%d")
+    today = datetime.now(_KST).strftime("%Y-%m-%d")
 
     def _flatten_list(articles: list[dict]) -> list[dict]:
         return [
@@ -289,7 +296,7 @@ def save_news_to_firestore(result: dict):
 def cleanup_old_data(keep_days: int = 30):
     """30일보다 오래된 데이터를 Firestore에서 삭제"""
     db = get_firestore_client()
-    cutoff_date = (datetime.now() - timedelta(days=keep_days)).strftime("%Y-%m-%d")
+    cutoff_date = (datetime.now(_KST) - timedelta(days=keep_days)).strftime("%Y-%m-%d")
 
     collections = ["daily_news", "daily_principles"]
     total_deleted = 0
@@ -374,7 +381,7 @@ def run_principle(force: bool = False):
     print("학제간 원리 파이프라인")
     print("-" * 40)
 
-    today = datetime.now().strftime("%Y-%m-%d")
+    today = datetime.now(_KST).strftime("%Y-%m-%d")
     if not force:
         try:
             db = get_firestore_client()
@@ -418,7 +425,7 @@ def main():
 
     print("=" * 60)
     print(f"Ailon Daily Pipeline — target: {args.target}")
-    print(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"{datetime.now(_KST).strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 60)
 
     initialize_firebase()
