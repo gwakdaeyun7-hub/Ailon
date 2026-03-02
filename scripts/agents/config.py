@@ -69,7 +69,7 @@ def get_llm(temperature: float = 0.7, max_tokens: int = 2048, thinking: bool = T
 
 
 def get_embeddings() -> GoogleGenerativeAIEmbeddings:
-    """Google text-embedding-004 임베딩 모델 (싱글톤)"""
+    """Google gemini-embedding-001 임베딩 모델 (싱글톤)"""
     global _embeddings_instance
     with _embeddings_lock:
         if _embeddings_instance is not None:
@@ -80,7 +80,7 @@ def get_embeddings() -> GoogleGenerativeAIEmbeddings:
         raise ValueError("GOOGLE_API_KEY not found.")
 
     instance = GoogleGenerativeAIEmbeddings(
-        model="models/text-embedding-004",
+        model="models/gemini-embedding-001",
         google_api_key=api_key,
     )
     with _embeddings_lock:
