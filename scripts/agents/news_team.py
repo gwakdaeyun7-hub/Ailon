@@ -351,6 +351,12 @@ For each article, produce:
 - glossary: 기사에 등장하는 전문 용어 2~3개를 {{"term": "용어", "desc": "한줄설명"}} 형태의 배열
   - 예: [{{"term": "MoE", "desc": "여러 전문가 모델을 조합해 효율적으로 추론하는 아키텍처"}}]
   - desc는 ~이에요/~해요 체
+  - glossary에 포함하지 말아야 할 용어 (너무 일반적):
+    AI, 인공지능, 머신러닝, 딥러닝, 자동화, 데이터, 모델, 알고리즘, API, GPU, CPU,
+    클라우드, 소프트웨어, 하드웨어, 오픈소스, 검열, 기술, AI 모델, AI 기반, AI 에이전트
+  - glossary는 AI를 잘 모르는 일반 독자가 이해하기 어려운 전문 용어만 포함
+    좋은 예: MoE, RAG, RLHF, LoRA, 양자화(Quantization), 파인튜닝, 할루시네이션, 어텐션
+    나쁜 예: AI, 모델, 데이터, 자동화, 검열, 알고리즘
 - glossary_en: English version of glossary (same structure: {{"term": "...", "desc": "..."}})
 
 문체 규칙 (한국어 필드만 해당):
