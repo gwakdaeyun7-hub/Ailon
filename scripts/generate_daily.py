@@ -103,6 +103,7 @@ def save_news_to_firestore(result: dict):
                 "background": a.get("background", ""),
                 "background_en": a.get("background_en", ""),
                 "tags": a.get("tags", []),
+                "tags_en": a.get("tags_en", []),
                 "glossary": a.get("glossary", []),
                 "glossary_en": a.get("glossary_en", []),
                 "ai_filtered": bool(a.get("_ai_filtered", False)),

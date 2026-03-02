@@ -409,7 +409,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
     const kp = getLocalizedKeyPoints(article, lang);
     const wi = getLocalizedWhyImportant(article, lang);
     const bg = getLocalizedBackground(article, lang);
-    const tg = article.tags;
+    const tg = (lang === 'en' && article.tags_en && article.tags_en.length > 0) ? article.tags_en : article.tags;
     const gl = getLocalizedGlossary(article, lang);
     const summaryText = [ol, ...kp, wi].join('');
     const rm = Math.max(1, Math.round(summaryText.length / 500));

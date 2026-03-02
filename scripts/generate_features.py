@@ -78,6 +78,7 @@ def save_articles_collection(result: dict):
                 "background": a.get("background", ""),
                 "background_en": a.get("background_en", ""),
                 "tags": a.get("tags", []),
+                "tags_en": a.get("tags_en", []),
                 "glossary": a.get("glossary", []),
                 "glossary_en": a.get("glossary_en", []),
                 "entities": a.get("entities", []),

@@ -31,6 +31,7 @@ export interface Article {
   background?: string;
   background_en?: string;
   tags?: string[];
+  tags_en?: string[];
   glossary?: { term: string; desc: string }[];
   glossary_en?: { term: string; desc: string }[];
   ai_filtered?: boolean;

@@ -344,8 +344,10 @@ For each article, produce:
   - 기사 본문 외 일반 상식·배경 지식 사용 허용
   - 예: "OpenAI는 지난해 GPT-4o를 출시하며 멀티모달 AI 경쟁을 이끌어왔어요"
 - background_en: English version of background (1-2 sentences)
-- tags: 이 기사의 핵심 키워드 2~4개 배열
+- tags: 이 기사의 핵심 키워드 2~4개 배열 (한국어)
   - 예: ["OpenAI", "GPT-5", "멀티모달"]
+- tags_en: English version of tags (2-4 keywords)
+  - 예: ["OpenAI", "GPT-5", "Multimodal"]
 - glossary: 기사에 등장하는 전문 용어 2~3개를 {{"term": "용어", "desc": "한줄설명"}} 형태의 배열
   - 예: [{{"term": "MoE", "desc": "여러 전문가 모델을 조합해 효율적으로 추론하는 아키텍처"}}]
   - desc는 ~이에요/~해요 체
@@ -364,7 +366,7 @@ AI 용어 번역 규칙:
 - 확실하지 않으면 영어 원문을 그대로 유지할 것
 
 Return exactly {len(batch)} items:
-[{{"index":1,"display_title":"...","one_line":"...","key_points":["..."],"why_important":"...","display_title_en":"...","one_line_en":"...","key_points_en":["..."],"why_important_en":"...","background":"...","background_en":"...","tags":["..."],"glossary":[{{"term":"...","desc":"..."}}],"glossary_en":[{{"term":"...","desc":"..."}}]}}]
+[{{"index":1,"display_title":"...","one_line":"...","key_points":["..."],"why_important":"...","display_title_en":"...","one_line_en":"...","key_points_en":["..."],"why_important_en":"...","background":"...","background_en":"...","tags":["..."],"tags_en":["..."],"glossary":[{{"term":"...","desc":"..."}}],"glossary_en":[{{"term":"...","desc":"..."}}]}}]
 
 Articles:
 {batch_text}"""
@@ -437,6 +439,9 @@ def _apply_batch_results(batch: list[dict], results: list[dict]) -> int:
             tags = r.get("tags", [])
             if tags:
                 batch[ridx]["tags"] = tags if isinstance(tags, list) else []
+            tags_en = r.get("tags_en", [])
+            if tags_en:
+                batch[ridx]["tags_en"] = tags_en if isinstance(tags_en, list) else []
             glossary = r.get("glossary", [])
             if glossary:
                 batch[ridx]["glossary"] = glossary if isinstance(glossary, list) else []
