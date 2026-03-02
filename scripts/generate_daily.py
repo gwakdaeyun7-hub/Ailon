@@ -27,6 +27,7 @@ from generate_features import (
     save_articles_collection, find_related_articles,
     generate_daily_briefing,
     accumulate_glossary, build_timeline,
+    patch_daily_news_ids,
     generate_story_timeline,
 )
 
@@ -113,6 +114,9 @@ def save_news_to_firestore(result: dict):
                 "tags_en": a.get("tags_en", []),
                 "glossary": a.get("glossary", []),
                 "glossary_en": a.get("glossary_en", []),
+                "related_ids": a.get("related_ids", []),
+                "timeline_ids": a.get("timeline_ids", []),
+                "timeline_count": len(a.get("timeline_ids", [])),
                 "ai_filtered": bool(a.get("_ai_filtered", False)),
                 "dedup_of": a.get("_dedup_of", ""),
             }
@@ -365,6 +369,10 @@ def run_news():
         generate_story_timeline(news_result)
     except Exception as e:
         print(f"  [스토리 타임라인 실패] {e}")
+    try:
+        patch_daily_news_ids(news_result)
+    except Exception as e:
+        print(f"  [daily_news 패치 실패] {e}")
     print("  [AI 기능] 완료")
 
     try:

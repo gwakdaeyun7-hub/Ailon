@@ -30,7 +30,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useReactions } from '@/hooks/useReactions';
 import { useArticleViews } from '@/hooks/useArticleViews';
-import { useArticle } from '@/hooks/useArticle';
+import { useArticle, useArticles } from '@/hooks/useArticle';
 import { useBatchStats } from '@/hooks/useBatchStats';
 import { useBookmarks } from '@/hooks/useBookmarks';
 import { useAuth } from '@/hooks/useAuth';
@@ -326,9 +326,9 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
   const [glossaryOpen, setGlossaryOpen] = useState(false);
   const toastOpacity = useRef(new Animated.Value(0)).current;
   const { allTerms: glossaryDBTerms } = useGlossaryDB();
-  // 타임라인: articles 컬렉션에서 timeline_ids 조회
+  // articles 컬렉션에서 related_ids 조회 (daily_news에는 없음)
   const { article: fullArticle } = useArticle(article.article_id ?? null);
-  const timelineIds = fullArticle?.timeline_ids ?? [];
+  const relatedIds = fullArticle?.related_ids ?? [];
   // M12: Toast animation ref for cleanup
   const toastAnimRef = useRef<Animated.CompositeAnimation | null>(null);
 
@@ -657,13 +657,8 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
                 ) : null}
 
                 {/* Related Articles: 관련 기사 가로 스크롤 */}
-                {article.related_ids && article.related_ids.length > 0 && (
-                  <RelatedArticlesSection relatedIds={article.related_ids} />
-                )}
-
-                {/* Timeline: 과거 관련 기사 타임라인 */}
-                {timelineIds.length > 0 && (
-                  <TimelineSection timelineIds={timelineIds} />
+                {relatedIds.length > 0 && (
+                  <RelatedArticlesSection relatedIds={relatedIds} />
                 )}
 
                 {/* M5: "View Original" button at bottom of summary */}
@@ -1434,7 +1429,21 @@ export default function NewsScreen() {
   const sourceArticles = newsData?.source_articles ?? EMPTY_RECORD;
   const sourceOrder = newsData?.source_order ?? DEFAULT_SOURCE_ORDER;
 
-  // (타임라인은 각 기사 상세 모달에서 개별 표시)
+  // ─── 하이라이트 기사 중 타임라인 연결 가장 많은 것 선택 ───
+  const highlightArticleIds = React.useMemo(
+    () => rawHighlights.map(a => a.article_id).filter((id): id is string => !!id),
+    [rawHighlights],
+  );
+  const { articles: highlightFullArticles } = useArticles(highlightArticleIds);
+  const bestTimelineIds = React.useMemo(() => {
+    let best: string[] = [];
+    for (const id of highlightArticleIds) {
+      const full = highlightFullArticles[id];
+      const tIds = full?.timeline_ids ?? [];
+      if (tIds.length > best.length) best = tIds;
+    }
+    return best;
+  }, [highlightArticleIds, highlightFullArticles]);
 
   // ─── 레거시 폴백 (기존 articles 배열 데이터) ───
   const legacyGrouped = React.useMemo(() => {
@@ -1562,6 +1571,11 @@ export default function NewsScreen() {
 
             {/* Story Timeline (above highlights) */}
             <StoryTimeline date={newsData?.date ?? ''} />
+
+            {/* Timeline: 하이라이트 중 가장 연결 많은 기사 타임라인 */}
+            {bestTimelineIds.length > 0 && (
+              <TimelineSection timelineIds={bestTimelineIds} />
+            )}
 
             {/* Section 1: 하이라이트 */}
             <HighlightSection highlights={highlights} onArticlePress={handleArticlePress} allStats={allStats} />

@@ -371,6 +371,77 @@ def build_timeline(result: dict):
         print(f"  [타임라인 실패] {e}")
 
 
+# ─── 6b. daily_news에 related_ids/timeline_ids 패치 ─────────────────────
+def patch_daily_news_ids(result: dict):
+    """AI 기능 파이프라인 완료 후, daily_news 문서 내 기사들에 related_ids/timeline_ids를 반영.
+
+    save_news_to_firestore가 find_related_articles/build_timeline보다 먼저 실행되므로,
+    이 함수로 사후 패치한다.
+    """
+    try:
+        db = get_firestore_client()
+        today = datetime.now(_KST).strftime("%Y-%m-%d")
+        doc_ref = db.collection("daily_news").document(today)
+        doc = doc_ref.get()
+        if not doc.exists:
+            return
+
+        # news_result에서 link → {related_ids, timeline_ids} 매핑 구축
+        unique = _collect_unique_articles(result)
+        id_map: dict[str, dict] = {}
+        for a in unique:
+            link = a.get("link", "")
+            if not link:
+                continue
+            tl_ids = a.get("timeline_ids", [])
+            id_map[link] = {
+                "related_ids": a.get("related_ids", []),
+                "timeline_ids": tl_ids,
+                "timeline_count": len(tl_ids),
+            }
+
+        if not id_map:
+            return
+
+        data = doc.to_dict()
+        changed = False
+
+        def _patch_list(articles: list[dict]) -> bool:
+            patched = False
+            for a in articles:
+                link = a.get("link", "")
+                if link in id_map:
+                    ids = id_map[link]
+                    a["related_ids"] = ids["related_ids"]
+                    a["timeline_ids"] = ids["timeline_ids"]
+                    a["timeline_count"] = ids["timeline_count"]
+                    patched = True
+            return patched
+
+        # highlights
+        if _patch_list(data.get("highlights", [])):
+            changed = True
+        # categorized_articles
+        for cat, arts in data.get("categorized_articles", {}).items():
+            if _patch_list(arts):
+                changed = True
+        # source_articles
+        for src, arts in data.get("source_articles", {}).items():
+            if _patch_list(arts):
+                changed = True
+
+        if changed:
+            doc_ref.update({
+                "highlights": data["highlights"],
+                "categorized_articles": data["categorized_articles"],
+                "source_articles": data["source_articles"],
+            })
+            patched_count = sum(1 for v in id_map.values() if v["related_ids"] or v["timeline_ids"])
+            print(f"  daily_news 패치: {patched_count}개 기사에 related_ids/timeline_ids 반영")
+    except Exception as e:
+        print(f"  [WARN] daily_news 패치 실패: {e}")
+
+
 # ─── 7. 스토리 타임라인 생성 ──────────────────────────────────────────
 def generate_story_timeline(result: dict):
     """오늘 기사를 entity/tag 기반으로 클러스터링하고, 과거 기사와 결합하여
