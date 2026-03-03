@@ -15,8 +15,6 @@ import {
   RefreshControl,
   Share,
   Platform,
-  LayoutAnimation,
-  UIManager,
   NativeSyntheticEvent,
   NativeScrollEvent,
 } from 'react-native';
@@ -30,8 +28,6 @@ import {
   Globe,
   ChevronLeft,
   ChevronRight,
-  ChevronDown,
-  ChevronUp,
   Share2,
   Bookmark,
   Landmark,
@@ -50,10 +46,6 @@ import { useBookmarks } from '@/hooks/useBookmarks';
 import { cardShadow, FontFamily } from '@/lib/theme';
 import type { DailyPrinciples, Principle, DeepDive } from '@/lib/types';
 
-// Enable LayoutAnimation on Android
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
 
 // --- Helpers ----------------------------------------------------------------
 
@@ -83,13 +75,6 @@ function getDisciplineName(data: DailyPrinciples, lang: string): string {
   return data.discipline_info.name;
 }
 
-function animateLayout() {
-  LayoutAnimation.configureNext(LayoutAnimation.create(
-    250,
-    LayoutAnimation.Types.easeInEaseOut,
-    LayoutAnimation.Properties.opacity,
-  ));
-}
 
 // --- Category Icon System ---------------------------------------------------
 
@@ -285,18 +270,12 @@ function NotebookCard({
   );
 }
 
-// --- Deep Dive Accordion ----------------------------------------------------
+// --- Deep Dive Section -------------------------------------------------------
 
-function DeepDiveAccordionSection({ icon, iconBg, title, children, defaultExpanded }: {
-  icon: React.ReactNode; iconBg: string; title: string; children: React.ReactNode; defaultExpanded?: boolean;
+function DeepDiveSection({ icon, iconBg, title, children }: {
+  icon: React.ReactNode; iconBg: string; title: string; children: React.ReactNode;
 }) {
   const { colors } = useTheme();
-  const [expanded, setExpanded] = useState(defaultExpanded ?? false);
-
-  const toggle = useCallback(() => {
-    animateLayout();
-    setExpanded(v => !v);
-  }, []);
 
   return (
     <View style={{
@@ -307,16 +286,10 @@ function DeepDiveAccordionSection({ icon, iconBg, title, children, defaultExpand
         android: { elevation: 2 },
       }),
     }}>
-      <Pressable
-        onPress={toggle}
-        style={({ pressed }) => ({
-          flexDirection: 'row', alignItems: 'center',
-          paddingVertical: 14, paddingHorizontal: 16,
-          opacity: pressed ? 0.7 : 1,
-        })}
-        accessibilityRole="button"
-        accessibilityState={{ expanded }}
-      >
+      <View style={{
+        flexDirection: 'row', alignItems: 'center',
+        paddingVertical: 14, paddingHorizontal: 16,
+      }}>
         <View style={{
           width: 26, height: 26, borderRadius: 8, backgroundColor: iconBg,
           alignItems: 'center', justifyContent: 'center', marginRight: 8,
@@ -327,30 +300,11 @@ function DeepDiveAccordionSection({ icon, iconBg, title, children, defaultExpand
           flex: 1, fontSize: 10, fontWeight: '700', color: colors.textDim,
           letterSpacing: 0.5, textTransform: 'uppercase',
         }}>{title}</Text>
-        {expanded
-          ? <ChevronUp size={14} color={colors.textDim} />
-          : <ChevronDown size={14} color={colors.textDim} />
-        }
-      </Pressable>
+      </View>
 
-      {/* Preview (collapsed): first 2 lines */}
-      {!expanded && (
-        <View style={{ paddingHorizontal: 16, paddingBottom: 12 }}>
-          {children && React.Children.map(children, (child) => {
-            if (React.isValidElement(child) && child.type === Text) {
-              return React.cloneElement(child as React.ReactElement<any>, { numberOfLines: 2 });
-            }
-            return null;
-          })}
-        </View>
-      )}
-
-      {/* Full content (expanded) */}
-      {expanded && (
-        <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
-          {children}
-        </View>
-      )}
+      <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
+        {children}
+      </View>
     </View>
   );
 }
@@ -361,20 +315,19 @@ function DeepDiveContent({ deepDive, lang }: { deepDive: DeepDive; lang: string 
   return (
     <>
       {/* 1. Original Problem (원래 문제) */}
-      <DeepDiveAccordionSection
+      <DeepDiveSection
         icon={<Clock size={12} color={colors.coreTech} />}
         iconBg={colors.coreTechBg}
         title={t('snaps.original_problem')}
-        defaultExpanded
       >
         <Text style={{ fontSize: 12, lineHeight: 19, color: colors.textSecondary }}>
           {L(deepDive.originalProblem, deepDive.originalProblem_en, lang)}
         </Text>
-      </DeepDiveAccordionSection>
+      </DeepDiveSection>
 
       {/* 2. The Bridge (영감의 다리) */}
       {deepDive.bridge ? (
-        <DeepDiveAccordionSection
+        <DeepDiveSection
           icon={<Link2 size={12} color={colors.indigo} />}
           iconBg={colors.indigoBg}
           title={t('snaps.bridge')}
@@ -382,11 +335,11 @@ function DeepDiveContent({ deepDive, lang }: { deepDive: DeepDive; lang: string 
           <Text style={{ fontSize: 12, lineHeight: 19, color: colors.textSecondary }}>
             {L(deepDive.bridge, deepDive.bridge_en, lang)}
           </Text>
-        </DeepDiveAccordionSection>
+        </DeepDiveSection>
       ) : null}
 
       {/* 3. Core Intuition (핵심 직관) + formula (선택) */}
-      <DeepDiveAccordionSection
+      <DeepDiveSection
         icon={<Lightbulb size={12} color={colors.primary} />}
         iconBg={colors.primaryLight}
         title={t('snaps.core_intuition')}
@@ -410,10 +363,10 @@ function DeepDiveContent({ deepDive, lang }: { deepDive: DeepDive; lang: string 
             </Text>
           </View>
         ) : null}
-      </DeepDiveAccordionSection>
+      </DeepDiveSection>
 
       {/* 4. Limits (한계와 열린 질문) */}
-      <DeepDiveAccordionSection
+      <DeepDiveSection
         icon={<Globe size={12} color={colors.accent} />}
         iconBg={colors.surface}
         title={t('snaps.limits')}
@@ -421,7 +374,7 @@ function DeepDiveContent({ deepDive, lang }: { deepDive: DeepDive; lang: string 
         <Text style={{ fontSize: 12, lineHeight: 19, color: colors.textSecondary }}>
           {L(deepDive.limits, deepDive.limits_en, lang)}
         </Text>
-      </DeepDiveAccordionSection>
+      </DeepDiveSection>
     </>
   );
 }
