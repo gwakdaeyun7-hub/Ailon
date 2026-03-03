@@ -291,7 +291,10 @@ def _summarize_batch(batch: list[dict], batch_idx: int, translate: bool = True) 
             "- display_title_en: concise English headline (news-style, not a literal back-translation)\n"
             "- one_line_en: 1-sentence English summary of what happened\n"
             "- key_points_en: EXACTLY 3 key facts in English (array of exactly 3 strings, no more, no less). Each must contain specific data (numbers, names, specs). No vague statements.\n"
-            "- why_important_en: 1-2 sentence English explanation of impact. Must name WHO is affected and HOW specifically. Never say 'significant impact' without specifics."
+            "- why_important_en: 1-2 sentence English explanation of impact. Must name WHO is affected and HOW specifically. Never say 'significant impact' without specifics.\n"
+            "- background_en: 1-2 sentence English background context\n"
+            "- tags_en: 2-4 English keywords (array of strings)\n"
+            '- glossary_en: English version of glossary (same structure: {"term": "...", "desc": "..."})'
         )
     else:
         task_desc = f"Summarize {len(batch)} Korean AI news articles, and also produce English summary fields."
@@ -301,7 +304,10 @@ def _summarize_batch(batch: list[dict], batch_idx: int, translate: bool = True) 
             "- display_title_en: concise English headline for this article\n"
             "- one_line_en: 1-sentence English summary of what happened\n"
             "- key_points_en: EXACTLY 3 key facts in English (array of exactly 3 strings, no more, no less). Each must contain specific data (numbers, names, specs). No vague statements.\n"
-            "- why_important_en: 1-2 sentence English explanation of impact. Must name WHO is affected and HOW specifically. Never say 'significant impact' without specifics."
+            "- why_important_en: 1-2 sentence English explanation of impact. Must name WHO is affected and HOW specifically. Never say 'significant impact' without specifics.\n"
+            "- background_en: 1-2 sentence English background context\n"
+            "- tags_en: 2-4 English keywords (array of strings)\n"
+            '- glossary_en: English version of glossary (same structure: {"term": "...", "desc": "..."})'
         )
 
     prompt = f"""IMPORTANT: Output ONLY a valid JSON array. No thinking, no markdown. Start with '[' and end with ']'.
@@ -346,8 +352,10 @@ For each article, produce:
 - background_en: English version of background (1-2 sentences)
 - tags: 이 기사의 핵심 키워드 2~4개 배열 (한국어)
   - 예: ["OpenAI", "GPT-5", "멀티모달"]
-- tags_en: English version of tags (2-4 keywords)
-  - 예: ["OpenAI", "GPT-5", "Multimodal"]
+- tags_en: English keywords for the same article (2-4 keywords). NOT a literal translation or transliteration of the Korean tags -- use natural English terms that an English-speaking reader would search for.
+  - 예: tags: ["멀티모달", "오픈소스"] → tags_en: ["Multimodal", "Open Source"] (한국어 음차를 그대로 옮기지 말 것)
+  - 예: tags: ["OpenAI", "GPT-5", "멀티모달"] → tags_en: ["OpenAI", "GPT-5", "Multimodal"]
+  - 고유명사(회사명·제품명)는 한/영 동일하게 유지
 - glossary: 기사에 등장하는 전문 용어 2~3개를 {{"term": "용어", "desc": "한줄설명"}} 형태의 배열
   - 예: [{{"term": "MoE", "desc": "여러 전문가 모델을 조합해 효율적으로 추론하는 아키텍처"}}]
   - desc는 ~이에요/~해요 체
@@ -451,12 +459,18 @@ def _apply_batch_results(batch: list[dict], results: list[dict]) -> int:
             tags_en = r.get("tags_en", [])
             if tags_en:
                 batch[ridx]["tags_en"] = tags_en if isinstance(tags_en, list) else []
+            # 폴백: tags_en이 없으면 tags에서 가져옴 (AI 뉴스 tags는 영어가 많이 섞여있음)
+            if not batch[ridx].get("tags_en") and batch[ridx].get("tags"):
+                batch[ridx]["tags_en"] = batch[ridx]["tags"]
             glossary = r.get("glossary", [])
             if glossary:
                 batch[ridx]["glossary"] = glossary if isinstance(glossary, list) else []
             glossary_en = r.get("glossary_en", [])
             if glossary_en:
                 batch[ridx]["glossary_en"] = glossary_en if isinstance(glossary_en, list) else []
+            # 폴백: glossary_en이 없으면 glossary 사용
+            if not batch[ridx].get("glossary_en") and batch[ridx].get("glossary"):
+                batch[ridx]["glossary_en"] = batch[ridx]["glossary"]
     return done
 
 
