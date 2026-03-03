@@ -245,32 +245,6 @@ def save_news_to_firestore(result: dict):
     print(f"  뉴스 저장 완료: 하이라이트 {len(highlights)}개 + 카테고리 {cat_count}개 + 소스별 {src_count}개")
 
 
-def cleanup_old_data(keep_days: int = 30):
-    """30일보다 오래된 데이터를 Firestore에서 삭제"""
-    db = get_firestore_client()
-    cutoff_date = (datetime.now(_KST) - timedelta(days=keep_days)).strftime("%Y-%m-%d")
-
-    collections = ["daily_news", "daily_principles"]
-    total_deleted = 0
-
-    for col_name in collections:
-        col_ref = db.collection(col_name)
-        from google.cloud.firestore_v1.base_query import FieldFilter
-        old_docs = col_ref.where(filter=FieldFilter("date", "<", cutoff_date)).stream()
-
-        deleted = 0
-        for doc in old_docs:
-            doc.reference.delete()
-            deleted += 1
-
-        if deleted > 0:
-            print(f"  {col_name}: {deleted}개 문서 삭제 (기준: {cutoff_date} 이전)")
-        total_deleted += deleted
-
-    if total_deleted == 0:
-        print(f"  정리할 데이터 없음 (최근 {keep_days}일 이내만 존재)")
-    else:
-        print(f"  총 {total_deleted}개 문서 정리 완료")
 
 
 def run_news():
@@ -400,9 +374,6 @@ def main():
 
     # ─── 오래된 데이터 정리 ───
     print("\n" + "-" * 40)
-    print("데이터 정리")
-    print("-" * 40)
-    cleanup_old_data(keep_days=30)
 
     # ─── 완료 ───
     print("\n" + "=" * 60)
