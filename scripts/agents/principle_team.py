@@ -14,7 +14,7 @@ import random
 import re
 import time
 from datetime import datetime, timedelta, timezone
-from typing import TypedDict
+from typing import Annotated, TypedDict
 
 from langchain_core.messages import HumanMessage
 from langgraph.graph import StateGraph, END
@@ -131,6 +131,23 @@ def _llm_invoke_with_retry(llm, messages, max_retries: int = 3):
                 raise
 
 
+# ─── State 리듀서 ───
+def _merge_lists(left: list, right: list) -> list:
+    """두 list 를 합친다. 에러 로그 등 여러 노드 결과 머지용."""
+    return (left or []) + (right or [])
+
+
+def _merge_dicts(left: dict, right: dict) -> dict:
+    """두 dict 를 머지한다. node_timings 등 여러 노드 결과 머지용."""
+    if not left:
+        return right
+    if not right:
+        return left
+    merged = dict(left)
+    merged.update(right)
+    return merged
+
+
 # ─── State 정의 ───
 class PrincipleGraphState(TypedDict):
     seed: dict                      # 선택된 시드
@@ -138,8 +155,8 @@ class PrincipleGraphState(TypedDict):
     verification: dict | None       # 검증 결과
     result: dict | None             # 최종 조립 결과
     retry_count: int                # 재시도 카운터
-    errors: list[str]               # 에러 로그
-    node_timings: dict[str, float]  # 노드별 소요 시간
+    errors: Annotated[list[str], _merge_lists]               # 에러 로그
+    node_timings: Annotated[dict[str, float], _merge_dicts]  # 노드별 소요 시간
 
 
 # ─── 안전 노드 데코레이터 ───
