@@ -293,9 +293,8 @@ def accumulate_glossary(result: dict):
 _TIMELINE_STOP_TERMS = {
     "ai", "artificialintelligence", "machinelearning",
     "ml", "technology", "tech", "deeplearning",
-    "openai", "google", "meta", "microsoft", "anthropic",
-    "llm", "model", "chatgpt", "api", "nvidia", "apple", "amazon",
-    "data", "cloud", "software", "hardware", "robot", "robotics",
+    "llm", "model", "api",
+    "data", "cloud", "software", "hardware",
 }
 
 
@@ -487,7 +486,7 @@ def generate_story_timeline(result: dict):
 
         for i in range(n):
             for j in range(i + 1, n):
-                if len(article_terms[i][1] & article_terms[j][1]) >= 2:
+                if len(article_terms[i][1] & article_terms[j][1]) >= 1:
                     union(i, j)
 
         clusters: dict[int, list[int]] = {}
@@ -525,7 +524,7 @@ def generate_story_timeline(result: dict):
             for idx in indices:
                 cluster_terms |= article_terms[idx][1]
 
-            # Find past articles with >= 2 overlapping terms
+            # Find past articles with >= 1 overlapping terms
             matched_past = []
             for pa in past_articles:
                 p_entities = {_normalize_term(e.get("name", ""))
@@ -533,7 +532,7 @@ def generate_story_timeline(result: dict):
                 p_tags = {_normalize_term(t)
                           for t in pa.get("tags", []) if isinstance(t, str)}
                 p_terms = (p_entities | p_tags) - _TIMELINE_STOP_TERMS
-                if len(cluster_terms & p_terms) >= 2:
+                if len(cluster_terms & p_terms) >= 1:
                     matched_past.append(pa)
 
             today_articles = [article_terms[idx][0] for idx in indices]
