@@ -1333,7 +1333,9 @@ def categorizer_node(state: NewsGraphState) -> dict:
     if not candidates:
         return {"scored_candidates": []}
 
-    candidates = _deduplicate_candidates(candidates, mark_only=True)
+    # Tier 1/2는 중복제거 없이 전부 통과 — _deduped=False 마킹만
+    for c in candidates:
+        c["_deduped"] = False
 
     today_count = 0
     for c in candidates:
@@ -1341,9 +1343,7 @@ def categorizer_node(state: NewsGraphState) -> dict:
         if c["_is_today"]:
             today_count += 1
 
-    deduped_count = sum(1 for c in candidates if c.get("_deduped"))
-    unique_count = len(candidates) - deduped_count
-    print(f"  [분류] {unique_count}개 분류 중... (당일 {today_count}개, 중복 {deduped_count}개 보존)")
+    print(f"  [분류] {len(candidates)}개 분류 중... (당일 {today_count}개, 중복제거 없음)")
 
     # 분류 대상: _llm_category가 없는 기사 (중복 기사 포함 — 정확한 카테고리 배치를 위해)
     need_classify = [(i, a) for i, a in enumerate(candidates) if not a.get("_llm_category")]
@@ -1682,12 +1682,12 @@ def selector_node(state: NewsGraphState) -> dict:
     highlights: list[dict] = []
     for cat in HIGHLIGHT_CATEGORIES:
         # 당일(_is_today) + 해당 카테고리 + AI 필터 통과
-        # Tier 1/2와 research 카테고리는 AI 필터 무시
+        # Tier 1/2는 _ai_filtered=False, research는 AI 필터 면제
         pool = [
             c for c in candidates
             if c.get("_llm_category") == cat
             and c.get("_is_today")
-            and (not c.get("_ai_filtered") or cat == "research" or c.get("source_key", "") in CATEGORY_SOURCES)
+            and (not c.get("_ai_filtered") or cat == "research")
         ]
         if not pool:
             print(f"  [선정] {cat}: 당일 후보 없음")
@@ -1715,15 +1715,13 @@ def selector_node(state: NewsGraphState) -> dict:
     highlight_ids = set(id(c) for c in highlights)
     remaining = [c for c in candidates if id(c) not in highlight_ids]
 
-    # Tier 1/2 (CATEGORY_SOURCES) 기사는 중복/AI필터 무시 — 모두 통과
+    # 중복 기사 / AI 필터 제외 / 통과 기사 분리
+    # Tier 1/2는 _deduped=False, _ai_filtered=False 이므로 자동 통과
     # research 카테고리는 AI 필터와 무관하게 항상 포함
-    def _is_tier12(a: dict) -> bool:
-        return a.get("source_key", "") in CATEGORY_SOURCES
-
-    deduped_out = [a for a in remaining if a.get("_deduped") and not _is_tier12(a)]
-    non_deduped = [a for a in remaining if not a.get("_deduped") or _is_tier12(a)]
-    passed = [a for a in non_deduped if not a.get("_ai_filtered") or a.get("_llm_category") == "research" or _is_tier12(a)]
-    filtered_out = [a for a in non_deduped if a.get("_ai_filtered") and a.get("_llm_category") != "research" and not _is_tier12(a)]
+    deduped_out = [a for a in remaining if a.get("_deduped")]
+    non_deduped = [a for a in remaining if not a.get("_deduped")]
+    passed = [a for a in non_deduped if not a.get("_ai_filtered") or a.get("_llm_category") == "research"]
+    filtered_out = [a for a in non_deduped if a.get("_ai_filtered") and a.get("_llm_category") != "research"]
 
     categorized: dict[str, list[dict]] = {k: [] for k in category_order}
     for a in passed:
@@ -1771,9 +1769,9 @@ def selector_node(state: NewsGraphState) -> dict:
     for cat in category_order:
         if len(categorized[cat]) < CATEGORY_MIN and deduped_by_cat.get(cat):
             used_ids = set(id(a) for a in categorized[cat])
-            # Tier 1/2와 research 카테고리는 AI 필터 무시
+            # research 카테고리는 AI 필터와 무관하게 항상 포함
             supplements = sorted(
-                [d for d in deduped_by_cat[cat] if id(d) not in used_ids and (not d.get("_ai_filtered") or cat == "research" or d.get("source_key", "") in CATEGORY_SOURCES)],
+                [d for d in deduped_by_cat[cat] if id(d) not in used_ids and (not d.get("_ai_filtered") or cat == "research")],
                 key=lambda a: a.get("_total_score", 0), reverse=True,
             )
             need = CATEGORY_MIN - len(categorized[cat])
