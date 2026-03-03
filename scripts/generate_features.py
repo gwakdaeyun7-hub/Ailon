@@ -590,7 +590,7 @@ def generate_story_timeline(result: dict):
                 global_idx += 1
             all_cluster_articles.append(cluster_articles)
 
-        prompt = f"""IMPORTANT: Output ONLY a valid JSON object. No markdown. Start with open brace.
+        prompt = f"""IMPORTANT: Output ONLY a valid JSON object. No markdown, no code fences, no bold. Start directly with the opening curly brace character.
 
 You are an AI news curator. Given grouped news article clusters, create story timelines that narrate how events unfolded.
 
@@ -600,6 +600,7 @@ Rules:
 - Each narration: 1-2 sentences, connecting articles naturally
 - Only create stories where articles have REAL connections
 - Max 3 stories. If no good stories exist, return {{"stories": []}}
+- Keep each narration concise to avoid exceeding output limits
 
 Output format:
 {{"stories": [{{"title_ko": "...", "title_en": "...", "nodes": [{{"type": "narration", "text_ko": "...", "text_en": "...", "date": "YYYY-MM-DD"}}, {{"type": "article", "index": 0, "date": "YYYY-MM-DD"}}, ...], "summary_ko": "...", "summary_en": "..."}}]}}
@@ -607,7 +608,7 @@ Output format:
 Article clusters:
 {clusters_text}"""
 
-        llm = get_llm(temperature=0.3, max_tokens=8192, thinking=False, json_mode=True)
+        llm = get_llm(temperature=0.3, max_tokens=16384, thinking=False, json_mode=True)
         data = None
         for _attempt in range(2):
             try:

@@ -217,6 +217,67 @@ def _parse_llm_json(text: str):
         except json.JSONDecodeError:
             pass
 
+    # 4-1차: 잘린 JSON 객체 복구 (max_tokens로 잘린 {"stories": [...]} 등)
+    #   전략: depth 추적으로 마지막으로 } 또는 ]가 닫힌 위치까지 자르고 열린 괄호 닫기
+    brace_idx = text.find('{')
+    if brace_idx != -1:
+        depth = 0
+        in_str = False
+        esc = False
+        reached_zero = False
+        # last_close: 마지막으로 } 또는 ]가 닫힌 위치 (완전한 객체/배열 경계)
+        last_close = -1
+        for i, ch in enumerate(text[brace_idx:], start=brace_idx):
+            if esc:
+                esc = False
+                continue
+            if ch == '\\' and in_str:
+                esc = True
+                continue
+            if ch == '"' and not esc:
+                in_str = not in_str
+                continue
+            if not in_str:
+                if ch in ('{', '['):
+                    depth += 1
+                elif ch in ('}', ']'):
+                    depth -= 1
+                    last_close = i
+                    if depth == 0:
+                        reached_zero = True
+        if depth > 0 and not reached_zero and last_close > brace_idx:
+            # Cut at last_close (inclusive) — last complete } or ]
+            truncated = text[brace_idx:last_close + 1]
+            # Strip trailing comma if present after the cut
+            truncated = re.sub(r'[,\s]+$', '', truncated)
+            # Recompute open bracket stack for the truncated portion
+            close_stack = []
+            s_in_str = False
+            s_esc = False
+            for ch in truncated:
+                if s_esc:
+                    s_esc = False
+                    continue
+                if ch == '\\' and s_in_str:
+                    s_esc = True
+                    continue
+                if ch == '"' and not s_esc:
+                    s_in_str = not s_in_str
+                if not s_in_str:
+                    if ch == '{':
+                        close_stack.append('}')
+                    elif ch == '[':
+                        close_stack.append(']')
+                    elif ch in ('}', ']') and close_stack:
+                        close_stack.pop()
+            truncated += ''.join(reversed(close_stack))
+            try:
+                result = json.loads(truncated)
+                print(f"    [JSON 복구] 잘린 객체 복구 성공")
+                return result
+            except json.JSONDecodeError:
+                pass
+
     # 5차: depth 기반 추출 — 중첩/오염된 텍스트에서 유효한 JSON 영역만 추출
     for start_char, end_char in [('[', ']'), ('{', '}')]:
         start_idx = text.find(start_char)
