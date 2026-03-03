@@ -300,22 +300,26 @@ function DeepDiveAccordionSection({ icon, iconBg, title, children, defaultExpand
 
   return (
     <View style={{
-      backgroundColor: colors.card, borderRadius: 14, marginBottom: 16,
+      backgroundColor: colors.card, borderRadius: 14, marginBottom: 14,
       borderWidth: 1, borderColor: colors.border, overflow: 'hidden',
+      ...Platform.select({
+        ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4 },
+        android: { elevation: 2 },
+      }),
     }}>
       <Pressable
         onPress={toggle}
         style={({ pressed }) => ({
-          flexDirection: 'row', alignItems: 'center', padding: 20,
+          flexDirection: 'row', alignItems: 'center',
+          paddingVertical: 14, paddingHorizontal: 16,
           opacity: pressed ? 0.7 : 1,
-          ...(expanded ? { paddingBottom: 12 } : {}),
         })}
         accessibilityRole="button"
         accessibilityState={{ expanded }}
       >
         <View style={{
           width: 26, height: 26, borderRadius: 8, backgroundColor: iconBg,
-          alignItems: 'center', justifyContent: 'center', marginRight: 10,
+          alignItems: 'center', justifyContent: 'center', marginRight: 8,
         }}>
           {icon}
         </View>
@@ -331,7 +335,7 @@ function DeepDiveAccordionSection({ icon, iconBg, title, children, defaultExpand
 
       {/* Preview (collapsed): first 2 lines */}
       {!expanded && (
-        <View style={{ paddingHorizontal: 20, paddingBottom: 16 }}>
+        <View style={{ paddingHorizontal: 16, paddingBottom: 12 }}>
           {children && React.Children.map(children, (child) => {
             if (React.isValidElement(child) && child.type === Text) {
               return React.cloneElement(child as React.ReactElement<any>, { numberOfLines: 2 });
@@ -343,7 +347,7 @@ function DeepDiveAccordionSection({ icon, iconBg, title, children, defaultExpand
 
       {/* Full content (expanded) */}
       {expanded && (
-        <View style={{ paddingHorizontal: 20, paddingBottom: 20 }}>
+        <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
           {children}
         </View>
       )}
