@@ -1131,6 +1131,10 @@ Examples (title → category):
 - "Study reveals AI bias in hiring tools, experts urge regulation" → industry_business (opinion/policy)
 - "NVIDIA, 스타트업 1조 원에 인수" → industry_business (M&A, 제품명 언급돼도 거래 기사)
 - "삼성, 온디바이스 AI 모델 '가우스2' 공개" → models_products (신규 모델 발표)
+- "ChatGPT, 주간 활성 사용자 9억 명 돌파" → industry_business (사용자 수/사업 실적, 제품 출시 아님)
+- "Google AI Studio를 활용하며 배운 교훈" → industry_business (사용 후기/오피니언, 제품 발표 아님)
+
+NOTE: A product name in the title does NOT mean models_products. Only classify as models_products when the article is ABOUT a product being launched, released, or updated.
 
 Articles:
 {article_text}
