@@ -1118,23 +1118,42 @@ VALID_CATEGORIES = {"research", "models_products", "industry_business"}
 
 _CLASSIFY_PROMPT = """Output ONLY a JSON array of exactly {count} objects. No markdown, no explanation.
 
-Categories (pick ONE per article):
-- research: paper/study/benchmark/algorithm/technical analysis (HOW something works)
-- models_products: named model/product/tool announced, released, or updated (WHAT you can use)
-- industry_business: everything else — funding, M&A, regulation, strategy, opinion, events
+Classify each article into exactly ONE category using the decision rules below.
 
-Examples (title → category):
-- "OpenAI releases GPT-5 with new features" → models_products (named model released)
-- "OpenAI raises $10B in latest funding round" → industry_business (funding, not a product)
-- "GPT-5 scores 90% on MMLU benchmark" → research (benchmark/analysis of HOW it performs)
-- "GPT-5 now available for developers on API" → models_products (product availability)
-- "Study reveals AI bias in hiring tools, experts urge regulation" → industry_business (opinion/policy)
-- "NVIDIA, 스타트업 1조 원에 인수" → industry_business (M&A, 제품명 언급돼도 거래 기사)
-- "삼성, 온디바이스 AI 모델 '가우스2' 공개" → models_products (신규 모델 발표)
-- "ChatGPT, 주간 활성 사용자 9억 명 돌파" → industry_business (사용자 수/사업 실적, 제품 출시 아님)
-- "Google AI Studio를 활용하며 배운 교훈" → industry_business (사용 후기/오피니언, 제품 발표 아님)
+═══ DECISION RULES (apply in order, stop at first match) ═══
 
-NOTE: A product name in the title does NOT mean models_products. Only classify as models_products when the article is ABOUT a product being launched, released, or updated.
+STEP 1 → models_products
+The article announces a NEW launch, release, open-source drop, or feature update of a specific model/product/tool.
+Key test: "Is there a NEW artifact (model, app, API, feature) that did not exist before this announcement?"
+If YES → models_products. If NO → continue to Step 2.
+INCLUDES: "X 모델 공개", "v2 출시", "신기능 추가", "오픈소스 공개", "API 출시"
+EXCLUDES: usage stats, investment, user reviews, adoption stories, business strategy about a product
+
+STEP 2 → research
+The article presents a paper, study, algorithm, benchmark result, or technical mechanism analysis.
+Key test: "Does the article explain HOW something works technically, or report experimental/scientific findings?"
+If YES → research. If NO → continue to Step 3.
+INCLUDES: 논문, 벤치마크 결과, 알고리즘 제안, 스케일링 법칙, 기술적 메커니즘 분석
+EXCLUDES: "AI가 X 산업에 미친 영향" (사회적 변화 = industry_business), "AI로 X가 바뀌고 있다" (트렌드 = industry_business)
+
+STEP 3 → industry_business
+Everything else. Funding, M&A, regulation, strategy, opinion, events, adoption trends, social impact, market analysis, user milestones, executive moves.
+
+═══ CRITICAL RULE ═══
+A product/model name appearing in the title does NOT make it models_products.
+Ask: "Is this article ANNOUNCING a new product/feature?" If not → it is industry_business.
+
+═══ EXAMPLES ═══
+"삼성, 온디바이스 AI 모델 '가우스2' 공개" → models_products (신규 모델 발표)
+"GPT-5 now available for developers on API" → models_products (제품 출시)
+"OpenAI releases GPT-5 with new reasoning" → models_products (신규 모델 릴리스)
+"OpenAI, ChatGPT 주간 활성 사용자 9억 명 돌파" → industry_business (사용자 수/사업 실적, 출시 아님)
+"Google AI Studio를 팀원처럼 활용하며 배운 교훈" → industry_business (사용 후기, 제품 발표 아님)
+"Anthropic, Claude 메모리 기능 무료 플랜 확대... 경쟁사 유치 박차" → industry_business (사업 전략, 신규 출시 아님)
+"OpenAI, 1100억 달러 투자 유치" → industry_business (투자/자금 조달)
+"AI, 바둑 훈련 방식 재편... 프로기사들 사고방식 변화" → industry_business (사회적 영향/트렌드)
+"GPT-5 scores 90% on MMLU benchmark" → research (벤치마크 분석)
+"ByteDance AI, Long CoT 연구 논문 발표" → research (논문/연구)
 
 Articles:
 {article_text}
