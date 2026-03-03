@@ -30,7 +30,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useReactions } from '@/hooks/useReactions';
 import { useArticleViews } from '@/hooks/useArticleViews';
-import { useArticle, useArticles } from '@/hooks/useArticle';
+import { useArticle } from '@/hooks/useArticle';
 import { useBatchStats } from '@/hooks/useBatchStats';
 import { useBookmarks } from '@/hooks/useBookmarks';
 import { useAuth } from '@/hooks/useAuth';
@@ -44,7 +44,6 @@ import type { BatchStats } from '@/hooks/useBatchStats';
 import { DailyBriefingCard } from '@/components/briefing/DailyBriefingCard';
 import { StoryTimeline } from '@/components/shared/StoryTimeline';
 
-import { TimelineSection } from '@/components/shared/TimelineSection';
 import { RelatedArticlesSection } from '@/components/shared/RelatedArticlesSection';
 import { HighlightedText } from '@/components/shared/HighlightedText';
 import { PersonalizedFeed } from '@/components/feed/PersonalizedFeed';
@@ -1333,21 +1332,6 @@ export default function NewsScreen() {
   const sourceArticles = newsData?.source_articles ?? EMPTY_RECORD;
   const sourceOrder = newsData?.source_order ?? DEFAULT_SOURCE_ORDER;
 
-  // ─── 하이라이트 기사 중 타임라인 연결 가장 많은 것 선택 ───
-  const highlightArticleIds = React.useMemo(
-    () => rawHighlights.map(a => a.article_id).filter((id): id is string => !!id),
-    [rawHighlights],
-  );
-  const { articles: highlightFullArticles } = useArticles(highlightArticleIds);
-  const bestTimelineIds = React.useMemo(() => {
-    let best: string[] = [];
-    for (const id of highlightArticleIds) {
-      const full = highlightFullArticles[id];
-      const tIds = full?.timeline_ids ?? [];
-      if (tIds.length > best.length) best = tIds;
-    }
-    return best;
-  }, [highlightArticleIds, highlightFullArticles]);
 
   // ─── 레거시 폴백 (기존 articles 배열 데이터) ───
   const legacyGrouped = React.useMemo(() => {
@@ -1475,11 +1459,6 @@ export default function NewsScreen() {
 
             {/* Story Timeline (above highlights) */}
             <StoryTimeline date={newsData?.date ?? ''} />
-
-            {/* Timeline: 하이라이트 중 가장 연결 많은 기사 타임라인 */}
-            {bestTimelineIds.length > 0 && (
-              <TimelineSection timelineIds={bestTimelineIds} />
-            )}
 
             {/* Section 1: 하이라이트 */}
             <HighlightSection highlights={highlights} onArticlePress={handleArticlePress} allStats={allStats} />
