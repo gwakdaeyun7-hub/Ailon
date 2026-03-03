@@ -133,33 +133,9 @@ def save_news_to_firestore(result: dict):
         for src, articles in result.get("source_articles", {}).items()
     }
 
-    # AI 필터 제외/중복 기사 — 경량 저장 (확장 뷰에서만 사용)
-    def _flatten_light(articles: list[dict]) -> list[dict]:
-        return [
-            {
-                "title": a.get("title", ""),
-                "display_title": a.get("display_title", "") or a.get("title", ""),
-                "one_line": a.get("one_line", ""),
-                "display_title_en": a.get("display_title_en", ""),
-                "one_line_en": a.get("one_line_en", ""),
-                "link": a.get("link", ""),
-                "published": a.get("published", ""),
-                "source": a.get("source", ""),
-                "source_key": a.get("source_key", ""),
-                "image_url": a.get("image_url", ""),
-                "score": a.get("_total_score", 0),
-                "rank": a.get("_rank", 0),
-                "category": a.get("_llm_category", ""),
-                "dedup_of": a.get("_dedup_of", ""),
-            }
-            for a in articles
-        ]
-
-    filtered_articles = _flatten_light(result.get("filtered_articles", []))
-    deduped_articles = {
-        cat: _flatten_light(articles)
-        for cat, articles in result.get("deduped_articles", {}).items()
-    }
+    # 필터/중복 기사는 더 이상 분리하지 않음 — 빈 값으로 기존 데이터 덮어쓰기
+    filtered_articles: list[dict] = []
+    deduped_articles: dict[str, list[dict]] = {}
 
     doc_ref = db.collection("daily_news").document(today)
 
@@ -224,34 +200,6 @@ def save_news_to_firestore(result: dict):
             src: _merge_articles(old_src.get(src, []), source_articles.get(src, []))
             for src in all_srcs
         }
-
-        # filtered_articles: 병합
-        filtered_articles = _merge_articles(old.get("filtered_articles", []), filtered_articles)
-
-        # deduped_articles: 카테고리별 병합 (크로스-카테고리 중복 제거)
-        old_dedup = old.get("deduped_articles", {})
-        # 신규 dedup 기사의 link 수집 → 기존 모든 카테고리에서 해당 link 제거
-        # (카테고리 이동 + score 갱신 보장)
-        new_dedup_links: set[str] = set()
-        for cat_arts in deduped_articles.values():
-            for a in cat_arts:
-                link = a.get("link", "")
-                if link:
-                    new_dedup_links.add(link)
-        cleaned_old_dedup = {
-            cat: [a for a in arts if a.get("link", "") not in new_dedup_links]
-            for cat, arts in old_dedup.items()
-        }
-        all_dedup_cats = set(list(cleaned_old_dedup.keys()) + list(deduped_articles.keys()))
-        deduped_articles = {
-            cat: _merge_articles(cleaned_old_dedup.get(cat, []), deduped_articles.get(cat, []))
-            for cat in all_dedup_cats
-        }
-        # 빈 카테고리 제거 + 모든 dedup 기사 score=0 강제 (구 데이터 score=20 잔존 방지)
-        deduped_articles = {cat: arts for cat, arts in deduped_articles.items() if arts}
-        for arts in deduped_articles.values():
-            for a in arts:
-                a["score"] = 0
 
     # category_order, source_order: 합집합(순서 유지)
     def _union_order(existing_order: list, new_order: list) -> list:

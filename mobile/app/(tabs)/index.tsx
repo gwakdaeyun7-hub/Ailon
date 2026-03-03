@@ -870,54 +870,24 @@ const HScrollCard = React.memo(function HScrollCard({
 
 // ─── Section 2: 카테고리 탭 + 세로 리스트 ──────────────────────────────
 function CategoryTabSection({
-  categorizedArticles, categoryOrder, onArticlePress, allStats, filteredArticles, dedupedArticles, userLikedLinks,
+  categorizedArticles, categoryOrder, onArticlePress, allStats, userLikedLinks,
 }: {
-  categorizedArticles: Record<string, Article[]>; categoryOrder: string[]; onArticlePress: (article: Article) => void; allStats: Record<string, BatchStats>; filteredArticles?: Article[]; dedupedArticles?: Record<string, Article[]>; userLikedLinks?: string[];
+  categorizedArticles: Record<string, Article[]>; categoryOrder: string[]; onArticlePress: (article: Article) => void; allStats: Record<string, BatchStats>; userLikedLinks?: string[];
 }) {
   const [activeTab, setActiveTab] = useState(categoryOrder[0] || 'research');
-  // 0=초기 5개, 1=전체 카테고리 기사, 2=+AI 필터 제외, 3=+중복 기사
+  // 0=초기 5개, 1=전체
   const [expandLevel, setExpandLevel] = useState(0);
   const { lang, t } = useLanguage();
   const { colors } = useTheme();
 
-  const isResearch = activeTab === 'research';
-  const rawArticles = categorizedArticles[activeTab] || [];
-  const filtered = useMemo(() =>
-    isResearch ? [] : (filteredArticles || []).filter(a => a.category === activeTab),
-    [filteredArticles, activeTab, isResearch]
-  );
-  // 연구 카테고리: AI 필터 제외 기사도 일반 목록에 포함
-  const articles = useMemo(() =>
-    isResearch
-      ? [...rawArticles, ...(filteredArticles || []).filter(a => a.category === 'research')]
-      : rawArticles,
-    [rawArticles, filteredArticles, isResearch]
-  );
-  const articleLinks = useMemo(() => new Set(articles.map(a => a.link)), [articles]);
-  const deduped = useMemo(() =>
-    ((dedupedArticles || {})[activeTab] || []).filter(a => !articleLinks.has(a.link)),
-    [dedupedArticles, activeTab, articleLinks]
-  );
+  const articles = categorizedArticles[activeTab] || [];
   const stats = allStats;
   const visible = useMemo(() => {
     if (expandLevel === 0) return articles.slice(0, Math.min(5, articles.length));
-    if (expandLevel === 1) return articles;
-    if (expandLevel === 2) return [...articles, ...filtered];
-    // expandLevel >= 3: 카테고리 기사 + AI 필터 제외 + 중복 기사
-    return [...articles, ...filtered, ...deduped];
-  }, [articles, filtered, deduped, expandLevel]);
+    return articles;
+  }, [articles, expandLevel]);
 
   const remaining = expandLevel === 0 ? articles.length - Math.min(5, articles.length) : 0;
-  // 모든 카테고리 기사가 이미 표시된 상태인지 (expandLevel 1 이상이거나, 기사가 5개 이하라 0에서 전부 보임)
-  const allArticlesShown = expandLevel >= 1 || (expandLevel === 0 && remaining === 0);
-  // 필터 제외 기사 버튼: 모든 카테고리 기사가 보이고, 아직 필터 기사를 추가하지 않은 상태
-  const hasFiltered = allArticlesShown && expandLevel < 2 && filtered.length > 0;
-  // 중복 기사 버튼: 필터 기사까지 보인 상태이거나, 필터 기사가 없어서 바로 보여야 하는 경우
-  const hasDeduped = deduped.length > 0 && allArticlesShown && expandLevel < 3 && !hasFiltered;
-
-  // 섹션 구분선 위치 (visible 배열 내 시작 인덱스)
-  const filteredStartIdx = expandLevel >= 2 && filtered.length > 0 ? articles.length : -1;
-  const dedupedStartIdx = expandLevel >= 3 && deduped.length > 0 ? articles.length + filtered.length : -1;
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
@@ -1037,98 +1007,61 @@ function CategoryTabSection({
 
       {/* 세로 기사 리스트 (기존 카테고리 — 맞춤 탭이면 숨김) */}
       {activeTab !== '_personalized' && <View style={{ paddingHorizontal: 16, gap: 12 }}>
-        {visible.map((a, i) => {
-          const isDeduped = expandLevel >= 3 && dedupedStartIdx >= 0 && i >= dedupedStartIdx;
-          const isDimmed = (!isResearch && a.ai_filtered) || isDeduped;
-          return (
-            <React.Fragment key={`cat-${activeTab}-${i}-${a.link}`}>
-              {/* 섹션 구분선: AI 필터 제외 기사 */}
-              {i === filteredStartIdx && (
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, marginBottom: 2 }}>
-                  <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
-                  <Text style={{ marginHorizontal: 10, fontSize: 11, fontWeight: '600', color: colors.textLight }}>
-                    {lang === 'en' ? 'Filtered by AI' : 'AI 필터 제외'}
-                  </Text>
-                  <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
-                </View>
-              )}
-              {/* 섹션 구분선: 유사 기사 */}
-              {i === dedupedStartIdx && (
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, marginBottom: 2 }}>
-                  <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
-                  <Text style={{ marginHorizontal: 10, fontSize: 11, fontWeight: '600', color: colors.textLight }}>
-                    {lang === 'en' ? 'Similar Articles' : '유사 기사'}
-                  </Text>
-                  <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
-                </View>
-              )}
-              <Pressable
-                onPress={() => onArticlePress(a)}
-                accessibilityLabel={getLocalizedTitle(a, lang)}
-                accessibilityRole="button"
-                style={({ pressed }) => ({
-                  height: 120,
-                  backgroundColor: colors.card,
-                  borderRadius: 14,
-                  overflow: 'hidden',
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  opacity: pressed ? 0.85 : (isDimmed ? 0.7 : 1),
-                })}
-              >
-                <View style={{ flexDirection: 'row', flex: 1 }}>
-                  {a.image_url ? (
-                    <View style={{ width: 118, height: 118, backgroundColor: colors.border, borderRadius: 8, overflow: 'hidden' }}>
-                      <Image
-                        source={a.image_url}
-                        style={{ width: 118, height: 118 }}
-                        contentFit="cover"
-                        transition={200}
-                        recyclingKey={a.link}
-                      />
+        {visible.map((a, i) => (
+            <Pressable
+              key={`cat-${activeTab}-${i}-${a.link}`}
+              onPress={() => onArticlePress(a)}
+              accessibilityLabel={getLocalizedTitle(a, lang)}
+              accessibilityRole="button"
+              style={({ pressed }) => ({
+                height: 120,
+                backgroundColor: colors.card,
+                borderRadius: 14,
+                overflow: 'hidden',
+                borderWidth: 1,
+                borderColor: colors.border,
+                opacity: pressed ? 0.85 : 1,
+              })}
+            >
+              <View style={{ flexDirection: 'row', flex: 1 }}>
+                {a.image_url ? (
+                  <View style={{ width: 118, height: 118, backgroundColor: colors.border, borderRadius: 8, overflow: 'hidden' }}>
+                    <Image
+                      source={a.image_url}
+                      style={{ width: 118, height: 118 }}
+                      contentFit="cover"
+                      transition={200}
+                      recyclingKey={a.link}
+                    />
+                  </View>
+                ) : (
+                  <View style={{ width: 118, height: 118, backgroundColor: colors.border, borderRadius: 8, alignItems: 'center', justifyContent: 'center' }}>
+                    <Newspaper size={24} color={colors.textLight} />
+                  </View>
+                )}
+                <View style={{ flex: 1, padding: 14, justifyContent: 'space-between' }}>
+                  <View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <SourceBadge sourceKey={a.source_key} name={getSourceName(a.source_key || '', t)} />
                     </View>
-                  ) : (
-                    <View style={{ width: 118, height: 118, backgroundColor: colors.border, borderRadius: 8, alignItems: 'center', justifyContent: 'center' }}>
-                      <Newspaper size={24} color={colors.textLight} />
+                    <TitleText
+                      style={{ fontSize: 14, fontWeight: '700', color: colors.textPrimary, lineHeight: 22, marginTop: 6, fontFamily: FontFamily.serif }}
+                      numberOfLines={2}
+                    >
+                      {getLocalizedTitle(a, lang)}
+                    </TitleText>
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Text style={{ fontSize: 11, color: colors.textSecondary }}>{formatDate(a.published, lang)}</Text>
+                      <ScoreBadge article={a} />
                     </View>
-                  )}
-                  <View style={{ flex: 1, padding: 14, justifyContent: 'space-between' }}>
-                    <View>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                        <SourceBadge sourceKey={a.source_key} name={getSourceName(a.source_key || '', t)} />
-                        {!isResearch && a.ai_filtered && (
-                          <View style={{ backgroundColor: colors.textLight, borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 }}>
-                            <Text style={{ fontSize: 11, fontWeight: '700', color: '#FFF' }}>FILTERED</Text>
-                          </View>
-                        )}
-                        {isDeduped && (
-                          <View style={{ backgroundColor: '#D97706', borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 }}>
-                            <Text style={{ fontSize: 11, fontWeight: '700', color: '#FFF' }}>
-                              {lang === 'en' ? 'SIMILAR' : '유사'}
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-                      <TitleText
-                        style={{ fontSize: 14, fontWeight: '700', color: isDimmed ? colors.textSecondary : colors.textPrimary, lineHeight: 22, marginTop: 6, fontFamily: FontFamily.serif }}
-                        numberOfLines={2}
-                      >
-                        {getLocalizedTitle(a, lang)}
-                      </TitleText>
-                    </View>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                        <Text style={{ fontSize: 11, color: colors.textSecondary }}>{formatDate(a.published, lang)}</Text>
-                        <ScoreBadge article={a} />
-                      </View>
-                      <ArticleStats likes={stats[a.link]?.likes} views={stats[a.link]?.views} comments={stats[a.link]?.comments} />
-                    </View>
+                    <ArticleStats likes={stats[a.link]?.likes} views={stats[a.link]?.views} comments={stats[a.link]?.comments} />
                   </View>
                 </View>
-              </Pressable>
-            </React.Fragment>
-          );
-        })}
+              </View>
+            </Pressable>
+        ))}
       </View>}
 
       {activeTab !== '_personalized' && <>
@@ -1148,35 +1081,6 @@ function CategoryTabSection({
         </Pressable>
       )}
 
-      {/* 더보기 2단계: AI 필터 제외 기사 포함 */}
-      {hasFiltered && (
-        <Pressable
-          onPress={() => setExpandLevel(2)}
-          accessibilityRole="button"
-          style={{ alignItems: 'center', paddingVertical: 12, marginHorizontal: 16 }}
-        >
-          <View style={{ paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}>
-            <Text style={{ fontSize: 13, fontWeight: '700', color: colors.textLight }}>
-              {lang === 'en' ? `+${filtered.length} filtered` : `+${filtered.length}개 필터 제외 기사`}
-            </Text>
-          </View>
-        </Pressable>
-      )}
-
-      {/* 더보기 3단계: 중복 제거된 기사 포함 */}
-      {hasDeduped && (
-        <Pressable
-          onPress={() => setExpandLevel(3)}
-          accessibilityRole="button"
-          style={{ alignItems: 'center', paddingVertical: 12, marginHorizontal: 16 }}
-        >
-          <View style={{ paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}>
-            <Text style={{ fontSize: 13, fontWeight: '700', color: colors.textLight }}>
-              {lang === 'en' ? `+${deduped.length} similar` : `+${deduped.length}개 유사 기사`}
-            </Text>
-          </View>
-        </Pressable>
-      )}
       </>}
     </View>
   );
@@ -1586,8 +1490,6 @@ export default function NewsScreen() {
               categoryOrder={categoryOrder}
               onArticlePress={handleArticlePress}
               allStats={allStats}
-              filteredArticles={newsData?.filtered_articles}
-              dedupedArticles={newsData?.deduped_articles}
               userLikedLinks={Object.entries(allStats).filter(([, s]) => s.likes > 0).map(([link]) => link)}
             />
 
