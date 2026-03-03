@@ -1123,6 +1123,15 @@ Categories (pick ONE per article):
 - models_products: named model/product/tool announced, released, or updated (WHAT you can use)
 - industry_business: everything else — funding, M&A, regulation, strategy, opinion, events
 
+Examples (title → category):
+- "OpenAI releases GPT-5 with new features" → models_products (named model released)
+- "OpenAI raises $10B in latest funding round" → industry_business (funding, not a product)
+- "GPT-5 scores 90% on MMLU benchmark" → research (benchmark/analysis of HOW it performs)
+- "GPT-5 now available for developers on API" → models_products (product availability)
+- "Study reveals AI bias in hiring tools, experts urge regulation" → industry_business (opinion/policy)
+- "NVIDIA, 스타트업 1조 원에 인수" → industry_business (M&A, 제품명 언급돼도 거래 기사)
+- "삼성, 온디바이스 AI 모델 '가우스2' 공개" → models_products (신규 모델 발표)
+
 Articles:
 {article_text}
 
@@ -1264,7 +1273,7 @@ def _classify_batch(batch: list[dict], offset: int) -> list[dict]:
         last_idx=len(batch) - 1,
     )
     try:
-        llm = get_llm(temperature=0.0, max_tokens=2048, thinking=False, json_mode=True)
+        llm = get_llm(temperature=0.0, max_tokens=2048, thinking=False, json_mode=True, model="gemini-2.5-pro")
         content = _llm_invoke_with_retry(llm, prompt, max_retries=2)
         results = _parse_llm_json(content)
         if not isinstance(results, list):

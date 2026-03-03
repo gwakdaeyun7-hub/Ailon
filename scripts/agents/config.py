@@ -36,9 +36,9 @@ _embeddings_instance: GoogleGenerativeAIEmbeddings | None = None
 _embeddings_lock = threading.Lock()
 
 
-def get_llm(temperature: float = 0.7, max_tokens: int = 2048, thinking: bool = True, json_mode: bool = False):
+def get_llm(temperature: float = 0.7, max_tokens: int = 2048, thinking: bool = True, json_mode: bool = False, model: str = "gemini-2.5-flash"):
     """LangChain Google Gemini LLM (캐싱, thinking 토글, JSON 모드 지원)"""
-    cache_key = (temperature, max_tokens, thinking, json_mode)
+    cache_key = (model, temperature, max_tokens, thinking, json_mode)
     with _llm_cache_lock:
         if cache_key in _llm_cache:
             return _llm_cache[cache_key]
@@ -48,7 +48,7 @@ def get_llm(temperature: float = 0.7, max_tokens: int = 2048, thinking: bool = T
         raise ValueError("GOOGLE_API_KEY not found. Set the environment variable before running.")
 
     kwargs = {
-        "model": "gemini-2.5-flash",
+        "model": model,
         "temperature": temperature,
         "max_tokens": max_tokens,
         "google_api_key": api_key,
