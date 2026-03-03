@@ -18,6 +18,7 @@ collector --> [en_process, ko_process] (병렬 Send) --> categorizer --> ranker 
 import json
 import re
 import time
+import traceback
 from datetime import datetime, timedelta, timezone
 from difflib import SequenceMatcher
 from typing import Annotated, TypedDict
@@ -61,8 +62,6 @@ class NewsGraphState(TypedDict):
     category_order: list[str]
     source_articles: dict[str, list[dict]]
     source_order: list[str]
-    filtered_articles: list[dict]
-    deduped_articles: dict[str, list[dict]]
     total_count: int
     # 노드별 소요 시간 (초)
     node_timings: Annotated[dict[str, float], _merge_dicts]
@@ -697,7 +696,6 @@ def _safe_node(node_name: str):
                 result = fn(state)
             except Exception as e:
                 elapsed = time.time() - t0
-                import traceback
                 print(f"  [ERROR] {node_name} 노드 실패 ({elapsed:.1f}s): {e}")
                 traceback.print_exc()
                 result = {"errors": [f"{node_name}: {e}"]}
@@ -871,7 +869,7 @@ def _extract_url_key(link: str) -> str:
 
 
 def _deduplicate_candidates(candidates: list[dict], mark_only: bool = False, threshold: float | None = None) -> list[dict]:
-    """다층 중복 제거:
+    """다층 중복 제거 (현재 메인 파이프라인 노드에서는 호출되지 않음 -- 외부/테스트 용도):
     Layer 1: URL 완전 일치
     Layer 2: 원본 제목(영문) 유사도 (>=0.40)
     Layer 3: 번역 제목(한국어) 유사도 (>=0.40)
@@ -1756,8 +1754,6 @@ def selector_node(state: NewsGraphState) -> dict:
         "highlights": highlights,
         "categorized_articles": categorized,
         "category_order": category_order,
-        "filtered_articles": [],
-        "deduped_articles": {},
     }
 
 
@@ -1826,7 +1822,6 @@ def assembler_node(state: NewsGraphState) -> dict:
     return {
         "source_articles": source_articles,
         "source_order": source_order,
-        "filtered_articles": [],
         "total_count": total,
     }
 
@@ -1897,8 +1892,6 @@ def run_news_pipeline() -> dict:
         "category_order": [],
         "source_articles": {},
         "source_order": [],
-        "filtered_articles": [],
-        "deduped_articles": {},
         "total_count": 0,
         "node_timings": {},
         "errors": [],
@@ -1917,8 +1910,6 @@ def run_news_pipeline() -> dict:
         "category_order": result.get("category_order", []),
         "source_articles": result.get("source_articles", {}),
         "source_order": result.get("source_order", []),
-        "filtered_articles": [],
-        "deduped_articles": {},
         "total_count": result.get("total_count", 0),
         "errors": errors,
     }
