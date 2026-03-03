@@ -447,7 +447,7 @@ def generate_story_timeline(result: dict):
     LLM이 내러티브 스토리 타임라인을 생성한 뒤 Firestore에 저장."""
     try:
         from agents.config import get_llm
-        from agents.news_team import _parse_llm_json
+        from agents.news_team import _parse_llm_json, _llm_invoke_with_retry
 
         db = get_firestore_client()
         today = datetime.now(_KST).strftime("%Y-%m-%d")
@@ -607,9 +607,18 @@ Output format:
 Article clusters:
 {clusters_text}"""
 
-        llm = get_llm(temperature=0.3, max_tokens=4096, thinking=False, json_mode=True)
-        resp = llm.invoke([HumanMessage(content=prompt)])
-        data = _parse_llm_json(resp.content if hasattr(resp, "content") else str(resp))
+        llm = get_llm(temperature=0.3, max_tokens=8192, thinking=False, json_mode=True)
+        data = None
+        for _attempt in range(2):
+            try:
+                content = _llm_invoke_with_retry(llm, prompt, max_retries=2)
+                data = _parse_llm_json(content)
+                if isinstance(data, dict) and "stories" in data:
+                    break
+                data = None
+            except Exception as parse_err:
+                print(f"  [스토리 타임라인] 파싱 재시도 ({_attempt+1}/2): {parse_err}")
+                data = None
         if not isinstance(data, dict) or "stories" not in data:
             print("  [스토리 타임라인 실패] 잘못된 응답 형식")
             return

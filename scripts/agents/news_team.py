@@ -1055,56 +1055,18 @@ VALID_CATEGORIES = {"research", "models_products", "industry_business"}
 # """
 # ── END OLD prompt ────────────────────────────────────────────────────────
 
-_CLASSIFY_PROMPT = """Output ONLY a JSON array. No markdown, no explanation. Start with '['.
+_CLASSIFY_PROMPT = """Output ONLY a JSON array of exactly {count} objects. No markdown, no explanation.
 
-Classify each article into exactly ONE category. Follow Step 1 → 2 → 3 in order, stop at first YES.
-
-## Step 1: research
-The article's main focus is **technical depth** — how or why something works:
-- paper, study, or preprint (논문/연구/arXiv)
-- new algorithm, architecture, training method, or technique
-- benchmark comparison, SOTA results, performance evaluation
-- technical deep-dive explaining mechanisms, tradeoffs, or limitations
-- scaling law, ablation study, survey of techniques
-- dataset released for research purposes
-
-Key test: "Does this article explain **how something works** or **measure how well it works**?"
-
-NOT research:
-- opinion/editorial calling for more research ("연구 필요 촉구") → industry_business
-- company strategy blog that cites a paper → industry_business
-- industry report, index, whitepaper → industry_business
-
-## Step 2: models_products
-A **concrete, named** model, product, or technology is announced, unveiled, released, or updated:
-- new model announced or released (발표/공개/출시), even if not yet publicly available
-- new hardware (chip, GPU, accelerator) announced or launched
-- new app, tool, platform, SDK, framework launched or announced
-- open-source release with usable artifact
-- new feature or major update to existing product (신기능/업데이트)
-- pricing or availability change for a product
-
-Key test: "Is a **specific named product/model** the centerpiece of this article?"
-
-NOT models_products:
-- vague rumor/leak with no official announcement → industry_business
-- paper + code released together → research (paper is primary)
-- partnership to build something future with no named product → industry_business
-- investment or M&A that mentions a product → industry_business
-
-## Step 3: industry_business (default)
-Everything else — the business side of AI:
-- funding, investment, M&A, valuation
-- regulation, policy, lawsuits, antitrust
-- corporate strategy, partnerships, market analysis
-- exec hires, layoffs, restructuring
-- opinions, forecasts, events, conferences
+Categories (pick ONE per article):
+- research: paper/study/benchmark/algorithm/technical analysis (HOW something works)
+- models_products: named model/product/tool announced, released, or updated (WHAT you can use)
+- industry_business: everything else — funding, M&A, regulation, strategy, opinion, events
 
 Articles:
 {article_text}
 
-Output exactly {count} JSON object(s):
-[{{"i":0,"cat":"<category>"}}]"""
+Respond with exactly {count} objects, one per article, in order:
+[{{"i":0,"cat":"research"}},{{"i":1,"cat":"models_products"}},{{"i":2,"cat":"industry_business"}},...,{{"i":{last_idx},"cat":"..."}}]"""
 
 # --- 랭킹 프롬프트 (카테고리별 직접 순위) ---
 _RANK_PROMPT = """Output ONLY a JSON array of integers. No markdown, no explanation. Start with '['.
@@ -1220,7 +1182,7 @@ def _rank_category(articles: list[dict], category: str) -> list[tuple[int, int, 
         return results
 
 
-CLASSIFY_BATCH_SIZE = 10
+CLASSIFY_BATCH_SIZE = 5
 
 
 def _classify_batch(batch: list[dict], offset: int) -> list[dict]:
@@ -1232,10 +1194,14 @@ def _classify_batch(batch: list[dict], offset: int) -> list[dict]:
     for i, a in enumerate(batch):
         title = a.get("display_title") or a.get("title", "")
         body = a.get("body", "")
-        context = body[:500] if body else (a.get("description", "") or "")[:200]
+        context = body[:200] if body else (a.get("description", "") or "")[:150]
         article_text += f"\n[{i}] {title} | {context}"
 
-    prompt = _CLASSIFY_PROMPT.format(article_text=article_text, count=len(batch))
+    prompt = _CLASSIFY_PROMPT.format(
+        article_text=article_text,
+        count=len(batch),
+        last_idx=len(batch) - 1,
+    )
     try:
         llm = get_llm(temperature=0.0, max_tokens=2048, thinking=False, json_mode=True)
         content = _llm_invoke_with_retry(llm, prompt, max_retries=2)
@@ -1288,7 +1254,7 @@ def _classify_batch(batch: list[dict], offset: int) -> list[dict]:
 
 
 def _classify_batch_with_retry(batch: list[dict], offset: int) -> list[dict]:
-    """분류 배치 재시도: 실패 시 배치 분할."""
+    """분류 배치 재시도: 실패 시 배치 분할 → 개별 재시도."""
     results = _classify_batch(batch, offset)
     if not results:
         if len(batch) <= 1:
@@ -1298,8 +1264,8 @@ def _classify_batch_with_retry(batch: list[dict], offset: int) -> list[dict]:
         left = _classify_batch(batch[:mid], offset)
         right = _classify_batch(batch[mid:], offset + mid)
         results = left + right
-    # 부분 누락 개별 재시도
-    if 0 < len(results) < len(batch):
+    # 부분 누락 개별 재시도 (분할 후 여전히 누락된 기사 포함)
+    if len(results) < len(batch):
         classified_offsets = {r["_global_idx"] for r in results}
         missing = [(i, batch[i]) for i in range(len(batch)) if (offset + i) not in classified_offsets]
         if missing:
@@ -1558,6 +1524,21 @@ def _extract_entities_batch(batch: list[dict], batch_idx: int) -> list[dict]:
             results2 = _parse_llm_json(content2)
             retry_applied = _apply_results(results2, missed)
             print(f"    [entity batch {batch_idx}] 재시도 {retry_applied}/{len(missed)}개 적용")
+
+            # 배치 재시도 후에도 실패한 기사: 개별 단위 폴백
+            still_missed = [a for a in missed if not a.get("entities")]
+            if still_missed:
+                print(f"    [entity batch {batch_idx}] {len(still_missed)}개 개별 재시도...")
+                individual_ok = 0
+                for a in still_missed:
+                    try:
+                        c = _llm_invoke_with_retry(llm, _build_prompt([a]), max_retries=2)
+                        r = _parse_llm_json(c)
+                        if _apply_results(r, [a]) > 0:
+                            individual_ok += 1
+                    except Exception:
+                        pass
+                print(f"    [entity batch {batch_idx}] 개별 재시도 {individual_ok}/{len(still_missed)}개 적용")
 
     except Exception as e:
         print(f"    [entity batch {batch_idx}] 실패, 스킵: {e}")
