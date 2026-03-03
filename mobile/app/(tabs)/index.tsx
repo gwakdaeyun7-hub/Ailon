@@ -544,7 +544,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
             {oneLine ? (
               <View style={{ paddingHorizontal: 28, marginBottom: 16 }}>
                 {/* 1. One Line (Hook) */}
-                <View style={{ marginBottom: 24 }}>
+                <View style={{ marginBottom: 24, backgroundColor: colors.highlightBg, borderRadius: 14, padding: 18 }}>
                   <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 1.5, color: colors.summaryIndigo, marginBottom: 8 }}>{t('modal.one_line').toUpperCase()}</Text>
                   <Text style={{ fontSize: 17, color: colors.textPrimary, lineHeight: 26, fontWeight: '600' }}>
                     {oneLine}
