@@ -320,7 +320,7 @@ function DeepDiveContent({ deepDive, lang }: { deepDive: DeepDive; lang: string 
         iconBg={colors.coreTechBg}
         title={t('snaps.original_problem')}
       >
-        <Text style={{ fontSize: 12, lineHeight: 19, color: colors.textSecondary }}>
+        <Text style={{ fontSize: 12, lineHeight: 19.2, color: colors.textSecondary }}>
           {L(deepDive.originalProblem, deepDive.originalProblem_en, lang)}
         </Text>
       </DeepDiveSection>
@@ -332,7 +332,7 @@ function DeepDiveContent({ deepDive, lang }: { deepDive: DeepDive; lang: string 
           iconBg={colors.indigoBg}
           title={t('snaps.bridge')}
         >
-          <Text style={{ fontSize: 12, lineHeight: 19, color: colors.textSecondary }}>
+          <Text style={{ fontSize: 12, lineHeight: 19.2, color: colors.textSecondary }}>
             {L(deepDive.bridge, deepDive.bridge_en, lang)}
           </Text>
         </DeepDiveSection>
@@ -344,7 +344,7 @@ function DeepDiveContent({ deepDive, lang }: { deepDive: DeepDive; lang: string 
         iconBg={colors.primaryLight}
         title={t('snaps.core_intuition')}
       >
-        <Text style={{ fontSize: 12, lineHeight: 19, color: colors.textSecondary }}>
+        <Text style={{ fontSize: 12, lineHeight: 19.2, color: colors.textSecondary }}>
           {L(deepDive.coreIntuition, deepDive.coreIntuition_en, lang)}
         </Text>
         {deepDive.formula ? (
@@ -356,7 +356,7 @@ function DeepDiveContent({ deepDive, lang }: { deepDive: DeepDive; lang: string 
               {t('snaps.formula')}
             </Text>
             <Text style={{
-              fontSize: 12, lineHeight: 19, color: colors.textPrimary,
+              fontSize: 12, lineHeight: 19.2, color: colors.textPrimary,
               fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
             }}>
               {L(deepDive.formula, deepDive.formula_en, lang)}
@@ -371,7 +371,7 @@ function DeepDiveContent({ deepDive, lang }: { deepDive: DeepDive; lang: string 
         iconBg={colors.surface}
         title={t('snaps.limits')}
       >
-        <Text style={{ fontSize: 12, lineHeight: 19, color: colors.textSecondary }}>
+        <Text style={{ fontSize: 12, lineHeight: 19.2, color: colors.textSecondary }}>
           {L(deepDive.limits, deepDive.limits_en, lang)}
         </Text>
       </DeepDiveSection>
