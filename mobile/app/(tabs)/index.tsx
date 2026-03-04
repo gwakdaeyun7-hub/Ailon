@@ -874,23 +874,14 @@ function CategoryTabSection({
   categorizedArticles: Record<string, Article[]>; categoryOrder: string[]; onArticlePress: (article: Article) => void; allStats: Record<string, BatchStats>; userLikedLinks?: string[];
 }) {
   const [activeTab, setActiveTab] = useState(categoryOrder[0] || 'research');
-  // 0=초기 5개, 1=전체
-  const [expandLevel, setExpandLevel] = useState(0);
   const { lang, t } = useLanguage();
   const { colors } = useTheme();
 
   const articles = categorizedArticles[activeTab] || [];
   const stats = allStats;
-  const visible = useMemo(() => {
-    if (expandLevel === 0) return articles.slice(0, Math.min(5, articles.length));
-    return articles;
-  }, [articles, expandLevel]);
-
-  const remaining = expandLevel === 0 ? articles.length - Math.min(5, articles.length) : 0;
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
-    setExpandLevel(0);
   };
 
   return (
@@ -1005,82 +996,87 @@ function CategoryTabSection({
       ) : null}
 
       {/* 세로 기사 리스트 (기존 카테고리 — 맞춤 탭이면 숨김) */}
-      {activeTab !== '_personalized' && <View style={{ paddingHorizontal: 16, gap: 12 }}>
-        {visible.map((a, i) => (
-            <Pressable
-              key={`cat-${activeTab}-${i}-${a.link}`}
-              onPress={() => onArticlePress(a)}
-              accessibilityLabel={getLocalizedTitle(a, lang)}
-              accessibilityRole="button"
-              style={({ pressed }) => ({
-                height: 120,
-                backgroundColor: colors.card,
-                borderRadius: 14,
-                overflow: 'hidden',
-                borderWidth: 1,
-                borderColor: colors.border,
-                opacity: pressed ? 0.85 : 1,
-              })}
-            >
-              <View style={{ flexDirection: 'row', flex: 1 }}>
-                {a.image_url ? (
-                  <View style={{ width: 118, height: 118, backgroundColor: colors.border, borderRadius: 8, overflow: 'hidden' }}>
-                    <Image
-                      source={a.image_url}
-                      style={{ width: 118, height: 118 }}
-                      contentFit="cover"
-                      transition={200}
-                      recyclingKey={a.link}
-                    />
-                  </View>
-                ) : (
-                  <View style={{ width: 118, height: 118, backgroundColor: colors.border, borderRadius: 8, alignItems: 'center', justifyContent: 'center' }}>
-                    <Newspaper size={24} color={colors.textLight} />
-                  </View>
-                )}
-                <View style={{ flex: 1, padding: 14, justifyContent: 'space-between' }}>
-                  <View>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      <SourceBadge sourceKey={a.source_key} name={getSourceName(a.source_key || '', t)} />
+      {activeTab !== '_personalized' && (
+        <View style={{ maxHeight: 480, overflow: 'hidden' }}>
+          <ScrollView
+            nestedScrollEnabled
+            showsVerticalScrollIndicator
+            contentContainerStyle={{ paddingHorizontal: 16, gap: 12, paddingBottom: 40 }}
+          >
+            {articles.map((a, i) => (
+              <Pressable
+                key={`cat-${activeTab}-${i}-${a.link}`}
+                onPress={() => onArticlePress(a)}
+                accessibilityLabel={getLocalizedTitle(a, lang)}
+                accessibilityRole="button"
+                style={({ pressed }) => ({
+                  height: 120,
+                  backgroundColor: colors.card,
+                  borderRadius: 14,
+                  overflow: 'hidden',
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  opacity: pressed ? 0.85 : 1,
+                })}
+              >
+                <View style={{ flexDirection: 'row', flex: 1 }}>
+                  {a.image_url ? (
+                    <View style={{ width: 118, height: 118, backgroundColor: colors.border, borderRadius: 8, overflow: 'hidden' }}>
+                      <Image
+                        source={a.image_url}
+                        style={{ width: 118, height: 118 }}
+                        contentFit="cover"
+                        transition={200}
+                        recyclingKey={a.link}
+                      />
                     </View>
-                    <TitleText
-                      style={{ fontSize: 14, fontWeight: '700', color: colors.textPrimary, lineHeight: 22, marginTop: 6, fontFamily: FontFamily.serif }}
-                      numberOfLines={2}
-                    >
-                      {getLocalizedTitle(a, lang)}
-                    </TitleText>
-                  </View>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      <Text style={{ fontSize: 11, color: colors.textSecondary }}>{formatDate(a.published, lang)}</Text>
-                      <ScoreBadge article={a} />
+                  ) : (
+                    <View style={{ width: 118, height: 118, backgroundColor: colors.border, borderRadius: 8, alignItems: 'center', justifyContent: 'center' }}>
+                      <Newspaper size={24} color={colors.textLight} />
                     </View>
-                    <ArticleStats likes={stats[a.link]?.likes} views={stats[a.link]?.views} comments={stats[a.link]?.comments} />
+                  )}
+                  <View style={{ flex: 1, padding: 14, justifyContent: 'space-between' }}>
+                    <View>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <SourceBadge sourceKey={a.source_key} name={getSourceName(a.source_key || '', t)} />
+                      </View>
+                      <TitleText
+                        style={{ fontSize: 14, fontWeight: '700', color: colors.textPrimary, lineHeight: 22, marginTop: 6, fontFamily: FontFamily.serif }}
+                        numberOfLines={2}
+                      >
+                        {getLocalizedTitle(a, lang)}
+                      </TitleText>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Text style={{ fontSize: 11, color: colors.textSecondary }}>{formatDate(a.published, lang)}</Text>
+                        <ScoreBadge article={a} />
+                      </View>
+                      <ArticleStats likes={stats[a.link]?.likes} views={stats[a.link]?.views} comments={stats[a.link]?.comments} />
+                    </View>
                   </View>
                 </View>
-              </View>
-            </Pressable>
-        ))}
-      </View>}
-
-      {activeTab !== '_personalized' && <>
-      {/* 더보기 1단계: 전체 카테고리 기사 */}
-      {remaining > 0 && (
-        <Pressable
-          onPress={() => setExpandLevel(1)}
-          accessibilityLabel={`${remaining}${t('news.more')}`}
-          accessibilityRole="button"
-          style={{ alignItems: 'center', paddingVertical: 12, marginHorizontal: 16 }}
-        >
-          <View style={{ paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10, backgroundColor: colors.border, borderWidth: 1, borderColor: colors.border }}>
-            <Text style={{ fontSize: 13, fontWeight: '700', color: colors.textSecondary }}>
-              +{remaining}{t('news.more')}
-            </Text>
-          </View>
-        </Pressable>
+              </Pressable>
+            ))}
+          </ScrollView>
+          {/* Bottom fade overlay */}
+          {articles.length > 3 && (
+            <View style={{
+              position: 'absolute', bottom: 0, left: 0, right: 0, height: 40,
+              backgroundColor: colors.bg, opacity: 0.85,
+            }} pointerEvents="none" />
+          )}
+        </View>
       )}
 
-      </>}
+      {/* Article count indicator */}
+      {activeTab !== '_personalized' && articles.length > 3 && (
+        <View style={{ alignItems: 'flex-end', paddingHorizontal: 16, marginTop: 4 }}>
+          <Text style={{ fontSize: 11, color: colors.textSecondary }}>
+            {articles.length}{lang === 'en' ? ' articles' : '개'}
+          </Text>
+        </View>
+      )}
     </View>
   );
 }
