@@ -1119,54 +1119,26 @@ VALID_CATEGORIES = {"research", "models_products", "industry_business"}
 # """
 # ── END OLD prompt ────────────────────────────────────────────────────────
 
-_CLASSIFY_PROMPT = """Output ONLY a JSON array of exactly {count} objects. No markdown, no explanation.
+_CLASSIFY_PROMPT = """JSON array of {count} objects. No markdown.
 
-Classify each article into exactly ONE category using the decision rules below.
+Classify each article into ONE category:
 
-═══ DECISION RULES (apply in order, stop at first match) ═══
+■ models_products — Announces a NEW model/product/tool/feature release.
+  Only if a NEW usable artifact is launched. NOT: stats, investment, testing, blueprints, papers+model, strategy.
 
-STEP 1 → models_products
-The article announces a NEW launch, release, open-source drop, or feature update of a specific model/product/tool.
-Key test: "Is there a NEW artifact (model, app, API, feature) that did not exist before this announcement?"
-If YES → models_products. If NO → continue to Step 2.
-INCLUDES: "X 모델 공개", "v2 출시", "신기능 추가", "오픈소스 공개", "API 출시"
-EXCLUDES: usage stats, investment, user reviews, adoption stories, business strategy about a product, "testing/experimenting" (not yet launched), 논문/알고리즘과 함께 공개된 모델 (기술적 메커니즘이 주체 → research), 청사진/비전/전략/로드맵 발표 (바로 쓸 수 있는 제품 아님 → industry_business)
+■ research — Paper, algorithm, benchmark, technical mechanism analysis.
+  Explains HOW something works. NOT: social impact trends, security vulnerabilities.
 
-STEP 2 → research
-The article presents a paper, study, algorithm, benchmark result, or technical mechanism analysis.
-Key test: "Does the article explain HOW something works technically, or report experimental/scientific findings?"
-If YES → research. If NO → continue to Step 3.
-INCLUDES: 논문, 벤치마크 결과, 알고리즘 제안, 스케일링 법칙, 기술적 메커니즘 분석, 알고리즘(GRPO·MoE 등) 기반 문제 해결 + 모델 공개 (기술적 HOW가 핵심이면 research)
-EXCLUDES: "AI가 X 산업에 미친 영향" (사회적 변화 = industry_business), "AI로 X가 바뀌고 있다" (트렌드 = industry_business), 보안 취약점/보안 이슈 보도 (CVE, 해킹, 정보 탈취, 취약점 발견 등 = industry_business)
+■ industry_business — Everything else: funding, M&A, regulation, trends, milestones, strategy, security issues.
 
-STEP 3 → industry_business
-Everything else. Funding, M&A, regulation, strategy, opinion, events, adoption trends, social impact, market analysis, user milestones, executive moves.
+⚠ Product name in title ≠ models_products. Only actual NEW releases count.
 
-═══ CRITICAL RULE ═══
-A product/model name appearing in the title does NOT make it models_products.
-Ask: "Is this article ANNOUNCING a new product/feature?" If not → it is industry_business.
-
-═══ EXAMPLES ═══
-"삼성, 온디바이스 AI 모델 '가우스2' 공개" → models_products (신규 모델 발표)
-"GPT-5 now available for developers on API" → models_products (제품 출시)
-"OpenAI releases GPT-5 with new reasoning" → models_products (신규 모델 릴리스)
-"OpenAI, ChatGPT 주간 활성 사용자 9억 명 돌파" → industry_business (사용자 수/사업 실적, 출시 아님)
-"Google AI Studio를 팀원처럼 활용하며 배운 교훈" → industry_business (사용 후기, 제품 발표 아님)
-"Anthropic, Claude 메모리 기능 무료 플랜 확대... 경쟁사 유치 박차" → industry_business (사업 전략, 신규 출시 아님)
-"OpenAI, 1100억 달러 투자 유치" → industry_business (투자/자금 조달)
-"AI, 바둑 훈련 방식 재편... 프로기사들 사고방식 변화" → industry_business (사회적 영향/트렌드)
-"Meta, AI 쇼핑 검색 기능 테스트... 경쟁 예고" → industry_business (테스트/실험 중 + 경쟁 구도, 출시 아님)
-"GPT-5 scores 90% on MMLU benchmark" → research (벤치마크 분석)
-"ByteDance AI, Long CoT 연구 논문 발표" → research (논문/연구)
-"FireRedTeam, GRPO 기반 FireRed-OCR-2B 공개... 할루시네이션 해결" → research (알고리즘 기반 기술적 문제 해결이 핵심, 모델 공개는 부수적)
-"NVIDIA, 자율 네트워크 위 AI 에이전트 청사진 및 대규모 통신 모델 공개" → industry_business (청사진/비전 발표, 바로 쓸 수 있는 제품 출시 아님)
-"Perplexity Comet 브라우저, 캘린더 초대장으로 1Password 정보 탈취 취약점" → industry_business (보안 취약점 보도, 논문/알고리즘 아님)
+Examples: "가우스2 공개"→models_products | "ChatGPT 9억명 돌파"→industry_business | "GRPO 논문"→research | "청사진 공개"→industry_business | "AI 쇼핑 테스트"→industry_business | "GPT-5 API 출시"→models_products
 
 Articles:
 {article_text}
 
-Respond with exactly {count} objects, one per article, in order:
-[{{"i":0,"cat":"research"}},{{"i":1,"cat":"models_products"}},{{"i":2,"cat":"industry_business"}},...,{{"i":{last_idx},"cat":"..."}}]"""
+[{{"i":0,"cat":"..."}},{{"i":1,"cat":"..."}},...,{{"i":{last_idx},"cat":"..."}}]"""
 
 # --- 랭킹 프롬프트 (카테고리별 직접 순위) ---
 _RANK_PROMPT = """Output ONLY a JSON array of integers. No markdown, no explanation. Start with '['.
@@ -1357,9 +1329,7 @@ def _classify_batch_with_retry(batch: list[dict], offset: int) -> list[dict]:
     """분류 배치 재시도: 실패 시 대기 후 재시도 → 배치 분할 → 개별 재시도."""
     results = _classify_batch(batch, offset)
     if not results:
-        # Pro 모델 rate limit 대응: 분할 전 짧은 대기 후 동일 배치 1회 재시도
-        time.sleep(2)
-        print(f"    [CLASSIFY RETRY] 대기 후 동일 배치 재시도 (offset={offset}, size={len(batch)})")
+        print(f"    [CLASSIFY RETRY] 동일 배치 재시도 (offset={offset}, size={len(batch)})")
         results = _classify_batch(batch, offset)
     if not results:
         if len(batch) <= 1:
