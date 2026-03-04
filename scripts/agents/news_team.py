@@ -147,6 +147,8 @@ def _parse_llm_json(text: str):
         raise json.JSONDecodeError("Empty LLM response", "", 0)
 
     text = text.strip()
+    # Gemini Pro: "Here is the JSON requested:" 등 텍스트 프리픽스 제거
+    text = re.sub(r'^[^[{]*?(?=[\[{])', '', text, count=1)
     # Gemini 2.5 Flash: <thinking> 태그 제거 (thinking 비활성화 시에도 발생 가능)
     text = re.sub(r'<think(?:ing)?>.*?</think(?:ing)?>', '', text, flags=re.DOTALL)
     # 마크다운 코드블록 제거 — ```json, ```JSON, ``` 등 모두 처리
@@ -1427,7 +1429,7 @@ def categorizer_node(state: NewsGraphState) -> dict:
         cls_batches = [classify_articles[i:i + cls_batch_size] for i in range(0, len(classify_articles), cls_batch_size)]
         print(f"    [분류] {len(classify_articles)}개 → {len(cls_batches)}개 배치 (배치 크기 {cls_batch_size})")
 
-        with ThreadPoolExecutor(max_workers=3) as executor:
+        with ThreadPoolExecutor(max_workers=2) as executor:
             future_to_cls = {
                 executor.submit(_classify_batch_with_retry, batch, idx * cls_batch_size): (batch, idx)
                 for idx, batch in enumerate(cls_batches)
