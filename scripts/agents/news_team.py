@@ -1303,7 +1303,7 @@ def _classify_batch(batch: list[dict], offset: int) -> list[dict]:
         last_idx=len(batch) - 1,
     )
     try:
-        llm = get_llm(temperature=0.0, max_tokens=2048, thinking=False, json_mode=True, model="gemini-2.5-pro")
+        llm = get_llm(temperature=0.0, max_tokens=2048, thinking=False, json_mode=True)
         content = _llm_invoke_with_retry(llm, prompt, max_retries=2)
         results = _parse_llm_json(content)
         if not isinstance(results, list):
@@ -1429,7 +1429,7 @@ def categorizer_node(state: NewsGraphState) -> dict:
         cls_batches = [classify_articles[i:i + cls_batch_size] for i in range(0, len(classify_articles), cls_batch_size)]
         print(f"    [분류] {len(classify_articles)}개 → {len(cls_batches)}개 배치 (배치 크기 {cls_batch_size})")
 
-        with ThreadPoolExecutor(max_workers=2) as executor:
+        with ThreadPoolExecutor(max_workers=3) as executor:
             future_to_cls = {
                 executor.submit(_classify_batch_with_retry, batch, idx * cls_batch_size): (batch, idx)
                 for idx, batch in enumerate(cls_batches)
