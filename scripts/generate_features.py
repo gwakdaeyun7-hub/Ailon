@@ -158,8 +158,18 @@ def generate_daily_briefing(result: dict):
 
         highlights = result.get("highlights", [])[:3]
         cat_articles = result.get("categorized_articles", {})
-        top_cats = [arts[0] for arts in cat_articles.values() if arts]
-        all_articles = highlights + top_cats[:4]
+        # 하이라이트 우선, 카테고리 Top에서 중복 제거 후 보충
+        seen_links = {a.get("link") for a in highlights if a.get("link")}
+        all_articles = list(highlights)
+        for arts in cat_articles.values():
+            for a in arts[:3]:
+                if a.get("link") not in seen_links:
+                    seen_links.add(a.get("link"))
+                    all_articles.append(a)
+                    if len(all_articles) >= 7:
+                        break
+            if len(all_articles) >= 7:
+                break
         if len(all_articles) < 2:
             print("  브리핑 생략: 기사 부족")
             return None
