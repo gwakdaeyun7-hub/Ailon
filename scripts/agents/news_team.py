@@ -349,9 +349,9 @@ def _summarize_batch(batch: list[dict], batch_idx: int, translate: bool = True) 
         en_fields_rule = (
             "\nAlso produce these English fields:\n"
             "- display_title_en: concise English headline (news-style, not a literal back-translation)\n"
-            "- one_line_en: 1-sentence English summary of what happened\n"
-            "- key_points_en: EXACTLY 3 key facts in English (array of exactly 3 strings, no more, no less). Each must contain specific data (numbers, names, specs). No vague statements.\n"
-            "- why_important_en: 1-2 sentence English explanation of impact. Must name WHO is affected and HOW specifically. Never say 'significant impact' without specifics.\n"
+            "- one_line_en: 1-sentence English headline of what happened (WHO did WHAT). No details, no numbers -- just the event.\n"
+            "- key_points_en: EXACTLY 3 key details NOT mentioned in one_line_en (array of exactly 3 strings). Each must contain specific data (numbers, specs, comparisons, prices, dates). No vague statements. No overlap with one_line_en.\n"
+            "- why_important_en: 1-2 sentences on impact. Name WHO is affected and HOW specifically. No overlap with one_line_en or key_points_en. Never say 'significant impact' without specifics.\n"
             "- background_en: 1-2 sentence English background context\n"
             "- tags_en: 2-4 English keywords (array of strings)\n"
             '- glossary_en: English version of glossary (same structure: {"term": "...", "desc": "..."})'
@@ -362,9 +362,9 @@ def _summarize_batch(batch: list[dict], batch_idx: int, translate: bool = True) 
         en_fields_rule = (
             "\nAlso produce these English fields (translate the Korean summaries to English):\n"
             "- display_title_en: concise English headline for this article\n"
-            "- one_line_en: 1-sentence English summary of what happened\n"
-            "- key_points_en: EXACTLY 3 key facts in English (array of exactly 3 strings, no more, no less). Each must contain specific data (numbers, names, specs). No vague statements.\n"
-            "- why_important_en: 1-2 sentence English explanation of impact. Must name WHO is affected and HOW specifically. Never say 'significant impact' without specifics.\n"
+            "- one_line_en: 1-sentence English headline of what happened (WHO did WHAT). No details, no numbers -- just the event.\n"
+            "- key_points_en: EXACTLY 3 key details NOT mentioned in one_line_en (array of exactly 3 strings). Each must contain specific data (numbers, specs, comparisons, prices, dates). No vague statements. No overlap with one_line_en.\n"
+            "- why_important_en: 1-2 sentences on impact. Name WHO is affected and HOW specifically. No overlap with one_line_en or key_points_en. Never say 'significant impact' without specifics.\n"
             "- background_en: 1-2 sentence English background context\n"
             "- tags_en: 2-4 English keywords (array of strings)\n"
             '- glossary_en: English version of glossary (same structure: {"term": "...", "desc": "..."})'
@@ -378,30 +378,31 @@ RULE: Only use facts stated in the provided article text. Never infer, speculate
 
 For each article, produce:
 - {title_rule}
-- one_line: 무슨 일이 일어났는가 -- 정확히 1문장 (~이에요/~해요 체)
-  - 팩트만 전달. 의견·해석·중요성 평가 금지
-  - 본문에 없는 정보 추가 금지
-  - "누가 + 무엇을 했다" 구조. 부가 설명·배경·이유는 넣지 않음
+- one_line: "무슨 일이 일어났는가" -- 사건 자체만 전달하는 헤드라인 1문장 (~이에요/~해요 체)
+  - "누가 + 무엇을 했다" 구조. 부가 설명·배경·이유·수치 넣지 않음
+  - 팩트만 전달. 의견·해석·중요성 평가 금지. 본문에 없는 정보 추가 금지
   - 예: "OpenAI가 GPT-5를 공식 출시했어요"
   - 예: "Meta가 Llama 4를 오픈소스로 공개했어요"
-- key_points: 핵심 팩트 정확히 3개 (각 1문장 이내, ~이에요/~해요 체). 반드시 3개만 반환. 4개 이상 절대 금지.
-  - 숫자·모델명·성능 지표·구체적 스펙·가격·날짜 등 구체적 데이터 우선
-  - one_line과 중복 금지: one_line에서 이미 말한 사실을 다른 표현으로 반복하지 않음
-  - 본문에 구체적 팩트가 부족하면 2개도 허용하지만 4개 이상은 절대 불가
-  - 금지 패턴 (이런 문장은 key_points에 넣지 말 것):
-    - "많은 관심을 받고 있어요" / "주목받고 있어요" (관심·주목 표현)
+- key_points: one_line을 읽은 사람이 추가로 알아야 할 구체적 세부 정보 정확히 3개 (각 1문장, ~이에요/~해요 체)
+  역할: one_line이 "무슨 일"이라면, key_points는 "구체적으로 어떤 스펙·수치·조건인지"를 전달
+  추출 우선순위 (기사에 있다면 반드시 포함):
+    1순위: 숫자 데이터 (가격, 성능 수치, 파라미터 수, 벤치마크 점수, 날짜, 금액)
+    2순위: 기술 스펙·비교 데이터 (모델 크기, 이전 버전 대비 차이, 경쟁사 대비 차이)
+    3순위: 구체적 조건·제약 (출시 지역, 대상 사용자, 라이선스, 지원 플랫폼)
+  중복 금지 규칙:
+    - one_line에 등장한 주어+동사+목적어를 key_point에서 반복 금지 (같은 사실을 다른 표현으로 바꿔 쓰는 것도 반복)
+    - 각 key_point끼리도 서로 다른 정보를 전달해야 함
+  본문에 구체적 팩트가 부족하면 2개도 허용하지만 4개 이상은 절대 불가
+  금지 패턴 (이런 문장은 key_points에 넣지 말 것):
+    - "~관심을 받고 있어요" / "~주목받고 있어요" (관심·주목 표현)
     - "~할 것으로 보여요" / "~할 전망이에요" (추측·전망)
     - "업계에서 ~로 평가받고 있어요" (막연한 평가)
     - 고유명사·숫자·스펙이 하나도 없는 문장
-  - 자가 검증: 각 key_point가 one_line을 읽은 사람에게 "새로운 구체적 정보"를 주는지 확인. 안 주면 삭제
-  - 예: ["컨텍스트 윈도우 256K 토큰을 지원해요", "GPT-4 대비 추론 속도가 2배 빨라요", "API 가격은 50% 인하됐어요"]
+  예: one_line="OpenAI가 GPT-5를 공식 출시했어요" → key_points=["컨텍스트 윈도우가 256K 토큰으로 GPT-4 대비 2배로 늘었어요", "API 가격은 입력 $5/출력 $15 per 1M 토큰으로 GPT-4 대비 50% 인하됐어요", "이미지·오디오·비디오 입력을 네이티브로 지원해요"]
 - why_important: 업계/개발자에게 미치는 구체적 영향 -- 1~2문장, ~이에요/~해요 체
-  - one_line·key_points에 나온 내용 반복 금지
+  - one_line·key_points에 이미 나온 정보 반복 금지. 새로운 관점(영향·결과)만 서술
   - 반드시 구체적 대상(누구에게)과 구체적 변화(무엇이 어떻게 달라지는지)를 명시
-  - 금지 패턴 (이런 문장은 쓰지 말 것):
-    - "업계에 큰 영향을 줄 수 있어요" (대상·변화 불명확)
-    - "주목할 만한 변화예요" / "의미 있는 행보예요" (내용 없는 평가)
-    - "경쟁이 더 치열해질 것으로 보여요" (구체성 없는 전망)
+  - 금지: "업계에 큰 영향" / "주목할 만한 변화" / "경쟁이 치열해질 것" 같은 내용 없는 평가
   - 좋은 예: "오픈소스 개발자들이 상용 수준 모델을 무료로 파인튜닝할 수 있게 돼요"
   - 좋은 예: "기존 GPT-4 API 사용자는 코드 수정 없이 자동으로 업그레이드돼요"
 {en_fields_rule}
