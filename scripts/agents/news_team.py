@@ -1135,7 +1135,7 @@ The article presents a paper, study, algorithm, benchmark result, or technical m
 Key test: "Does the article explain HOW something works technically, or report experimental/scientific findings?"
 If YES → research. If NO → continue to Step 3.
 INCLUDES: 논문, 벤치마크 결과, 알고리즘 제안, 스케일링 법칙, 기술적 메커니즘 분석, 알고리즘(GRPO·MoE 등) 기반 문제 해결 + 모델 공개 (기술적 HOW가 핵심이면 research)
-EXCLUDES: "AI가 X 산업에 미친 영향" (사회적 변화 = industry_business), "AI로 X가 바뀌고 있다" (트렌드 = industry_business)
+EXCLUDES: "AI가 X 산업에 미친 영향" (사회적 변화 = industry_business), "AI로 X가 바뀌고 있다" (트렌드 = industry_business), 보안 취약점/보안 이슈 보도 (CVE, 해킹, 정보 탈취, 취약점 발견 등 = industry_business)
 
 STEP 3 → industry_business
 Everything else. Funding, M&A, regulation, strategy, opinion, events, adoption trends, social impact, market analysis, user milestones, executive moves.
@@ -1158,6 +1158,7 @@ Ask: "Is this article ANNOUNCING a new product/feature?" If not → it is indust
 "ByteDance AI, Long CoT 연구 논문 발표" → research (논문/연구)
 "FireRedTeam, GRPO 기반 FireRed-OCR-2B 공개... 할루시네이션 해결" → research (알고리즘 기반 기술적 문제 해결이 핵심, 모델 공개는 부수적)
 "NVIDIA, 자율 네트워크 위 AI 에이전트 청사진 및 대규모 통신 모델 공개" → industry_business (청사진/비전 발표, 바로 쓸 수 있는 제품 출시 아님)
+"Perplexity Comet 브라우저, 캘린더 초대장으로 1Password 정보 탈취 취약점" → industry_business (보안 취약점 보도, 논문/알고리즘 아님)
 
 Articles:
 {article_text}
@@ -1351,8 +1352,13 @@ def _classify_batch(batch: list[dict], offset: int) -> list[dict]:
 
 
 def _classify_batch_with_retry(batch: list[dict], offset: int) -> list[dict]:
-    """분류 배치 재시도: 실패 시 배치 분할 → 개별 재시도."""
+    """분류 배치 재시도: 실패 시 대기 후 재시도 → 배치 분할 → 개별 재시도."""
     results = _classify_batch(batch, offset)
+    if not results:
+        # Pro 모델 rate limit 대응: 분할 전 짧은 대기 후 동일 배치 1회 재시도
+        time.sleep(2)
+        print(f"    [CLASSIFY RETRY] 대기 후 동일 배치 재시도 (offset={offset}, size={len(batch)})")
+        results = _classify_batch(batch, offset)
     if not results:
         if len(batch) <= 1:
             return []
