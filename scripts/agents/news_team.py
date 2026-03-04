@@ -1128,7 +1128,7 @@ The article announces a NEW launch, release, open-source drop, or feature update
 Key test: "Is there a NEW artifact (model, app, API, feature) that did not exist before this announcement?"
 If YES → models_products. If NO → continue to Step 2.
 INCLUDES: "X 모델 공개", "v2 출시", "신기능 추가", "오픈소스 공개", "API 출시"
-EXCLUDES: usage stats, investment, user reviews, adoption stories, business strategy about a product
+EXCLUDES: usage stats, investment, user reviews, adoption stories, business strategy about a product, "testing/experimenting" (not yet launched)
 
 STEP 2 → research
 The article presents a paper, study, algorithm, benchmark result, or technical mechanism analysis.
@@ -1153,6 +1153,7 @@ Ask: "Is this article ANNOUNCING a new product/feature?" If not → it is indust
 "Anthropic, Claude 메모리 기능 무료 플랜 확대... 경쟁사 유치 박차" → industry_business (사업 전략, 신규 출시 아님)
 "OpenAI, 1100억 달러 투자 유치" → industry_business (투자/자금 조달)
 "AI, 바둑 훈련 방식 재편... 프로기사들 사고방식 변화" → industry_business (사회적 영향/트렌드)
+"Meta, AI 쇼핑 검색 기능 테스트... 경쟁 예고" → industry_business (테스트/실험 중 + 경쟁 구도, 출시 아님)
 "GPT-5 scores 90% on MMLU benchmark" → research (벤치마크 분석)
 "ByteDance AI, Long CoT 연구 논문 발표" → research (논문/연구)
 
