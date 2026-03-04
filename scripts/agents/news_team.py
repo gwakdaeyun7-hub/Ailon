@@ -1175,15 +1175,24 @@ def _rank_category(articles: list[dict], category: str) -> list[tuple[int, int, 
     if count == 1:
         return [(0, 0, 100)]
 
-    # 기사 수가 많으면 컨텍스트 축소 (Flash 출력 잘림 방지)
-    ctx_len = 200 if count > 20 else 500
+    # 기사 수에 따라 컨텍스트 축소 (Flash 출력 잘림 방지)
+    # 30개 초과: 제목만, 20~30: 200자, 20 이하: 500자
+    if count > 30:
+        ctx_len = 0
+    elif count > 20:
+        ctx_len = 200
+    else:
+        ctx_len = 500
 
     article_text = ""
     for i, a in enumerate(articles):
         title = a.get("display_title") or a.get("title", "")
-        body = a.get("body", "")
-        context = body[:ctx_len] if body else (a.get("description", "") or "")[:150]
-        article_text += f"\n[{i}] {title} | {context}"
+        if ctx_len > 0:
+            body = a.get("body", "")
+            context = body[:ctx_len] if body else (a.get("description", "") or "")[:150]
+            article_text += f"\n[{i}] {title} | {context}"
+        else:
+            article_text += f"\n[{i}] {title}"
 
     prompt = _RANK_PROMPT.format(
         count=count,
