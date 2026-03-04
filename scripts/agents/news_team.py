@@ -1128,13 +1128,13 @@ The article announces a NEW launch, release, open-source drop, or feature update
 Key test: "Is there a NEW artifact (model, app, API, feature) that did not exist before this announcement?"
 If YES → models_products. If NO → continue to Step 2.
 INCLUDES: "X 모델 공개", "v2 출시", "신기능 추가", "오픈소스 공개", "API 출시"
-EXCLUDES: usage stats, investment, user reviews, adoption stories, business strategy about a product, "testing/experimenting" (not yet launched)
+EXCLUDES: usage stats, investment, user reviews, adoption stories, business strategy about a product, "testing/experimenting" (not yet launched), 논문/알고리즘과 함께 공개된 모델 (기술적 메커니즘이 주체 → research), 청사진/비전/전략/로드맵 발표 (바로 쓸 수 있는 제품 아님 → industry_business)
 
 STEP 2 → research
 The article presents a paper, study, algorithm, benchmark result, or technical mechanism analysis.
 Key test: "Does the article explain HOW something works technically, or report experimental/scientific findings?"
 If YES → research. If NO → continue to Step 3.
-INCLUDES: 논문, 벤치마크 결과, 알고리즘 제안, 스케일링 법칙, 기술적 메커니즘 분석
+INCLUDES: 논문, 벤치마크 결과, 알고리즘 제안, 스케일링 법칙, 기술적 메커니즘 분석, 알고리즘(GRPO·MoE 등) 기반 문제 해결 + 모델 공개 (기술적 HOW가 핵심이면 research)
 EXCLUDES: "AI가 X 산업에 미친 영향" (사회적 변화 = industry_business), "AI로 X가 바뀌고 있다" (트렌드 = industry_business)
 
 STEP 3 → industry_business
@@ -1156,6 +1156,8 @@ Ask: "Is this article ANNOUNCING a new product/feature?" If not → it is indust
 "Meta, AI 쇼핑 검색 기능 테스트... 경쟁 예고" → industry_business (테스트/실험 중 + 경쟁 구도, 출시 아님)
 "GPT-5 scores 90% on MMLU benchmark" → research (벤치마크 분석)
 "ByteDance AI, Long CoT 연구 논문 발표" → research (논문/연구)
+"FireRedTeam, GRPO 기반 FireRed-OCR-2B 공개... 할루시네이션 해결" → research (알고리즘 기반 기술적 문제 해결이 핵심, 모델 공개는 부수적)
+"NVIDIA, 자율 네트워크 위 AI 에이전트 청사진 및 대규모 통신 모델 공개" → industry_business (청사진/비전 발표, 바로 쓸 수 있는 제품 출시 아님)
 
 Articles:
 {article_text}
