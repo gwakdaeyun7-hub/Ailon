@@ -905,8 +905,8 @@ def ko_process_node(state: NewsGraphState) -> dict:
 
 
 # ─── 중복 제거 ───
-DEDUP_THRESHOLD = 0.40  # 유사도 임계값 (낮출수록 공격적)
-EMBED_DEDUP_THRESHOLD = 0.85  # 임베딩 코사인 유사도 임계값
+DEDUP_THRESHOLD = 0.65  # 유사도 임계값 — 0.40→0.65: 한국어 AI 기사 공통 어휘 오탐 방지
+EMBED_DEDUP_THRESHOLD = 0.92  # 임베딩 코사인 유사도 임계값 — 0.85→0.92: 주제 유사 기사 오탐 방지
 
 
 def _cosine_sim(a: list[float], b: list[float]) -> float:
@@ -936,6 +936,10 @@ def _normalize_title(title: str) -> str:
     return t
 
 
+# AI 도메인에서 변별력 없는 범용 토큰 — 중복 비교에서 제외
+_DEDUP_STOPWORDS = {"ai", "ml", "llm", "gpt", "model", "deep", "learning", "new", "the", "for", "and", "with"}
+
+
 def _extract_key_tokens(text: str) -> set[str]:
     """제목/요약에서 핵심 토큰(고유명사·숫자) 추출 — 중복 비교용"""
     t = re.sub(r'[^\w\s]', ' ', text)
@@ -946,7 +950,9 @@ def _extract_key_tokens(text: str) -> set[str]:
             tokens.add(re.sub(r'[^\d]', '', w))  # 순수 숫자만
         # 영문 고유명사 (2글자 이상, 첫 글자 대문자 or 전체 대문자)
         elif re.match(r'[A-Z]', w) and len(w) >= 2:
-            tokens.add(w.lower())
+            low = w.lower()
+            if low not in _DEDUP_STOPWORDS:
+                tokens.add(low)
     return tokens
 
 
@@ -1010,6 +1016,7 @@ def _deduplicate_candidates(candidates: list[dict], mark_only: bool = False, thr
         if url_key and url_key in seen_urls:
             removed += 1
             c["_deduped"] = True
+            c["_dedup_layer"] = "L1_url"
             # URL 일치 — 같은 URL을 가진 kept 기사 찾기
             for k in kept:
                 if _extract_url_key(k.get("link", "")) == url_key:
@@ -1031,36 +1038,41 @@ def _deduplicate_candidates(candidates: list[dict], mark_only: bool = False, thr
 
         is_dup = False
         matched_kept = None
+        match_layer = ""
         for k in kept:
             # Layer 2: 원본 제목 비교
             k_orig = _normalize_title(k.get("title", ""))
             if orig_title and k_orig and SequenceMatcher(None, orig_title, k_orig).ratio() >= thr:
                 is_dup = True
                 matched_kept = k
+                match_layer = "L2_orig_title"
                 break
             # Layer 3: 번역 제목 비교
             k_disp = _normalize_title(k.get("display_title") or k.get("title", ""))
             if disp_title and k_disp and SequenceMatcher(None, disp_title, k_disp).ratio() >= thr:
                 is_dup = True
                 matched_kept = k
+                match_layer = "L3_disp_title"
                 break
             # Layer 5: one_line(한줄 요약) 유사도
             if c_oneline:
                 k_oneline = _normalize_title(k.get("one_line", ""))
-                if k_oneline and SequenceMatcher(None, c_oneline, k_oneline).ratio() >= 0.45:
+                if k_oneline and SequenceMatcher(None, c_oneline, k_oneline).ratio() >= 0.65:
                     is_dup = True
                     matched_kept = k
+                    match_layer = "L4_oneline"
                     break
-            # Layer 6: 핵심 토큰 겹침 (고유명사 2개 이상 + 숫자 1개 이상 공유)
+            # Layer 6: 핵심 토큰 겹침 (고유명사 3개 이상 + 숫자 1개 이상 공유)
             if len(c_key_tokens) >= 3:
                 k_key_tokens = _extract_key_tokens(k.get("title", "") + " " + k.get("display_title", ""))
                 if len(k_key_tokens) >= 3:
                     overlap = c_key_tokens & k_key_tokens
                     names_overlap = sum(1 for t in overlap if not t.isdigit())
                     nums_overlap = sum(1 for t in overlap if t.isdigit())
-                    if names_overlap >= 2 and nums_overlap >= 1:
+                    if names_overlap >= 3 and nums_overlap >= 1:
                         is_dup = True
                         matched_kept = k
+                        match_layer = "L5_key_tokens"
                         break
             # Layer 7: 임베딩 코사인 유사도
             if embed_layer7 and c_embed:
@@ -1068,6 +1080,7 @@ def _deduplicate_candidates(candidates: list[dict], mark_only: bool = False, thr
                 if k_embed and _cosine_sim(c_embed, k_embed) >= EMBED_DEDUP_THRESHOLD:
                     is_dup = True
                     matched_kept = k
+                    match_layer = "L6_embedding"
                     layer7_count += 1
                     break
 
@@ -1075,6 +1088,7 @@ def _deduplicate_candidates(candidates: list[dict], mark_only: bool = False, thr
             removed += 1
             c["_deduped"] = True
             c["_dedup_of"] = matched_kept.get("link", "") if matched_kept else ""
+            c["_dedup_layer"] = match_layer
             dupes.append(c)
         else:
             c["_deduped"] = False
@@ -1143,14 +1157,14 @@ Classify each article into ONE category:
 ■ models_products — Announces a NEW model/product/tool/feature release.
   Only if a NEW usable artifact is launched. NOT: stats, investment, testing, blueprints, papers+model, strategy.
 
-■ research — Paper, algorithm, benchmark, technical mechanism analysis.
-  Explains HOW something works. NOT: social impact trends, security vulnerabilities.
+■ research — Paper, algorithm, benchmark, technical mechanism analysis, tutorial/how-to guide.
+  Explains HOW something works or teaches HOW to build something. NOT: social impact trends, security vulnerabilities.
 
 ■ industry_business — Everything else: funding, M&A, regulation, trends, milestones, strategy, security issues.
 
 ⚠ Product name in title ≠ models_products. Only actual NEW releases count.
 
-Examples: "가우스2 공개"→models_products | "ChatGPT 9억명 돌파"→industry_business | "GRPO 논문"→research | "청사진 공개"→industry_business | "AI 쇼핑 테스트"→industry_business | "GPT-5 API 출시"→models_products
+Examples: "가우스2 공개"→models_products | "ChatGPT 9억명 돌파"→industry_business | "GRPO 논문"→research | "청사진 공개"→industry_business | "AI 쇼핑 테스트"→industry_business | "GPT-5 API 출시"→models_products | "LLM 파인튜닝 구축 가이드"→research | "AI 에이전트 OS 튜토리얼"→research | "소송 제기"→industry_business | "저작권 판결"→industry_business | "Self-Flow 기술로 훈련 효율 향상"→research
 
 Articles:
 {article_text}
@@ -1480,11 +1494,12 @@ def categorizer_node(state: NewsGraphState) -> dict:
                     if k.get("link") == orig and not k.get("_deduped"):
                         orig_title = k.get("display_title") or k.get("title", "")
                         break
+            layer = a.get("_dedup_layer", "?")
             if orig_title:
                 print(f"      - {title}")
-                print(f"        → 원본: {orig_title}")
+                print(f"        → 원본: {orig_title} [{layer}]")
             else:
-                print(f"      - {title} (원본 URL: {orig[:60]})")
+                print(f"      - {title} (원본 URL: {orig[:60]}) [{layer}]")
     else:
         print("    ── [QA] 중복 감지 0건 ──")
 
