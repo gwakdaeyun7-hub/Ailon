@@ -1466,6 +1466,28 @@ def categorizer_node(state: NewsGraphState) -> dict:
         if ratio > 0.60:
             print(f"    [분류 편향 경고] {cat}: {cat_count}/{total_cands}개 ({ratio:.0%}) — 60% 초과")
 
+    # ── QA: 중복 제거 결과 ──
+    deduped_articles = [a for a in candidates if a.get("_deduped")]
+    if deduped_articles:
+        print(f"    ── [QA] 중복 감지 {len(deduped_articles)}건 ──")
+        for a in deduped_articles:
+            title = a.get("display_title") or a.get("title", "(제목 없음)")
+            orig = a.get("_dedup_of", "")
+            # 원본 기사 제목 찾기
+            orig_title = ""
+            if orig:
+                for k in candidates:
+                    if k.get("link") == orig and not k.get("_deduped"):
+                        orig_title = k.get("display_title") or k.get("title", "")
+                        break
+            if orig_title:
+                print(f"      - {title}")
+                print(f"        → 원본: {orig_title}")
+            else:
+                print(f"      - {title} (원본 URL: {orig[:60]})")
+    else:
+        print("    ── [QA] 중복 감지 0건 ──")
+
     # ── QA: 카테고리별 기사 제목 + 의심 분류 경고 ──
     _SUSPECT_KEYWORDS = {
         "research": ["투자", "인수", "합병", "매출", "IPO", "펀딩", "시장", "매각", "계약"],
