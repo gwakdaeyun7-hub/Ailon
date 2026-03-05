@@ -451,13 +451,23 @@ def filter_imageless(sources: dict[str, list[dict]]) -> None:
 
 
 # ─── 본문 + og:image 통합 스크래핑 ─────────────────────────────────────
+def _get_traf_config():
+    """trafilatura 설정 (싱글턴)"""
+    if not hasattr(_get_traf_config, "_config"):
+        from trafilatura.settings import use_config
+        cfg = use_config()
+        cfg.set("DEFAULT", "USER_AGENTS", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
+        _get_traf_config._config = cfg
+    return _get_traf_config._config
+
+
 def _scrape_body_and_image(url: str) -> tuple[str, str]:
     """기사 URL에서 본문 텍스트 + og:image를 한 번의 HTTP로 추출"""
     if not url:
         return "", ""
     try:
         import trafilatura
-        downloaded = trafilatura.fetch_url(url)
+        downloaded = trafilatura.fetch_url(url, config=_get_traf_config())
         if not downloaded:
             return "", ""
 

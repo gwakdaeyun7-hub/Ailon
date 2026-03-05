@@ -507,7 +507,7 @@ def _apply_batch_results(batch: list[dict], results: list[dict]) -> int:
                 batch[ridx]["one_line"] = one_line
                 kp = (key_points if isinstance(key_points, list) else [])[:3]
                 if len(kp) < 3:
-                    print(f"    [WARN] key_points only {len(kp)} for: {batch[ridx].get('title', '')[:50]}")
+                    print(f"    [INFO] key_points {len(kp)} for: {batch[ridx].get('title', '')[:50]}")
                 batch[ridx]["key_points"] = kp
                 batch[ridx]["why_important"] = why_important
                 # summary 폴백 (레거시 호환)
@@ -1154,8 +1154,8 @@ _CLASSIFY_PROMPT = """JSON array of {count} objects. No markdown.
 
 Classify each article into ONE category:
 
-■ models_products — Announces a NEW model/product/tool/feature release.
-  Only if a NEW usable artifact is launched. NOT: stats, investment, testing, blueprints, papers+model, strategy.
+■ models_products — Announces a NEW model/product/tool/feature release, OR first wide rollout of a new feature.
+  Only if a NEW usable artifact is launched/made available. NOT: stats, investment, testing, blueprints, strategy.
 
 ■ research — Paper, algorithm, benchmark, technical mechanism analysis, tutorial/how-to guide.
   Explains HOW something works or teaches HOW to build something. NOT: social impact trends, security vulnerabilities.
@@ -1163,8 +1163,9 @@ Classify each article into ONE category:
 ■ industry_business — Everything else: funding, M&A, regulation, trends, milestones, strategy, security issues.
 
 ⚠ Product name in title ≠ models_products. Only actual NEW releases count.
+⚠ Mixed article (blueprint + model release) → classify by the PRIMARY news.
 
-Examples: "가우스2 공개"→models_products | "ChatGPT 9억명 돌파"→industry_business | "GRPO 논문"→research | "청사진 공개"→industry_business | "AI 쇼핑 테스트"→industry_business | "GPT-5 API 출시"→models_products | "LLM 파인튜닝 구축 가이드"→research | "AI 에이전트 OS 튜토리얼"→research | "소송 제기"→industry_business | "저작권 판결"→industry_business | "Self-Flow 기술로 훈련 효율 향상"→research
+Examples: "가우스2 공개"→models_products | "ChatGPT 9억명 돌파"→industry_business | "GRPO 논문"→research | "청사진 공개"→industry_business | "AI 쇼핑 테스트"→industry_business | "GPT-5 API 출시"→models_products | "LLM 파인튜닝 구축 가이드"→research | "AI 에이전트 OS 튜토리얼"→research | "소송 제기"→industry_business | "저작권 판결"→industry_business | "Self-Flow 기술로 훈련 효율 향상"→research | "새 AI Mode 전역 확대 출시"→models_products | "AI 검색 3억명 돌파"→industry_business
 
 Articles:
 {article_text}
@@ -1207,11 +1208,11 @@ def _rank_category(articles: list[dict], category: str) -> list[tuple[int, int, 
         return [(0, 0, 100)]
 
     # 기사 수에 따라 컨텍스트 축소 (Flash 출력 잘림 방지)
-    # 30개 초과: 제목만, 20~30: 200자, 20 이하: 500자
-    if count > 30:
+    # 40개 초과: 제목만, 25~40: 150자, 25 이하: 500자
+    if count > 40:
         ctx_len = 0
-    elif count > 20:
-        ctx_len = 200
+    elif count > 25:
+        ctx_len = 150
     else:
         ctx_len = 500
 
@@ -1232,7 +1233,7 @@ def _rank_category(articles: list[dict], category: str) -> list[tuple[int, int, 
     )
 
     try:
-        token_budget = max(2048, count * 40)
+        token_budget = max(4096, count * 60)
         llm = get_llm(temperature=0.0, max_tokens=token_budget, thinking=False, json_mode=True)
         content = _llm_invoke_with_retry(llm, prompt, max_retries=2)
         ranking = _parse_llm_json(content)
@@ -1467,9 +1468,13 @@ def categorizer_node(state: NewsGraphState) -> dict:
         print(f"    [분류] 완료: {classified}/{len(candidates)}개 분류됨")
 
     # 미분류 기사에 기본 카테고리 부여 (중복 기사 포함)
+    unclassified_count = 0
     for a in candidates:
         if not a.get("_llm_category") or a["_llm_category"] not in VALID_CATEGORIES:
             a["_llm_category"] = "industry_business"
+            unclassified_count += 1
+    if unclassified_count:
+        print(f"    [분류] 미분류 {unclassified_count}개 → industry_business 기본값 적용")
 
     # 카테고리별 그룹 통계 + 편중 경고
     total_cands = len(candidates)
@@ -1849,6 +1854,7 @@ def selector_node(state: NewsGraphState) -> dict:
             if c.get("_llm_category") == cat
             and c.get("_is_today")
             and (not c.get("_ai_filtered") or cat == "research")
+            and c.get("one_line")  # 요약 실패 기사 하이라이트 제외
         ]
         if not pool:
             print(f"  [선정] {cat}: 당일 후보 없음")
