@@ -141,8 +141,6 @@ export const HighlightedText = React.memo(function HighlightedText({ text, gloss
                 onPress={() => handleTermPress(seg.term!)}
                 style={{
                   ...style,
-                  textDecorationLine: 'underline',
-                  textDecorationStyle: 'dotted',
                   color: colors.summaryIndigo,
                   fontWeight: '600',
                 }}
