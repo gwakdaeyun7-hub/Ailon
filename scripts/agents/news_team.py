@@ -535,6 +535,18 @@ def _apply_batch_results(batch: list[dict], results: list[dict]) -> int:
             # 폴백: glossary_en이 없으면 glossary 사용
             if not batch[ridx].get("glossary_en") and batch[ridx].get("glossary"):
                 batch[ridx]["glossary_en"] = batch[ridx]["glossary"]
+
+    # 진단: results가 있는데 done=0이면 원인 출력
+    if done == 0 and results:
+        sample = results[0] if results else {}
+        if isinstance(sample, dict):
+            keys = list(sample.keys())[:6]
+            idx_val = sample.get("index", sample.get("i", "MISSING"))
+            has_one_line = bool(sample.get("one_line"))
+            has_summary = bool(sample.get("summary"))
+            print(f"    [DIAG] 적용 0건: results={len(results)}개, sample_keys={keys}, index={idx_val}, one_line={has_one_line}, summary={has_summary}")
+        else:
+            print(f"    [DIAG] 적용 0건: results={len(results)}개, sample_type={type(sample).__name__}")
     return done
 
 
@@ -560,7 +572,7 @@ def _process_articles(articles: list[dict], translate: bool, batch_size: int, ma
                 print(f"    [WARN] {label} 배치 {idx + 1} future 실패: {e}")
                 continue
             done = _apply_batch_results(batch, results)
-            if results:
+            if results is not None:
                 print(f"    {label} 배치 {idx + 1}/{len(batches)}: {done}/{len(batch)}개")
 
     # 2차: 실패 기사 병렬 개별 재시도
