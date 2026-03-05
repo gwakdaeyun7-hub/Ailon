@@ -363,12 +363,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
     });
   }, [toggleBookmark, article, lang]);
 
-  const sourceName = getSourceName(article.source_key || '', t);
-  const sourceColor = SOURCE_COLORS[article.source_key || ''] || colors.textSecondary;
 
-  const handleOpenOriginal = () => {
-    if (article.link) Linking.openURL(article.link);
-  };
 
   const handleLike = async () => {
     const result = await toggleLike();
@@ -487,16 +482,6 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
 
             {/* M1: 소스 뱃지 + 날짜 + 조회수 + 읽기 시간 + 북마크 — D4 compact */}
             <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', paddingHorizontal: 20, marginTop: article.image_url ? 16 : 0, gap: 6 }}>
-              {/* M11: Hide source badge if sourceName is empty */}
-              {sourceName ? (
-                <View style={{
-                  backgroundColor: sourceColor + '10',
-                  paddingHorizontal: 7, paddingVertical: 2,
-                  borderRadius: 4,
-                }}>
-                  <Text style={{ fontSize: 11, fontWeight: '600', color: sourceColor }}>{sourceName}</Text>
-                </View>
-              ) : null}
               <Text style={{ fontSize: 12, color: colors.textSecondary }}>{formatDate(article.published, lang)}</Text>
               <Text style={{ fontSize: 12, color: colors.textDim }}>|</Text>
               <Text style={{ fontSize: 12, color: colors.textSecondary }}>{views}</Text>
@@ -645,17 +630,6 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
                   <RelatedArticlesSection relatedIds={relatedIds} />
                 )}
 
-                {/* View Original — D4: filled primary button */}
-                <Pressable
-                  onPress={handleOpenOriginal}
-                  accessibilityLabel={t('modal.view_original')}
-                  accessibilityRole="link"
-                  style={{ marginTop: 20, marginBottom: 16, paddingVertical: 12, borderRadius: 8, backgroundColor: colors.primary, alignItems: 'center' }}
-                >
-                  <Text style={{ fontSize: 13, fontWeight: '600', color: '#FFFFFF' }}>
-                    {t('modal.view_original')}
-                  </Text>
-                </Pressable>
               </View>
             ) : article.summary ? (
               <Text style={{
@@ -669,15 +643,6 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
                 <Text style={{ fontSize: 14, fontWeight: '600', color: colors.textSecondary, marginBottom: 4 }}>
                   {t('modal.no_summary')}
                 </Text>
-                <Text style={{ fontSize: 13, color: colors.textSecondary, marginBottom: 12 }}>
-                  {t('modal.check_original')}
-                </Text>
-                <Pressable
-                  onPress={handleOpenOriginal}
-                  style={{ paddingHorizontal: 20, paddingVertical: 10, backgroundColor: colors.textPrimary, borderRadius: 8 }}
-                >
-                  <Text style={{ color: colors.card, fontSize: 13, fontWeight: '700' }}>{t('modal.view_original')}</Text>
-                </Pressable>
               </View>
             )}
 
