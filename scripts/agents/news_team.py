@@ -457,7 +457,14 @@ Articles:
             if not results:
                 label = "번역+요약" if translate else "요약"
                 print(f"    [WARN] {label} 배치 {batch_idx + 1}: LLM이 빈 결과 반환")
-            return results
+                return None
+            # dict가 아닌 항목(str 등)이 섞여 있으면 실패 처리
+            dicts_only = [r for r in results if isinstance(r, dict)]
+            if not dicts_only:
+                label = "번역+요약" if translate else "요약"
+                print(f"    [WARN] {label} 배치 {batch_idx + 1}: LLM 결과에 dict 없음 (type={type(results[0]).__name__})")
+                return None
+            return dicts_only
     except Exception as e:
         label = "번역+요약" if translate else "요약"
         titles = [a.get("title", "?")[:40] for a in batch]

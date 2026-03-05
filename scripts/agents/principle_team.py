@@ -414,7 +414,7 @@ def content_generator(state: PrincipleGraphState) -> dict:
     if not seed:
         return {"errors": ["content_generator: seed가 비어있음"]}
 
-    llm = get_llm(temperature=0.4, max_tokens=8192, thinking=False, json_mode=True)
+    llm = get_llm(temperature=0.4, max_tokens=12288, thinking=False, json_mode=True)
 
     prompt = _CONTENT_PROMPT.format(
         discipline_name=seed["discipline_name"],
@@ -507,8 +507,19 @@ def verifier(state: PrincipleGraphState) -> dict:
         content_json=json.dumps(content, ensure_ascii=False, indent=2)[:8000],
     )
 
-    response = _llm_invoke_with_retry(llm, [HumanMessage(content=prompt)])
-    verification = _safe_json_parse(response.content)
+    # JSON 파싱 실패 시 1회 재시도
+    verification = None
+    for attempt in range(2):
+        try:
+            response = _llm_invoke_with_retry(llm, [HumanMessage(content=prompt)])
+            verification = _safe_json_parse(response.content)
+            break
+        except json.JSONDecodeError as e:
+            if attempt == 0:
+                print(f"  [verifier] JSON 파싱 실패, 재시도: {e.msg}")
+                time.sleep(1)
+            else:
+                raise
 
     verified = verification.get("verified", False)
     confidence = verification.get("confidence", 0.0)
