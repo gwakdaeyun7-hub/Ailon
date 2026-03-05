@@ -13,6 +13,10 @@ interface Props {
   text: string;
   glossaryTerms: GlossaryTerm[];
   style?: any;
+  /** 이미 다른 곳에서 감지된 용어 키 Set — 이 용어들은 하이라이트하지 않음 */
+  usedTermKeys?: Set<string>;
+  /** 이 컴포넌트에서 감지된 용어 키를 상위로 알려주는 콜백 */
+  onTermsDetected?: (keys: string[]) => void;
 }
 
 /** 매칭 위치가 단어 경계인지 검사. 앞뒤가 영문자/숫자면 단어 내부 → false */
@@ -29,6 +33,11 @@ function isWordBoundary(text: string, start: number, len: number): boolean {
   return true;
 }
 
+/** 용어의 고유 키 생성 */
+export function termKey(t: GlossaryTerm): string {
+  return ((t.term_ko ?? '').toLowerCase() + '|' + (t.term_en ?? '').toLowerCase());
+}
+
 /** 너무 당연한 용어는 하이라이트하지 않음 */
 const COMMON_TERMS = new Set([
   // 영어
@@ -42,7 +51,7 @@ const COMMON_TERMS = new Set([
   '클라우드', '소프트웨어', '하드웨어', '모델', '기술',
 ]);
 
-export const HighlightedText = React.memo(function HighlightedText({ text, glossaryTerms, style }: Props) {
+export const HighlightedText = React.memo(function HighlightedText({ text, glossaryTerms, style, usedTermKeys, onTermsDetected }: Props) {
   const { lang } = useLanguage();
   const { colors } = useTheme();
   const [popover, setPopover] = useState<GlossaryTerm | null>(null);
@@ -57,7 +66,9 @@ export const HighlightedText = React.memo(function HighlightedText({ text, gloss
     const filtered = glossaryTerms.filter(t => {
       const en = (t.term_en ?? '').toLowerCase();
       const ko = (t.term_ko ?? '').toLowerCase();
-      return !COMMON_TERMS.has(en) && !COMMON_TERMS.has(ko);
+      if (COMMON_TERMS.has(en) || COMMON_TERMS.has(ko)) return false;
+      if (usedTermKeys && usedTermKeys.has(termKey(t))) return false;
+      return true;
     });
 
     // Sort by term length (longest first) to avoid partial matches
@@ -69,6 +80,7 @@ export const HighlightedText = React.memo(function HighlightedText({ text, gloss
 
     type Segment = { text: string; term: GlossaryTerm | null };
     let result: Segment[] = [{ text, term: null }];
+    const detectedKeys: string[] = [];
 
     for (const term of sorted) {
       const termText = lang === 'en' ? term.term_en : term.term_ko;
@@ -93,6 +105,7 @@ export const HighlightedText = React.memo(function HighlightedText({ text, gloss
             }
             newResult.push({ text: seg.text.slice(idx, idx + termText.length), term });
             lastIdx = idx + termText.length;
+            detectedKeys.push(termKey(term));
             break; // 첫 번째만 감지
           }
           idx = lowerSeg.indexOf(lowerTerm, idx + 1); // 경계 아니면 다음 위치 시도
@@ -106,8 +119,12 @@ export const HighlightedText = React.memo(function HighlightedText({ text, gloss
       }
       result = newResult;
     }
+    if (onTermsDetected && detectedKeys.length > 0) {
+      onTermsDetected(detectedKeys);
+    }
+
     return result;
-  }, [text, glossaryTerms, lang]);
+  }, [text, glossaryTerms, lang, usedTermKeys]);
 
   const handleTermPress = useCallback((term: GlossaryTerm) => {
     setPopover(term);

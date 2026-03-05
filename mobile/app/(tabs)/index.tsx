@@ -44,7 +44,7 @@ import type { BatchStats } from '@/hooks/useBatchStats';
 import { DailyBriefingCard } from '@/components/briefing/DailyBriefingCard';
 
 import { RelatedArticlesSection } from '@/components/shared/RelatedArticlesSection';
-import { HighlightedText } from '@/components/shared/HighlightedText';
+import { HighlightedText, termKey } from '@/components/shared/HighlightedText';
 import { PersonalizedFeed } from '@/components/feed/PersonalizedFeed';
 import { useGlossaryDB } from '@/hooks/useGlossaryDB';
 
@@ -322,6 +322,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
   const insets = useSafeAreaInsets();
   const [toastMsg, setToastMsg] = useState('');
   const [glossaryOpen, setGlossaryOpen] = useState(false);
+  const [usedTermKeys, setUsedTermKeys] = useState<Set<string>>(new Set());
   const toastOpacity = useRef(new Animated.Value(0)).current;
   const { allTerms: glossaryDBTerms } = useGlossaryDB();
   // articles 컬렉션에서 related_ids 조회 (daily_news에는 없음)
@@ -349,6 +350,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
       viewTrackedLink.current = article.link;
       trackView();
       setGlossaryOpen(false);
+      setUsedTermKeys(new Set());
     }
   }, [article, trackView]);
 
@@ -400,6 +402,14 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
       console.warn('Share failed:', err);
     }
   };
+
+  const handleTermsDetected = useCallback((keys: string[]) => {
+    setUsedTermKeys(prev => {
+      const next = new Set(prev);
+      for (const k of keys) next.add(k);
+      return next.size === prev.size ? prev : next;
+    });
+  }, []);
 
   // M7: Single useMemo replacing both IIFEs
   const { oneLine, keyPoints, whyImportant, background, tags, glossary, readMin } = useMemo(() => {
@@ -566,6 +576,8 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
                           text={point}
                           glossaryTerms={glossaryDBTerms}
                           style={{ fontSize: 14, color: colors.summaryBody, lineHeight: 23, flex: 1 }}
+                          usedTermKeys={usedTermKeys}
+                          onTermsDetected={handleTermsDetected}
                         />
                       </View>
                     ))}
@@ -580,6 +592,8 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
                       text={whyImportant}
                       glossaryTerms={glossaryDBTerms}
                       style={{ fontSize: 14, color: colors.summaryBody, lineHeight: 23 }}
+                      usedTermKeys={usedTermKeys}
+                      onTermsDetected={handleTermsDetected}
                     />
                   </View>
                 ) : null}
