@@ -18,7 +18,6 @@ collector --> [en_process, ko_process] (병렬 Send) --> categorizer --> ranker 
 import json
 import re
 import time
-import traceback
 from datetime import datetime, timedelta, timezone
 from difflib import SequenceMatcher
 from typing import Annotated, TypedDict
@@ -458,7 +457,9 @@ Articles:
             return results
     except Exception as e:
         label = "번역+요약" if translate else "요약"
-        print(f"    [WARN] {label} 배치 {batch_idx + 1} 실패: {e}")
+        titles = [a.get("title", "?")[:40] for a in batch]
+        print(f"    [WARN] {label} 배치 {batch_idx + 1} 실패: {type(e).__name__}: {e}")
+        print(f"    [WARN] 영향 기사: {titles}")
     return None
 
 
@@ -760,8 +761,7 @@ def _safe_node(node_name: str):
                 result = fn(state)
             except Exception as e:
                 elapsed = time.time() - t0
-                print(f"  [ERROR] {node_name} 노드 실패 ({elapsed:.1f}s): {e}")
-                traceback.print_exc()
+                print(f"  [ERROR] {node_name} 노드 실패 ({elapsed:.1f}s): {type(e).__name__}: {e}")
                 result = {"errors": [f"{node_name}: {e}"]}
             elapsed = time.time() - t0
             # 방어: 노드가 None이나 비-dict를 반환한 경우 빈 dict로 대체

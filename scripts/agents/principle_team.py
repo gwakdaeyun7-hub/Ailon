@@ -19,6 +19,8 @@ from typing import Annotated, TypedDict
 from langchain_core.messages import HumanMessage
 from langgraph.graph import StateGraph, END
 
+from google.cloud.firestore_v1.base_query import FieldFilter
+
 from agents.config import get_llm, get_firestore_client
 from agents.principle_seeds import PRINCIPLE_SEEDS
 
@@ -113,6 +115,66 @@ def _safe_json_parse(text: str) -> dict:
                 return json.loads(candidate[start:end+1])
             except json.JSONDecodeError:
                 continue
+
+    # 4차: 잘린 JSON 객체 복구 (max_tokens로 잘린 경우)
+    for candidate in [text, fixed]:
+        brace_idx = candidate.find('{')
+        if brace_idx == -1:
+            continue
+        depth = 0
+        in_str = False
+        esc = False
+        last_close = -1
+        reached_zero = False
+        for i, ch in enumerate(candidate[brace_idx:], start=brace_idx):
+            if esc:
+                esc = False
+                continue
+            if ch == '\\' and in_str:
+                esc = True
+                continue
+            if ch == '"' and not esc:
+                in_str = not in_str
+                continue
+            if not in_str:
+                if ch in ('{', '['):
+                    depth += 1
+                elif ch in ('}', ']'):
+                    depth -= 1
+                    last_close = i
+                    if depth == 0:
+                        reached_zero = True
+        if depth > 0 and not reached_zero and last_close > brace_idx:
+            truncated = candidate[brace_idx:last_close + 1]
+            truncated = re.sub(r'[,\s]+$', '', truncated)
+            # 열린 괄호 닫기
+            close_stack = []
+            s_in_str = False
+            s_esc = False
+            for ch in truncated:
+                if s_esc:
+                    s_esc = False
+                    continue
+                if ch == '\\' and s_in_str:
+                    s_esc = True
+                    continue
+                if ch == '"' and not s_esc:
+                    s_in_str = not s_in_str
+                if not s_in_str:
+                    if ch == '{':
+                        close_stack.append('}')
+                    elif ch == '[':
+                        close_stack.append(']')
+                    elif ch in ('}', ']') and close_stack:
+                        close_stack.pop()
+            truncated += ''.join(reversed(close_stack))
+            try:
+                result = json.loads(truncated)
+                print(f"    [JSON 복구] 잘린 객체 복구 성공")
+                return result
+            except json.JSONDecodeError:
+                pass
+
     raise json.JSONDecodeError("No valid JSON found", text[:200], 0)
 
 
@@ -170,9 +232,7 @@ def _safe_node(node_name: str):
                 result = fn(state)
             except Exception as e:
                 elapsed = time.time() - t0
-                import traceback
-                print(f"  [ERROR] {node_name} 노드 실패 ({elapsed:.1f}s): {e}")
-                traceback.print_exc()
+                print(f"  [ERROR] {node_name} 노드 실패 ({elapsed:.1f}s): {type(e).__name__}: {e}")
                 result = {"errors": [f"{node_name}: {e}"]}
             elapsed = time.time() - t0
             if not isinstance(result, dict):
@@ -205,7 +265,7 @@ def seed_selector(state: PrincipleGraphState) -> dict:
         cutoff_str = cutoff.strftime("%Y-%m-%d")
         docs = (
             db.collection("daily_principles")
-            .where("date", ">=", cutoff_str)
+            .where(filter=FieldFilter("date", ">=", cutoff_str))
             .order_by("date", direction="DESCENDING")
             .stream()
         )
@@ -354,7 +414,7 @@ def content_generator(state: PrincipleGraphState) -> dict:
     if not seed:
         return {"errors": ["content_generator: seed가 비어있음"]}
 
-    llm = get_llm(temperature=0.7, max_tokens=4096, thinking=False, json_mode=True)
+    llm = get_llm(temperature=0.4, max_tokens=8192, thinking=False, json_mode=True)
 
     prompt = _CONTENT_PROMPT.format(
         discipline_name=seed["discipline_name"],
