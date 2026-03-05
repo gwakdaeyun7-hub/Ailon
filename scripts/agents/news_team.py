@@ -386,12 +386,12 @@ RULE: Only use facts stated in the provided article text. Never infer, speculate
 
 For each article, produce:
 - {title_rule}
-- one_line: "무슨 일이 일어났는가" -- 사건 자체만 전달하는 헤드라인 1문장 (~이에요/~해요 체)
+- one_line: "무슨 일이 일어났는가" -- 사건 자체만 전달하는 헤드라인 1문장 (~했다/~됐다 체, 뉴스 문어체)
   - "누가 + 무엇을 했다" 구조. 부가 설명·배경·이유·수치 넣지 않음
   - 팩트만 전달. 의견·해석·중요성 평가 금지. 본문에 없는 정보 추가 금지
-  - 예: "OpenAI가 GPT-5를 공식 출시했어요"
-  - 예: "Meta가 Llama 4를 오픈소스로 공개했어요"
-- key_points: one_line을 읽은 사람이 추가로 알아야 할 구체적 세부 정보 정확히 3개 (각 1문장, ~이에요/~해요 체)
+  - 예: "OpenAI가 GPT-5를 공식 출시했다"
+  - 예: "Meta가 Llama 4를 오픈소스로 공개했다"
+- key_points: one_line을 읽은 사람이 추가로 알아야 할 구체적 세부 정보 정확히 3개 (각 1문장, 개조식 — 서술어 최소화, "~임/~됨/~함" 또는 명사구로 종결)
   역할: one_line이 "무슨 일"이라면, key_points는 "구체적으로 어떤 스펙·수치·조건인지"를 전달
   추출 우선순위 (기사에 있다면 반드시 포함):
     1순위: 숫자 데이터 (가격, 성능 수치, 파라미터 수, 벤치마크 점수, 날짜, 금액)
@@ -402,11 +402,11 @@ For each article, produce:
     - 각 key_point끼리도 서로 다른 정보를 전달해야 함
   본문에 구체적 팩트가 부족하면 2개도 허용하지만 4개 이상은 절대 불가
   금지 패턴 (이런 문장은 key_points에 넣지 말 것):
-    - "~관심을 받고 있어요" / "~주목받고 있어요" (관심·주목 표현)
-    - "~할 것으로 보여요" / "~할 전망이에요" (추측·전망)
-    - "업계에서 ~로 평가받고 있어요" (막연한 평가)
+    - "~관심을 받고 있음" / "~주목받고 있음" (관심·주목 표현)
+    - "~할 것으로 보임" / "~할 전망" (추측·전망)
+    - "업계에서 ~로 평가받고 있음" (막연한 평가)
     - 고유명사·숫자·스펙이 하나도 없는 문장
-  예: one_line="OpenAI가 GPT-5를 공식 출시했어요" → key_points=["컨텍스트 윈도우가 256K 토큰으로 GPT-4 대비 2배로 늘었어요", "API 가격은 입력 $5/출력 $15 per 1M 토큰으로 GPT-4 대비 50% 인하됐어요", "이미지·오디오·비디오 입력을 네이티브로 지원해요"]
+  예: one_line="OpenAI가 GPT-5를 공식 출시했다" → key_points=["컨텍스트 윈도우 256K 토큰, GPT-4 대비 2배 확대", "API 가격 입력 $5/출력 $15 per 1M 토큰, GPT-4 대비 50% 인하", "이미지·오디오·비디오 입력 네이티브 지원"]
 - why_important: 업계/개발자에게 미치는 구체적 영향 -- 1~2문장, ~이에요/~해요 체
   - one_line·key_points에 이미 나온 정보 반복 금지. 새로운 관점(영향·결과)만 서술
   - 반드시 구체적 대상(누구에게)과 구체적 변화(무엇이 어떻게 달라지는지)를 명시
@@ -414,10 +414,10 @@ For each article, produce:
   - 좋은 예: "오픈소스 개발자들이 상용 수준 모델을 무료로 파인튜닝할 수 있게 돼요"
   - 좋은 예: "기존 GPT-4 API 사용자는 코드 수정 없이 자동으로 업그레이드돼요"
 {en_fields_rule}
-- background: 이 뉴스를 이해하기 위한 배경 맥락 1~2문장 (~이에요/~해요 체)
-  - 이전 사건이나 관련 배경 정보를 포함해요
+- background: 이 뉴스를 이해하기 위한 배경 맥락 1~2문장 (~했다/~됐다 체, 뉴스 문어체)
+  - 이전 사건이나 관련 배경 정보를 포함
   - 기사 본문 외 일반 상식·배경 지식 사용 허용
-  - 예: "OpenAI는 지난해 GPT-4o를 출시하며 멀티모달 AI 경쟁을 이끌어왔어요"
+  - 예: "OpenAI는 지난해 GPT-4o를 출시하며 멀티모달 AI 경쟁을 이끌어왔다"
 - background_en: English version of background (1-2 sentences)
 - tags: 이 기사의 핵심 키워드 2~4개 배열 (한국어)
   - 예: ["OpenAI", "GPT-5", "멀티모달"]
@@ -1812,10 +1812,14 @@ def selector_node(state: NewsGraphState) -> dict:
     category_order = ["research", "models_products", "industry_business"]
 
     # 카테고리 소스(Tier 1/2): 5일치 표시, 소스별 섹션(Tier 3)은 assembler에서 최신 10개 처리
-    candidates = [c for c in all_candidates if _is_recent(c, days=5)]
-    older = len(all_candidates) - len(candidates)
+    # 중복(_deduped) 기사도 제외 -- ranker에서 0점이지만 기사 수 부족 시 노출 가능하므로 명시적 필터
+    candidates = [c for c in all_candidates if _is_recent(c, days=5) and not c.get("_deduped")]
+    older = sum(1 for c in all_candidates if not _is_recent(c, days=5))
+    deduped_excluded = sum(1 for c in all_candidates if c.get("_deduped"))
     if older:
         print(f"  [선정] 5일 이전 기사 {older}개 표시 제외 (수집 보존)")
+    if deduped_excluded:
+        print(f"  [선정] 중복 기사 {deduped_excluded}개 제외")
 
     if not candidates:
         return {
@@ -1936,7 +1940,7 @@ def assembler_node(state: NewsGraphState) -> dict:
             source_order.append(key)
             all_articles = sources[key]
             # 최근 5일 이내 기사만 (주간 인기 등 오래된 기사 제외)
-            recent = [a for a in all_articles if _is_recent(a, days=5) and not a.get("_ai_filtered")]
+            recent = [a for a in all_articles if _is_recent(a, days=5) and not a.get("_ai_filtered") and not a.get("_deduped")]
             if len(recent) < len(all_articles):
                 print(f"    [{key}] 날짜 필터: {len(all_articles) - len(recent)}개 제외 (5일 초과)")
             sorted_articles = sorted(recent, key=_pub_key, reverse=True)
