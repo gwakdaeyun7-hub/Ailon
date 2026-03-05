@@ -159,11 +159,18 @@ def _parse_llm_json(text: str):
     text = re.sub(r'\[\s*\*+', '[{', text)
     text = re.sub(r'\*+\s*\]', '}]', text)
     text = re.sub(r'\*+\s*,\s*\*+', '},{', text)
+    # "value"*** → "value"} 패턴 (닫는 중괄호)
+    text = re.sub(r'"\s*\*{2,}', '"} ', text)
     # 남은 ***: 뒤에 " 가 오면 { (객체 시작), 아니면 } (객체 끝)
-    def _star_to_brace(m):
-        after = text[m.end():].lstrip()
-        return '{' if after and after[0] == '"' else '}'
-    text = re.sub(r'\*{2,}', _star_to_brace, text)
+    # re.sub 진행 중 text 위치 어긋남 방지: 매번 최신 text 참조
+    while re.search(r'\*{2,}', text):
+        def _star_to_brace(m):
+            after = text[m.end():].lstrip()
+            return '{' if after and after[0] == '"' else '}'
+        new_text = re.sub(r'\*{2,}', _star_to_brace, text, count=1)
+        if new_text == text:
+            break
+        text = new_text
     text = text.strip()
 
     if not text:
