@@ -28,7 +28,6 @@ from generate_features import (
     generate_daily_briefing,
     accumulate_glossary, build_timeline,
     patch_daily_news_ids,
-    generate_story_timeline,
 )
 
 _KST = timezone(timedelta(hours=9))
@@ -288,10 +287,6 @@ def run_news():
         build_timeline(news_result)
     except Exception as e:
         print(f"  [타임라인 실패] {e}")
-    try:
-        generate_story_timeline(news_result)
-    except Exception as e:
-        print(f"  [스토리 타임라인 실패] {e}")
     try:
         patch_daily_news_ids(news_result)
     except Exception as e:

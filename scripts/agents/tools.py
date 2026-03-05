@@ -513,3 +513,8 @@ def enrich_and_scrape(sources: dict[str, list[dict]]) -> None:
                 print(f"    [SCRAPE future] {article.get('link', '?')[:60]}: {type(e).__name__}")
 
     print(f"  [fetch] 본문 {body_found}/{len(tasks)}개, 이미지 보강 {img_enriched}개")
+    failed_urls = [a["link"][:80] for a in tasks if not a.get("body") and a.get("link")]
+    if failed_urls:
+        print(f"  [fetch] 본문 실패 {len(failed_urls)}개:")
+        for u in failed_urls[:5]:
+            print(f"    - {u}")

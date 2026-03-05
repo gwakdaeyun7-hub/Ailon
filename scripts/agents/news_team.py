@@ -713,7 +713,7 @@ Return the indices as a JSON array:
 [0, 2, 5]"""
 
     try:
-        llm = get_llm(temperature=0.0, max_tokens=2048, thinking=False, json_mode=True)
+        llm = get_llm(temperature=0.0, max_tokens=4096, thinking=False, json_mode=True)
         content = _llm_invoke_with_retry(llm, prompt, max_retries=1)
         result = _parse_llm_json(content)
         if isinstance(result, list):
@@ -966,10 +966,9 @@ def _deduplicate_candidates(candidates: list[dict], mark_only: bool = False, thr
     Layer 1: URL 완전 일치
     Layer 2: 원본 제목(영문) 유사도 (>=0.40)
     Layer 3: 번역 제목(한국어) 유사도 (>=0.40)
-    Layer 4: 엔티티 교집합(>=1) + topic_cluster_id 일치
-    Layer 5: one_line(한줄 요약) 유사도 (>=0.45)
-    Layer 6: 핵심 토큰(고유명사 2개+숫자 1개) 겹침
-    Layer 7: 임베딩 코사인 유사도 (>=0.85)
+    Layer 4: one_line(한줄 요약) 유사도 (>=0.45)
+    Layer 5: 핵심 토큰(고유명사 2개+숫자 1개) 겹침
+    Layer 6: 임베딩 코사인 유사도 (>=0.85)
     발행일 가장 오래된(원본) 기사 유지.
     중복 판정 시 _dedup_of 에 원본 기사 link 저장.
     mark_only=True 면 제거 대신 _deduped=True 마킹 (전체 리스트 반환).
@@ -1023,9 +1022,6 @@ def _deduplicate_candidates(candidates: list[dict], mark_only: bool = False, thr
         orig_title = _normalize_title(c.get("title", ""))
         # Layer 3: 번역 제목(한국어) 유사도
         disp_title = _normalize_title(c.get("display_title") or c.get("title", ""))
-        # Layer 4 준비: 엔티티 이름 집합 + topic_cluster_id
-        c_entities = {e.get("name", "").lower() for e in c.get("entities", []) if e.get("name")}
-        c_cluster = c.get("topic_cluster_id", "")
         # Layer 5 준비: one_line 정규화
         c_oneline = _normalize_title(c.get("one_line", ""))
         # Layer 6 준비: 핵심 토큰 (고유명사·숫자)
@@ -1048,14 +1044,6 @@ def _deduplicate_candidates(candidates: list[dict], mark_only: bool = False, thr
                 is_dup = True
                 matched_kept = k
                 break
-            # Layer 4: 엔티티 교집합 + topic_cluster_id 동일
-            if c_entities and c_cluster:
-                k_entities = {e.get("name", "").lower() for e in k.get("entities", []) if e.get("name")}
-                k_cluster = k.get("topic_cluster_id", "")
-                if k_entities and k_cluster and c_cluster == k_cluster and len(c_entities & k_entities) >= 1:
-                    is_dup = True
-                    matched_kept = k
-                    break
             # Layer 5: one_line(한줄 요약) 유사도
             if c_oneline:
                 k_oneline = _normalize_title(k.get("one_line", ""))
@@ -1230,7 +1218,8 @@ def _rank_category(articles: list[dict], category: str) -> list[tuple[int, int, 
     )
 
     try:
-        llm = get_llm(temperature=0.0, max_tokens=2048, thinking=False, json_mode=True)
+        token_budget = max(2048, count * 40)
+        llm = get_llm(temperature=0.0, max_tokens=token_budget, thinking=False, json_mode=True)
         content = _llm_invoke_with_retry(llm, prompt, max_retries=2)
         ranking = _parse_llm_json(content)
 
@@ -1413,9 +1402,8 @@ def categorizer_node(state: NewsGraphState) -> dict:
     if not candidates:
         return {"scored_candidates": []}
 
-    # Tier 1/2는 중복제거 없이 전부 통과 — _deduped=False 마킹만
-    for c in candidates:
-        c["_deduped"] = False
+    # 다층 중복제거: mark_only=True → 제거 대신 _deduped=True 마킹 (ranker에서 제외)
+    candidates = _deduplicate_candidates(candidates, mark_only=True)
 
     today_count = 0
     for c in candidates:
@@ -1469,10 +1457,46 @@ def categorizer_node(state: NewsGraphState) -> dict:
         if not a.get("_llm_category") or a["_llm_category"] not in VALID_CATEGORIES:
             a["_llm_category"] = "industry_business"
 
-    # 카테고리별 그룹 통계
+    # 카테고리별 그룹 통계 + 편중 경고
+    total_cands = len(candidates)
     for cat in VALID_CATEGORIES:
-        count = sum(1 for a in candidates if a.get("_llm_category") == cat)
-        print(f"    [그룹] {cat}: {count}개")
+        cat_count = sum(1 for a in candidates if a.get("_llm_category") == cat)
+        ratio = cat_count / total_cands if total_cands else 0
+        print(f"    [그룹] {cat}: {cat_count}개")
+        if ratio > 0.60:
+            print(f"    [분류 편향 경고] {cat}: {cat_count}/{total_cands}개 ({ratio:.0%}) — 60% 초과")
+
+    # ── QA: 카테고리별 기사 제목 + 의심 분류 경고 ──
+    _SUSPECT_KEYWORDS = {
+        "research": ["투자", "인수", "합병", "매출", "IPO", "펀딩", "시장", "매각", "계약"],
+        "industry_business": ["논문", "알고리즘", "벤치마크", "데이터셋", "arxiv", "학습률", "파인튜닝"],
+        "models_products": [],
+    }
+    suspect_count = 0
+    print("    ── [QA] 카테고리별 분류 기사 목록 ──")
+    for cat in sorted(VALID_CATEGORIES):
+        cat_articles = [a for a in candidates if a.get("_llm_category") == cat]
+        print(f"    [{cat}] ({len(cat_articles)}건)")
+        for a in cat_articles:
+            title = a.get("display_title") or a.get("title", "(제목 없음)")
+            flags = []
+            if a.get("_ai_filtered"):
+                flags.append("비AI")
+            if a.get("_deduped"):
+                flags.append("중복")
+            flag_str = f" [{', '.join(flags)}]" if flags else ""
+            # 의심 키워드 검사
+            keywords = _SUSPECT_KEYWORDS.get(cat, [])
+            matched = [kw for kw in keywords if kw.lower() in title.lower()]
+            warn = ""
+            if matched:
+                suspect_count += 1
+                warn = f" ⚠ 의심({', '.join(matched)})"
+            print(f"      - {title}{flag_str}{warn}")
+    if suspect_count:
+        print(f"    ── [QA] 의심 분류 {suspect_count}건 감지 — 수동 확인 권장 ──")
+    else:
+        print("    ── [QA] 의심 분류 없음 ──")
 
     return {"scored_candidates": candidates}
 
@@ -1875,7 +1899,7 @@ def assembler_node(state: NewsGraphState) -> dict:
             source_order.append(key)
             all_articles = sources[key]
             # 최근 5일 이내 기사만 (주간 인기 등 오래된 기사 제외)
-            recent = [a for a in all_articles if _is_recent(a, days=5)]
+            recent = [a for a in all_articles if _is_recent(a, days=5) and not a.get("_ai_filtered")]
             if len(recent) < len(all_articles):
                 print(f"    [{key}] 날짜 필터: {len(all_articles) - len(recent)}개 제외 (5일 초과)")
             sorted_articles = sorted(recent, key=_pub_key, reverse=True)

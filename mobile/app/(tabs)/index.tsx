@@ -42,7 +42,6 @@ import { FontFamily } from '@/lib/theme';
 import type { Language } from '@/lib/translations';
 import type { BatchStats } from '@/hooks/useBatchStats';
 import { DailyBriefingCard } from '@/components/briefing/DailyBriefingCard';
-import { StoryTimeline } from '@/components/shared/StoryTimeline';
 
 import { RelatedArticlesSection } from '@/components/shared/RelatedArticlesSection';
 import { HighlightedText } from '@/components/shared/HighlightedText';
@@ -486,18 +485,18 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
                     paddingHorizontal: 7, paddingVertical: 2,
                     borderRadius: 4,
                   }}>
-                    <Text style={{ fontSize: 10, fontWeight: '600', color: sourceColor }}>{sourceName}</Text>
+                    <Text style={{ fontSize: 11, fontWeight: '600', color: sourceColor }}>{sourceName}</Text>
                   </View>
                 ) : null}
                 <Text style={{ fontSize: 12, color: colors.textSecondary }}>{formatDate(article.published, lang)}</Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
                   <Eye size={11} color={colors.textSecondary} />
-                  <Text style={{ fontSize: 10, color: colors.textSecondary, fontWeight: '600' }}>{views}</Text>
+                  <Text style={{ fontSize: 11, color: colors.textSecondary, fontWeight: '600' }}>{views}</Text>
                 </View>
                 {/* M1: Reading time in metadata row */}
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
                   <Clock size={11} color={colors.textSecondary} />
-                  <Text style={{ fontSize: 10, color: colors.textSecondary, fontWeight: '600' }}>
+                  <Text style={{ fontSize: 11, color: colors.textSecondary, fontWeight: '600' }}>
                     {lang === 'en' ? `${readMin}min` : `${readMin}분`}
                   </Text>
                 </View>
@@ -528,7 +527,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
             <Text
               accessibilityRole="header"
               style={{
-                fontSize: 24, fontWeight: '700', color: colors.textPrimary, lineHeight: 34,
+                fontSize: 24, fontWeight: '700', color: colors.textPrimary, lineHeight: 36,
                 letterSpacing: -0.5,
                 marginTop: 18, marginBottom: 20,
                 paddingHorizontal: 28, fontFamily: FontFamily.serif,
@@ -545,7 +544,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
               <View style={{ paddingHorizontal: 28, marginBottom: 16 }}>
                 {/* 1. One Line (Hook) */}
                 <View style={{ marginBottom: 24, backgroundColor: colors.highlightBg, borderRadius: 14, padding: 18 }}>
-                  <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 1.5, color: colors.summaryIndigo, marginBottom: 8 }}>{t('modal.one_line').toUpperCase()}</Text>
+                  <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 1.0, color: colors.summaryIndigo, marginBottom: 8 }}>{t('modal.one_line').toUpperCase()}</Text>
                   <Text style={{ fontSize: 17, color: colors.textPrimary, lineHeight: 26, fontWeight: '600' }}>
                     {oneLine}
                   </Text>
@@ -555,10 +554,10 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
                 {/* 2. Background (Bridge — context before details) */}
                 {background ? (
                   <View style={{ marginBottom: 24 }}>
-                    <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 1.5, color: colors.textSecondary, marginBottom: 8 }}>
+                    <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 1.0, color: colors.textSecondary, marginBottom: 8 }}>
                       {t('modal.background').toUpperCase()}
                     </Text>
-                    <Text style={{ fontSize: 15, color: colors.summaryBody, lineHeight: 24 }}>
+                    <Text style={{ fontSize: 16, color: colors.summaryBody, lineHeight: 27 }}>
                       {background}
                     </Text>
                     <View style={{ height: 0.5, backgroundColor: colors.border, opacity: 0.7, marginTop: 24 }} />
@@ -568,11 +567,11 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
                 {/* 3. Key Points (Detail — now with context) */}
                 {keyPoints.length > 0 && (
                   <View style={{ marginBottom: 24 }}>
-                    <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 1.5, color: colors.summaryTeal, marginBottom: 12 }}>{t('modal.key_points').toUpperCase()}</Text>
+                    <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 1.0, color: colors.summaryTeal, marginBottom: 12 }}>{t('modal.key_points').toUpperCase()}</Text>
                     {keyPoints.map((point, idx) => (
                       <View key={idx} style={{ flexDirection: 'row', marginBottom: 16, paddingRight: 4, alignItems: 'flex-start' }}>
                         <View style={{
-                          width: 22, height: 22, borderRadius: 11,
+                          width: 24, height: 24, borderRadius: 12,
                           backgroundColor: 'transparent',
                           borderWidth: 1.5,
                           borderColor: colors.summaryTeal,
@@ -584,7 +583,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
                         <HighlightedText
                           text={point}
                           glossaryTerms={glossaryDBTerms}
-                          style={{ fontSize: 15, color: colors.summaryBody, lineHeight: 24, flex: 1 }}
+                          style={{ fontSize: 16, color: colors.summaryBody, lineHeight: 27, flex: 1 }}
                         />
                       </View>
                     ))}
@@ -595,11 +594,11 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
                 {/* 4. Why Important (So What — natural conclusion) */}
                 {whyImportant ? (
                   <View style={{ marginBottom: 24 }}>
-                    <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 1.5, color: colors.summaryWarnText, marginBottom: 8 }}>{t('modal.why_important').toUpperCase()}</Text>
+                    <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 1.0, color: colors.summaryWarnText, marginBottom: 8 }}>{t('modal.why_important').toUpperCase()}</Text>
                     <HighlightedText
                       text={whyImportant}
                       glossaryTerms={glossaryDBTerms}
-                      style={{ fontSize: 15, color: colors.summaryBody, lineHeight: 24 }}
+                      style={{ fontSize: 16, color: colors.summaryBody, lineHeight: 27 }}
                     />
                     <View style={{ height: 0.5, backgroundColor: colors.border, opacity: 0.7, marginTop: 24 }} />
                   </View>
@@ -608,7 +607,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
                 {/* M13: Tags section heading + 키워드 태그 (M3: t() key) */}
                 {tags && tags.length > 0 ? (
                   <View style={{ marginBottom: glossary.length > 0 ? 24 : 0 }}>
-                    <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 1.5, color: colors.textSecondary, marginBottom: 10 }}>
+                    <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 1.0, color: colors.textSecondary, marginBottom: 10 }}>
                       {t('modal.tags').toUpperCase()}
                     </Text>
                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
@@ -646,7 +645,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
                       <View style={{ paddingHorizontal: 14, paddingBottom: 14 }}>
                         {glossary.map((item, idx) => (
                           <View key={idx} style={{ marginBottom: idx < glossary.length - 1 ? 10 : 0 }}>
-                            <Text style={{ fontSize: 13, fontWeight: '700', color: colors.summaryIndigo, marginBottom: 2 }}>{item.term}</Text>
+                            <Text style={{ fontSize: 13, fontWeight: '700', color: colors.summaryIndigo, marginBottom: 2, lineHeight: 20 }}>{item.term}</Text>
                             <Text style={{ fontSize: 13, color: colors.summaryBody, lineHeight: 20 }}>{item.desc}</Text>
                           </View>
                         ))}
@@ -1456,9 +1455,6 @@ export default function NewsScreen() {
           <>
             {/* Daily Briefing */}
             <DailyBriefingCard />
-
-            {/* Story Timeline (above highlights) */}
-            <StoryTimeline date={newsData?.date ?? ''} />
 
             {/* Section 1: 하이라이트 */}
             <HighlightSection highlights={highlights} onArticlePress={handleArticlePress} allStats={allStats} />
