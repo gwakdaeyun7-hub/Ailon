@@ -475,7 +475,8 @@ def _scrape_body_and_image(url: str) -> tuple[str, str]:
 
         text = trafilatura.extract(downloaded)
         return (text[:3000] if text else ""), image_url
-    except Exception:
+    except Exception as e:
+        print(f"    [SCRAPE] {url[:80]}: {type(e).__name__}")
         return "", ""
 
 
@@ -507,7 +508,8 @@ def enrich_and_scrape(sources: dict[str, list[dict]]) -> None:
                 if img and not article.get("image_url"):
                     article["image_url"] = img
                     img_enriched += 1
-            except Exception:
+            except Exception as e:
                 article["body"] = ""
+                print(f"    [SCRAPE future] {article.get('link', '?')[:60]}: {type(e).__name__}")
 
     print(f"  [fetch] 본문 {body_found}/{len(tasks)}개, 이미지 보강 {img_enriched}개")

@@ -172,8 +172,8 @@ def _safe_json_parse(text: str) -> dict:
                 result = json.loads(truncated)
                 print(f"    [JSON 복구] 잘린 객체 복구 성공")
                 return result
-            except json.JSONDecodeError:
-                pass
+            except json.JSONDecodeError as e:
+                print(f"    [JSON 복구 실패] 잘린 객체 복구 시도 실패: {e.msg}")
 
     raise json.JSONDecodeError("No valid JSON found", text[:200], 0)
 

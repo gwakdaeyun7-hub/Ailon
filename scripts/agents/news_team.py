@@ -276,8 +276,8 @@ def _parse_llm_json(text: str):
                 result = json.loads(truncated)
                 print(f"    [JSON 복구] 잘린 객체 복구 성공")
                 return result
-            except json.JSONDecodeError:
-                pass
+            except json.JSONDecodeError as e:
+                print(f"    [JSON 복구 실패] 잘린 객체 복구 시도 실패: {e.msg}")
 
     # 5차: depth 기반 추출 — 중첩/오염된 텍스트에서 유효한 JSON 영역만 추출
     for start_char, end_char in [('[', ']'), ('{', '}')]:
@@ -454,6 +454,9 @@ Articles:
         if isinstance(results, dict):
             results = next((v for v in results.values() if isinstance(v, list)), [])
         if isinstance(results, list):
+            if not results:
+                label = "번역+요약" if translate else "요약"
+                print(f"    [WARN] {label} 배치 {batch_idx + 1}: LLM이 빈 결과 반환")
             return results
     except Exception as e:
         label = "번역+요약" if translate else "요약"
@@ -1635,8 +1638,9 @@ def _extract_entities_batch(batch: list[dict], batch_idx: int) -> list[dict]:
                         r = _parse_llm_json(c)
                         if _apply_results(r, [a]) > 0:
                             individual_ok += 1
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        title = a.get("title", "?")[:40]
+                        print(f"      [entity 개별 실패] {title}: {type(e).__name__}")
                 print(f"    [entity batch {batch_idx}] 개별 재시도 {individual_ok}/{len(still_missed)}개 적용")
 
     except Exception as e:

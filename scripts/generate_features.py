@@ -51,6 +51,7 @@ def save_articles_collection(result: dict):
         today = datetime.now(_KST).strftime("%Y-%m-%d")
         unique = _collect_unique_articles(result)
         if not unique:
+            print("  [WARN] articles 저장 생략: 저장할 기사 없음")
             return
 
         batch = db.batch()
@@ -116,6 +117,7 @@ def find_related_articles(result: dict):
     """entity/cluster 기반으로 각 기사에 related_ids를 할당."""
     unique = _collect_unique_articles(result)
     if len(unique) < 3:
+        print(f"  관련 기사 매칭 생략: 기사 {len(unique)}개 (최소 3개 필요)")
         return
 
     for target in unique:
@@ -197,7 +199,9 @@ Articles:
         resp = llm.invoke([HumanMessage(content=prompt)])
         data = _parse_llm_json(resp.content if hasattr(resp, "content") else str(resp))
         if not isinstance(data, dict) or "briefing_ko" not in data:
-            print("  [브리핑 실패] 잘못된 응답 형식")
+            actual_type = type(data).__name__
+            actual_keys = list(data.keys())[:5] if isinstance(data, dict) else str(data)[:100]
+            print(f"  [브리핑 실패] 잘못된 응답 형식: type={actual_type}, keys={actual_keys}")
             return None
 
         mentioned = data.get("mentioned_indices", [])

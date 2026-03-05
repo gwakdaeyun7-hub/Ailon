@@ -142,7 +142,8 @@ def save_news_to_firestore(result: dict):
     # ─── 기존 문서와 병합 (오전+오후 수집 결과 보존) ───
     try:
         existing_doc = doc_ref.get()
-    except Exception:
+    except Exception as e:
+        print(f"  [WARN] 기존 문서 조회 실패 (신규로 저장): {type(e).__name__}: {e}")
         existing_doc = None
 
     if existing_doc and existing_doc.exists:
@@ -319,8 +320,8 @@ def run_principle(force: bool = False):
             if existing.exists:
                 print(f"  [스킵] 오늘({today}) 원리 콘텐츠가 이미 존재합니다. (--force로 덮어쓰기 가능)")
                 return None
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"  [WARN] 기존 원리 콘텐츠 확인 실패 (새로 생성 진행): {type(e).__name__}: {e}")
 
     start = time.time()
     result = run_principle_pipeline()
