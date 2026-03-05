@@ -559,7 +559,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
                       <View key={idx} style={{ flexDirection: 'row', marginBottom: 10, alignItems: 'flex-start', gap: 10 }}>
                         <View style={{
                           width: 6, height: 6, borderRadius: 2,
-                          backgroundColor: colors.summaryTeal,
+                          backgroundColor: colors.primary,
                           marginTop: 7, flexShrink: 0,
                         }} />
                         <HighlightedText
@@ -579,7 +579,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
                     <HighlightedText
                       text={whyImportant}
                       glossaryTerms={glossaryDBTerms}
-                      style={{ fontSize: 14, color: colors.summaryWarnText, lineHeight: 23 }}
+                      style={{ fontSize: 14, color: colors.summaryBody, lineHeight: 23 }}
                     />
                   </View>
                 ) : null}
