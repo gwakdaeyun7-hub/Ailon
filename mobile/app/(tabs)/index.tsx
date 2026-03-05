@@ -22,7 +22,7 @@ import { Image } from 'expo-image';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import {
-  Bell, RefreshCw, ThumbsUp, Eye, Share2, ExternalLink, MessageCircle, X, Cpu, Newspaper, Bookmark, ChevronDown, Clock,
+  Bell, RefreshCw, ThumbsUp, Eye, Share2, MessageCircle, X, Cpu, Newspaper, Bookmark, ChevronDown,
 } from 'lucide-react-native';
 import { useNews } from '@/hooks/useNews';
 import { useDrawer } from '@/context/DrawerContext';
@@ -464,7 +464,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
           >
             {/* 썸네일 */}
             {article.image_url ? (
-              <View style={{ marginHorizontal: 28, borderRadius: 12, overflow: 'hidden', height: 200, backgroundColor: colors.border }}>
+              <View style={{ marginHorizontal: 20, borderRadius: 12, overflow: 'hidden', height: 200, backgroundColor: colors.border }}>
                 <Image
                   source={article.image_url}
                   style={{ width: '100%', height: 200 }}
@@ -475,178 +475,150 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
               </View>
             ) : null}
 
-            {/* M1: 소스 뱃지 + 날짜 + 조회수 + 읽기 시간 + 북마크 (metadata row) */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 28, marginTop: article.image_url ? 16 : 20 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
-                {/* M11: Hide source badge if sourceName is empty */}
-                {sourceName ? (
-                  <View style={{
-                    backgroundColor: sourceColor + '10',
-                    paddingHorizontal: 7, paddingVertical: 2,
-                    borderRadius: 4,
-                  }}>
-                    <Text style={{ fontSize: 11, fontWeight: '600', color: sourceColor }}>{sourceName}</Text>
-                  </View>
-                ) : null}
-                <Text style={{ fontSize: 12, color: colors.textSecondary }}>{formatDate(article.published, lang)}</Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-                  <Eye size={11} color={colors.textSecondary} />
-                  <Text style={{ fontSize: 11, color: colors.textSecondary, fontWeight: '600' }}>{views}</Text>
+            {/* M1: 소스 뱃지 + 날짜 + 조회수 + 읽기 시간 + 북마크 — D4 compact */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', paddingHorizontal: 20, marginTop: article.image_url ? 16 : 0, gap: 6 }}>
+              {/* M11: Hide source badge if sourceName is empty */}
+              {sourceName ? (
+                <View style={{
+                  backgroundColor: sourceColor + '10',
+                  paddingHorizontal: 7, paddingVertical: 2,
+                  borderRadius: 4,
+                }}>
+                  <Text style={{ fontSize: 11, fontWeight: '600', color: sourceColor }}>{sourceName}</Text>
                 </View>
-                {/* M1: Reading time in metadata row */}
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-                  <Clock size={11} color={colors.textSecondary} />
-                  <Text style={{ fontSize: 11, color: colors.textSecondary, fontWeight: '600' }}>
-                    {lang === 'en' ? `${readMin}min` : `${readMin}분`}
-                  </Text>
-                </View>
+              ) : null}
+              <Text style={{ fontSize: 12, color: colors.textSecondary }}>{formatDate(article.published, lang)}</Text>
+              <Text style={{ fontSize: 12, color: colors.textDim }}>|</Text>
+              <Text style={{ fontSize: 12, color: colors.textSecondary }}>{views}</Text>
+              <Text style={{ fontSize: 12, color: colors.textDim }}>|</Text>
+              <Text style={{ fontSize: 12, color: colors.textSecondary }}>
+                {lang === 'en' ? `${readMin}min` : `${readMin}분`}
+              </Text>
+              {/* H4: Bookmark touch target */}
+              <View style={{ marginLeft: 'auto' }}>
+                <Pressable
+                  onPress={handleToggleBookmark}
+                  accessibilityLabel={bookmarked ? t('bookmark.remove') : t('bookmark.add')}
+                  accessibilityRole="button"
+                  style={({ pressed }) => ({
+                    minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center',
+                    opacity: pressed ? 0.7 : 1,
+                  })}
+                >
+                  <Bookmark
+                    size={16}
+                    color={bookmarked ? colors.bookmarkActiveColor : colors.textSecondary}
+                    fill="none"
+                    strokeWidth={2}
+                  />
+                </Pressable>
               </View>
-              {/* H4: Bookmark touch target 36px → minWidth/minHeight 44px */}
-              <Pressable
-                onPress={handleToggleBookmark}
-                accessibilityLabel={bookmarked ? t('bookmark.remove') : t('bookmark.add')}
-                accessibilityRole="button"
-                style={({ pressed }) => ({
-                  minWidth: 44, minHeight: 44, borderRadius: 10,
-                  backgroundColor: bookmarked ? colors.bookmarkActiveColor + '14' : colors.surface,
-                  borderWidth: 1, borderColor: bookmarked ? colors.bookmarkActiveColor + '30' : colors.border,
-                  alignItems: 'center', justifyContent: 'center',
-                  opacity: pressed ? 0.7 : 1,
-                })}
-              >
-                <Bookmark
-                  size={16}
-                  color={bookmarked ? colors.bookmarkActiveColor : colors.textSecondary}
-                  fill="none"
-                  strokeWidth={2}
-                />
-              </Pressable>
             </View>
 
-            {/* H3: 제목 with accessibilityRole="header" */}
+            {/* H3: 제목 — D4 compact */}
             <Text
               accessibilityRole="header"
               style={{
-                fontSize: 24, fontWeight: '700', color: colors.textPrimary, lineHeight: 36,
+                fontSize: 22, fontWeight: '700', color: colors.textPrimary, lineHeight: 32,
                 letterSpacing: -0.5,
-                marginTop: 18, marginBottom: 20,
-                paddingHorizontal: 28, fontFamily: FontFamily.serif,
+                marginTop: 16,
+                paddingHorizontal: 20, fontFamily: FontFamily.serif,
               }}
             >
               {articleTitle}
             </Text>
 
-            {/* 구분선 */}
-            <View style={{ height: 0.5, backgroundColor: colors.border, marginBottom: 24, marginHorizontal: 28, opacity: 0.7 }} />
-
-            {/* Option C reorder: 핵심한줄 → 배경 → 주요포인트 → 왜중요해요 */}
+            {/* D4 Compact Reader: 핵심한줄 → 배경 → 주요포인트 → 왜중요해요 */}
             {oneLine ? (
-              <View style={{ paddingHorizontal: 28, marginBottom: 16 }}>
-                {/* 1. One Line (Hook) */}
-                <View style={{ marginBottom: 24, backgroundColor: colors.highlightBg, borderRadius: 14, padding: 18 }}>
-                  <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 1.0, color: colors.summaryIndigo, marginBottom: 8 }}>{t('modal.one_line').toUpperCase()}</Text>
-                  <Text style={{ fontSize: 17, color: colors.textPrimary, lineHeight: 26, fontWeight: '600' }}>
+              <View style={{ paddingHorizontal: 20 }}>
+                {/* 1. One Line — D4: no card bg, compact label */}
+                <View style={{ marginTop: 16 }}>
+                  <Text style={{ fontSize: 10, fontWeight: '600', letterSpacing: 1.5, color: colors.textDim, marginBottom: 6 }}>{t('modal.one_line').toUpperCase()}</Text>
+                  <Text style={{ fontSize: 16, fontWeight: '600', lineHeight: 25, color: colors.summaryIndigo }}>
                     {oneLine}
                   </Text>
                 </View>
-                <View style={{ height: 0.5, backgroundColor: colors.border, opacity: 0.7, marginBottom: 24 }} />
 
-                {/* 2. Background (Bridge — context before details) */}
+                {/* 2. Background — D4: compact */}
                 {background ? (
-                  <View style={{ marginBottom: 24 }}>
-                    <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 1.0, color: colors.textSecondary, marginBottom: 8 }}>
+                  <View style={{ marginTop: 16 }}>
+                    <Text style={{ fontSize: 10, fontWeight: '600', letterSpacing: 1.5, color: colors.textDim, marginBottom: 6 }}>
                       {t('modal.background').toUpperCase()}
                     </Text>
-                    <Text style={{ fontSize: 16, color: colors.summaryBody, lineHeight: 27 }}>
+                    <Text style={{ fontSize: 14, color: colors.textSecondary, lineHeight: 23 }}>
                       {background}
                     </Text>
-                    <View style={{ height: 0.5, backgroundColor: colors.border, opacity: 0.7, marginTop: 24 }} />
                   </View>
                 ) : null}
 
-                {/* 3. Key Points (Detail — now with context) */}
+                {/* 3. Key Points — D4: small square bullets */}
                 {keyPoints.length > 0 && (
-                  <View style={{ marginBottom: 24 }}>
-                    <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 1.0, color: colors.summaryTeal, marginBottom: 12 }}>{t('modal.key_points').toUpperCase()}</Text>
+                  <View style={{ marginTop: 16 }}>
+                    <Text style={{ fontSize: 10, fontWeight: '600', letterSpacing: 1.5, color: colors.textDim, marginBottom: 6 }}>{t('modal.key_points').toUpperCase()}</Text>
                     {keyPoints.map((point, idx) => (
-                      <View key={idx} style={{ flexDirection: 'row', marginBottom: 16, paddingRight: 4, alignItems: 'flex-start' }}>
+                      <View key={idx} style={{ flexDirection: 'row', marginBottom: 10, alignItems: 'flex-start', gap: 10 }}>
                         <View style={{
-                          width: 24, height: 24, borderRadius: 12,
-                          backgroundColor: 'transparent',
-                          borderWidth: 1.5,
-                          borderColor: colors.summaryTeal,
-                          alignItems: 'center', justifyContent: 'center',
-                          marginRight: 10, marginTop: 1,
-                        }}>
-                          <Text style={{ fontSize: 12, color: colors.summaryTeal, fontWeight: '700' }}>{idx + 1}</Text>
-                        </View>
+                          width: 6, height: 6, borderRadius: 2,
+                          backgroundColor: colors.summaryTeal,
+                          marginTop: 7, flexShrink: 0,
+                        }} />
                         <HighlightedText
                           text={point}
                           glossaryTerms={glossaryDBTerms}
-                          style={{ fontSize: 16, color: colors.summaryBody, lineHeight: 27, flex: 1 }}
+                          style={{ fontSize: 14, color: colors.summaryBody, lineHeight: 23, flex: 1 }}
                         />
                       </View>
                     ))}
-                    <View style={{ height: 0.5, backgroundColor: colors.border, opacity: 0.7, marginTop: 8 }} />
                   </View>
                 )}
 
-                {/* 4. Why Important (So What — natural conclusion) */}
+                {/* 4. Why Important — D4: compact */}
                 {whyImportant ? (
-                  <View style={{ marginBottom: 24 }}>
-                    <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 1.0, color: colors.summaryWarnText, marginBottom: 8 }}>{t('modal.why_important').toUpperCase()}</Text>
+                  <View style={{ marginTop: 16 }}>
+                    <Text style={{ fontSize: 10, fontWeight: '600', letterSpacing: 1.5, color: colors.textDim, marginBottom: 6 }}>{t('modal.why_important').toUpperCase()}</Text>
                     <HighlightedText
                       text={whyImportant}
                       glossaryTerms={glossaryDBTerms}
-                      style={{ fontSize: 16, color: colors.summaryBody, lineHeight: 27 }}
+                      style={{ fontSize: 14, color: colors.summaryWarnText, lineHeight: 23 }}
                     />
-                    <View style={{ height: 0.5, backgroundColor: colors.border, opacity: 0.7, marginTop: 24 }} />
                   </View>
                 ) : null}
 
-                {/* M13: Tags section heading + 키워드 태그 (M3: t() key) */}
+                {/* Tags — D4: inline comma-separated */}
                 {tags && tags.length > 0 ? (
-                  <View style={{ marginBottom: glossary.length > 0 ? 24 : 0 }}>
-                    <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 1.0, color: colors.textSecondary, marginBottom: 10 }}>
+                  <View style={{ marginTop: 16 }}>
+                    <Text style={{ fontSize: 10, fontWeight: '600', letterSpacing: 1.5, color: colors.textDim, marginBottom: 6 }}>
                       {t('modal.tags').toUpperCase()}
                     </Text>
-                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                      {tags.map((tag, idx) => (
-                        <View key={idx} style={{
-                          backgroundColor: colors.surface,
-                          paddingHorizontal: 10, paddingVertical: 5,
-                          borderRadius: 6,
-                        }}>
-                          <Text style={{ fontSize: 12, color: colors.textSecondary, fontWeight: '500' }}>{tag}</Text>
-                        </View>
-                      ))}
-                    </View>
+                    <Text style={{ fontSize: 12, color: colors.textSecondary, lineHeight: 20 }}>
+                      {tags.join(', ')}
+                    </Text>
                   </View>
                 ) : null}
 
-                {/* M6: Glossary toggle accessibility + M3: t() key */}
+                {/* Glossary — D4: no border box, compact accordion */}
                 {glossary.length > 0 ? (
-                  <View style={{ borderRadius: 8, borderWidth: 0.5, borderColor: colors.border, overflow: 'hidden', marginBottom: 24 }}>
+                  <View style={{ marginTop: 16 }}>
                     <Pressable
                       onPress={() => setGlossaryOpen(!glossaryOpen)}
                       accessibilityRole="button"
                       accessibilityLabel={t('modal.glossary')}
                       accessibilityState={{ expanded: glossaryOpen }}
-                      style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14 }}
+                      style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
                     >
-                      <Text style={{ fontSize: 13, fontWeight: '700', color: colors.textPrimary }}>
-                        {t('modal.glossary')}
+                      <Text style={{ fontSize: 10, fontWeight: '600', letterSpacing: 1.5, color: colors.textSecondary }}>
+                        {t('modal.glossary').toUpperCase()}
                       </Text>
                       <View style={{ transform: [{ rotate: glossaryOpen ? '180deg' : '0deg' }] }}>
-                        <ChevronDown size={16} color={colors.textSecondary} />
+                        <ChevronDown size={12} color={colors.textDim} />
                       </View>
                     </Pressable>
                     {glossaryOpen ? (
-                      <View style={{ paddingHorizontal: 14, paddingBottom: 14 }}>
+                      <View style={{ paddingTop: 10 }}>
                         {glossary.map((item, idx) => (
-                          <View key={idx} style={{ marginBottom: idx < glossary.length - 1 ? 10 : 0 }}>
-                            <Text style={{ fontSize: 13, fontWeight: '700', color: colors.summaryIndigo, marginBottom: 2, lineHeight: 20 }}>{item.term}</Text>
-                            <Text style={{ fontSize: 13, color: colors.summaryBody, lineHeight: 20 }}>{item.desc}</Text>
+                          <View key={idx} style={{ marginBottom: idx < glossary.length - 1 ? 10 : 0, paddingLeft: 12 }}>
+                            <Text style={{ fontSize: 12, fontWeight: '600', color: colors.textPrimary, marginBottom: 1 }}>{item.term}</Text>
+                            <Text style={{ fontSize: 11, color: colors.textSecondary, lineHeight: 17 }}>{item.desc}</Text>
                           </View>
                         ))}
                       </View>
@@ -654,20 +626,19 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
                   </View>
                 ) : null}
 
-                {/* Related Articles: 관련 기사 가로 스크롤 */}
+                {/* Related Articles */}
                 {relatedIds.length > 0 && (
                   <RelatedArticlesSection relatedIds={relatedIds} />
                 )}
 
-                {/* M5: "View Original" button at bottom of summary */}
+                {/* View Original — D4: filled primary button */}
                 <Pressable
                   onPress={handleOpenOriginal}
                   accessibilityLabel={t('modal.view_original')}
                   accessibilityRole="link"
-                  style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 14, borderWidth: 1, borderColor: colors.border, borderRadius: 8 }}
+                  style={{ marginTop: 20, marginBottom: 16, paddingVertical: 12, borderRadius: 8, backgroundColor: colors.primary, alignItems: 'center' }}
                 >
-                  <ExternalLink size={14} color={colors.textSecondary} />
-                  <Text style={{ fontSize: 13, fontWeight: '600', color: colors.textSecondary }}>
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: '#FFFFFF' }}>
                     {t('modal.view_original')}
                   </Text>
                 </Pressable>
@@ -675,12 +646,12 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
             ) : article.summary ? (
               <Text style={{
                 fontSize: 15, color: colors.summaryBody, lineHeight: 24, letterSpacing: 0.2, marginBottom: 16,
-                paddingHorizontal: 28,
+                paddingHorizontal: 20,
               }}>
                 {article.summary}
               </Text>
             ) : (
-              <View style={{ alignItems: 'center', paddingVertical: 24, paddingHorizontal: 28 }}>
+              <View style={{ alignItems: 'center', paddingVertical: 24, paddingHorizontal: 20 }}>
                 <Text style={{ fontSize: 14, fontWeight: '600', color: colors.textSecondary, marginBottom: 4 }}>
                   {t('modal.no_summary')}
                 </Text>
