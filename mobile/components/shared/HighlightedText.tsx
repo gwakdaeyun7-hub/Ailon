@@ -3,7 +3,7 @@
  * 탭하면 해당 용어의 설명을 표시
  */
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { View, Text, Pressable, Modal } from 'react-native';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
@@ -57,9 +57,9 @@ export const HighlightedText = React.memo(function HighlightedText({ text, gloss
   const [popover, setPopover] = useState<GlossaryTerm | null>(null);
 
   // Build segments with highlighted terms
-  const segments = useMemo(() => {
+  const { segments, detectedKeys } = useMemo(() => {
     if (!glossaryTerms || glossaryTerms.length === 0 || !text) {
-      return [{ text, term: null }];
+      return { segments: [{ text, term: null }], detectedKeys: [] as string[] };
     }
 
     // 불용어 필터: 너무 일반적인 용어 제외
@@ -119,12 +119,18 @@ export const HighlightedText = React.memo(function HighlightedText({ text, gloss
       }
       result = newResult;
     }
-    if (onTermsDetected && detectedKeys.length > 0) {
+    return { segments: result, detectedKeys };
+  }, [text, glossaryTerms, lang, usedTermKeys]);
+
+  // Call onTermsDetected in useEffect to avoid setState-during-render
+  const prevKeysRef = useRef<string>('');
+  useEffect(() => {
+    const key = detectedKeys.join(',');
+    if (onTermsDetected && detectedKeys.length > 0 && key !== prevKeysRef.current) {
+      prevKeysRef.current = key;
       onTermsDetected(detectedKeys);
     }
-
-    return result;
-  }, [text, glossaryTerms, lang, usedTermKeys]);
+  }, [detectedKeys, onTermsDetected]);
 
   const handleTermPress = useCallback((term: GlossaryTerm) => {
     setPopover(term);

@@ -154,7 +154,7 @@ LangGraph 8-node pipeline with parallel EN/KO branches:
 | en_process | EN→KO translation + summarization | batch=5, max_tokens=12288, thinking=False |
 | ko_process | KO summarization | batch=2, max_tokens=12288, thinking=False |
 | categorizer | LLM 3-category classification + 7-layer dedup | batch=5, 3 parallel workers |
-| ranker | Per-category LLM ranking → score (1st=100, last=30) | token_budget=max(4096, count*60) |
+| ranker | Per-category LLM ranking → score (1st=100, last=30) | token_budget=max(4096, count*100) |
 | entity_extractor | Entity extraction + topic clustering | batch=5, 4 parallel workers |
 | selector | Highlight Top 3 + Category Top 25 | today articles only for highlights |
 | assembler | Final structure + timing report | Korean sources in separate sections |
@@ -171,7 +171,7 @@ AI타임스, GeekNews, ZDNet AI 에디터 (HTML scrape), 요즘IT AI
 
 | Constant | Value | Why |
 |----------|-------|-----|
-| Ranker token_budget | `max(4096, count*60)` | 이전 `max(2048, count*40)`에서 JSON 잘림 발생 |
+| Ranker token_budget | `max(4096, count*100)` | 이전 `max(4096, count*60)`에서 44건 카테고리 JSON 잘림 발생 |
 | Ranker ctx thresholds | >40: title only, 25-40: 150자, ≤25: 500자 | 대규모 카테고리 랭킹 정확도 |
 | HIGHLIGHT_COUNT | 3 | 카테고리당 1개씩 |
 | CATEGORY_TOP_N | 25 | 카테고리별 최대 기사 수 |
