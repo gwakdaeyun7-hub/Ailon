@@ -461,6 +461,15 @@ def _get_traf_config():
     return _get_traf_config._config
 
 
+_FALLBACK_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    "Accept": "text/html",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Referer": "https://www.google.com/",
+    "DNT": "1",
+}
+
+
 def _scrape_body_and_image(url: str) -> tuple[str, str]:
     """기사 URL에서 본문 텍스트 + og:image를 한 번의 HTTP로 추출"""
     if not url:
@@ -468,8 +477,16 @@ def _scrape_body_and_image(url: str) -> tuple[str, str]:
     try:
         import trafilatura
         downloaded = trafilatura.fetch_url(url, config=_get_traf_config())
+
+        # trafilatura fetch 실패 시 requests 폴백
         if not downloaded:
-            return "", ""
+            try:
+                resp = requests.get(url, headers=_FALLBACK_HEADERS, timeout=15)
+                resp.raise_for_status()
+                downloaded = resp.text
+                print(f"    [SCRAPE] requests 폴백 성공: {url[:80]}")
+            except Exception:
+                return "", ""
 
         # og:image 추출 (HTML 앞부분에서)
         image_url = ""
