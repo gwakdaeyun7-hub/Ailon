@@ -124,6 +124,7 @@ SOURCES = [
         "rss_url": "https://www.aitimes.com/rss/allArticle.xml",
         "max_items": 30,
         "lang": "ko",
+        "skip_date_filter": True,
     },
     {
         "key": "geeknews",
@@ -131,6 +132,7 @@ SOURCES = [
         "rss_url": "https://news.hada.io/rss/news",
         "max_items": 30,
         "lang": "ko",
+        "skip_date_filter": True,
     },
     {
         "key": "zdnet_ai_editor",
@@ -138,6 +140,7 @@ SOURCES = [
         "scrape_url": "https://zdnet.co.kr/reporter/?lstcode=media",
         "max_items": 30,
         "lang": "ko",
+        "skip_date_filter": True,
     },
     {
         "key": "yozm_ai",
@@ -146,6 +149,7 @@ SOURCES = [
         "max_items": 30,
         "lang": "ko",
         "rss_image_field": "content_image",
+        "skip_date_filter": True,
     },
 ]
 
@@ -277,6 +281,7 @@ def _fetch_scrape_source(source_config: dict) -> list[dict]:
     max_items = source_config.get("max_items", 20)
     days = source_config.get("days", MAX_ARTICLE_AGE_DAYS)
     lang = source_config.get("lang", "ko")
+    skip_date_filter = source_config.get("skip_date_filter", False)
 
     articles = []
     date_filtered = 0
@@ -313,8 +318,8 @@ def _fetch_scrape_source(source_config: dict) -> list[dict]:
                         published = txt
                         break
 
-            # 최근 N일 이내 기사만 수집
-            if published and not _within_days_ymd(published, days):
+            # 최근 N일 이내 기사만 수집 (skip_date_filter=True인 소스는 건너뜀)
+            if not skip_date_filter and published and not _within_days_ymd(published, days):
                 date_filtered += 1
                 continue
 
@@ -364,6 +369,7 @@ def fetch_source(source_config: dict) -> list[dict]:
     days = source_config.get("days", MAX_ARTICLE_AGE_DAYS)
     lang = source_config.get("lang", "en")
     rss_image_field = source_config.get("rss_image_field", "")
+    skip_date_filter = source_config.get("skip_date_filter", False)
 
     articles = []
     date_filtered = 0
@@ -379,8 +385,8 @@ def fetch_source(source_config: dict) -> list[dict]:
 
             published = entry.get("published", "") or entry.get("updated", "")
 
-            # 최근 N일 이내 기사만 수집
-            if published and not _within_days(published, days):
+            # 최근 N일 이내 기사만 수집 (skip_date_filter=True인 소스는 건너뜀)
+            if not skip_date_filter and published and not _within_days(published, days):
                 date_filtered += 1
                 continue
 

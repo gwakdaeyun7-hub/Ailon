@@ -664,36 +664,40 @@ def _llm_ai_filter_batch(articles: list[dict], source_key: str = "") -> set[int]
         article_text += f"\n[{i}] {title} | {context}"
 
     if is_ko:
-        prompt = f"""IMPORTANT: Output ONLY a valid JSON array of integers. No thinking, no markdown.
+        prompt = f"""IMPORTANT: Output ONLY a valid JSON array of integers. No markdown.
 
-You are filtering news articles. Return indices of articles that are RELATED to AI.
+한국어 뉴스 기사에서 AI 관련 기사를 골라내세요.
 
-Decision rule: Ask "Does this article have a meaningful connection to AI?" If yes, include.
+판단 기준: "이 기사의 핵심 주제가 AI/ML과 실질적 관련이 있는가?"
 
-When in doubt, EXCLUDE.
+애매하면 제거(EXCLUDE)하세요.
 
-INCLUDE -- any meaningful AI connection:
-- Model releases, benchmarks, architecture advances
-- AI research papers and technical breakthroughs
-- AI-powered products/tools and their features
-- AI frameworks/libraries (PyTorch, LangChain, etc.)
-- AI regulation, policy, ethics discussions
-- AI industry news (funding, M&A, partnerships involving AI companies)
-- AI adoption stories in any industry
-- Hardware/semiconductors related to AI (GPUs, NPUs, AI chips)
-- AI's impact on society, jobs, education
-- Tutorials, guides, opinions about AI
+INCLUDE (포함):
+- AI/ML 모델 출시, 업데이트, 벤치마크, 성능 비교
+- AI 연구 논문, 기술 돌파, 새로운 아키텍처
+- AI 기반 제품/서비스 출시 및 활용 사례
+- AI 프레임워크/라이브러리 (PyTorch, LangChain, HuggingFace 등)
+- AI 반도체/칩 (GPU, NPU, AI 가속기)
+- AI 규제, 정책, 윤리, 저작권 논의
+- AI 기업 투자, 인수합병, 파트너십
+- AI가 산업/사회/교육/일자리에 미치는 영향
+- AI 튜토리얼, 가이드, 활용법, 개발자 팁
+- 로봇, 자율주행, 컴퓨터 비전 (AI 기술 활용)
+- 데이터 인프라/파이프라인 (AI/ML 학습 목적)
 
-EXCLUDE -- no real AI connection:
-- Non-tech subjects using AI as a passing buzzword (real estate, food, self-help)
-- Celebrity, entertainment, politics with no AI substance
-- Government PR, tourism, regional marketing
-- Articles where "AI" only appears in a section tag but content is unrelated
+EXCLUDE (제외):
+- AI 언급 없는 일반 IT/개발 뉴스 (웹개발, 앱 리뷰, 프로그래밍 언어 업데이트)
+- AI를 장식어로만 쓴 비기술 기사 (부동산, 식품, 자기계발)
+- 연예, 스포츠, 정치 (AI 실질 내용 없음)
+- 지자체/관광/지역 홍보, 정부 보도자료 (AI 정책 제외)
+- 인사이동, 부고, 단순 행사/세미나 공지
+- 기사 태그에만 AI가 있고 본문은 무관한 경우
+- 클라우드/보안/네트워크 뉴스 (AI 연관 없을 때)
 
 Articles:
 {article_text}
 
-Return the indices of AI-related articles as a JSON array:
+AI 관련 기사의 인덱스를 JSON 배열로 반환:
 [0, 2, 5]"""
     else:
         prompt = f"""IMPORTANT: Output ONLY a valid JSON array of integers. No thinking, no markdown.
@@ -759,19 +763,33 @@ def _llm_filter_sources(sources: dict[str, list[dict]]) -> None:
     def _filter_one(key: str, articles: list[dict]) -> tuple[str, int, int, int]:
         ai_indices = _llm_ai_filter_batch(articles, source_key=key)
         marked = 0
+        passed_titles = []
+        removed_titles = []
         for i, a in enumerate(articles):
+            title = a.get("title", "(제목 없음)")
             if i in ai_indices:
                 a["_ai_filtered"] = False
+                passed_titles.append(title)
             else:
                 a["_ai_filtered"] = True
                 marked += 1
+                removed_titles.append(title)
         today_marked = sum(1 for i, a in enumerate(articles) if i not in ai_indices and _is_today(a))
         today_kept = sum(1 for i, a in enumerate(articles) if i in ai_indices and _is_today(a))
-        if marked > 0:
-            msg = f"    [{key}] LLM AI 필터: {marked}개 마킹 (전체 {len(articles)}개 유지)"
-            if today_marked > 0 or today_kept > 0:
-                msg += f" (당일: {today_kept}개 통과, {today_marked}개 마킹)"
-            print(msg)
+        # 상세 로그 출력
+        total = len(articles)
+        passed = total - marked
+        print(f"  [AI 필터] {key}: {total}개 중 {passed}개 통과, {marked}개 제거")
+        if passed_titles:
+            titles_str = ", ".join(f'"{t}"' for t in passed_titles[:10])
+            suffix = f" 외 {len(passed_titles)-10}개" if len(passed_titles) > 10 else ""
+            print(f"    ✓ 통과: {titles_str}{suffix}")
+        if removed_titles:
+            titles_str = ", ".join(f'"{t}"' for t in removed_titles[:10])
+            suffix = f" 외 {len(removed_titles)-10}개" if len(removed_titles) > 10 else ""
+            print(f"    ✗ 제거: {titles_str}{suffix}")
+        if today_marked > 0 or today_kept > 0:
+            print(f"    (당일 기사: {today_kept}개 통과, {today_marked}개 제거)")
         return key, marked, today_marked, today_kept
 
     total_today_marked = 0
@@ -1957,17 +1975,18 @@ def assembler_node(state: NewsGraphState) -> dict:
     def _pub_key(a: dict):
         return _parse_published(a.get("published", "")) or _epoch
 
-    # 한국 소스: 최근 5일 이내만 + 날짜순 Top 10
+    # 한국 소스: AI 필터 통과 기사만 + 최신순 Top 10 (날짜 제한 없음)
     for s in SOURCES:
         key = s["key"]
         if key in SOURCE_SECTION_SOURCES and sources.get(key):
             source_order.append(key)
             all_articles = sources[key]
-            # 최근 5일 이내 기사만 (주간 인기 등 오래된 기사 제외)
-            recent = [a for a in all_articles if _is_recent(a, days=5) and not a.get("_ai_filtered") and not a.get("_deduped")]
-            if len(recent) < len(all_articles):
-                print(f"    [{key}] 날짜 필터: {len(all_articles) - len(recent)}개 제외 (5일 초과)")
-            sorted_articles = sorted(recent, key=_pub_key, reverse=True)
+            # AI 필터 통과 + 중복 아닌 기사만
+            filtered = [a for a in all_articles if not a.get("_ai_filtered") and not a.get("_deduped")]
+            excluded = len(all_articles) - len(filtered)
+            if excluded > 0:
+                print(f"    [{key}] AI/중복 필터: {excluded}개 제외 (전체 {len(all_articles)}개)")
+            sorted_articles = sorted(filtered, key=_pub_key, reverse=True)
             source_articles[key] = sorted_articles[:10]
 
     total = (
