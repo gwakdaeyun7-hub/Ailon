@@ -857,6 +857,22 @@ def collector_node(state: NewsGraphState) -> dict:
             print(f"  {key:<22} {len(articles):>4}  {today_count:>4}")
     print(f"  {'─'*34}")
     print(f"  {'합계':<22} {total_all:>4}  {total_today:>4}\n")
+
+    # 소스별 수집된 기사 제목 전체 출력
+    for key, articles in sources.items():
+        if not articles:
+            continue
+        print(f"  [수집] {key} ({len(articles)}개):")
+        for a in articles:
+            title = (a.get("title") or "제목없음")[:60]
+            pub = a.get("published", "")
+            if pub:
+                dt = _parse_published(pub)
+                date_str = dt.strftime("%Y-%m-%d") if dt else "날짜없음"
+            else:
+                date_str = "날짜없음"
+            print(f"    - \"{title}\" ({date_str})")
+
     enrich_and_scrape(sources)
     filter_imageless(sources)
     _llm_filter_sources(sources)  # 제거 대신 _ai_filtered 마킹
@@ -901,6 +917,18 @@ def en_process_node(state: NewsGraphState) -> dict:
     if ko_fallback_count:
         print(f"  [EN] 한국어 기사 {ko_fallback_count}개 폴백 처리")
 
+    # EN 번역/요약 결과 기사별 출력
+    success = sum(1 for a in en_articles if a.get("display_title"))
+    print(f"\n  [EN 요약] 완료 {success}/{len(en_articles)}개:")
+    for a in en_articles:
+        orig_title = (a.get("title") or "")[:60]
+        src = a.get("source_key", "")
+        if a.get("display_title"):
+            disp = (a.get("display_title") or "")[:60]
+            print(f"    \u2713 \"{disp}\" \u2190 \"{orig_title}\" [{src}]")
+        else:
+            print(f"    \u2717 \uc2e4\ud328: \"{orig_title}\" [{src}]")
+
     # 처리한 소스 키만 반환 -- 리듀서가 기존 state 에 머지
     partial_sources = {key: state["sources"][key] for key in en_source_keys if key in state["sources"]}
     return {"sources": partial_sources}
@@ -930,6 +958,19 @@ def ko_process_node(state: NewsGraphState) -> dict:
         _process_articles(ko_articles, translate=False, batch_size=2)
     else:
         print("  [KO] 요약 대상 없음")
+
+    # KO 요약 결과 기사별 출력
+    all_ko = [a for key in SOURCE_SECTION_SOURCES for a in state["sources"].get(key, []) if a.get("lang") == "ko"]
+    success = sum(1 for a in all_ko if a.get("display_title"))
+    print(f"\n  [KO 요약] 완료 {success}/{len(all_ko)}개:")
+    for a in all_ko:
+        disp = (a.get("display_title") or "")[:60]
+        src = a.get("source_key", "")
+        if disp:
+            print(f"    \u2713 \"{disp}\" [{src}]")
+        else:
+            orig = (a.get("title") or "")[:60]
+            print(f"    \u2717 \uc2e4\ud328: \"{orig}\" [{src}]")
 
     # 처리한 소스 키만 반환 -- 리듀서가 기존 state 에 머지
     partial_sources = {key: state["sources"][key] for key in ko_source_keys if key in state["sources"]}
@@ -1945,14 +1986,17 @@ def selector_node(state: NewsGraphState) -> dict:
         categorized[cat] = _select_category_top_n(categorized[cat])
         print(f"    {cat}: {total}개 (당일 {today_count}) -> Top {len(categorized[cat])}개")
 
-    # 카테고리별 최종 선정 기사 Top 3
+    # 카테고리별 최종 선정 기사 전체 목록
     for cat in category_order:
         articles = categorized[cat]
         if not articles:
             continue
-        top3 = articles[:3]
-        titles = " / ".join((a.get("display_title") or a.get("title", ""))[:30] for a in top3)
-        print(f"    {cat}: {len(articles)}개 — {titles}")
+        print(f"  [최종 선정] {cat} ({len(articles)}개):")
+        for rank, a in enumerate(articles):
+            title = (a.get("display_title") or a.get("title", ""))[:60]
+            src = a.get("source_key", "")
+            score = a.get("_total_score", 0)
+            print(f"    {rank+1}. \"{title}\" [{src}] {score}점")
 
     # ── Step 4: 품질 검증 ──
     h_count = len(highlights)
@@ -2000,6 +2044,21 @@ def assembler_node(state: NewsGraphState) -> dict:
                 print(f"    [{key}] AI/중복 필터: {excluded}개 제외 (전체 {len(all_articles)}개)")
             sorted_articles = sorted(filtered, key=_pub_key, reverse=True)
             source_articles[key] = sorted_articles[:10]
+
+    # 소스별 섹션 최종 기사 목록 출력
+    for key, articles in source_articles.items():
+        if not articles:
+            continue
+        print(f"  [소스 섹션] {key} ({len(articles)}개):")
+        for rank, a in enumerate(articles):
+            title = (a.get("display_title") or a.get("title", ""))[:60]
+            pub = a.get("published", "")
+            if pub:
+                dt = _parse_published(pub)
+                date_str = dt.strftime("%Y-%m-%d") if dt else "날짜없음"
+            else:
+                date_str = "날짜없음"
+            print(f"    {rank+1}. \"{title}\" ({date_str})")
 
     total = (
         len(state.get("highlights", []))
