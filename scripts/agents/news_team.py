@@ -670,9 +670,9 @@ def _llm_ai_filter_batch(articles: list[dict], source_key: str = "") -> set[int]
     if is_ko:
         prompt = f"""IMPORTANT: Output ONLY a valid JSON array of integers. No markdown.
 
-한국어 뉴스 기사에서 AI 관련 기사를 골라내세요.
+한국어 뉴스 기사에서 AI 관련 기사 및 개발/IT 기술 기사를 골라내세요.
 
-판단 기준: "이 기사의 핵심 주제가 AI/ML과 실질적 관련이 있는가?"
+판단 기준: "이 기사가 AI/ML 또는 소프트웨어 개발/IT 기술과 관련이 있는가?"
 
 애매하면 제거(EXCLUDE)하세요.
 
@@ -688,15 +688,21 @@ INCLUDE (포함):
 - AI 튜토리얼, 가이드, 활용법, 개발자 팁
 - 로봇, 자율주행, 컴퓨터 비전 (AI 기술 활용)
 - 데이터 인프라/파이프라인 (AI/ML 학습 목적)
+- 소프트웨어 개발 도구, 프레임워크, 라이브러리, 에디터 (VS Code, Cursor, Vim 등)
+- 프로그래밍 언어 업데이트, 새로운 기능, 릴리즈 노트
+- 웹/앱/서버/클라우드 개발 기술 및 아키텍처
+- 오픈소스 프로젝트 소개 및 활용법
+- 개발자 경험담, 사이드 프로젝트, 코딩 팁
+- DevOps, CI/CD, 인프라, 클라우드 서비스
+- 바이브 코딩, AI 코딩 도구 활용기
 
 EXCLUDE (제외):
-- AI 언급 없는 일반 IT/개발 뉴스 (웹개발, 앱 리뷰, 프로그래밍 언어 업데이트)
-- AI를 장식어로만 쓴 비기술 기사 (부동산, 식품, 자기계발)
-- 연예, 스포츠, 정치 (AI 실질 내용 없음)
-- 지자체/관광/지역 홍보, 정부 보도자료 (AI 정책 제외)
+- AI/개발과 무관한 비기술 기사 (부동산, 식품, 자기계발)
+- 연예, 스포츠, 정치 (AI/기술 실질 내용 없음)
+- 지자체/관광/지역 홍보, 정부 보도자료 (AI/기술 정책 제외)
 - 인사이동, 부고, 단순 행사/세미나 공지
-- 기사 태그에만 AI가 있고 본문은 무관한 경우
-- 클라우드/보안/네트워크 뉴스 (AI 연관 없을 때)
+- 기사 태그에만 AI/IT가 있고 본문은 무관한 경우
+- 하드웨어 리뷰 (스마트워치, 이어폰 등 개발과 무관한 가젯)
 
 Articles:
 {article_text}
@@ -706,9 +712,18 @@ AI 관련 기사의 인덱스를 JSON 배열로 반환:
     else:
         # AI 전문 피드 vs 일반 피드: 기본 판단 방향이 다름
         if is_ai_feed:
-            source_context = f"""Source: "{source_key}" — This is a dedicated AI/tech feed. Most articles from this source ARE AI-related.
-When in doubt, INCLUDE. Only exclude articles clearly unrelated to AI (e.g., pure lifestyle, sports, entertainment with zero AI substance).
-CRITICAL: Articles about AI companies (Anthropic, OpenAI, Google DeepMind, Meta AI, xAI, Mistral, etc.) are ALWAYS AI-related — even if the article is about their business deals, lawsuits, government contracts, or corporate strategy."""
+            source_context = f"""Source: "{source_key}" — This is a DEDICATED AI/tech news feed. Expect 80-100% of articles to be AI-related.
+DEFAULT: INCLUDE. Only exclude if the article has ABSOLUTELY ZERO connection to AI, ML, or AI companies.
+
+MANDATORY INCLUDE — these are ALWAYS AI-related regardless of angle:
+- Any article mentioning AI companies by name (OpenAI, Anthropic, Google DeepMind, Meta AI, xAI, Mistral, Cohere, ByteDance AI, NVIDIA AI, etc.) — including their business deals, lawsuits, government contracts, corporate strategy, hiring, or pricing
+- Any article with AI/ML/LLM/GPT/Claude/Gemini/neural/model in the title
+- AI policy, regulation, ethics, safety, surveillance, copyright involving AI
+- Data centers, compute infrastructure, chip exports (AI supply chain)
+- AI benchmarks, hallucination research, AI agent evaluation
+- AI impact on jobs, society, privacy, education
+
+EXCLUDE ONLY: Pure lifestyle/sports/entertainment/gaming with truly zero AI substance."""
         else:
             source_context = """When in doubt, EXCLUDE."""
 

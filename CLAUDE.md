@@ -182,7 +182,7 @@ AI타임스, GeekNews, ZDNet AI 에디터 (HTML scrape), 요즘IT AI
 | DEDUP layers | 7 (L1 URL→L2 orig_title→L3 disp_title→L4 one_line→L5 key_tokens→L6 embedding→L7 title_entity) | |
 | Embedding threshold | 0.92 cosine | L6 |
 | L7 title_entity | 제품+버전 일치 + one_line 토큰 Jaccard ≥ 0.30 | GPT-5.4 등 동일 이벤트 다소스 중복 감지 |
-| AI 필터 기본값 | Tier 1+2: "의심 시 포함", Tier 3: "의심 시 제거" | AI 전문 피드 오탐 방지 |
+| AI 필터 기본값 | Tier 1+2: "의심 시 포함" (MANDATORY INCLUDE 규칙), Tier 3: "의심 시 제거" (AI+개발/IT 기술 포함) | AI 전문 피드 오탐 방지, Tier 3는 개발 기사도 통과 |
 
 ### Classification Categories
 - `models_products` — NEW model/product/tool/feature release, first wide rollout
