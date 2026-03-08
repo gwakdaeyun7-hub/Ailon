@@ -656,6 +656,7 @@ def _process_articles(articles: list[dict], translate: bool, batch_size: int, ma
 def _llm_ai_filter_batch(articles: list[dict], source_key: str = "") -> set[int]:
     """기사 목록에서 AI 관련 기사 인덱스를 LLM으로 판별"""
     is_ko = source_key in SOURCE_SECTION_SOURCES
+    is_ai_feed = source_key in CATEGORY_SOURCES  # Tier 1+2: AI 전문 피드
     article_text = ""
     for i, a in enumerate(articles):
         title = a.get("title", "")
@@ -700,11 +701,18 @@ Articles:
 AI 관련 기사의 인덱스를 JSON 배열로 반환:
 [0, 2, 5]"""
     else:
+        # AI 전문 피드 vs 일반 피드: 기본 판단 방향이 다름
+        if is_ai_feed:
+            source_context = f"""Source: "{source_key}" — This is a dedicated AI/tech feed. Most articles from this source ARE AI-related.
+When in doubt, INCLUDE. Only exclude articles clearly unrelated to AI (e.g., pure lifestyle, sports, entertainment with zero AI substance)."""
+        else:
+            source_context = """When in doubt, EXCLUDE."""
+
         prompt = f"""IMPORTANT: Output ONLY a valid JSON array of integers. No thinking, no markdown.
 
-You are filtering news articles from international tech/AI media. While these sources cover technology broadly, NOT every article is relevant to AI. Your job: keep articles DIRECTLY related to AI and adjacent advanced technology. Remove general tech news with no meaningful AI connection.
+You are filtering news articles from international tech/AI media. Your job: keep articles DIRECTLY related to AI and adjacent advanced technology. Remove general tech news with no meaningful AI connection.
 
-When in doubt, EXCLUDE.
+{source_context}
 
 INCLUDE:
 - AI, ML, LLMs, deep learning, neural networks, foundation models
@@ -775,7 +783,7 @@ def _llm_filter_sources(sources: dict[str, list[dict]]) -> None:
         # 상세 로그 출력
         total = len(articles)
         passed = total - marked
-        print(f"  [AI 필터] {key}: {total}개 중 {passed}개 통과, {marked}개 제거")
+        print(f"  [AI 필터] {key}: {total}개 중 {passed}개 통과, {marked}개 비AI 마킹")
         if passed_titles:
             titles_str = ", ".join(f'"{t}"' for t in passed_titles[:10])
             suffix = f" 외 {len(passed_titles)-10}개" if len(passed_titles) > 10 else ""
@@ -783,9 +791,9 @@ def _llm_filter_sources(sources: dict[str, list[dict]]) -> None:
         if removed_titles:
             titles_str = ", ".join(f'"{t}"' for t in removed_titles[:10])
             suffix = f" 외 {len(removed_titles)-10}개" if len(removed_titles) > 10 else ""
-            print(f"    ✗ 제거: {titles_str}{suffix}")
+            print(f"    ✗ 비AI 마킹: {titles_str}{suffix}")
         if today_marked > 0 or today_kept > 0:
-            print(f"    (당일 기사: {today_kept}개 통과, {today_marked}개 제거)")
+            print(f"    (당일 기사: {today_kept}개 통과, {today_marked}개 비AI 마킹)")
         return key, marked, today_marked, today_kept
 
     total_today_marked = 0
@@ -996,7 +1004,7 @@ def _embed_texts(texts: list[str]) -> list[list[float]]:
         emb = get_embeddings()
         return emb.embed_documents(texts)
     except Exception as e:
-        print(f"  [임베딩 실패] {e} — Layer 7 스킵")
+        print(f"  [임베딩 실패] {e} — Layer 6 스킵")
         return []
 
 
@@ -1040,14 +1048,41 @@ def _extract_url_key(link: str) -> str:
     return f"{p.netloc.lower()}{path}"
 
 
+# 제목에서 "제품명 + 버전" 패턴 추출 — L7 엔티티 중복 감지용
+PRODUCT_VERSION_RE = re.compile(
+    r'(GPT-[\d.]+|Claude[\s-][\d.]+|Gemini[\s-][\d.]+|'
+    r'Phi-[\d]+[\w-]*|LLaMA[\s-][\d.]+|Llama[\s-][\d.]+|Mistral[\s-][\w.]+|'
+    r'DALL[·\-]?E[\s-]?[\d.]*|Sora[\s-]?[\d.]*|'
+    r'Seedance[\s-]?[\d.]*|Helios[\s-]?[\d.]*|'
+    r'GPT[\s-]?o[\d]+[\w-]*|Sonnet[\s-][\d.]+|Opus[\s-][\d.]+|Haiku[\s-][\d.]+|'
+    r'Grok[\s-][\d.]+|Copilot[\s-][\d.]+|'
+    r'Stable\s?Diffusion[\s-][\d.]+|Midjourney[\s-]?[Vv]?[\d.]+)',
+    re.IGNORECASE
+)
+
+
+def _extract_product_versions(title: str) -> set[str]:
+    """제목에서 제품+버전 엔티티를 추출하여 정규화된 집합으로 반환.
+    예: 'OpenAI, GPT-5.4 전격 공개' → {'gpt-5.4'}"""
+    matches = PRODUCT_VERSION_RE.findall(title)
+    # 정규화: 소문자, 공백→하이픈, 연속 하이픈 제거
+    normalized = set()
+    for m in matches:
+        n = re.sub(r'\s+', '-', m.strip()).lower()
+        n = re.sub(r'-+', '-', n)
+        normalized.add(n)
+    return normalized
+
+
 def _deduplicate_candidates(candidates: list[dict], mark_only: bool = False, threshold: float | None = None) -> list[dict]:
     """다층 중복 제거 (현재 메인 파이프라인 노드에서는 호출되지 않음 -- 외부/테스트 용도):
-    Layer 1: URL 완전 일치
-    Layer 2: 원본 제목(영문) 유사도 (>=0.40)
-    Layer 3: 번역 제목(한국어) 유사도 (>=0.40)
-    Layer 4: one_line(한줄 요약) 유사도 (>=0.45)
-    Layer 5: 핵심 토큰(고유명사 2개+숫자 1개) 겹침
-    Layer 6: 임베딩 코사인 유사도 (>=0.85)
+    Layer 1 (L1): URL 완전 일치
+    Layer 2 (L2): 원본 제목(영문) 유사도 (>=0.65)
+    Layer 3 (L3): 번역 제목(한국어) 유사도 (>=0.65)
+    Layer 4 (L4): one_line(한줄 요약) 유사도 (>=0.65)
+    Layer 5 (L5): 핵심 토큰(고유명사 3개+숫자 1개) 겹침
+    Layer 6 (L6): 임베딩 코사인 유사도 (>=0.92)
+    Layer 7 (L7): 제목 엔티티(제품+버전) 일치 + one_line 토큰 30% 겹침
     발행일 가장 오래된(원본) 기사 유지.
     중복 판정 시 _dedup_of 에 원본 기사 link 저장.
     mark_only=True 면 제거 대신 _deduped=True 마킹 (전체 리스트 반환).
@@ -1063,7 +1098,7 @@ def _deduplicate_candidates(candidates: list[dict], mark_only: bool = False, thr
         key=lambda c: _parse_published(c.get("published", "")) or _epoch,
     )
 
-    # Layer 7 준비: 전체 후보 임베딩 (배치 1회)
+    # Layer 6 준비: 전체 후보 임베딩 (배치 1회)
     embed_texts = [
         (c.get("title", "") + " " + c.get("one_line", "")).strip()
         for c in sorted_cands
@@ -1073,13 +1108,14 @@ def _deduplicate_candidates(candidates: list[dict], mark_only: bool = False, thr
     if embeddings and len(embeddings) == len(sorted_cands):
         for i, vec in enumerate(embeddings):
             embed_map[id(sorted_cands[i])] = vec
-    embed_layer7 = bool(embed_map)
-    if embed_layer7:
-        print(f"  [임베딩] {len(embed_map)}개 벡터 생성 완료 — Layer 7 활성")
+    embed_layer6 = bool(embed_map)
+    if embed_layer6:
+        print(f"  [임베딩] {len(embed_map)}개 벡터 생성 완료 — Layer 6 활성")
 
     kept: list[dict] = []
     seen_urls: set[str] = set()
     removed = 0
+    layer6_count = 0
     layer7_count = 0
     dupes: list[dict] = []
 
@@ -1098,36 +1134,40 @@ def _deduplicate_candidates(candidates: list[dict], mark_only: bool = False, thr
             dupes.append(c)
             continue
 
-        # Layer 2: 원본 제목(영문) 유사도
+        # L2 준비: 원본 제목(영문) 유사도
         orig_title = _normalize_title(c.get("title", ""))
-        # Layer 3: 번역 제목(한국어) 유사도
+        # L3 준비: 번역 제목(한국어) 유사도
         disp_title = _normalize_title(c.get("display_title") or c.get("title", ""))
-        # Layer 5 준비: one_line 정규화
+        # L4 준비: one_line 정규화
         c_oneline = _normalize_title(c.get("one_line", ""))
-        # Layer 6 준비: 핵심 토큰 (고유명사·숫자)
+        # L5 준비: 핵심 토큰 (고유명사·숫자)
         c_key_tokens = _extract_key_tokens(c.get("title", "") + " " + c.get("display_title", ""))
-        # Layer 7 준비: 임베딩 벡터
+        # L6 준비: 임베딩 벡터
         c_embed = embed_map.get(id(c))
+        # L7 준비: 제목 엔티티(제품+버전)
+        c_product_versions = _extract_product_versions(
+            c.get("display_title", "") + " " + c.get("title", "")
+        )
 
         is_dup = False
         matched_kept = None
         match_layer = ""
         for k in kept:
-            # Layer 2: 원본 제목 비교
+            # L2: 원본 제목 비교
             k_orig = _normalize_title(k.get("title", ""))
             if orig_title and k_orig and SequenceMatcher(None, orig_title, k_orig).ratio() >= thr:
                 is_dup = True
                 matched_kept = k
                 match_layer = "L2_orig_title"
                 break
-            # Layer 3: 번역 제목 비교
+            # L3: 번역 제목 비교
             k_disp = _normalize_title(k.get("display_title") or k.get("title", ""))
             if disp_title and k_disp and SequenceMatcher(None, disp_title, k_disp).ratio() >= thr:
                 is_dup = True
                 matched_kept = k
                 match_layer = "L3_disp_title"
                 break
-            # Layer 5: one_line(한줄 요약) 유사도
+            # L4: one_line(한줄 요약) 유사도
             if c_oneline:
                 k_oneline = _normalize_title(k.get("one_line", ""))
                 if k_oneline and SequenceMatcher(None, c_oneline, k_oneline).ratio() >= 0.65:
@@ -1135,7 +1175,7 @@ def _deduplicate_candidates(candidates: list[dict], mark_only: bool = False, thr
                     matched_kept = k
                     match_layer = "L4_oneline"
                     break
-            # Layer 6: 핵심 토큰 겹침 (고유명사 3개 이상 + 숫자 1개 이상 공유)
+            # L5: 핵심 토큰 겹침 (고유명사 3개 이상 + 숫자 1개 이상 공유)
             if len(c_key_tokens) >= 3:
                 k_key_tokens = _extract_key_tokens(k.get("title", "") + " " + k.get("display_title", ""))
                 if len(k_key_tokens) >= 3:
@@ -1147,15 +1187,34 @@ def _deduplicate_candidates(candidates: list[dict], mark_only: bool = False, thr
                         matched_kept = k
                         match_layer = "L5_key_tokens"
                         break
-            # Layer 7: 임베딩 코사인 유사도
-            if embed_layer7 and c_embed:
+            # L6: 임베딩 코사인 유사도
+            if embed_layer6 and c_embed:
                 k_embed = embed_map.get(id(k))
                 if k_embed and _cosine_sim(c_embed, k_embed) >= EMBED_DEDUP_THRESHOLD:
                     is_dup = True
                     matched_kept = k
                     match_layer = "L6_embedding"
-                    layer7_count += 1
+                    layer6_count += 1
                     break
+            # L7: 제목 엔티티(제품+버전) 일치 + one_line 토큰 겹침
+            if c_product_versions:
+                k_product_versions = _extract_product_versions(
+                    k.get("display_title", "") + " " + k.get("title", "")
+                )
+                shared_products = c_product_versions & k_product_versions
+                if shared_products:
+                    # 같은 제품+버전 — one_line key token overlap으로 동일 이벤트인지 확인
+                    c_ol_tokens = _extract_key_tokens(c.get("one_line", "") + " " + c.get("display_title", ""))
+                    k_ol_tokens = _extract_key_tokens(k.get("one_line", "") + " " + k.get("display_title", ""))
+                    if c_ol_tokens and k_ol_tokens:
+                        union_size = len(c_ol_tokens | k_ol_tokens)
+                        overlap_ratio = len(c_ol_tokens & k_ol_tokens) / union_size if union_size else 0
+                        if overlap_ratio >= 0.30:
+                            is_dup = True
+                            matched_kept = k
+                            match_layer = "L7_title_entity"
+                            layer7_count += 1
+                            break
 
         if is_dup:
             removed += 1
@@ -1170,8 +1229,13 @@ def _deduplicate_candidates(candidates: list[dict], mark_only: bool = False, thr
                 seen_urls.add(url_key)
 
     if removed > 0:
-        layer7_msg = f" (Layer 7 임베딩: {layer7_count}건)" if layer7_count else ""
-        print(f"  [중복 제거] {removed}개 중복 기사 제거 ({len(candidates)} → {len(kept)}개){layer7_msg}")
+        layer_detail = []
+        if layer6_count:
+            layer_detail.append(f"L6 임베딩: {layer6_count}건")
+        if layer7_count:
+            layer_detail.append(f"L7 엔티티: {layer7_count}건")
+        layer_msg = f" ({', '.join(layer_detail)})" if layer_detail else ""
+        print(f"  [중복 제거] {removed}개 중복 기사 제거 ({len(candidates)} → {len(kept)}개){layer_msg}")
 
     if mark_only:
         return kept + dupes
