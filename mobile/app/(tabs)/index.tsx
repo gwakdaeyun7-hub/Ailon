@@ -17,6 +17,7 @@ import {
   Modal,
   Share,
   Animated,
+  Dimensions,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -1100,20 +1101,21 @@ function SourceHScrollSection({
   );
 }
 
-// ─── GeekNews 2열 카드 그리드 ────────────────────────────────────────────
+// ─── GeekNews 세로 리스트 ────────────────────────────────────────────────
 const GeekNewsSection = React.memo(function GeekNewsSection({ articles, onArticlePress, allStats }: { articles: Article[]; onArticlePress: (article: Article) => void; allStats: Record<string, BatchStats> }) {
   const [showMore, setShowMore] = useState(false);
+  const stats = allStats;
   const { lang, t } = useLanguage();
   const { colors } = useTheme();
   if (!articles || articles.length === 0) return null;
 
-  const capped = React.useMemo(() => articles.slice(0, 12), [articles]);
-  const hasMore = !showMore && capped.length > 6;
-  const moreCount = capped.length - 6;
+  const capped = React.useMemo(() => articles.slice(0, 10), [articles]);
   const visible = React.useMemo(
-    () => capped.slice(0, showMore ? 12 : 6),
+    () => capped.slice(0, showMore ? 10 : 5),
     [showMore, capped],
   );
+  const hasMore = !showMore && capped.length > 5;
+  const moreCount = capped.length - 5;
   const color = SOURCE_COLORS['geeknews'] || colors.textSecondary;
   const name = getSourceName('geeknews', t);
 
@@ -1128,7 +1130,7 @@ const GeekNewsSection = React.memo(function GeekNewsSection({ articles, onArticl
         <Text style={{ fontSize: 11, color: colors.textSecondary }}>{capped.length}{t('news.articles_suffix')}</Text>
       </View>
 
-      <View style={{ paddingHorizontal: 16, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+      <View style={{ paddingHorizontal: 16, gap: 12 }}>
         {visible.map((a, i) => (
           <Pressable
             key={`geeknews-${i}-${a.link}`}
@@ -1136,52 +1138,41 @@ const GeekNewsSection = React.memo(function GeekNewsSection({ articles, onArticl
             accessibilityLabel={getLocalizedTitle(a, lang)}
             accessibilityRole="button"
             style={({ pressed }) => ({
-              width: '48%',
               backgroundColor: colors.card,
               borderRadius: 12,
               borderWidth: 1,
               borderColor: colors.border,
               padding: 14,
-              minHeight: 130,
-              flexDirection: 'column',
               justifyContent: 'space-between',
-              marginBottom: 10,
               opacity: pressed ? 0.85 : 1,
             })}
           >
-            <TitleText
-              style={{ fontSize: 13, fontWeight: '600', color: colors.textPrimary, lineHeight: 20, fontFamily: FontFamily.serif }}
-              numberOfLines={3}
-            >
-              {getLocalizedTitle(a, lang)}
-            </TitleText>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+              <TitleText
+                style={{ fontSize: 14, fontWeight: '700', color: colors.textPrimary, lineHeight: 22, flex: 1, marginRight: 8, fontFamily: FontFamily.serif }}
+                numberOfLines={2}
+              >
+                {getLocalizedTitle(a, lang)}
+              </TitleText>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
               <Text style={{ fontSize: 11, color: colors.textSecondary }}>{formatDate(a.published, lang)}</Text>
+              <ArticleStats likes={stats[a.link]?.likes} views={stats[a.link]?.views} comments={stats[a.link]?.comments} />
             </View>
           </Pressable>
         ))}
-
-        {hasMore && (
-          <Pressable
-            onPress={() => setShowMore(true)}
-            accessibilityLabel={`${t('news.show_more')} ${moreCount}`}
-            accessibilityRole="button"
-            style={{
-              width: '48%',
-              backgroundColor: colors.border,
-              borderRadius: 12,
-              minHeight: 130,
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: 10,
-            }}
-          >
-            <Text style={{ fontSize: 12, fontWeight: '700', color: colors.textSecondary, textAlign: 'center' }}>
-              {`+${moreCount}\n${t('news.show_more')}`}
-            </Text>
-          </Pressable>
-        )}
       </View>
+
+      {hasMore && (
+        <Pressable
+          onPress={() => setShowMore(true)}
+          accessibilityLabel={`${t('news.show_more')} ${moreCount}`}
+          accessibilityRole="button"
+          style={{ alignItems: 'center', paddingVertical: 14, minHeight: 44, justifyContent: 'center' }}
+        >
+          <Text style={{ fontSize: 13, fontWeight: '600', color: colors.primary }}>{t('news.show_more')} ({moreCount})</Text>
+        </Pressable>
+      )}
     </View>
   );
 });
