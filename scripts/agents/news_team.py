@@ -31,6 +31,7 @@ from agents.tools import (
     fetch_all_sources, enrich_and_scrape, filter_imageless,
     HIGHLIGHT_SOURCES, CATEGORY_SOURCES, SOURCE_SECTION_SOURCES,
 )
+from agents.ci_utils import ci_warning, ci_error, ci_group, ci_endgroup
 
 
 # ─── State 리듀서 ───
@@ -220,6 +221,7 @@ def _parse_llm_json(text: str):
         truncated += ']'
         try:
             result = json.loads(truncated)
+            ci_warning(f"JSON 복구 발동: 잘린 배열 복구 성공 ({len(result)}개 항목)")
             print(f"    [JSON 복구] 잘린 배열 복구 성공: {len(result)}개 항목")
             return result
         except json.JSONDecodeError:
@@ -281,6 +283,7 @@ def _parse_llm_json(text: str):
             truncated += ''.join(reversed(close_stack))
             try:
                 result = json.loads(truncated)
+                ci_warning("JSON 복구 발동: 잘린 객체 복구 성공")
                 print(f"    [JSON 복구] 잘린 객체 복구 성공")
                 return result
             except json.JSONDecodeError as e:
@@ -481,19 +484,19 @@ Articles:
         if isinstance(results, list):
             if not results:
                 label = "번역+요약" if translate else "요약"
-                print(f"    [WARN] {label} 배치 {batch_idx + 1}: LLM이 빈 결과 반환")
+                ci_warning(f"{label} 배치 {batch_idx + 1}: LLM이 빈 결과 반환")
                 return None
             # dict가 아닌 항목(str 등)이 섞여 있으면 실패 처리
             dicts_only = [r for r in results if isinstance(r, dict)]
             if not dicts_only:
                 label = "번역+요약" if translate else "요약"
-                print(f"    [WARN] {label} 배치 {batch_idx + 1}: LLM 결과에 dict 없음 (type={type(results[0]).__name__})")
+                ci_warning(f"{label} 배치 {batch_idx + 1}: LLM 결과에 dict 없음 (type={type(results[0]).__name__})")
                 return None
             return dicts_only
     except Exception as e:
         label = "번역+요약" if translate else "요약"
         titles = [a.get("title", "?")[:40] for a in batch]
-        print(f"    [WARN] {label} 배치 {batch_idx + 1} 실패: {type(e).__name__}: {e}")
+        ci_warning(f"{label} 배치 {batch_idx + 1} 실패: {type(e).__name__}: {e}")
         print(f"    [WARN] 영향 기사: {titles}")
     return None
 
@@ -604,7 +607,7 @@ def _process_articles(articles: list[dict], translate: bool, batch_size: int, ma
             try:
                 results = future.result()
             except Exception as e:
-                print(f"    [WARN] {label} 배치 {idx + 1} future 실패: {e}")
+                ci_warning(f"{label} 배치 {idx + 1} future 실패: {e}")
                 continue
             done = _apply_batch_results(batch, results)
             if results is not None:
@@ -625,7 +628,7 @@ def _process_articles(articles: list[dict], translate: bool, batch_size: int, ma
                 try:
                     results = future.result()
                 except Exception as e:
-                    print(f"    [WARN] {label} 개별 재시도 실패: {e}")
+                    ci_warning(f"{label} 개별 재시도 실패: {e}")
                     continue
                 if _apply_batch_results([a], results):
                     retry_ok += 1
@@ -704,7 +707,8 @@ AI 관련 기사의 인덱스를 JSON 배열로 반환:
         # AI 전문 피드 vs 일반 피드: 기본 판단 방향이 다름
         if is_ai_feed:
             source_context = f"""Source: "{source_key}" — This is a dedicated AI/tech feed. Most articles from this source ARE AI-related.
-When in doubt, INCLUDE. Only exclude articles clearly unrelated to AI (e.g., pure lifestyle, sports, entertainment with zero AI substance)."""
+When in doubt, INCLUDE. Only exclude articles clearly unrelated to AI (e.g., pure lifestyle, sports, entertainment with zero AI substance).
+CRITICAL: Articles about AI companies (Anthropic, OpenAI, Google DeepMind, Meta AI, xAI, Mistral, etc.) are ALWAYS AI-related — even if the article is about their business deals, lawsuits, government contracts, or corporate strategy."""
         else:
             source_context = """When in doubt, EXCLUDE."""
 
@@ -716,22 +720,23 @@ You are filtering news articles from international tech/AI media. Your job: keep
 
 INCLUDE:
 - AI, ML, LLMs, deep learning, neural networks, foundation models
-- AI company news and strategy (OpenAI, Anthropic, Google DeepMind, Meta AI, etc.)
-- AI chips, GPUs, TPUs, AI-specific hardware and infrastructure
-- AI regulation, policy, safety, ethics
+- AI company news — ANY article about companies whose primary business is AI (OpenAI, Anthropic, Google DeepMind, Meta AI, xAI, Mistral, Cohere, etc.), including their business deals, lawsuits, partnerships, government contracts, corporate strategy, and hiring
+- AI chips, GPUs, TPUs, NPUs, AI-specific hardware and infrastructure (including chip export controls)
+- AI regulation, policy, safety, ethics, government AI strategy
 - Cloud AI services, AI APIs, AI developer tools and frameworks
-- AI-powered products, features, and applications
+- AI-powered products, features, and applications (AI glasses, AI assistants, AI-generated content, AI search, etc.)
 - Robotics, autonomous systems, computer vision
-- Data infrastructure and tools for AI/ML
+- Data infrastructure, AI data centers, and tools for AI/ML
 - AI research, benchmarks, new techniques
 - Startups and funding in AI/ML space
 - Science and research with clear AI/ML connection
+- Social impact OF AI (AI and jobs, AI surveillance, AI content moderation, AI deepfakes)
 
 EXCLUDE:
 - General consumer tech (phone reviews, gadgets, apps) with no AI angle
 - Generic software updates or features unrelated to AI
 - Pure cybersecurity news without AI connection
-- General business/finance even from tech companies (unless AI is the focus)
+- Business/finance of NON-AI companies with no AI substance
 - Lifestyle, entertainment, sports, celebrity news
 - Non-tech politics or social issues
 - Articles where "AI" is mentioned only in passing, not as the main topic
@@ -749,7 +754,7 @@ Return the indices as a JSON array:
         if isinstance(result, list):
             return set(int(idx) for idx in result if isinstance(idx, (int, float)))
     except Exception as e:
-        print(f"    [WARN] LLM AI 필터 실패 -> 전체 통과: {e}")
+        ci_warning(f"LLM AI 필터 실패 -> 전체 통과: {e}")
     # 실패 시 전체 통과 (AI 관련으로 간주)
     return set(range(len(articles)))
 
@@ -805,7 +810,7 @@ def _llm_filter_sources(sources: dict[str, list[dict]]) -> None:
                 key, marked, today_marked, today_kept = future.result()
             except Exception as e:
                 key = futures[future]
-                print(f"    [WARN] [{key}] LLM AI 필터 future 실패: {e}")
+                ci_warning(f"[{key}] LLM AI 필터 future 실패: {e}")
                 continue
             total_marked += marked
             total_today_marked += today_marked
@@ -830,12 +835,12 @@ def _safe_node(node_name: str):
                 result = fn(state)
             except Exception as e:
                 elapsed = time.time() - t0
-                print(f"  [ERROR] {node_name} 노드 실패 ({elapsed:.1f}s): {type(e).__name__}: {e}")
+                ci_error(f"{node_name} 노드 실패 ({elapsed:.1f}s): {type(e).__name__}: {e}")
                 result = {"errors": [f"{node_name}: {e}"]}
             elapsed = time.time() - t0
             # 방어: 노드가 None이나 비-dict를 반환한 경우 빈 dict로 대체
             if not isinstance(result, dict):
-                print(f"  [WARN] {node_name} 노드가 dict가 아닌 {type(result).__name__}을 반환 -> 빈 dict로 대체")
+                ci_warning(f"{node_name} 노드가 dict가 아닌 {type(result).__name__}을 반환 -> 빈 dict로 대체")
                 result = {"errors": [f"{node_name}: returned {type(result).__name__} instead of dict"]}
             print(f"  [{node_name}] {elapsed:.1f}s")
             result.setdefault("node_timings", {})
@@ -867,6 +872,7 @@ def collector_node(state: NewsGraphState) -> dict:
     print(f"  {'합계':<22} {total_all:>4}  {total_today:>4}\n")
 
     # 소스별 수집된 기사 제목 전체 출력
+    ci_group(f"수집 기사 상세 목록 ({total_all}개)")
     for key, articles in sources.items():
         if not articles:
             continue
@@ -880,6 +886,7 @@ def collector_node(state: NewsGraphState) -> dict:
             else:
                 date_str = "날짜없음"
             print(f"    - \"{title}\" ({date_str})")
+    ci_endgroup()
 
     enrich_and_scrape(sources)
     filter_imageless(sources)
@@ -928,6 +935,7 @@ def en_process_node(state: NewsGraphState) -> dict:
     # EN 번역/요약 결과 기사별 출력
     success = sum(1 for a in en_articles if a.get("display_title"))
     print(f"\n  [EN 요약] 완료 {success}/{len(en_articles)}개:")
+    ci_group(f"EN 요약 결과 ({success}/{len(en_articles)}개)")
     for a in en_articles:
         orig_title = (a.get("title") or "")[:60]
         src = a.get("source_key", "")
@@ -936,6 +944,8 @@ def en_process_node(state: NewsGraphState) -> dict:
             print(f"    \u2713 \"{disp}\" \u2190 \"{orig_title}\" [{src}]")
         else:
             print(f"    \u2717 \uc2e4\ud328: \"{orig_title}\" [{src}]")
+
+    ci_endgroup()
 
     # 처리한 소스 키만 반환 -- 리듀서가 기존 state 에 머지
     partial_sources = {key: state["sources"][key] for key in en_source_keys if key in state["sources"]}
@@ -971,6 +981,7 @@ def ko_process_node(state: NewsGraphState) -> dict:
     all_ko = [a for key in SOURCE_SECTION_SOURCES for a in state["sources"].get(key, []) if a.get("lang") == "ko"]
     success = sum(1 for a in all_ko if a.get("display_title"))
     print(f"\n  [KO 요약] 완료 {success}/{len(all_ko)}개:")
+    ci_group(f"KO 요약 결과 ({success}/{len(all_ko)}개)")
     for a in all_ko:
         disp = (a.get("display_title") or "")[:60]
         src = a.get("source_key", "")
@@ -979,6 +990,8 @@ def ko_process_node(state: NewsGraphState) -> dict:
         else:
             orig = (a.get("title") or "")[:60]
             print(f"    \u2717 \uc2e4\ud328: \"{orig}\" [{src}]")
+
+    ci_endgroup()
 
     # 처리한 소스 키만 반환 -- 리듀서가 기존 state 에 머지
     partial_sources = {key: state["sources"][key] for key in ko_source_keys if key in state["sources"]}
@@ -1293,16 +1306,21 @@ Classify each article into ONE category:
 
 ■ models_products — Announces a NEW model/product/tool/feature release, OR first wide rollout of a new feature.
   Only if a NEW usable artifact is launched/made available. NOT: stats, investment, testing, blueprints, strategy.
+  Includes: new framework/library release, open-source code release, new API endpoint, new app/platform launch.
 
 ■ research — Paper, algorithm, benchmark, technical mechanism analysis, tutorial/how-to guide.
   Explains HOW something works or teaches HOW to build something. NOT: social impact trends, security vulnerabilities.
+  Includes: papers, studies, proposed architectures without released artifact, coding tutorials.
 
 ■ industry_business — Everything else: funding, M&A, regulation, trends, milestones, strategy, security issues.
+  Includes: pricing/subscription changes, user growth stats, partnerships, lawsuits, policy.
 
 ⚠ Product name in title ≠ models_products. Only actual NEW releases count.
 ⚠ Mixed article (blueprint + model release) → classify by the PRIMARY news.
+⚠ New framework/tool "공개"/"release"/"launch" → models_products (not research).
+⚠ Paper + released code/weights → models_products. Paper only → research.
 
-Examples: "가우스2 공개"→models_products | "ChatGPT 9억명 돌파"→industry_business | "GRPO 논문"→research | "청사진 공개"→industry_business | "AI 쇼핑 테스트"→industry_business | "GPT-5 API 출시"→models_products | "LLM 파인튜닝 구축 가이드"→research | "AI 에이전트 OS 튜토리얼"→research | "소송 제기"→industry_business | "저작권 판결"→industry_business | "Self-Flow 기술로 훈련 효율 향상"→research | "새 AI Mode 전역 확대 출시"→models_products | "AI 검색 3억명 돌파"→industry_business
+Examples: "가우스2 공개"→models_products | "ChatGPT 9억명 돌파"→industry_business | "GRPO 논문"→research | "청사진 공개"→industry_business | "AI 쇼핑 테스트"→industry_business | "GPT-5 API 출시"→models_products | "LLM 파인튜닝 구축 가이드"→research | "AI 에이전트 OS 튜토리얼"→research | "소송 제기"→industry_business | "저작권 판결"→industry_business | "Self-Flow 기술로 훈련 효율 향상"→research | "새 AI Mode 전역 확대 출시"→models_products | "AI 검색 3억명 돌파"→industry_business | "에이전트 AI 프레임워크 공개"→models_products | "Claude Code 구독 가격 변경"→industry_business
 
 Articles:
 {article_text}
@@ -1422,7 +1440,7 @@ def _rank_category(articles: list[dict], category: str) -> list[tuple[int, int, 
         return results
 
     except Exception as e:
-        print(f"    [RANKER 폴백] {category}: {e} — published 최신순 사용")
+        ci_warning(f"RANKER 폴백 {category}: {e} — published 최신순 사용")
         # 폴백: published 날짜 최신순
         indexed = list(range(count))
         indexed.sort(
@@ -1465,7 +1483,7 @@ def _classify_batch(batch: list[dict], offset: int) -> list[dict]:
 
         if not results:
             preview = str(content)[:150] if content else "EMPTY"
-            print(f"    [CLASSIFY 빈 응답] offset={offset}, size={len(batch)}, raw={preview}")
+            ci_warning(f"CLASSIFY 빈 응답 offset={offset}, size={len(batch)}, raw={preview}")
             return []
 
         valid = []
@@ -1503,7 +1521,7 @@ def _classify_batch(batch: list[dict], offset: int) -> list[dict]:
                     print(f"      [무효] i={raw_i}, cat={raw_cat} (범위: 0~{len(batch)-1})")
         return valid
     except Exception as e:
-        print(f"    [CLASSIFY ERROR] 배치 offset={offset}, size={len(batch)}: {type(e).__name__}: {e}")
+        ci_warning(f"CLASSIFY ERROR 배치 offset={offset}, size={len(batch)}: {type(e).__name__}: {e}")
         return []
 
 
@@ -1592,7 +1610,7 @@ def categorizer_node(state: NewsGraphState) -> dict:
                     results = future.result()
                     cls_results.extend(results)
                 except Exception as e:
-                    print(f"    [CLASSIFY ERROR] 배치 {batch_idx+1} future 실패: {e}")
+                    ci_warning(f"CLASSIFY ERROR 배치 {batch_idx+1} future 실패: {e}")
 
             # 분류 결과를 기사에 적용
             for r in cls_results:
@@ -1620,7 +1638,7 @@ def categorizer_node(state: NewsGraphState) -> dict:
         ratio = cat_count / total_cands if total_cands else 0
         print(f"    [그룹] {cat}: {cat_count}개")
         if ratio > 0.60:
-            print(f"    [분류 편향 경고] {cat}: {cat_count}/{total_cands}개 ({ratio:.0%}) — 60% 초과")
+            ci_warning(f"분류 편향 경고 {cat}: {cat_count}/{total_cands}개 ({ratio:.0%}) — 60% 초과")
 
     # ── QA: 중복 제거 결과 ──
     deduped_articles = [a for a in candidates if a.get("_deduped")]
@@ -1652,6 +1670,7 @@ def categorizer_node(state: NewsGraphState) -> dict:
         "models_products": [],
     }
     suspect_count = 0
+    ci_group("QA: 카테고리별 분류 기사 목록")
     print("    ── [QA] 카테고리별 분류 기사 목록 ──")
     for cat in sorted(VALID_CATEGORIES):
         cat_articles = [a for a in candidates if a.get("_llm_category") == cat]
@@ -1676,6 +1695,7 @@ def categorizer_node(state: NewsGraphState) -> dict:
         print(f"    ── [QA] 의심 분류 {suspect_count}건 감지 — 수동 확인 권장 ──")
     else:
         print("    ── [QA] 의심 분류 없음 ──")
+    ci_endgroup()
 
     return {"scored_candidates": candidates}
 
@@ -1719,7 +1739,7 @@ def ranker_node(state: NewsGraphState) -> dict:
                     candidates[global_idx]["_total_score"] = score
                     candidates[global_idx]["_llm_scored"] = True
             except Exception as e:
-                print(f"  [RANKER ERROR] {cat}: {e}")
+                ci_error(f"RANKER ERROR {cat}: {e}")
 
     # deduped 기사: 0점 (순위 없음)
     for a in candidates:
@@ -1734,6 +1754,7 @@ def ranker_node(state: NewsGraphState) -> dict:
             a["_rank"] = 9999
 
     # ── 카테고리별 랭킹 결과 상세 로그 ──
+    ci_group("카테고리별 랭킹 결과 상세")
     for cat in ("research", "models_products", "industry_business"):
         ranked_in_cat = [
             a for a in candidates
@@ -1748,6 +1769,7 @@ def ranker_node(state: NewsGraphState) -> dict:
                 title = (a.get("display_title") or a.get("title", ""))[:60]
                 src = a.get("source_key", "?")
                 print(f"    {a.get('_rank', '?')}위 ({a.get('_total_score', 0)}점): \"{title}\" [{src}]")
+    ci_endgroup()
 
     return {"scored_candidates": candidates}
 
@@ -1918,6 +1940,7 @@ HIGHLIGHT_COUNT = 3
 CATEGORY_TOP_N = 25
 
 
+
 def _select_category_top_n(articles: list[dict], n: int = CATEGORY_TOP_N, today_min: int = 3) -> list[dict]:
     """당일 기사 today_min개 보장 + 나머지 점수순 채움 + 날짜(일) 최신순 정렬"""
     _epoch = datetime(2000, 1, 1, tzinfo=_KST)
@@ -2031,9 +2054,20 @@ def selector_node(state: NewsGraphState) -> dict:
         src = c.get("source_key", "")
         print(f"    {rank+1}. [{c.get('_total_score', 0)}점] [{src}] {title}")
 
-    # ── Step 2: 하이라이트 제외 → 카테고리별 분류 ──
+    # ── Step 2: 하이라이트 제외 + 비AI 기사 제외 → 카테고리별 분류 ──
     highlight_ids = set(id(c) for c in highlights)
     remaining = [c for c in candidates if id(c) not in highlight_ids]
+    # 비AI 마킹 기사 제외 (하이라이트와 동일 정책: research는 면제)
+    ai_excluded = 0
+    filtered_remaining: list[dict] = []
+    for a in remaining:
+        if a.get("_ai_filtered") and a.get("_llm_category") != "research":
+            ai_excluded += 1
+        else:
+            filtered_remaining.append(a)
+    if ai_excluded:
+        print(f"  [선정] 비AI 마킹 기사 {ai_excluded}개 카테고리 목록에서 제외")
+    remaining = filtered_remaining
 
     categorized: dict[str, list[dict]] = {k: [] for k in category_order}
     for a in remaining:
@@ -2110,6 +2144,7 @@ def assembler_node(state: NewsGraphState) -> dict:
             source_articles[key] = sorted_articles[:10]
 
     # 소스별 섹션 최종 기사 목록 출력
+    ci_group("소스별 섹션 최종 기사 목록")
     for key, articles in source_articles.items():
         if not articles:
             continue
@@ -2123,6 +2158,7 @@ def assembler_node(state: NewsGraphState) -> dict:
             else:
                 date_str = "날짜없음"
             print(f"    {rank+1}. \"{title}\" ({date_str})")
+    ci_endgroup()
 
     total = (
         len(state.get("highlights", []))

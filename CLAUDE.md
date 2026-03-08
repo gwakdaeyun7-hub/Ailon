@@ -153,7 +153,7 @@ LangGraph 8-node pipeline with parallel EN/KO branches:
 | collector | 16 RSS sources + scraping + LLM AI filter | trafilatura + Chrome UA, 10 parallel workers |
 | en_process | EN→KO translation + summarization | batch=5, max_tokens=12288, thinking=False |
 | ko_process | KO summarization | batch=2, max_tokens=12288, thinking=False |
-| categorizer | LLM 3-category classification + 7-layer dedup | batch=5, 3 parallel workers |
+| categorizer | LLM 3-category classification + 7-layer dedup | batch=5, 3 parallel workers, AI 필터 소스 티어별 분기 |
 | ranker | Per-category LLM ranking → score (1st=100, last=30) | token_budget=max(6144, count*100) |
 | entity_extractor | Entity extraction + topic clustering | batch=5, 4 parallel workers |
 | selector | Highlight Top 3 + Category Top 25 | today articles only for highlights |
@@ -161,10 +161,10 @@ LangGraph 8-node pipeline with parallel EN/KO branches:
 
 ### News Sources (16 total, 3 tiers)
 
-**Tier 1+2 (12 EN sources)** — CATEGORY_SOURCES, used for highlights + categories:
+**Tier 1+2 (12 EN sources)** — CATEGORY_SOURCES, used for highlights + categories, AI 필터 "의심 시 포함":
 Wired AI, TechCrunch AI, The Verge AI, MIT Tech Review, VentureBeat, MarkTechPost, The Decoder, The Rundown AI, Google DeepMind, NVIDIA, Hugging Face, Ars Technica AI
 
-**Tier 3 (4 KO sources)** — SOURCE_SECTION_SOURCES, separate sections:
+**Tier 3 (4 KO sources)** — SOURCE_SECTION_SOURCES, separate sections, AI 필터 "의심 시 제거":
 AI타임스, GeekNews, ZDNet AI 에디터 (HTML scrape), 요즘IT AI
 
 ### Key Constants (DO NOT lower without reason)
@@ -179,8 +179,10 @@ AI타임스, GeekNews, ZDNet AI 에디터 (HTML scrape), 요즘IT AI
 | CLASSIFY_BATCH_SIZE | 5 | LLM 안정성 |
 | EN batch size | 5 | 번역+요약 |
 | KO batch size | 2 | 한국어 본문이 길어서 |
-| DEDUP layers | 7 (URL→orig_title→disp_title→one_line→key_tokens→embedding) | |
-| Embedding threshold | 0.92 cosine | Layer 7 |
+| DEDUP layers | 7 (L1 URL→L2 orig_title→L3 disp_title→L4 one_line→L5 key_tokens→L6 embedding→L7 title_entity) | |
+| Embedding threshold | 0.92 cosine | L6 |
+| L7 title_entity | 제품+버전 일치 + one_line 토큰 Jaccard ≥ 0.30 | GPT-5.4 등 동일 이벤트 다소스 중복 감지 |
+| AI 필터 기본값 | Tier 1+2: "의심 시 포함", Tier 3: "의심 시 제거" | AI 전문 피드 오탐 방지 |
 
 ### Classification Categories
 - `models_products` — NEW model/product/tool/feature release, first wide rollout
@@ -243,6 +245,12 @@ topic_cluster_id                 — "domain/topic" (e.g., "nlp/language_models"
 - Manual trigger: target (all/news/principle), force flag
 - Python 3.11, timeout: 40 minutes
 
+### CI Logging (`scripts/agents/ci_utils.py`)
+- `ci_warning(msg)` / `ci_error(msg)` — `::warning::` / `::error::` 어노테이션 (CI에서만) + 항상 print
+- `ci_group(title)` / `ci_endgroup()` — 긴 목록 접기 (수집 기사, EN/KO 결과, QA 목록, 랭킹 상세, 소스 섹션)
+- `write_job_summary(md)` — `$GITHUB_STEP_SUMMARY`에 마크다운 테이블 (뉴스/원리 결과 + 경고/에러)
+- 로컬 실행 시 어노테이션 미출력, 기존 print 로그만 유지 (`CI` 환경변수 감지)
+
 ---
 
 ## LLM Usage
@@ -298,7 +306,7 @@ topic_cluster_id                 — "domain/topic" (e.g., "nlp/language_models"
 - **VentureBeat/paywall 사이트**: trafilatura에 Chrome UA 설정 필요 (tools.py `_get_traf_config`)
 - **key_points 2개**: 프롬프트에서 허용 범위 (팩트 부족 시). 0-1개는 문제
 - **index.tsx ~1500 lines**: 더 이상 inline 컴포넌트 추가 금지, components/feed/로 추출할 것
-- **Pipeline QA logs**: print-only (GitHub Actions 로그), Firestore에 저장 안 됨
+- **Pipeline QA logs**: print + GitHub Actions 어노테이션 (`::warning::`, `::error::`, `::group::`) + Job Summary. Firestore에는 저장 안 됨
 
 ## Behavioral Guidelines
 

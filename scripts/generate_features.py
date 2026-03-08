@@ -17,6 +17,7 @@ from datetime import datetime, timedelta, timezone
 from firebase_admin import firestore
 from langchain_core.messages import HumanMessage
 from agents.config import get_firestore_client
+from agents.ci_utils import ci_warning, ci_error
 
 _KST = timezone(timedelta(hours=9))
 
@@ -51,7 +52,7 @@ def save_articles_collection(result: dict):
         today = datetime.now(_KST).strftime("%Y-%m-%d")
         unique = _collect_unique_articles(result)
         if not unique:
-            print("  [WARN] articles 저장 생략: 저장할 기사 없음")
+            ci_warning("articles 저장 생략: 저장할 기사 없음")
             return
 
         batch = db.batch()
@@ -105,11 +106,11 @@ def save_articles_collection(result: dict):
         try:
             db.collection("daily_news").document(today).update({"article_ids": article_ids})
         except Exception as e:
-            print(f"  [WARN] article_ids 업데이트 실패: {e}")
+            ci_warning(f"article_ids 업데이트 실패: {e}")
 
         print(f"  articles 컬렉션: {len(unique)}개 기사 저장")
     except Exception as e:
-        print(f"  [WARN] articles 저장 실패: {e}")
+        ci_warning(f"articles 저장 실패: {e}")
 
 
 # ─── 2. 관련 기사 매칭 ───────────────────────────────────────────────────
@@ -201,7 +202,7 @@ Articles:
         if not isinstance(data, dict) or "briefing_ko" not in data:
             actual_type = type(data).__name__
             actual_keys = list(data.keys())[:5] if isinstance(data, dict) else str(data)[:100]
-            print(f"  [브리핑 실패] 잘못된 응답 형식: type={actual_type}, keys={actual_keys}")
+            ci_error(f"브리핑 실패: 잘못된 응답 형식 type={actual_type}, keys={actual_keys}")
             return None
 
         mentioned = data.get("mentioned_indices", [])
@@ -227,7 +228,7 @@ Articles:
         print(f"  브리핑 저장 완료: {data.get('story_count', 0)}개 스토리")
         return data
     except Exception as e:
-        print(f"  [브리핑 실패] {e}")
+        ci_error(f"브리핑 실패: {e}")
         return None
 
 
@@ -298,7 +299,7 @@ def accumulate_glossary(result: dict):
         try:
             batch.commit()
         except Exception as e:
-            print(f"  [WARN] glossary 배치 저장 실패: {e}")
+            ci_warning(f"glossary 배치 저장 실패: {e}")
 
     print(f"  용어 사전: {total}개 용어 축적 완료")
     return total
@@ -381,7 +382,7 @@ def build_timeline(result: dict):
             batch.commit()
         print(f"  타임라인: {updated}개 기사에 과거 연결 완료")
     except Exception as e:
-        print(f"  [타임라인 실패] {e}")
+        ci_error(f"타임라인 실패: {e}")
 
 
 # ─── 6b. daily_news에 related_ids/timeline_ids 패치 ─────────────────────
@@ -452,6 +453,6 @@ def patch_daily_news_ids(result: dict):
             patched_count = sum(1 for v in id_map.values() if v["related_ids"] or v["timeline_ids"])
             print(f"  daily_news 패치: {patched_count}개 기사에 related_ids/timeline_ids 반영")
     except Exception as e:
-        print(f"  [WARN] daily_news 패치 실패: {e}")
+        ci_warning(f"daily_news 패치 실패: {e}")
 
 

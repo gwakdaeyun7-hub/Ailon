@@ -21,6 +21,11 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from agents.config import initialize_firebase, get_firestore_client
 from agents.news_team import run_news_pipeline
 from agents.principle_team import run_principle_pipeline
+from agents.ci_utils import (
+    ci_warning, ci_error,
+    get_collected_warnings, get_collected_errors,
+    reset_collected, write_job_summary,
+)
 from notifications import send_news_notification
 from generate_features import (
     _article_id,
@@ -142,7 +147,7 @@ def save_news_to_firestore(result: dict):
     try:
         existing_doc = doc_ref.get()
     except Exception as e:
-        print(f"  [WARN] 기존 문서 조회 실패 (신규로 저장): {type(e).__name__}: {e}")
+        ci_warning(f"기존 문서 조회 실패 (신규로 저장): {type(e).__name__}: {e}")
         existing_doc = None
 
     if existing_doc and existing_doc.exists:
@@ -261,7 +266,7 @@ def run_news():
     if warnings:
         print("\n  [검증 경고]")
         for w in warnings:
-            print(f"    - {w}")
+            ci_warning(f"검증: {w}")
 
     save_news_to_firestore(news_result)
 
@@ -270,27 +275,27 @@ def run_news():
     try:
         save_articles_collection(news_result)
     except Exception as e:
-        print(f"  [articles 저장 실패] {e}")
+        ci_error(f"articles 저장 실패: {e}")
     try:
         find_related_articles(news_result)
     except Exception as e:
-        print(f"  [관련기사 실패] {e}")
+        ci_error(f"관련기사 실패: {e}")
     try:
         generate_daily_briefing(news_result)
     except Exception as e:
-        print(f"  [브리핑 실패] {e}")
+        ci_error(f"브리핑 실패: {e}")
     try:
         accumulate_glossary(news_result)
     except Exception as e:
-        print(f"  [용어사전 실패] {e}")
+        ci_error(f"용어사전 실패: {e}")
     try:
         build_timeline(news_result)
     except Exception as e:
-        print(f"  [타임라인 실패] {e}")
+        ci_error(f"타임라인 실패: {e}")
     try:
         patch_daily_news_ids(news_result)
     except Exception as e:
-        print(f"  [daily_news 패치 실패] {e}")
+        ci_warning(f"daily_news 패치 실패: {e}")
     print("  [AI 기능] 완료")
 
     try:
@@ -316,7 +321,7 @@ def run_principle(force: bool = False):
                 print(f"  [스킵] 오늘({today}) 원리 콘텐츠가 이미 존재합니다. (--force로 덮어쓰기 가능)")
                 return None
         except Exception as e:
-            print(f"  [WARN] 기존 원리 콘텐츠 확인 실패 (새로 생성 진행): {type(e).__name__}: {e}")
+            ci_warning(f"기존 원리 콘텐츠 확인 실패 (새로 생성 진행): {type(e).__name__}: {e}")
 
     start = time.time()
     result = run_principle_pipeline()
@@ -340,7 +345,7 @@ def run_principle(force: bool = False):
         print(f"    검증:          confidence={v.get('confidence', '?')}, verified={v.get('verified', '?')}")
         print(f"    날짜:          {result.get('date', '?')}")
     else:
-        print("  [경고] 원리 파이프라인 결과 없음 — LLM 호출 실패 또는 시드 선택 오류 가능성")
+        ci_warning("원리 파이프라인 결과 없음 — LLM 호출 실패 또는 시드 선택 오류 가능성")
 
     return result
 
@@ -366,6 +371,8 @@ def main():
     print(f"{datetime.now(_KST).strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 60)
 
+    reset_collected()
+    pipeline_start = time.time()
     initialize_firebase()
 
     news_result = None
@@ -378,12 +385,13 @@ def main():
         try:
             principle_result = run_principle(force=args.force)
         except Exception as e:
-            print(f"  [원리 파이프라인 실패] {e}")
+            ci_error(f"원리 파이프라인 실패: {e}")
 
     # ─── 오래된 데이터 정리 ───
     print("\n" + "-" * 40)
 
     # ─── 완료 ───
+    total_elapsed = time.time() - pipeline_start
     print("\n" + "=" * 60)
     parts = []
     if news_result:
@@ -392,6 +400,79 @@ def main():
         parts.append("원리 생성 완료")
     print(f"완료! {' / '.join(parts) if parts else args.target + ' 완료'}")
     print("=" * 60)
+
+    # ─── Job Summary 작성 ───
+    _write_job_summary(
+        args.target, news_result, principle_result,
+        total_elapsed,
+    )
+
+
+def _write_job_summary(
+    target: str,
+    news_result: dict | None,
+    principle_result: dict | None,
+    total_elapsed: float,
+):
+    """$GITHUB_STEP_SUMMARY에 마크다운 요약 작성."""
+    today = datetime.now(_KST).strftime("%Y-%m-%d")
+    minutes = int(total_elapsed // 60)
+    seconds = int(total_elapsed % 60)
+
+    lines = [f"## Ailon Daily Pipeline — {today}", ""]
+
+    # 뉴스 섹션
+    if news_result:
+        cat = news_result.get("categorized_articles", {})
+        cat_detail = " / ".join(
+            f"{k} {len(v)}" for k, v in sorted(cat.items())
+        )
+        src_count = sum(len(v) for v in news_result.get("source_articles", {}).values())
+        lines.extend([
+            "### 뉴스",
+            "| 항목 | 결과 |",
+            "|------|------|",
+            f"| 하이라이트 | {len(news_result.get('highlights', []))}/3 |",
+            f"| 카테고리 | {cat_detail} |",
+            f"| 소스 섹션 | {src_count}개 |",
+            f"| 총 기사 | {news_result.get('total_count', 0)}개 |",
+            "",
+        ])
+
+    # 원리 섹션
+    if principle_result:
+        disc = principle_result.get("discipline_info", {})
+        principle = principle_result.get("principle", {})
+        v = principle.get("verification", {})
+        confidence = v.get("confidence", "?")
+        verified = v.get("verified", "?")
+        check = "✓" if verified else "✗"
+        lines.extend([
+            "### 원리",
+            "| 항목 | 결과 |",
+            "|------|------|",
+            f"| 분야 | {disc.get('name', '?')} |",
+            f"| 원리 | {disc.get('focus', '?')} |",
+            f"| 검증 | confidence={confidence} {check} |",
+            "",
+        ])
+
+    # 소요 시간
+    lines.append(f"**소요 시간**: {minutes}분 {seconds}초")
+    lines.append("")
+
+    # 경고/에러 섹션
+    warnings = get_collected_warnings()
+    errors = get_collected_errors()
+    if warnings or errors:
+        lines.append("### 경고/에러")
+        for e in errors:
+            lines.append(f"- ❌ {e}")
+        for w in warnings:
+            lines.append(f"- ⚠ {w}")
+        lines.append("")
+
+    write_job_summary("\n".join(lines))
 
 
 if __name__ == "__main__":

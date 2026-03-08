@@ -23,6 +23,7 @@ from google.cloud.firestore_v1.base_query import FieldFilter
 
 from agents.config import get_llm, get_firestore_client
 from agents.principle_seeds import PRINCIPLE_SEEDS
+from agents.ci_utils import ci_warning, ci_error
 
 
 # ─── KST 타임존 ───
@@ -240,11 +241,11 @@ def _safe_node(node_name: str):
                 result = fn(state)
             except Exception as e:
                 elapsed = time.time() - t0
-                print(f"  [ERROR] {node_name} 노드 실패 ({elapsed:.1f}s): {type(e).__name__}: {e}")
+                ci_error(f"{node_name} 노드 실패 ({elapsed:.1f}s): {type(e).__name__}: {e}")
                 result = {"errors": [f"{node_name}: {e}"]}
             elapsed = time.time() - t0
             if not isinstance(result, dict):
-                print(f"  [WARN] {node_name} 노드가 dict가 아닌 {type(result).__name__}을 반환 -> 빈 dict로 대체")
+                ci_warning(f"{node_name} 노드가 dict가 아닌 {type(result).__name__}을 반환 -> 빈 dict로 대체")
                 result = {"errors": [f"{node_name}: returned {type(result).__name__} instead of dict"]}
             print(f"  [{node_name}] {elapsed:.1f}s")
             result.setdefault("node_timings", {})
@@ -568,7 +569,7 @@ def verifier(state: PrincipleGraphState) -> dict:
             break
         except json.JSONDecodeError as e:
             if attempt == 0:
-                print(f"  [verifier] JSON 파싱 실패, 재시도: {e.msg}")
+                ci_warning(f"verifier JSON 파싱 실패, 재시도: {e.msg}")
                 time.sleep(1)
             else:
                 raise
@@ -605,7 +606,7 @@ def should_retry(state: PrincipleGraphState) -> str:
     confidence = verification.get("confidence", 0.0)
 
     if (not verified or confidence < 0.7) and retry_count < 3:
-        print(f"  [라우팅] 검증 실패 (verified={verified}, confidence={confidence:.2f}), 재시도 {retry_count + 1}/3")
+        ci_warning(f"검증 실패 (verified={verified}, confidence={confidence:.2f}), 재시도 {retry_count + 1}/3")
         return "retry"
 
     if not verified or confidence < 0.7:
@@ -699,7 +700,7 @@ def assembler(state: PrincipleGraphState) -> dict:
         db.collection("daily_principles").document(today_str).set(doc)
         print(f"  [assembler] Firestore 저장 완료: daily_principles/{today_str}")
     except Exception as e:
-        print(f"  [assembler] Firestore 저장 실패: {e}")
+        ci_error(f"assembler Firestore 저장 실패: {e}")
         return {"errors": [f"assembler: Firestore 저장 실패: {e}"], "result": doc}
 
     # 타이밍 리포트
