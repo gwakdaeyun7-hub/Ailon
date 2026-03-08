@@ -30,7 +30,7 @@ export const LightColors = {
   scoreProduct: '#7C3AED',
   // SummaryModal 색상 (다른 에이전트가 사용)
   summaryIndigo: '#0D7377',
-  summaryTeal: '#0891B2',
+  summaryTeal: '#0E7490',
   summaryBody: '#44403C',
   summaryWarnBg: '#F0FDF4',
   summaryWarnText: '#15803D',
