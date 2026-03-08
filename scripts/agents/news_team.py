@@ -1628,6 +1628,22 @@ def ranker_node(state: NewsGraphState) -> dict:
             a["_total_score"] = 20
             a["_rank"] = 9999
 
+    # ── 카테고리별 랭킹 결과 상세 로그 ──
+    for cat in ("research", "models_products", "industry_business"):
+        ranked_in_cat = [
+            a for a in candidates
+            if not a.get("_deduped")
+            and a.get("_llm_category", "industry_business") == cat
+            and a.get("_rank", 9999) < 9999
+        ]
+        ranked_in_cat.sort(key=lambda a: a.get("_rank", 9999))
+        if ranked_in_cat:
+            print(f"  [랭킹] {cat} ({len(ranked_in_cat)}개):")
+            for a in ranked_in_cat:
+                title = (a.get("display_title") or a.get("title", ""))[:60]
+                src = a.get("source_key", "?")
+                print(f"    {a.get('_rank', '?')}위 ({a.get('_total_score', 0)}점): \"{title}\" [{src}]")
+
     return {"scored_candidates": candidates}
 
 
