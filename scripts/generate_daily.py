@@ -324,11 +324,23 @@ def run_principle(force: bool = False):
     print(f"\n  파이프라인 소요: {elapsed:.1f}초")
 
     if result:
-        discipline = result.get("discipline_info", {}).get("name", "?")
-        focus = result.get("discipline_info", {}).get("focus", "?")
-        print(f"  원리 생성 완료: {discipline} — {focus}")
+        disc_info = result.get("discipline_info", {})
+        principle_info = result.get("principle", {})
+        discipline = disc_info.get("name", "?")
+        focus = disc_info.get("focus", "?")
+        print(f"\n  ── Principle 파이프라인 결과 요약 ──")
+        print(f"    학문 분야:     {discipline}")
+        print(f"    원리:          {focus}")
+        print(f"    AI 연결:       {disc_info.get('ai_connection', '?')[:60]}")
+        print(f"    superCategory: {disc_info.get('superCategory', '?')}")
+        print(f"    title:         {principle_info.get('title', '?')[:70]}")
+        print(f"    difficulty:    {principle_info.get('difficulty', '?')}")
+        print(f"    connectionType:{principle_info.get('connectionType', '?')}")
+        v = principle_info.get("verification", {})
+        print(f"    검증:          confidence={v.get('confidence', '?')}, verified={v.get('verified', '?')}")
+        print(f"    날짜:          {result.get('date', '?')}")
     else:
-        print("  [경고] 원리 파이프라인 결과 없음")
+        print("  [경고] 원리 파이프라인 결과 없음 — LLM 호출 실패 또는 시드 선택 오류 가능성")
 
     return result
 

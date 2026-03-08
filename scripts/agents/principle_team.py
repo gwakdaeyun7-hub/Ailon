@@ -292,16 +292,24 @@ def seed_selector(state: PrincipleGraphState) -> dict:
         # 컬렉션이 아직 없는 경우 (첫 실행)
         print(f"  [seed_selector] Firestore 조회 실패 (첫 실행일 수 있음): {e}")
 
-    print(f"  [seed_selector] 최근 30일 사용 시드: {len(used_ids)}개, 최근 분야: {recent_disciplines}")
+    print(f"  [seed_selector] 전체 시드 풀: {len(PRINCIPLE_SEEDS)}개")
+    print(f"  [seed_selector] 최근 30일 사용 시드: {len(used_ids)}개")
+    if used_ids:
+        print(f"    사용 시드 ID: {', '.join(sorted(used_ids)[:10])}{'...' if len(used_ids) > 10 else ''}")
+    print(f"  [seed_selector] 최근 3일 분야: {recent_disciplines if recent_disciplines else '(없음 — 첫 실행 또는 데이터 부족)'}")
 
     # 후보 필터링: 최근 30일 사용 시드 제외
     candidates = [s for s in PRINCIPLE_SEEDS if s["id"] not in used_ids]
+    print(f"  [seed_selector] 30일 필터 후 후보: {len(candidates)}개")
 
     # 분야 로테이션: 최근 3일과 같은 분야 회피
     if recent_disciplines and candidates:
         rotated = [s for s in candidates if s["discipline"] not in recent_disciplines]
         if rotated:
+            print(f"  [seed_selector] 분야 로테이션 적용: {len(candidates)} → {len(rotated)}개 (제외 분야: {recent_disciplines})")
             candidates = rotated
+        else:
+            print(f"  [seed_selector] 분야 로테이션 건너뜀: 로테이션 적용 시 후보 0개")
 
     # 모든 시드 소진 시 전체에서 선택
     if not candidates:
@@ -309,7 +317,13 @@ def seed_selector(state: PrincipleGraphState) -> dict:
         candidates = list(PRINCIPLE_SEEDS)
 
     seed = random.choice(candidates)
-    print(f"  [seed_selector] 선택: {seed['principle_name']} ({seed['discipline_name']})")
+    print(f"  [seed_selector] ── 최종 선택 ──")
+    print(f"    시드 ID:    {seed['id']}")
+    print(f"    원리:       {seed['principle_name']} ({seed['principle_name_en']})")
+    print(f"    학문 분야:  {seed['discipline_name']}")
+    print(f"    AI 연결:    {seed['ai_connection'][:60]}{'...' if len(seed.get('ai_connection', '')) > 60 else ''}")
+    print(f"    superCat:   {seed.get('super_category', '?')}")
+    print(f"    후보 중:    {len(candidates)}개 중 랜덤 선택")
 
     return {"seed": seed}
 
@@ -457,7 +471,37 @@ def content_generator(state: PrincipleGraphState) -> dict:
         if nested_missing:
             print(f"  [content_generator] 경고: {section} 내 누락 키: {nested_missing}")
 
-    print(f"  [content_generator] 생성 완료: {content.get('title', '?')}")
+    # ── 상세 로그 ──
+    print(f"  [content_generator] ── 생성 완료 ──")
+    print(f"    title:          {content.get('title', '?')[:70]}")
+    print(f"    difficulty:     {content.get('difficulty', '?')}")
+    print(f"    connectionType: {content.get('connectionType', '?')}")
+    print(f"    readTime:       {content.get('readTime', '?')}")
+    print(f"    keywords:       {content.get('keywords', [])}")
+
+    foundation = content.get("foundation", {})
+    application = content.get("application", {})
+    integration = content.get("integration", {})
+    deep_dive = content.get("deepDive", {})
+
+    print(f"    [Step 1 Foundation]")
+    print(f"      headline: {foundation.get('headline', '?')[:50]}")
+    print(f"      body:     {foundation.get('body', '?')[:60]}...")
+    print(f"      analogy:  {foundation.get('analogy', '?')[:60]}")
+    print(f"    [Step 2 Application]")
+    print(f"      headline: {application.get('headline', '?')[:50]}")
+    print(f"      problem:  {application.get('problem', '?')[:60]}")
+    print(f"      body:     {application.get('body', '?')[:60]}...")
+    print(f"    [Step 3 Integration]")
+    print(f"      headline: {integration.get('headline', '?')[:50]}")
+    print(f"      body:     {integration.get('body', '?')[:60]}...")
+    print(f"      impact:   {integration.get('impact', '?')[:60]}")
+    print(f"    [Deep Dive]")
+    print(f"      originalProblem: {deep_dive.get('originalProblem', '?')[:70]}...")
+    print(f"      coreIntuition:   {deep_dive.get('coreIntuition', '?')[:70]}...")
+    print(f"      formula:         {'(있음)' if deep_dive.get('formula') else '(없음)'}")
+    print(f"      limits:          {deep_dive.get('limits', '?')[:70]}...")
+
     return {"content": content}
 
 
@@ -531,7 +575,23 @@ def verifier(state: PrincipleGraphState) -> dict:
 
     verified = verification.get("verified", False)
     confidence = verification.get("confidence", 0.0)
-    print(f"  [verifier] verified={verified}, confidence={confidence:.2f}, reason={verification.get('factCheck', '')[:80]}")
+    principle_acc = verification.get("principleAccuracy", 0.0)
+    mapping_acc = verification.get("mappingAccuracy", 0.0)
+    issues = verification.get("issues", [])
+
+    print(f"  [verifier] ── 검증 결과 ──")
+    print(f"    verified:           {verified}")
+    print(f"    confidence:         {confidence:.2f}")
+    print(f"    principleAccuracy:  {principle_acc:.2f}" if isinstance(principle_acc, (int, float)) else f"    principleAccuracy:  {principle_acc}")
+    print(f"    mappingAccuracy:    {mapping_acc:.2f}" if isinstance(mapping_acc, (int, float)) else f"    mappingAccuracy:    {mapping_acc}")
+    print(f"    factCheck:          {verification.get('factCheck', '')[:80]}")
+    if issues:
+        print(f"    issues ({len(issues)}건):")
+        for issue in issues[:5]:
+            print(f"      - {str(issue)[:80]}")
+    else:
+        print(f"    issues:             (없음)")
+    print(f"    판정:               {'PASS' if verified and confidence >= 0.7 else 'FAIL → 재시도 여부 확인'}")
 
     return {"verification": verification}
 
@@ -619,6 +679,20 @@ def assembler(state: PrincipleGraphState) -> dict:
         "updated_at": fs.SERVER_TIMESTAMP,
     }
 
+    # ── 저장 전 데이터 요약 로그 ──
+    print(f"  [assembler] ── 최종 문서 요약 ──")
+    print(f"    날짜:           {today_str}")
+    print(f"    seed_id:        {seed['id']}")
+    print(f"    discipline_key: {seed['discipline']}")
+    print(f"    discipline:     {seed['discipline_name']}")
+    print(f"    title:          {content.get('title', '?')[:70]}")
+    print(f"    connectionType: {content.get('connectionType', '?')}")
+    print(f"    difficulty:     {content.get('difficulty', '?')}")
+    print(f"    superCategory:  {seed.get('super_category', '?')}")
+    print(f"    keywords:       {content.get('keywords', [])}")
+    v = verification or {}
+    print(f"    verification:   confidence={v.get('confidence', '?')}, verified={v.get('verified', '?')}")
+
     # Firestore 저장 (날짜 기반 문서 ID 로 멱등성 보장)
     try:
         db = get_firestore_client()
@@ -630,8 +704,10 @@ def assembler(state: PrincipleGraphState) -> dict:
 
     # 타이밍 리포트
     timings = state.get("node_timings", {})
+    retry_count = state.get("retry_count", 0)
     if timings:
-        print(f"\n  --- 노드별 소요 시간 ---")
+        print(f"\n  --- Principle 파이프라인 리포트 ---")
+        print(f"    재시도 횟수: {retry_count}")
         total_time = 0.0
         for nname, elapsed in timings.items():
             print(f"    {nname}: {elapsed}s")
