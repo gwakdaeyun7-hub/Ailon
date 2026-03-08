@@ -749,16 +749,12 @@ Return the indices as a JSON array:
 def _llm_filter_sources(sources: dict[str, list[dict]]) -> None:
     """모든 소스를 LLM으로 AI 관련성 필터링 (병렬). 제거 대신 _ai_filtered 마킹."""
     total_marked = 0
-    # Tier 1/2 (CATEGORY_SOURCES)는 AI 필터링 건너뛰기 — 모두 통과 처리
+    # 모든 소스(Tier 1/2/3)에 LLM AI 필터링 적용
     tasks = []
     for key, articles in sources.items():
         if not articles:
             continue
-        if key in CATEGORY_SOURCES:
-            for a in articles:
-                a["_ai_filtered"] = False
-        else:
-            tasks.append((key, articles))
+        tasks.append((key, articles))
 
     def _filter_one(key: str, articles: list[dict]) -> tuple[str, int, int, int]:
         ai_indices = _llm_ai_filter_batch(articles, source_key=key)
