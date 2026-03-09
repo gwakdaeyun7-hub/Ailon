@@ -251,18 +251,50 @@ Articles:
             total += count
         category_stats["total"] = total
 
+        # Hot topics: 전체 기사 태그 빈도 Top 8 (KO + EN 합산, 소문자 기준 중복 제거)
+        tag_freq: dict[str, int] = {}
+        for art in all_articles:
+            for tag in (art.get("tags") or []):
+                t = tag.strip().lower()
+                if len(t) >= 2:
+                    tag_freq[t] = tag_freq.get(t, 0) + 1
+            for tag in (art.get("tags_en") or []):
+                t = tag.strip().lower()
+                if len(t) >= 2:
+                    tag_freq[t] = tag_freq.get(t, 0) + 1
+        hot_topics = [{"tag": t, "count": c} for t, c in sorted(tag_freq.items(), key=lambda x: -x[1])[:8]]
+
         db = get_firestore_client()
         today = datetime.now(_KST).strftime("%Y-%m-%d")
+        story_count = data.get("story_count", 0)
+
+        # 7-day trend: 과거 7일 + 오늘 기사 수 추이
+        trend_history = []
+        try:
+            for i in range(7, 0, -1):
+                d = (datetime.now(_KST) - timedelta(days=i)).strftime("%Y-%m-%d")
+                past_doc = db.collection("daily_briefings").document(d).get()
+                if past_doc.exists:
+                    past_data = past_doc.to_dict()
+                    trend_history.append({"date": d, "count": past_data.get("story_count", 0)})
+                else:
+                    trend_history.append({"date": d, "count": 0})
+            trend_history.append({"date": today, "count": story_count})
+        except Exception as e:
+            ci_warning(f"trend_history 조회 실패 (무시): {e}")
+            trend_history = [{"date": today, "count": story_count}]
+
         db.collection("daily_briefings").document(today).set({
             "date": today,
             "briefing_ko": data.get("briefing_ko", ""),
             "briefing_en": data.get("briefing_en", ""),
-            "story_count": data.get("story_count", 0),
+            "story_count": story_count,
             "article_ids": article_ids,
             "category_stats": category_stats,
+            "hot_topics": hot_topics,
+            "trend_history": trend_history,
             "updated_at": firestore.SERVER_TIMESTAMP,
         })
-        story_count = data.get("story_count", 0)
         print(f"  브리핑 저장 완료: {story_count}개 스토리")
 
         # CI 로그에 브리핑 전문 출력
@@ -281,6 +313,13 @@ Articles:
             if cat != "total":
                 print(f"    {cat}: {cnt}개")
         print(f"    총계: {category_stats['total']}개")
+        if hot_topics:
+            print(f"\n  핫 토픽 ({len(hot_topics)}개):")
+            for ht in hot_topics:
+                print(f"    {ht['tag']}: {ht['count']}회")
+        if len(trend_history) > 1:
+            trend_str = " → ".join(str(t["count"]) for t in trend_history)
+            print(f"\n  7일 추이: {trend_str}")
         ci_endgroup()
 
         return data

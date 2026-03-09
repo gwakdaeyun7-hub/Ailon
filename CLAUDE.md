@@ -186,9 +186,9 @@ AI타임스, GeekNews, ZDNet AI 에디터 (HTML scrape), 요즘IT AI
 | AI 필터 안전망 | Tier 1+2 제목에 AI 키워드(AI, LLM, GPT, Claude, Anthropic 등) 있으면 LLM 판단 무시 강제 포함 | `_MANDATORY_TITLE_KEYWORDS` 정규식, LLM 간헐적 오탐 방지 |
 
 ### Classification Categories
-- `models_products` — NEW model/product/tool/feature release, first wide rollout
-- `research` — Paper, algorithm, benchmark, tutorial/how-to
-- `industry_business` — Everything else (catch-all: funding, regulation, trends, strategy)
+- `models_products` — NEW model/product/tool/feature release, first wide rollout (NOT: events/meetups, non-AI products)
+- `research` — Paper, algorithm, benchmark, tutorial/how-to (includes paper-based tools)
+- `industry_business` — Everything else (catch-all: funding, regulation, trends, strategy, events)
 - industry_business가 50-65%인 것은 정상 (catch-all 설계). 60% 초과 시 경고만 출력
 - 미분류 기사 → industry_business 기본값 적용 (로그로 개수 추적)
 
@@ -208,11 +208,17 @@ topic_cluster_id                 — "domain/topic" (e.g., "nlp/language_models"
 ### Principle Pipeline (scripts/agents/principle_team.py)
 
 4-node pipeline: `seed_selector → content_generator → verifier → assembler`
+- Conditional retry: `should_retry` → `retry_reseed` (LangGraph conditional edges, max 3 retries)
 
 - Generates 1 principle per day from 6+ disciplines
 - 3-step narrative: foundation → application → integration + deepDive
 - Avoids same discipline in last 3 days, same seed in last 30 days
-- Verifier: LLM fact-check, retry if confidence < 0.7
+- Verifier: 3-section evaluation (A. 사실정확성, B. 인사이트이해도, C. 딥다이브전문성)
+  - Output: confidence, insightClarity, deepDiveDepth (0.0~1.0)
+  - Retry if confidence < 0.7, JSON parse 2x fail → default fail result (not raise)
+- Defense-in-depth: content=None → should_retry → retry_reseed flow (no exceptions)
+- Formula conditional: math/phys/info/stat/ee/opt disciplines require formula field
+- Code-level quality warnings: analogy length, problem length, bridge keywords, formula, AI-specific limits
 
 ### Post-Pipeline Features (scripts/generate_features.py)
 
@@ -232,7 +238,7 @@ topic_cluster_id                 — "domain/topic" (e.g., "nlp/language_models"
 | `daily_news/{date}` | 1 doc/day | highlights[], categorized_articles{}, source_articles{} |
 | `daily_principles/{date}` | 1 doc/day | 3-step insight + deepDive + verification |
 | `articles/{article_id}` | 1 doc/article | Full article + entities, related_ids, timeline_ids |
-| `daily_briefings/{date}` | 1 doc/day | briefing_ko, briefing_en, story_count, category_stats |
+| `daily_briefings/{date}` | 1 doc/day | briefing_ko, briefing_en, story_count, category_stats, hot_topics, trend_history |
 | `glossary_terms/{term}` | 1 doc/term | term/desc (KO+EN), article_ids |
 | `users/{uid}` | 1 doc/user | profile, expoPushToken |
 | `users/{uid}/bookmarks` | subcollection | type, itemId, metadata |

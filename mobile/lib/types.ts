@@ -213,6 +213,8 @@ export interface DailyBriefing {
     industry_business: number;
     total: number;
   };
+  hot_topics?: { tag: string; count: number }[];
+  trend_history?: { date: string; count: number }[];
 }
 
 

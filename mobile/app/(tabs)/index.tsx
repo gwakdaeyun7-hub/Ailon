@@ -43,6 +43,7 @@ import { FontFamily } from '@/lib/theme';
 import type { Language } from '@/lib/translations';
 import type { BatchStats } from '@/hooks/useBatchStats';
 import { DailyBriefingCard } from '@/components/briefing/DailyBriefingCard';
+import type { ScrollView as ScrollViewType } from 'react-native';
 
 import { RelatedArticlesSection } from '@/components/shared/RelatedArticlesSection';
 import { HighlightedText, termKey } from '@/components/shared/HighlightedText';
@@ -1214,6 +1215,7 @@ export default function NewsScreen() {
   const [notifModalVisible, setNotifModalVisible] = useState(false);
   const [notifications, setNotifications] = useState<DeliveredNotification[]>([]);
 
+  const mainScrollRef = useRef<ScrollViewType>(null);
   const { openDrawer, setActiveTab } = useDrawer();
   const { lang, t } = useLanguage();
   const { colors, isDark } = useTheme();
@@ -1358,6 +1360,7 @@ export default function NewsScreen() {
       </View>
 
       <ScrollView
+        ref={mainScrollRef}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.textSecondary} />}
       >
@@ -1401,7 +1404,7 @@ export default function NewsScreen() {
         ) : (
           <>
             {/* Daily Briefing */}
-            <DailyBriefingCard />
+            <DailyBriefingCard scrollViewRef={mainScrollRef} />
 
             {/* Section 1: 하이라이트 */}
             <HighlightSection highlights={highlights} onArticlePress={handleArticlePress} allStats={allStats} />

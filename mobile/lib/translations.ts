@@ -183,6 +183,11 @@ const translations: Record<string, Record<Language, string>> = {
   'briefing.readMore': { ko: '자세히 보기', en: 'Read More' },
   'briefing.collapse': { ko: '접기', en: 'Collapse' },
   'briefing.articles': { ko: '기사', en: 'Articles' },
+  'briefing.hotTopics': { ko: '핫 토픽', en: 'Hot Topics' },
+  'briefing.categoryDist': { ko: '카테고리 분포', en: 'Category Distribution' },
+  'briefing.trend': { ko: '7일 추이', en: '7-Day Trend' },
+  'briefing.briefingText': { ko: '브리핑', en: 'Briefing' },
+  'briefing.infographic': { ko: 'Daily Infographic', en: 'Daily Infographic' },
 
 
   // ─── 타임라인 ───

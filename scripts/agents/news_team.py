@@ -662,9 +662,9 @@ def _llm_ai_filter_batch(articles: list[dict], source_key: str = "") -> set[int]
     is_ai_feed = source_key in CATEGORY_SOURCES  # Tier 1+2: AI 전문 피드
     article_text = ""
     for i, a in enumerate(articles):
-        title = a.get("title", "")
-        body = a.get("body", "")
-        context = body[:200] if body else (a.get("description", "") or "")[:200]
+        title = a.get("title") or ""
+        body = a.get("body") or ""
+        context = body[:200] if body else (a.get("description") or "")[:200]
         article_text += f"\n[{i}] {title} | {context}"
 
     if is_ko:
@@ -684,6 +684,8 @@ INCLUDE (포함):
 - AI 반도체/칩 (GPU, NPU, AI 가속기)
 - AI 규제, 정책, 윤리, 저작권 논의
 - AI 기업 투자, 인수합병, 파트너십
+- AI 기업 CEO/경영진 관련 뉴스 (아모데이/Amodei, 샘 알트먼/Altman, 피차이/Pichai AI 관련 발언, 전략)
+- AI 제품/하드웨어 (AI 안경, AI 스피커, AI 웨어러블 등 AI가 핵심인 기기)
 - AI가 산업/사회/교육/일자리에 미치는 영향
 - AI 튜토리얼, 가이드, 활용법, 개발자 팁
 - 로봇, 자율주행, 컴퓨터 비전 (AI 기술 활용)
@@ -703,6 +705,7 @@ EXCLUDE (제외):
 - 인사이동, 부고, 단순 행사/세미나 공지
 - 기사 태그에만 AI/IT가 있고 본문은 무관한 경우
 - 하드웨어 리뷰 (스마트워치, 이어폰 등 개발과 무관한 가젯)
+- CEO 보수/연봉 기사 (AI/기술 전략 내용 없이 보수 금액만 다룬 경우)
 
 Articles:
 {article_text}
@@ -723,7 +726,7 @@ MANDATORY INCLUDE — these are ALWAYS AI-related regardless of angle:
 - AI benchmarks, hallucination research, AI agent evaluation
 - AI impact on jobs, society, privacy, education
 
-EXCLUDE ONLY: Pure lifestyle/sports/entertainment/gaming with truly zero AI substance.
+EXCLUDE ONLY: Pure lifestyle/sports/entertainment/gaming with truly zero AI substance (e.g., game streaming catalogs, esports, game reviews without AI angle).
 
 CRITICAL REMINDER: If the title contains words like "AI", "LLM", "Claude", "GPT", "agent", "model", "Anthropic", "OpenAI", "neural", "ML", "cache", "memory" in an AI/ML context, or "LangChain", "vector database", "fine-tuning" — you MUST include it. Do NOT second-guess articles from this dedicated AI feed. When in doubt, INCLUDE."""
         else:
@@ -805,7 +808,7 @@ def _llm_filter_sources(sources: dict[str, list[dict]]) -> None:
             rescued = []
             for i, a in enumerate(articles):
                 if i not in ai_indices:
-                    title = a.get("title", "")
+                    title = a.get("title") or ""
                     if _MANDATORY_TITLE_KEYWORDS.search(title):
                         ai_indices.add(i)
                         rescued.append(title)
@@ -816,7 +819,7 @@ def _llm_filter_sources(sources: dict[str, list[dict]]) -> None:
         passed_titles = []
         removed_titles = []
         for i, a in enumerate(articles):
-            title = a.get("title", "(제목 없음)")
+            title = a.get("title") or "(제목 없음)"
             if i in ai_indices:
                 a["_ai_filtered"] = False
                 passed_titles.append(title)
@@ -1064,6 +1067,8 @@ def _embed_texts(texts: list[str]) -> list[list[float]]:
 
 def _normalize_title(title: str) -> str:
     """비교용 제목 정규화: 소문자, 특수문자/공백 제거"""
+    if not title:
+        return ""
     import unicodedata
     t = unicodedata.normalize("NFKC", title.lower())
     t = re.sub(r'[^\w\s]', '', t)       # 특수문자 제거
@@ -1077,6 +1082,8 @@ _DEDUP_STOPWORDS = {"ai", "ml", "llm", "gpt", "model", "deep", "learning", "new"
 
 def _extract_key_tokens(text: str) -> set[str]:
     """제목/요약에서 핵심 토큰(고유명사·숫자) 추출 — 중복 비교용"""
+    if not text:
+        return set()
     t = re.sub(r'[^\w\s]', ' ', text)
     tokens = set()
     for w in t.split():
@@ -1118,6 +1125,8 @@ PRODUCT_VERSION_RE = re.compile(
 def _extract_product_versions(title: str) -> set[str]:
     """제목에서 제품+버전 엔티티를 추출하여 정규화된 집합으로 반환.
     예: 'OpenAI, GPT-5.4 전격 공개' → {'gpt-5.4'}"""
+    if not title:
+        return set()
     matches = PRODUCT_VERSION_RE.findall(title)
     # 정규화: 소문자, 공백→하이픈, 연속 하이픈 제거
     normalized = set()
@@ -1348,20 +1357,24 @@ Classify each article into ONE category:
 ■ models_products — Announces a NEW model/product/tool/feature release, OR first wide rollout of a new feature.
   Only if a NEW usable artifact is launched/made available. NOT: stats, investment, testing, blueprints, strategy.
   Includes: new framework/library release, open-source code release, new API endpoint, new app/platform launch.
+  NOT: events/meetups/community gatherings, non-AI product launches (e.g. pure gaming, hardware unrelated to AI).
 
 ■ research — Paper, algorithm, benchmark, technical mechanism analysis, tutorial/how-to guide.
   Explains HOW something works or teaches HOW to build something. NOT: social impact trends, security vulnerabilities.
   Includes: papers, studies, proposed architectures without released artifact, coding tutorials.
+  Includes: paper-based tools/methods (e.g. academic audit tool from a paper → research, not models_products).
 
 ■ industry_business — Everything else: funding, M&A, regulation, trends, milestones, strategy, security issues.
   Includes: pricing/subscription changes, user growth stats, partnerships, lawsuits, policy.
+  Includes: product events/meetups/fan meetings, community announcements, conferences.
 
 ⚠ Product name in title ≠ models_products. Only actual NEW releases count.
 ⚠ Mixed article (blueprint + model release) → classify by the PRIMARY news.
 ⚠ New framework/tool "공개"/"release"/"launch" → models_products (not research).
 ⚠ Paper + released code/weights → models_products. Paper only → research.
+⚠ Paper-based tool/method without downloadable artifact → research (not models_products).
 
-Examples: "가우스2 공개"→models_products | "ChatGPT 9억명 돌파"→industry_business | "GRPO 논문"→research | "청사진 공개"→industry_business | "AI 쇼핑 테스트"→industry_business | "GPT-5 API 출시"→models_products | "LLM 파인튜닝 구축 가이드"→research | "AI 에이전트 OS 튜토리얼"→research | "소송 제기"→industry_business | "저작권 판결"→industry_business | "Self-Flow 기술로 훈련 효율 향상"→research | "새 AI Mode 전역 확대 출시"→models_products | "AI 검색 3억명 돌파"→industry_business | "에이전트 AI 프레임워크 공개"→models_products | "Claude Code 구독 가격 변경"→industry_business
+Examples: "가우스2 공개"→models_products | "ChatGPT 9억명 돌파"→industry_business | "GRPO 논문"→research | "청사진 공개"→industry_business | "AI 쇼핑 테스트"→industry_business | "GPT-5 API 출시"→models_products | "LLM 파인튜닝 구축 가이드"→research | "AI 에이전트 OS 튜토리얼"→research | "소송 제기"→industry_business | "저작권 판결"→industry_business | "Self-Flow 기술로 훈련 효율 향상"→research | "새 AI Mode 전역 확대 출시"→models_products | "AI 검색 3억명 돌파"→industry_business | "에이전트 AI 프레임워크 공개"→models_products | "Claude Code 구독 가격 변경"→industry_business | "CiteAudit 논문, 환각성 인용 문제"→research | "OpenClaw 팬 미팅"→industry_business | "GeForce NOW 15종 신규 게임"→industry_business
 
 Articles:
 {article_text}
