@@ -723,7 +723,9 @@ MANDATORY INCLUDE — these are ALWAYS AI-related regardless of angle:
 - AI benchmarks, hallucination research, AI agent evaluation
 - AI impact on jobs, society, privacy, education
 
-EXCLUDE ONLY: Pure lifestyle/sports/entertainment/gaming with truly zero AI substance."""
+EXCLUDE ONLY: Pure lifestyle/sports/entertainment/gaming with truly zero AI substance.
+
+CRITICAL REMINDER: If the title contains words like "AI", "LLM", "Claude", "GPT", "agent", "model", "Anthropic", "OpenAI", "neural", "ML", "cache", "memory" in an AI/ML context, or "LangChain", "vector database", "fine-tuning" — you MUST include it. Do NOT second-guess articles from this dedicated AI feed. When in doubt, INCLUDE."""
         else:
             source_context = """When in doubt, EXCLUDE."""
 

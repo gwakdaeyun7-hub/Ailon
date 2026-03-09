@@ -17,7 +17,7 @@ from datetime import datetime, timedelta, timezone
 from firebase_admin import firestore
 from langchain_core.messages import HumanMessage
 from agents.config import get_firestore_client
-from agents.ci_utils import ci_warning, ci_error
+from agents.ci_utils import ci_warning, ci_error, ci_group, ci_endgroup
 
 _KST = timezone(timedelta(hours=9))
 
@@ -225,7 +225,22 @@ Articles:
             "article_ids": article_ids,
             "updated_at": firestore.SERVER_TIMESTAMP,
         })
-        print(f"  브리핑 저장 완료: {data.get('story_count', 0)}개 스토리")
+        story_count = data.get("story_count", 0)
+        print(f"  브리핑 저장 완료: {story_count}개 스토리")
+
+        # CI 로그에 브리핑 전문 출력
+        ci_group("오늘의 브리핑")
+        briefing_ko = data.get("briefing_ko", "")
+        briefing_en = data.get("briefing_en", "")
+        print(f"  [KO] ({len(briefing_ko)}자)")
+        for line in briefing_ko.split("\n"):
+            print(f"    {line}")
+        print(f"\n  [EN] ({len(briefing_en)}자)")
+        for line in briefing_en.split("\n"):
+            print(f"    {line}")
+        print(f"\n  스토리 수: {story_count}개")
+        ci_endgroup()
+
         return data
     except Exception as e:
         ci_error(f"브리핑 실패: {e}")

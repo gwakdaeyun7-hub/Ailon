@@ -280,8 +280,9 @@ def run_news():
         find_related_articles(news_result)
     except Exception as e:
         ci_error(f"관련기사 실패: {e}")
+    briefing_data = None
     try:
-        generate_daily_briefing(news_result)
+        briefing_data = generate_daily_briefing(news_result)
     except Exception as e:
         ci_error(f"브리핑 실패: {e}")
     try:
@@ -303,7 +304,7 @@ def run_news():
     except Exception as e:
         print(f"  [알림 실패] {e} — 파이프라인은 계속 진행")
 
-    return news_result
+    return news_result, briefing_data
 
 
 def run_principle(force: bool = False):
@@ -376,10 +377,11 @@ def main():
     initialize_firebase()
 
     news_result = None
+    briefing_data = None
     principle_result = None
 
     if args.target in ("all", "news"):
-        news_result = run_news()
+        news_result, briefing_data = run_news()
 
     if args.target in ("all", "principle"):
         try:
@@ -404,7 +406,7 @@ def main():
     # ─── Job Summary 작성 ───
     _write_job_summary(
         args.target, news_result, principle_result,
-        total_elapsed,
+        total_elapsed, briefing_data,
     )
 
 
@@ -413,6 +415,7 @@ def _write_job_summary(
     news_result: dict | None,
     principle_result: dict | None,
     total_elapsed: float,
+    briefing_data: dict | None = None,
 ):
     """$GITHUB_STEP_SUMMARY에 마크다운 요약 작성."""
     today = datetime.now(_KST).strftime("%Y-%m-%d")
@@ -436,6 +439,30 @@ def _write_job_summary(
             f"| 카테고리 | {cat_detail} |",
             f"| 소스 섹션 | {src_count}개 |",
             f"| 총 기사 | {news_result.get('total_count', 0)}개 |",
+            "",
+        ])
+
+    # 브리핑 섹션
+    if briefing_data:
+        briefing_ko = briefing_data.get("briefing_ko", "")
+        story_count = briefing_data.get("story_count", 0)
+        # 브리핑 텍스트 첫 200자 미리보기
+        preview = briefing_ko[:200].replace("\n", " ")
+        if len(briefing_ko) > 200:
+            preview += "…"
+        lines.extend([
+            "### 브리핑",
+            "| 항목 | 결과 |",
+            "|------|------|",
+            f"| 스토리 수 | {story_count}개 |",
+            f"| KO 길이 | {len(briefing_ko)}자 |",
+            f"| EN 길이 | {len(briefing_data.get('briefing_en', ''))}자 |",
+            "",
+            "<details><summary>브리핑 미리보기</summary>",
+            "",
+            f"{preview}",
+            "",
+            "</details>",
             "",
         ])
 
