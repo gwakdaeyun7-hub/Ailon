@@ -1,9 +1,8 @@
 """
 뉴스 수집 도구 — 22개 소스 RSS/스크래핑 기반 수집
 
-[Tier 1] 영어 AI 전문 뉴스 — Wired AI / The Verge AI / TechCrunch AI / MIT Tech Review / VentureBeat / The Decoder / MarkTechPost
-[Tier 2] AI 기업·매체 — Google DeepMind / NVIDIA / HuggingFace / Ars Technica AI / The Rundown AI
-[Tier 2+] 영어 AI/기술 매체 — AI Business / SiliconANGLE / IEEE Spectrum AI / TNW / TechXplore AI / Tom's Hardware
+[Tier 1] 영어 AI 전문 뉴스 — Wired AI / The Verge AI / TechCrunch AI / MIT Tech Review / VentureBeat / The Decoder / MarkTechPost / AI Business / SiliconANGLE / TNW / TechXplore AI / Tom's Hardware
+[Tier 2] AI 기업·매체 — Google DeepMind / NVIDIA / HuggingFace / Ars Technica AI / The Rundown AI / IEEE Spectrum AI
 [Tier 3] 한국 소스 — AI타임스 / GeekNews / ZDNet AI 에디터 / 요즘IT AI
 """
 
@@ -77,6 +76,45 @@ SOURCES = [
         "lang": "en",
         "rss_image_field": "media_content",
     },
+    {
+        "key": "ai_business",
+        "name": "AI Business",
+        "rss_url": "https://aibusiness.com/rss.xml",
+        "max_items": 30,
+        "lang": "en",
+        "rss_image_field": "content_image",  # content:encoded 내 <img>
+    },
+    {
+        "key": "siliconangle",
+        "name": "SiliconANGLE",
+        "rss_url": "https://siliconangle.com/feed/",
+        "max_items": 30,
+        "lang": "en",
+        "rss_image_field": "media_thumbnail",  # media:thumbnail 또는 enclosure
+    },
+    {
+        "key": "tnw",
+        "name": "The Next Web",
+        "rss_url": "https://thenextweb.com/feed",
+        "max_items": 30,
+        "lang": "en",
+        "rss_image_field": "enclosure",
+    },
+    {
+        "key": "techxplore_ai",
+        "name": "TechXplore AI",
+        "rss_url": "https://techxplore.com/rss-feed/machine-learning-ai-news/",
+        "max_items": 30,
+        "lang": "en",
+    },
+    {
+        "key": "toms_hardware",
+        "name": "Tom's Hardware",
+        "rss_url": "https://www.tomshardware.com/feeds.xml",
+        "max_items": 30,
+        "lang": "en",
+        "rss_image_field": "enclosure",  # FutureCDN, 1280px
+    },
     # Tier 2: AI 기업·매체
     {
         "key": "deepmind_blog",
@@ -118,23 +156,6 @@ SOURCES = [
         "max_items": 30,
         "lang": "en",
     },
-    # Tier 2+: 영어 AI/기술 매체
-    {
-        "key": "ai_business",
-        "name": "AI Business",
-        "rss_url": "https://aibusiness.com/rss.xml",
-        "max_items": 30,
-        "lang": "en",
-        "rss_image_field": "content_image",  # content:encoded 내 <img>
-    },
-    {
-        "key": "siliconangle",
-        "name": "SiliconANGLE",
-        "rss_url": "https://siliconangle.com/feed/",
-        "max_items": 30,
-        "lang": "en",
-        "rss_image_field": "media_thumbnail",  # media:thumbnail 또는 enclosure
-    },
     {
         "key": "ieee_spectrum_ai",
         "name": "IEEE Spectrum AI",
@@ -142,29 +163,6 @@ SOURCES = [
         "max_items": 30,
         "lang": "en",
         "rss_image_field": "media_content",  # media:content (980px 고해상도)
-    },
-    {
-        "key": "tnw",
-        "name": "The Next Web",
-        "rss_url": "https://thenextweb.com/feed",
-        "max_items": 30,
-        "lang": "en",
-        "rss_image_field": "enclosure",
-    },
-    {
-        "key": "techxplore_ai",
-        "name": "TechXplore AI",
-        "rss_url": "https://techxplore.com/rss-feed/machine-learning-ai-news/",
-        "max_items": 30,
-        "lang": "en",
-    },
-    {
-        "key": "toms_hardware",
-        "name": "Tom's Hardware",
-        "rss_url": "https://www.tomshardware.com/feeds.xml",
-        "max_items": 30,
-        "lang": "en",
-        "rss_image_field": "enclosure",  # FutureCDN, 1280px
     },
     # Tier 3: 한국 소스
     {
@@ -207,6 +205,7 @@ SOURCES = [
 HIGHLIGHT_SOURCES = {
     "wired_ai", "the_verge_ai", "techcrunch_ai", "mit_tech_review",
     "venturebeat", "the_decoder", "marktechpost",
+    "ai_business", "siliconangle", "tnw", "techxplore_ai", "toms_hardware",
 }
 
 # 카테고리 분류 대상 소스 (Tier 1 + Tier 2 + Tier 2+)

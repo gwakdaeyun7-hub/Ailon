@@ -23,15 +23,16 @@ qa-pipeline-tester 에이전트를 사용하여 로그를 분석합니다.
 
 ### 1.2 AI 필터 검사 (Tier 3만 해당)
 
-**Tier 1/2/2+ (CATEGORY_SOURCES, 18 EN sources)**: AI 필터 없음 — AI 전문 피드이므로 필터 생략, 전체 통과 (NEEDS_AI_FILTER = 빈 set).
-- Tier 1/2/2+ 소스에서 `[AI 필터]` 로그가 나오면 → 코드 레그레션 (Critical)
-- Tier 1/2/2+ 소스 기사에 `_ai_filtered=True`가 있으면 → 코드 레그레션 (Critical)
+**Tier 1/2 (CATEGORY_SOURCES, 18 EN sources)**: AI 필터 없음 — AI 전문 피드이므로 필터 생략, 전체 통과 (NEEDS_AI_FILTER = 빈 set).
+- Tier 1/2 소스에서 `[AI 필터]` 로그가 나오면 → 코드 레그레션 (Critical)
+- Tier 1/2 소스 기사에 `_ai_filtered=True`가 있으면 → 코드 레그레션 (Critical)
 
 **CATEGORY_SOURCES (18 EN sources):**
-Wired AI, TechCrunch AI, The Verge AI, MIT Tech Review, VentureBeat, MarkTechPost, The Decoder, The Rundown AI, Google DeepMind, NVIDIA, Hugging Face, Ars Technica AI, AI Business, SiliconANGLE, IEEE Spectrum AI, The Next Web (TNW), TechXplore AI, Tom's Hardware
+- Tier 1 (12개, HIGHLIGHT_SOURCES): Wired AI, TechCrunch AI, The Verge AI, MIT Tech Review, VentureBeat, MarkTechPost, The Decoder, AI Business, SiliconANGLE, The Next Web (TNW), TechXplore AI, Tom's Hardware
+- Tier 2 (6개): The Rundown AI, Google DeepMind, NVIDIA, Hugging Face, Ars Technica AI, IEEE Spectrum AI
 
 **전체 소스 구성 (22개):**
-- Tier 1+2+2+ EN 소스 18개 (CATEGORY_SOURCES) — AI 필터 없이 전체 통과
+- Tier 1+2 EN 소스 18개 (CATEGORY_SOURCES) — AI 필터 없이 전체 통과
 - Tier 3 KO 소스 4개 (SOURCE_SECTION_SOURCES) — LLM AI 필터 적용
 
 **Tier 3 (SOURCE_SECTION_SOURCES, 4 KO sources)**: LLM AI 필터 적용.

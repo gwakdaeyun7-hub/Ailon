@@ -161,8 +161,11 @@ LangGraph 8-node pipeline with parallel EN/KO branches:
 
 ### News Sources (22 total, 3 tiers)
 
-**Tier 1+2+2+ (18 EN sources)** — CATEGORY_SOURCES, used for highlights + categories, AI 필터 없음 (AI 전문 피드, NEEDS_AI_FILTER = 빈 set):
-Wired AI, TechCrunch AI, The Verge AI, MIT Tech Review, VentureBeat, MarkTechPost, The Decoder, The Rundown AI, Google DeepMind, NVIDIA, Hugging Face, Ars Technica AI, AI Business, SiliconANGLE, IEEE Spectrum AI, The Next Web, TechXplore AI, Tom's Hardware
+**Tier 1 (12 EN sources)** — HIGHLIGHT_SOURCES + CATEGORY_SOURCES, 하이라이트 후보 + 카테고리 분류, AI 필터 없음:
+Wired AI, TechCrunch AI, The Verge AI, MIT Tech Review, VentureBeat, MarkTechPost, The Decoder, AI Business, SiliconANGLE, The Next Web, TechXplore AI, Tom's Hardware
+
+**Tier 2 (6 EN sources)** — CATEGORY_SOURCES only (하이라이트 제외), AI 필터 없음:
+Google DeepMind, NVIDIA, Hugging Face, Ars Technica AI, The Rundown AI, IEEE Spectrum AI
 
 **Tier 3 (4 KO sources)** — SOURCE_SECTION_SOURCES, separate sections, AI 필터 "의심 시 제거":
 AI타임스, GeekNews, ZDNet AI 에디터 (HTML scrape), 요즘IT AI
@@ -182,7 +185,7 @@ AI타임스, GeekNews, ZDNet AI 에디터 (HTML scrape), 요즘IT AI
 | DEDUP layers | 7 (L1 URL→L2 orig_title→L3 disp_title→L4 one_line→L5 key_tokens→L6 embedding→L7 title_entity) | |
 | Embedding threshold | 0.92 cosine | L6 |
 | L7 title_entity | 제품+버전 일치 + one_line 토큰 Jaccard ≥ 0.30 | GPT-5.4 등 동일 이벤트 다소스 중복 감지 |
-| AI 필터 | CATEGORY_SOURCES(18개): 필터 없음 (NEEDS_AI_FILTER 빈 set, 전체 통과), Tier 3: "의심 시 제거" (AI+개발/IT 기술 포함) | CATEGORY_SOURCES는 AI 전문 피드로 필터 불필요, Tier 3는 비AI 9%+완전 무관 기사 혼재 |
+| AI 필터 | CATEGORY_SOURCES(Tier 1+2, 18개): 필터 없음 (NEEDS_AI_FILTER 빈 set, 전체 통과), Tier 3: "의심 시 제거" (AI+개발/IT 기술 포함) | CATEGORY_SOURCES는 AI 전문 피드로 필터 불필요, Tier 3는 비AI 9%+완전 무관 기사 혼재 |
 
 ### Classification Categories
 - `models_products` — NEW model/product/tool/feature release, first wide rollout (NOT: events/meetups, non-AI products)
