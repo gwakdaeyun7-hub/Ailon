@@ -216,6 +216,7 @@ topic_cluster_id                 — "domain/topic" (e.g., "nlp/language_models"
   - Output: confidence, insightClarity, deepDiveDepth (0.0~1.0)
   - Retry if confidence < 0.7, JSON parse 3x fail → default fail result (not raise)
   - Empty response detection: Gemini 빈 응답 시 파싱 생략 후 재시도, 디버그 로깅 포함
+  - content_json 입력 4000자 제한 (토큰 절약 + 응답 안정성)
 - Defense-in-depth: content=None → should_retry → retry_reseed flow (no exceptions)
 - Formula conditional: math/phys/info/stat/ee/opt disciplines require formula field
 - Code-level quality warnings: analogy length, problem length, bridge keywords, formula, AI-specific limits
@@ -308,6 +309,7 @@ topic_cluster_id                 — "domain/topic" (e.g., "nlp/language_models"
 
 - **Gemini JSON 잘림**: max_tokens 부족 시 JSON 배열이 잘림. `_parse_llm_json`에 5단계 복구 로직 있음. 복구가 발동되면 ranker token_budget 확인 필요
 - **Gemini markdown artifacts**: ```json 래퍼가 JSON 파싱을 깨뜨림 — strip before parse
+- **Gemini `***` markdown wrapping**: json_mode에서도 `***\n"key": value\n***` 형태로 응답하는 버그. `_safe_json_parse`에 2-phase 복구: Phase 1) 시작/끝 `***` strip + trailing comma 제거 + `{}` 감싸기, Phase 2) 컨텍스트 기반 `***` → `{`/`}` 치환 폴백
 - **Pipeline 0 articles**: API quota 초과 시 silent failure — 로그에서 확인
 - **분류 편향 경고**: industry_business 60% 초과는 catch-all 설계상 정상일 수 있음. 미분류 기사 개수 로그로 확인
 - **VentureBeat/paywall 사이트**: trafilatura에 Chrome UA 설정 필요 (tools.py `_get_traf_config`)
