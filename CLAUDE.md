@@ -185,7 +185,7 @@ AI타임스, GeekNews, ZDNet AI 에디터 (HTML scrape), 요즘IT AI
 | DEDUP layers | 7 (L1 URL→L2 orig_title→L3 disp_title→L4 one_line→L5 key_tokens→L6 embedding→L7 title_entity) | |
 | Embedding threshold | 0.92 cosine | L6 |
 | L7 title_entity | 제품+버전 일치 + one_line 토큰 Jaccard ≥ 0.30 | GPT-5.4 등 동일 이벤트 다소스 중복 감지 |
-| AI 필터 | Tier 1+2 중 Tom's Hardware만 AI 필터 적용 (NEEDS_AI_FILTER={"toms_hardware"}, 범용 RSS 피드), 나머지 17개는 전체 통과, Tier 3: "의심 시 제거" (AI+개발/IT 기술 포함) | Tom's Hardware는 범용 하드웨어 피드로 비AI 기사 혼재, 나머지 Tier 1+2는 AI 전문 피드로 필터 불필요, Tier 3는 비AI 9%+완전 무관 기사 혼재 |
+| AI 필터 | Tier 1+2 중 Tom's Hardware만 AI 필터 적용 (NEEDS_AI_FILTER={"toms_hardware"}, 범용 RSS 피드), 나머지 17개는 전체 통과, Tier 3: "의심 시 제거" (AI+개발/IT 기술 포함). 모든 카테고리에 AI 필터 동일 적용 (research 면제 없음). KO 필터 INCLUDE 목록에 "AI 기업과 정부/국방부 관계 기사" 포함 | Tom's Hardware는 범용 하드웨어 피드로 비AI 기사 혼재, 나머지 Tier 1+2는 AI 전문 피드로 필터 불필요, Tier 3는 비AI 9%+완전 무관 기사 혼재 |
 
 ### Classification Categories
 - `models_products` — NEW model/product/tool/feature release, first wide rollout (NOT: events/meetups, non-AI products)
@@ -218,12 +218,12 @@ topic_cluster_id                 — "domain/topic" (e.g., "nlp/language_models"
 - Verifier: 3-section evaluation (A. 사실정확성, B. 인사이트이해도, C. 딥다이브전문성)
   - Output: confidence, insightClarity, deepDiveDepth (0.0~1.0)
   - Retry if confidence < 0.7, JSON parse 3x fail → default fail result (not raise)
-  - Regex fallback (`_regex_extract_verification`): JSON 파싱 완전 실패 시 raw text에서 verifier 필드를 regex로 직접 추출하는 최종 방어 계층
+  - Regex fallback (`_regex_extract_verification`): JSON 파싱 완전 실패 시 raw text에서 verifier 필드 + issues 배열을 regex로 직접 추출하는 최종 방어 계층
   - Empty response detection: Gemini 빈 응답 시 파싱 생략 후 재시도, 디버그 로깅 포함
   - content_json 입력 4000자 제한 (토큰 절약 + 응답 안정성)
 - Defense-in-depth: content=None → should_retry → retry_reseed flow (no exceptions)
-- Formula conditional: math/phys/info/stat/ee/opt disciplines require formula field
-- Code-level quality warnings: analogy length, problem length, bridge keywords, formula, AI-specific limits
+- Formula enforcement: math/phys/info/stat/ee/opt disciplines require formula field — `should_retry` forces retry if missing (not just warning)
+- Code-level quality warnings: analogy length, problem length, bridge keywords, AI-specific limits
 
 ### Post-Pipeline Features (scripts/generate_features.py)
 
@@ -313,7 +313,7 @@ topic_cluster_id                 — "domain/topic" (e.g., "nlp/language_models"
 
 - **Gemini JSON 잘림**: max_tokens 부족 시 JSON 배열이 잘림. `_parse_llm_json`에 5단계 복구 로직 있음. 복구가 발동되면 ranker token_budget 확인 필요
 - **Gemini markdown artifacts**: ```json 래퍼가 JSON 파싱을 깨뜨림 — strip before parse
-- **Gemini `***` markdown wrapping**: json_mode에서도 `***\n"key": value\n***` 형태로 응답하는 버그. `_safe_json_parse`에 2-phase 복구: Phase 1) 시작/끝 `***` strip + trailing comma 제거 + `{}` 감싸기 + **즉시 json.loads 시도**, Phase 2) 컨텍스트 기반 `***` → `{`/`}` 치환 폴백. Phase 1 후 즉시 파싱하지 않으면 Phase 2가 문자열 값 내부의 `***`(마크다운 볼드)를 `{`/`}`로 치환하여 JSON 파괴. 추가 방어: `_fix_unescaped_quotes()` — json.loads 에러 위치 기반 반복 quote escape 수정 (max 20 iterations), `phase1_applied` 플래그로 Phase 1 발동 시 Phase 2 완전 스킵 (문자열 값 오염 방지), `_regex_extract_verification()` — JSON 파싱 완전 실패 시 regex로 verifier 필드 (verified, confidence, principleAccuracy, insightClarity, deepDiveDepth, factCheck) 직접 추출하는 최종 폴백
+- **Gemini `***` markdown wrapping**: json_mode에서도 `***\n"key": value\n***` 형태로 응답하는 버그. `_safe_json_parse`에 2-phase 복구: Phase 1) 시작/끝 `***` strip + trailing comma 제거 + `{}` 감싸기 + **즉시 json.loads 시도**, Phase 2) 컨텍스트 기반 `***` → `{`/`}` 치환 폴백. Phase 1 후 즉시 파싱하지 않으면 Phase 2가 문자열 값 내부의 `***`(마크다운 볼드)를 `{`/`}`로 치환하여 JSON 파괴. 추가 방어: `_fix_unescaped_quotes()` — json.loads 에러 위치 기반 반복 quote escape 수정 (max 20 iterations), `phase1_applied` 플래그로 Phase 1 발동 시 Phase 2 완전 스킵 (문자열 값 오염 방지), `_regex_extract_verification()` — JSON 파싱 완전 실패 시 regex로 verifier 필드 (verified, confidence, principleAccuracy, insightClarity, deepDiveDepth, factCheck) + issues 배열 직접 추출하는 최종 폴백
 - **Pipeline 0 articles**: API quota 초과 시 silent failure — 로그에서 확인
 - **분류 편향 경고**: industry_business 60% 초과는 catch-all 설계상 정상일 수 있음. 미분류 기사 개수 로그로 확인
 - **Tom's Hardware 범용 피드**: RSS가 AI 전용이 아니라 하드웨어 전반을 포함. NEEDS_AI_FILTER에 추가하여 비AI 기사 필터링 (tools.py line 222). 다른 Tier 1 소스와 달리 범용 피드이므로 필터 제거 시 비AI 기사 유입 주의
