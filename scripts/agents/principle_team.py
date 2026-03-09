@@ -53,6 +53,9 @@ _DISCIPLINE_NAME_EN: dict[str, str] = {
 
 # ─── 안전 JSON 파싱 ───
 _VALID_JSON_ESCAPES = frozenset('"\\/bfnrtu')
+# Gemini often puts literal newlines inside JSON string values (e.g. factCheck);
+# strict=False allows control characters inside strings.
+_jloads = lambda s: json.loads(s, strict=False)
 
 
 def _fix_invalid_escapes(s: str) -> str:
@@ -95,12 +98,12 @@ def _safe_json_parse(text: str) -> dict:
             text = '{' + text + '}'
         # Phase 1 결과로 즉시 파싱 시도 — Phase 2가 문자열 값 내 ***를 오염시키기 전에
         try:
-            return json.loads(text)
+            return _jloads(text)
         except json.JSONDecodeError:
             pass
         # invalid escape 복구 후 재시도
         try:
-            return json.loads(_fix_invalid_escapes(text))
+            return _jloads(_fix_invalid_escapes(text))
         except json.JSONDecodeError:
             pass
 
@@ -125,14 +128,14 @@ def _safe_json_parse(text: str) -> dict:
 
     # 1차: 원본 시도
     try:
-        return json.loads(text)
+        return _jloads(text)
     except json.JSONDecodeError:
         pass
 
     # 2차: invalid escape 복구 후 시도
     fixed = _fix_invalid_escapes(text)
     try:
-        return json.loads(fixed)
+        return _jloads(fixed)
     except json.JSONDecodeError:
         pass
 
@@ -142,7 +145,7 @@ def _safe_json_parse(text: str) -> dict:
         end = candidate.rfind('}')
         if start != -1 and end != -1:
             try:
-                return json.loads(candidate[start:end+1])
+                return _jloads(candidate[start:end+1])
             except json.JSONDecodeError:
                 continue
 
@@ -199,7 +202,7 @@ def _safe_json_parse(text: str) -> dict:
                         close_stack.pop()
             truncated += ''.join(reversed(close_stack))
             try:
-                result = json.loads(truncated)
+                result = _jloads(truncated)
                 print(f"    [JSON 복구] 잘린 객체 복구 성공")
                 return result
             except json.JSONDecodeError as e:

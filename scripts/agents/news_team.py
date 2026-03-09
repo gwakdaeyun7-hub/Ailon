@@ -143,6 +143,10 @@ def _is_today(article: dict) -> bool:
 
 
 # ─── JSON 파싱 유틸리티 ───
+# Gemini often puts literal newlines inside JSON string values;
+# strict=False allows control characters inside strings.
+_jloads = lambda s: json.loads(s, strict=False)
+
 def _parse_llm_json(text: str):
     if not text:
         raise json.JSONDecodeError("Empty LLM response", "", 0)
@@ -180,7 +184,7 @@ def _parse_llm_json(text: str):
 
     # 1차: 전체 텍스트가 유효한 JSON인지 시도
     try:
-        return json.loads(text)
+        return _jloads(text)
     except json.JSONDecodeError:
         pass
 
@@ -193,7 +197,7 @@ def _parse_llm_json(text: str):
         last_end = text.rfind(end_char)
         if last_end > start_idx:
             try:
-                return json.loads(text[start_idx:last_end + 1])
+                return _jloads(text[start_idx:last_end + 1])
             except json.JSONDecodeError:
                 pass
 
@@ -206,7 +210,7 @@ def _parse_llm_json(text: str):
             inner = text[bracket_idx + 1:bracket_end].strip()
             if inner.startswith('{') and inner.endswith('}'):
                 try:
-                    obj = json.loads(inner)
+                    obj = _jloads(inner)
                     if isinstance(obj, dict):
                         return [obj]
                 except json.JSONDecodeError:
@@ -221,7 +225,7 @@ def _parse_llm_json(text: str):
         truncated = re.sub(r',\s*\{[^}]*$', '', truncated)
         truncated += ']'
         try:
-            result = json.loads(truncated)
+            result = _jloads(truncated)
             ci_warning(f"JSON 복구 발동: 잘린 배열 복구 성공 ({len(result)}개 항목)")
             print(f"    [JSON 복구] 잘린 배열 복구 성공: {len(result)}개 항목")
             return result
@@ -283,7 +287,7 @@ def _parse_llm_json(text: str):
                         close_stack.pop()
             truncated += ''.join(reversed(close_stack))
             try:
-                result = json.loads(truncated)
+                result = _jloads(truncated)
                 ci_warning("JSON 복구 발동: 잘린 객체 복구 성공")
                 print(f"    [JSON 복구] 잘린 객체 복구 성공")
                 return result
@@ -314,7 +318,7 @@ def _parse_llm_json(text: str):
                     depth -= 1
                     if depth == 0:
                         try:
-                            return json.loads(text[start_idx:i + 1])
+                            return _jloads(text[start_idx:i + 1])
                         except json.JSONDecodeError:
                             break
 

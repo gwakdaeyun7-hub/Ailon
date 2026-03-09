@@ -319,7 +319,7 @@ topic_cluster_id                 — "domain/topic" (e.g., "nlp/language_models"
 - **key_points 2개**: 프롬프트에서 허용 범위 (팩트 부족 시). 0-1개는 문제
 - **index.tsx ~1500 lines**: 더 이상 inline 컴포넌트 추가 금지, components/feed/로 추출할 것
 - **Pipeline QA logs**: print + GitHub Actions 어노테이션 (`::warning::`, `::error::`, `::group::`) + Job Summary. Firestore에는 저장 안 됨
-- **Pipeline QA 스킬**: `/pipeline-qa`에 로그를 붙여넣으면 AI 필터/분류/중복감지/랭킹/브리핑/용어·태그/학문스낵 7개 영역 심층 분석 + 코드 자동 수정. 상세 기준은 `.claude/skills/pipeline-qa/SKILL.md` 참조
+- **Pipeline QA 스킬**: `/pipeline-qa`에 로그를 붙여넣으면 AI 필터/분류/중복감지/랭킹/브리핑/용어·태그/학문스낵 7개 영역 심층 분석 + 코드 자동 수정. 랭킹 검사는 **전체 기사**를 대상으로 카테고리별 순위 테이블 출력 + 미스랭킹 식별. 상세 기준은 `.claude/skills/pipeline-qa/SKILL.md` 참조
 
 ## Behavioral Guidelines
 
