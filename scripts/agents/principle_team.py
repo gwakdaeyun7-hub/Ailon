@@ -93,6 +93,16 @@ def _safe_json_parse(text: str) -> dict:
         # JSON 객체 감싸기 (*** 가 { } 역할이었던 경우)
         if text and not text.startswith('{') and not text.startswith('['):
             text = '{' + text + '}'
+        # Phase 1 결과로 즉시 파싱 시도 — Phase 2가 문자열 값 내 ***를 오염시키기 전에
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError:
+            pass
+        # invalid escape 복구 후 재시도
+        try:
+            return json.loads(_fix_invalid_escapes(text))
+        except json.JSONDecodeError:
+            pass
 
     # Gemini *** 마크다운 제거 — 2단계: 중간 *** 구조적 치환
     if re.search(r'\*{2,}', text):
