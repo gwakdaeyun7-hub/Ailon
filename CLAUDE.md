@@ -309,7 +309,7 @@ topic_cluster_id                 — "domain/topic" (e.g., "nlp/language_models"
 
 - **Gemini JSON 잘림**: max_tokens 부족 시 JSON 배열이 잘림. `_parse_llm_json`에 5단계 복구 로직 있음. 복구가 발동되면 ranker token_budget 확인 필요
 - **Gemini markdown artifacts**: ```json 래퍼가 JSON 파싱을 깨뜨림 — strip before parse
-- **Gemini `***` markdown wrapping**: json_mode에서도 `***\n"key": value\n***` 형태로 응답하는 버그. `_safe_json_parse`에 2-phase 복구: Phase 1) 시작/끝 `***` strip + trailing comma 제거 + `{}` 감싸기, Phase 2) 컨텍스트 기반 `***` → `{`/`}` 치환 폴백
+- **Gemini `***` markdown wrapping**: json_mode에서도 `***\n"key": value\n***` 형태로 응답하는 버그. `_safe_json_parse`에 2-phase 복구: Phase 1) 시작/끝 `***` strip + trailing comma 제거 + `{}` 감싸기 + **즉시 json.loads 시도**, Phase 2) 컨텍스트 기반 `***` → `{`/`}` 치환 폴백. Phase 1 후 즉시 파싱하지 않으면 Phase 2가 문자열 값 내부의 `***`(마크다운 볼드)를 `{`/`}`로 치환하여 JSON 파괴
 - **Pipeline 0 articles**: API quota 초과 시 silent failure — 로그에서 확인
 - **분류 편향 경고**: industry_business 60% 초과는 catch-all 설계상 정상일 수 있음. 미분류 기사 개수 로그로 확인
 - **VentureBeat/paywall 사이트**: trafilatura에 Chrome UA 설정 필요 (tools.py `_get_traf_config`)
