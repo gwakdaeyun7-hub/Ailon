@@ -285,8 +285,9 @@ def run_news():
         briefing_data = generate_daily_briefing(news_result)
     except Exception as e:
         ci_error(f"브리핑 실패: {e}")
+    glossary_count = 0
     try:
-        accumulate_glossary(news_result)
+        glossary_count = accumulate_glossary(news_result) or 0
     except Exception as e:
         ci_error(f"용어사전 실패: {e}")
     try:
@@ -304,7 +305,7 @@ def run_news():
     except Exception as e:
         print(f"  [알림 실패] {e} — 파이프라인은 계속 진행")
 
-    return news_result, briefing_data
+    return news_result, briefing_data, glossary_count
 
 
 def run_principle(force: bool = False):
@@ -378,10 +379,11 @@ def main():
 
     news_result = None
     briefing_data = None
+    glossary_count = 0
     principle_result = None
 
     if args.target in ("all", "news"):
-        news_result, briefing_data = run_news()
+        news_result, briefing_data, glossary_count = run_news()
 
     if args.target in ("all", "principle"):
         try:
@@ -406,7 +408,7 @@ def main():
     # ─── Job Summary 작성 ───
     _write_job_summary(
         args.target, news_result, principle_result,
-        total_elapsed, briefing_data,
+        total_elapsed, briefing_data, glossary_count,
     )
 
 
@@ -416,6 +418,7 @@ def _write_job_summary(
     principle_result: dict | None,
     total_elapsed: float,
     briefing_data: dict | None = None,
+    glossary_count: int = 0,
 ):
     """$GITHUB_STEP_SUMMARY에 마크다운 요약 작성."""
     today = datetime.now(_KST).strftime("%Y-%m-%d")
@@ -439,6 +442,7 @@ def _write_job_summary(
             f"| 카테고리 | {cat_detail} |",
             f"| 소스 섹션 | {src_count}개 |",
             f"| 총 기사 | {news_result.get('total_count', 0)}개 |",
+            f"| 용어 사전 | {glossary_count}개 축적 |",
             "",
         ])
 

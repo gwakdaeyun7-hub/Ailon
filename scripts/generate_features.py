@@ -109,6 +109,33 @@ def save_articles_collection(result: dict):
             ci_warning(f"article_ids 업데이트 실패: {e}")
 
         print(f"  articles 컬렉션: {len(unique)}개 기사 저장")
+
+        # tags/glossary 커버리지 로그
+        has_tags = [a for a in unique if a.get("tags")]
+        has_glossary = [a for a in unique if a.get("glossary")]
+        no_tags = [a for a in unique if not a.get("tags")]
+        no_glossary = [a for a in unique if not a.get("glossary")]
+
+        ci_group(f"태그/용어사전 커버리지 ({len(has_tags)}/{len(unique)} tags, {len(has_glossary)}/{len(unique)} glossary)")
+        if no_tags:
+            print(f"  [태그 누락] {len(no_tags)}개:")
+            for a in no_tags[:10]:
+                title = (a.get("display_title") or a.get("title", ""))[:60]
+                src = a.get("source_key", "")
+                print(f"    - \"{title}\" [{src}]")
+            if len(no_tags) > 10:
+                print(f"    ... 외 {len(no_tags) - 10}개")
+        if no_glossary:
+            print(f"  [용어사전 누락] {len(no_glossary)}개:")
+            for a in no_glossary[:10]:
+                title = (a.get("display_title") or a.get("title", ""))[:60]
+                src = a.get("source_key", "")
+                print(f"    - \"{title}\" [{src}]")
+            if len(no_glossary) > 10:
+                print(f"    ... 외 {len(no_glossary) - 10}개")
+        if not no_tags and not no_glossary:
+            print("  모든 기사에 tags + glossary 완비")
+        ci_endgroup()
     except Exception as e:
         ci_warning(f"articles 저장 실패: {e}")
 
@@ -215,6 +242,15 @@ Articles:
             if 0 <= idx < len(all_articles):
                 article_ids.append(_article_id(all_articles[idx].get("link", "")))
 
+        # 카테고리 통계 (Tier 1+2만 — categorized_articles 기준)
+        category_stats = {}
+        total = 0
+        for cat, arts in cat_articles.items():
+            count = len(arts)
+            category_stats[cat] = count
+            total += count
+        category_stats["total"] = total
+
         db = get_firestore_client()
         today = datetime.now(_KST).strftime("%Y-%m-%d")
         db.collection("daily_briefings").document(today).set({
@@ -223,6 +259,7 @@ Articles:
             "briefing_en": data.get("briefing_en", ""),
             "story_count": data.get("story_count", 0),
             "article_ids": article_ids,
+            "category_stats": category_stats,
             "updated_at": firestore.SERVER_TIMESTAMP,
         })
         story_count = data.get("story_count", 0)
@@ -239,6 +276,11 @@ Articles:
         for line in briefing_en.split("\n"):
             print(f"    {line}")
         print(f"\n  스토리 수: {story_count}개")
+        print(f"\n  카테고리 통계 (Tier 1+2):")
+        for cat, cnt in category_stats.items():
+            if cat != "total":
+                print(f"    {cat}: {cnt}개")
+        print(f"    총계: {category_stats['total']}개")
         ci_endgroup()
 
         return data
@@ -317,6 +359,20 @@ def accumulate_glossary(result: dict):
             ci_warning(f"glossary 배치 저장 실패: {e}")
 
     print(f"  용어 사전: {total}개 용어 축적 완료")
+
+    # CI 로그에 용어 목록 출력
+    ci_group(f"용어 사전 상세 ({total}개)")
+    for norm, d in sorted(term_map.items()):
+        ko = d["term_ko"]
+        en = d["term_en"]
+        desc_raw = d["desc_ko"] or d["desc_en"]
+        desc = desc_raw[:60]
+        truncated = "…" if len(desc_raw) > 60 else ""
+        refs = len(d["article_ids"])
+        label = f"{ko}" if ko == en else f"{ko} ({en})"
+        print(f"    {label}: {desc}{truncated} [{refs}건]")
+    ci_endgroup()
+
     return total
 
 

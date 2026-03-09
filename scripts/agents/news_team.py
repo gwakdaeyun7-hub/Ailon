@@ -2198,6 +2198,17 @@ def assembler_node(state: NewsGraphState) -> dict:
     print(f"  카테고리별    {cat_count}개  {cat_detail}")
     print(f"  소스별 섹션   {src_count}개")
     print(f"  엔티티 추출   {ent_count}/{ent_total}개")
+
+    # tags/glossary 통계
+    all_output = list(state.get("highlights", []))
+    for v in state.get("categorized_articles", {}).values():
+        all_output.extend(v)
+    tags_count = sum(1 for a in all_output if a.get("tags"))
+    glossary_count = sum(1 for a in all_output if a.get("glossary"))
+    tags_empty = len(all_output) - tags_count
+    glossary_empty = len(all_output) - glossary_count
+    print(f"  태그 보유     {tags_count}/{len(all_output)}개" + (f" (누락 {tags_empty})" if tags_empty else ""))
+    print(f"  용어사전 보유 {glossary_count}/{len(all_output)}개" + (f" (누락 {glossary_empty})" if glossary_empty else ""))
     print(f"  ────────────────────")
     print(f"  총 출력       {total}개")
 
