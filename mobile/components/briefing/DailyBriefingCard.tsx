@@ -24,7 +24,6 @@ import {
   Flame,
 } from 'lucide-react-native';
 import Svg, { Circle, G, Path, Defs, LinearGradient, Stop, Text as SvgText } from 'react-native-svg';
-import { Ionicons } from '@expo/vector-icons';
 import Speech from '@/lib/speech';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
@@ -497,13 +496,6 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
     industry_business: colors.scoreBiz,
   }), [colors.scoreResearch, colors.scoreProduct, colors.scoreBiz]);
 
-  const readMinutes = useMemo(() => {
-    if (!text) return 0;
-    const wpm = lang === 'en' ? 200 : 500; // chars per minute for Korean
-    const len = text.length;
-    return Math.max(1, Math.round(lang === 'en' ? len / 5 / wpm : len / wpm));
-  }, [text, lang]);
-
   if (loading || !briefing) return null;
 
   // ── Collapsed State ──
@@ -582,25 +574,11 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
                 >
                   {t('briefing.title')}
                 </Text>
-                {readMinutes > 0 && (
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-                    <Ionicons name="time-outline" size={12} color={colors.textSecondary} />
-                    <Text style={{ fontSize: 12, color: colors.textSecondary }}>
-                      {readMinutes}{lang === 'en' ? 'min' : '분'}
-                    </Text>
-                  </View>
-                )}
               </View>
             </View>
 
-            {/* Mini sparkline bars */}
-            {trendData.length > 0 ? (
-              <MiniSparkBars
-                data={trendData}
-                primaryColor={colors.primary}
-                dimColor={colors.primary + '40'}
-              />
-            ) : categoryStats ? (
+            {/* Mini donut ring */}
+            {categoryStats ? (
               <MiniDonut stats={categoryStats} categoryColors={categoryColors} />
             ) : null}
 
@@ -672,15 +650,6 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
                   >
                     {dateLabel}
                   </Text>
-                  {readMinutes > 0 && (
-                    <>
-                      <Text style={{ fontSize: 11, color: colors.textSecondary }}>·</Text>
-                      <Ionicons name="time-outline" size={11} color={colors.textSecondary} />
-                      <Text style={{ fontSize: 11, color: colors.textSecondary }}>
-                        {readMinutes}{lang === 'en' ? 'min' : '분'}
-                      </Text>
-                    </>
-                  )}
                 </View>
               </View>
             </View>

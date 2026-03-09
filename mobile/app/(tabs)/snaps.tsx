@@ -33,8 +33,6 @@ import {
   Landmark,
   Sigma,
   Dna,
-  Scale,
-  Brain,
   Atom,
   Clock,
 } from 'lucide-react-native';
@@ -90,8 +88,6 @@ const CATEGORY_ICONS: Record<string, CategoryIconConfig> = {
   '학문 기원': { icon: Landmark, lightColor: '#B45309', darkColor: '#FBBF24', lightBg: '#FFFBEB', darkBg: '#2D2513' },
   '수학적 기초': { icon: Sigma, lightColor: '#0D7377', darkColor: '#2DD4BF', lightBg: '#F0FDFA', darkBg: '#112525' },
   '생물학적 영감': { icon: Dna, lightColor: '#15803D', darkColor: '#4ADE80', lightBg: '#F0FDF4', darkBg: '#052E16' },
-  '철학적 토대': { icon: Scale, lightColor: '#6366F1', darkColor: '#A5B4FC', lightBg: '#EEF2FF', darkBg: '#1E1B4B' },
-  '인지과학 연결': { icon: Brain, lightColor: '#7C3AED', darkColor: '#C4B5FD', lightBg: '#F5F3FF', darkBg: '#2E1065' },
   '물리학 최적화': { icon: Atom, lightColor: '#EA580C', darkColor: '#FB923C', lightBg: '#FFF7ED', darkBg: '#431407' },
 };
 
@@ -658,8 +654,8 @@ export default function SnapsScreen() {
           </View>
         ) : !principle ? (
           <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 60 }}>
-            <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: colors.primaryLight, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-              <BookOpen size={34} color={colors.primary} />
+            <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: colors.primaryLight, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+              <BookOpen size={30} color={colors.primary} />
             </View>
             <Text style={{ fontSize: 17, fontWeight: '700', color: colors.textPrimary, marginBottom: 6 }}>
               {t('snaps.no_content')}

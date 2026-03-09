@@ -5,6 +5,7 @@
 import React from 'react';
 import { View, Text, Pressable, ScrollView, Linking } from 'react-native';
 import { Image } from 'expo-image';
+import { Newspaper } from 'lucide-react-native';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useArticles } from '@/hooks/useArticle';
@@ -67,7 +68,7 @@ export const RelatedArticlesSection = React.memo(function RelatedArticlesSection
                 />
               ) : (
                 <View style={{ width: CARD_W, height: 80, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' }}>
-                  <Text style={{ fontSize: 24 }}>AI</Text>
+                  <Newspaper size={24} color={colors.textLight} />
                 </View>
               )}
               <View style={{ padding: 10 }}>

@@ -192,8 +192,8 @@ export default function ProfileScreen() {
                 { key: 'likes' as const, icon: Heart, label: t('notification.likes') },
               ]).map(({ key, icon: Icon, label }) => (
                 <View key={key} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                  <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: colors.warningLight, alignItems: 'center', justifyContent: 'center' }}>
-                    <Icon size={16} color={colors.warning} />
+                  <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.warningLight, alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon size={18} color={colors.warning} />
                   </View>
                   <Text style={{ flex: 1, color: colors.textPrimary, fontSize: 15, fontWeight: '600' }}>{label}</Text>
                   <Switch
@@ -223,7 +223,7 @@ export default function ProfileScreen() {
             <Pressable
               onPress={() => router.push('/(tabs)/saved')}
               accessibilityRole="button"
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 44, paddingVertical: 10, paddingHorizontal: 8 }}
             >
               <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '600' }}>{t('profile.view')}</Text>
               <ChevronRight size={14} color={colors.primary} />
@@ -239,8 +239,8 @@ export default function ProfileScreen() {
             accessibilityRole="button"
             style={{ backgroundColor: colors.card, borderRadius: 16, paddingHorizontal: 20, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', gap: 12, ...cardShadow, borderWidth: 1, borderColor: colors.primaryLight }}
           >
-            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: colors.primaryLight, alignItems: 'center', justifyContent: 'center' }}>
-              <LogOut size={16} color={colors.primary} />
+            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.primaryLight, alignItems: 'center', justifyContent: 'center' }}>
+              <LogOut size={18} color={colors.primary} />
             </View>
             <Text style={{ color: colors.primary, fontSize: 15, fontWeight: '700', flex: 1 }}>
               {signingOut ? t('profile.signing_out') : t('profile.signout')}

@@ -24,10 +24,10 @@ export const LightColors = {
   coreTechBg: '#F0FDFA',
   placeholder: '#D6D3D1',
   success: '#15803D',
-  // ScoreBadge 색상
-  scoreBiz: '#B45309',
+  // ScoreBadge / 도넛차트 색상
   scoreResearch: '#0D7377',
-  scoreProduct: '#7C3AED',
+  scoreProduct: '#B45309',
+  scoreBiz: '#6366F1',
   // SummaryModal 색상 (다른 에이전트가 사용)
   summaryIndigo: '#0D7377',
   summaryTeal: '#0E7490',
@@ -85,9 +85,9 @@ export const DarkColors: Record<keyof typeof LightColors, string> = {
   coreTechBg: '#112525',
   placeholder: '#57534E',
   success: '#4ADE80',
-  scoreBiz: '#FBBF24',
-  scoreResearch: '#2DD4BF',
-  scoreProduct: '#C4B5FD',
+  scoreResearch: '#14B8A6',
+  scoreProduct: '#F59E0B',
+  scoreBiz: '#818CF8',
   summaryIndigo: '#2DD4BF',
   summaryTeal: '#22D3EE',
   summaryBody: '#D6D3D1',

@@ -45,7 +45,7 @@ export function SideDrawer() {
             <Text style={{ color: colors.textPrimary, fontSize: 18, fontWeight: '800' }}>{t('drawer.title')}</Text>
             <Pressable
               onPress={closeDrawer}
-              style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border }}
+              style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border }}
             >
               <X size={16} color={colors.textSecondary} />
             </Pressable>

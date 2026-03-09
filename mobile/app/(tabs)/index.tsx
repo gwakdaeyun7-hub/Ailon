@@ -23,7 +23,7 @@ import { Image } from 'expo-image';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import {
-  Bell, RefreshCw, ThumbsUp, Eye, Share2, MessageCircle, X, Cpu, Newspaper, Bookmark, ChevronDown,
+  Bell, RefreshCw, ThumbsUp, Eye, Share2, MessageCircle, X, Cpu, Newspaper, Bookmark, ChevronDown, Heart,
 } from 'lucide-react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNews } from '@/hooks/useNews';
@@ -193,15 +193,15 @@ const ArticleStats = React.memo(function ArticleStats({ likes, views, comments }
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-        <ThumbsUp size={11} color={colors.textSecondary} />
+        <ThumbsUp size={12} color={colors.textSecondary} />
         <Text style={{ fontSize: 11, color: colors.textSecondary, fontWeight: '600' }}>{likes ?? 0}</Text>
       </View>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-        <MessageCircle size={11} color={colors.textSecondary} />
+        <MessageCircle size={12} color={colors.textSecondary} />
         <Text style={{ fontSize: 11, color: colors.textSecondary, fontWeight: '600' }}>{comments ?? 0}</Text>
       </View>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-        <Eye size={11} color={colors.textSecondary} />
+        <Eye size={12} color={colors.textSecondary} />
         <Text style={{ fontSize: 11, color: colors.textSecondary, fontWeight: '600' }}>{views ?? 0}</Text>
       </View>
     </View>
@@ -216,7 +216,7 @@ const SourceBadge = React.memo(function SourceBadge({ sourceKey, name }: { sourc
   return (
     <View style={{
       backgroundColor: color + '18',
-      paddingHorizontal: 6, paddingVertical: 2,
+      paddingHorizontal: 8, paddingVertical: 3,
       borderRadius: 6, alignSelf: 'flex-start',
     }}>
       <Text style={{ fontSize: 10, fontWeight: '700', color }}>{name || sourceKey}</Text>
@@ -503,7 +503,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
                   })}
                 >
                   <Bookmark
-                    size={16}
+                    size={18}
                     color={bookmarked ? colors.bookmarkActiveColor : colors.textSecondary}
                     fill="none"
                     strokeWidth={2}
@@ -664,7 +664,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
               accessibilityRole="button"
               style={{ flex: 1, alignItems: 'center', paddingVertical: 14 }}
             >
-              <ThumbsUp size={22} color={liked ? colors.likeActiveColor : colors.textDim} />
+              <Heart size={22} color={liked ? colors.likeActiveColor : colors.textDim} fill={liked ? colors.likeActiveColor : 'none'} />
             </Pressable>
             <Pressable
               onPress={onOpenComments}
@@ -748,9 +748,9 @@ const CARD_WIDTH = 240;
 const HCARD_HEIGHT = 260;
 
 const HScrollCard = React.memo(function HScrollCard({
-  article, showSourceBadge, onToggle, likes, views, comments,
+  article, onToggle, likes, views, comments,
 }: {
-  article: Article; showSourceBadge?: boolean; onToggle?: () => void; likes?: number; views?: number; comments?: number;
+  article: Article; onToggle?: () => void; likes?: number; views?: number; comments?: number;
 }) {
   const { lang, t } = useLanguage();
   const { colors } = useTheme();
@@ -798,9 +798,8 @@ const HScrollCard = React.memo(function HScrollCard({
       )}
       <View style={{ padding: 14, flex: 1, width: CARD_WIDTH }}>
         <View style={{ width: CARD_WIDTH - 28 }}>
-          {showSourceBadge && <SourceBadge sourceKey={article.source_key} name={getSourceName(article.source_key || '', t)} />}
           <TitleText
-            style={{ fontSize: 13, fontWeight: '700', color: colors.textPrimary, lineHeight: 18, marginTop: showSourceBadge ? 6 : 0, fontFamily: FontFamily.serif }}
+            style={{ fontSize: 13, fontWeight: '700', color: colors.textPrimary, lineHeight: 18, marginTop: 0, fontFamily: FontFamily.serif }}
             numberOfLines={2}
           >
             {getLocalizedTitle(article, lang)}
@@ -1058,7 +1057,7 @@ function SourceHScrollSection({
     <View style={{ marginBottom: 24 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 14 }}>
         <View style={{ width: 4, height: 18, borderRadius: 2, backgroundColor: color, marginRight: 8 }} />
-        <Text style={{ fontSize: 15, fontWeight: '700', color: colors.textPrimary, flex: 1, fontFamily: FontFamily.serif }}>
+        <Text style={{ fontSize: 17, fontWeight: '700', color: colors.textPrimary, flex: 1, fontFamily: FontFamily.serif }}>
           {name}
         </Text>
         <Text style={{ fontSize: 11, color: colors.textSecondary }}>{capped.length}{t('news.articles_suffix')}</Text>
@@ -1128,7 +1127,7 @@ const GeekNewsSection = React.memo(function GeekNewsSection({ articles, onArticl
         accessibilityRole="header"
       >
         <View style={{ width: 4, height: 18, borderRadius: 2, backgroundColor: color, marginRight: 8 }} />
-        <Text style={{ fontSize: 15, fontWeight: '700', color: colors.textPrimary, flex: 1, fontFamily: FontFamily.serif }}>{name}</Text>
+        <Text style={{ fontSize: 17, fontWeight: '700', color: colors.textPrimary, flex: 1, fontFamily: FontFamily.serif }}>{name}</Text>
         <Text style={{ fontSize: 11, color: colors.textSecondary }}>{capped.length}{t('news.articles_suffix')}</Text>
       </View>
 
@@ -1374,8 +1373,8 @@ export default function NewsScreen() {
         ) : error ? (
           <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 60, paddingHorizontal: 32 }}>
             {/* 이슈 #2: 에러 색상 토큰화 */}
-            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: colors.errorBg, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-              <RefreshCw size={28} color={colors.errorColor} />
+            <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: colors.errorBg, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+              <RefreshCw size={30} color={colors.errorColor} />
             </View>
             <Text style={{ color: colors.textPrimary, fontWeight: '700', fontSize: 16, marginBottom: 8 }}>{t(error)}</Text>
             <Pressable onPress={refresh} style={{ backgroundColor: colors.primary, paddingHorizontal: 28, paddingVertical: 12, borderRadius: 12 }}>
@@ -1384,8 +1383,8 @@ export default function NewsScreen() {
           </View>
         ) : totalArticles === 0 ? (
           <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 40 }}>
-            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: colors.primaryLight, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-              <Cpu size={28} color={colors.primary} />
+            <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: colors.primaryLight, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+              <Cpu size={30} color={colors.primary} />
             </View>
             <Text style={{ fontSize: 15, fontWeight: '600', color: colors.textPrimary, marginBottom: 4 }}>{t('news.no_news')}</Text>
           </View>
