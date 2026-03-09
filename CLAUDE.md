@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Ailon** is a bilingual (Korean/English) AI news curation and interdisciplinary learning mobile app. It collects AI news from 16 sources, processes them through a LangGraph pipeline (translate, summarize, categorize, rank, extract entities), and delivers curated content via a React Native mobile app. A secondary pipeline generates daily "principle" content linking academic disciplines to AI concepts.
+**Ailon** is a bilingual (Korean/English) AI news curation and interdisciplinary learning mobile app. It collects AI news from 22 sources, processes them through a LangGraph pipeline (translate, summarize, categorize, rank, extract entities), and delivers curated content via a React Native mobile app. A secondary pipeline generates daily "principle" content linking academic disciplines to AI concepts.
 
 ## Architecture
 
@@ -72,7 +72,7 @@ cd ../functions && firebase deploy --only functions
 - **Highlights**: Hero card + 2x2 grid, top 1 article per category (3 total)
 - **Daily Briefing**: AI-generated 2-3 min briefing card with TTS playback (expo-speech)
 - **Categories**: Horizontal scroll tabs (research / models_products / industry_business), Top 25 per category
-- **Sources**: 16 source sections, Korean sources (AI타임스, GeekNews, ZDNet AI, 요즘IT) in separate tabs
+- **Sources**: 22 source sections, Korean sources (AI타임스, GeekNews, ZDNet AI, 요즘IT) in separate tabs
 - **Article Card**: display_title, one_line, key_points (3), why_important, background, tags, glossary
 - **Interactions**: Like/dislike (ReactionBar), comments (CommentSheet modal), share, bookmark
 - **Glossary Highlighting**: Auto-detects terms in text, tap for definition popup (HighlightedText)
@@ -150,7 +150,7 @@ LangGraph 8-node pipeline with parallel EN/KO branches:
 
 | Node | Function | Key Config |
 |------|----------|------------|
-| collector | 16 RSS sources + scraping + LLM AI filter | trafilatura + Chrome UA, 10 parallel workers |
+| collector | 22 RSS sources + scraping + LLM AI filter | trafilatura + Chrome UA, 10 parallel workers |
 | en_process | EN→KO translation + summarization | batch=5, max_tokens=12288, thinking=False |
 | ko_process | KO summarization | batch=2, max_tokens=12288, thinking=False |
 | categorizer | LLM 3-category classification + 7-layer dedup | batch=5, 3 parallel workers |
@@ -159,10 +159,10 @@ LangGraph 8-node pipeline with parallel EN/KO branches:
 | selector | Highlight Top 3 + Category Top 25 | today articles only for highlights |
 | assembler | Final structure + timing report | Korean sources in separate sections |
 
-### News Sources (16 total, 3 tiers)
+### News Sources (22 total, 3 tiers)
 
-**Tier 1+2 (12 EN sources)** — CATEGORY_SOURCES, used for highlights + categories, AI 필터 없음 (AI 전문 피드):
-Wired AI, TechCrunch AI, The Verge AI, MIT Tech Review, VentureBeat, MarkTechPost, The Decoder, The Rundown AI, Google DeepMind, NVIDIA, Hugging Face, Ars Technica AI
+**Tier 1+2+2+ (18 EN sources)** — CATEGORY_SOURCES, used for highlights + categories, AI 필터 없음 (AI 전문 피드, NEEDS_AI_FILTER = 빈 set):
+Wired AI, TechCrunch AI, The Verge AI, MIT Tech Review, VentureBeat, MarkTechPost, The Decoder, The Rundown AI, Google DeepMind, NVIDIA, Hugging Face, Ars Technica AI, AI Business, SiliconANGLE, IEEE Spectrum AI, The Next Web, TechXplore AI, Tom's Hardware
 
 **Tier 3 (4 KO sources)** — SOURCE_SECTION_SOURCES, separate sections, AI 필터 "의심 시 제거":
 AI타임스, GeekNews, ZDNet AI 에디터 (HTML scrape), 요즘IT AI
@@ -182,7 +182,7 @@ AI타임스, GeekNews, ZDNet AI 에디터 (HTML scrape), 요즘IT AI
 | DEDUP layers | 7 (L1 URL→L2 orig_title→L3 disp_title→L4 one_line→L5 key_tokens→L6 embedding→L7 title_entity) | |
 | Embedding threshold | 0.92 cosine | L6 |
 | L7 title_entity | 제품+버전 일치 + one_line 토큰 Jaccard ≥ 0.30 | GPT-5.4 등 동일 이벤트 다소스 중복 감지 |
-| AI 필터 | Tier 1+2: 필터 없음 (AI 전문 피드, 전체 통과), Tier 3: "의심 시 제거" (AI+개발/IT 기술 포함) | Tier 1+2는 비AI 4.5%로 필터 불필요, Tier 3는 비AI 9%+완전 무관 기사 혼재 |
+| AI 필터 | CATEGORY_SOURCES(18개): 필터 없음 (NEEDS_AI_FILTER 빈 set, 전체 통과), Tier 3: "의심 시 제거" (AI+개발/IT 기술 포함) | CATEGORY_SOURCES는 AI 전문 피드로 필터 불필요, Tier 3는 비AI 9%+완전 무관 기사 혼재 |
 
 ### Classification Categories
 - `models_products` — NEW model/product/tool/feature release, first wide rollout (NOT: events/meetups, non-AI products)
@@ -276,7 +276,7 @@ topic_cluster_id                 — "domain/topic" (e.g., "nlp/language_models"
 ### What's Done
 - 4-tab mobile app — feature complete (news feed, principles, saved, profile)
 - All interactions: likes, comments, bookmarks, share, TTS, glossary highlight
-- LangGraph news pipeline (8 nodes, 16 sources, EN/KO parallel)
+- LangGraph news pipeline (8 nodes, 22 sources, EN/KO parallel)
 - Principle pipeline (6 disciplines, 3-step insight + deep dive + verification)
 - Post-pipeline: briefing, glossary, timeline, related articles
 - Auth (Google), dark mode, bilingual (KO/EN), push notifications
