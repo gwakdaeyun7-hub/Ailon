@@ -177,6 +177,12 @@ const translations: Record<string, Record<Language, string>> = {
   'briefing.stop': { ko: '중지', en: 'Stop' },
   'briefing.stories': { ko: '개 스토리', en: ' stories' },
   'briefing.no_data': { ko: '브리핑 준비 중...', en: 'Preparing briefing...' },
+  'briefing.highlights': { ko: '하이라이트', en: 'Highlights' },
+  'briefing.topics': { ko: '주요 토픽', en: 'Key Topics' },
+  'briefing.categories': { ko: '카테고리', en: 'Categories' },
+  'briefing.readMore': { ko: '자세히 보기', en: 'Read More' },
+  'briefing.collapse': { ko: '접기', en: 'Collapse' },
+  'briefing.articles': { ko: '기사', en: 'Articles' },
 
 
   // ─── 타임라인 ───

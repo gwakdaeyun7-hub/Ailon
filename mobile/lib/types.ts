@@ -207,6 +207,12 @@ export interface DailyBriefing {
   story_count: number;
   article_ids: string[];
   updated_at: Timestamp | string | null;
+  category_stats?: {
+    research: number;
+    models_products: number;
+    industry_business: number;
+    total: number;
+  };
 }
 
 

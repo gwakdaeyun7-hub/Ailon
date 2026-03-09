@@ -107,7 +107,7 @@ cd ../functions && firebase deploy --only functions
 - **HighlightedText**: Auto glossary term detection + definition modal
 - **RelatedArticlesSection**: Horizontal card carousel (entity/cluster matching)
 - **TimelineSection**: Vertical timeline with past article links
-- **DailyBriefingCard**: Hero card with TTS, expandable text, story count
+- **DailyBriefingCard**: Morphing Blob 스타일 — 접힌 상태(글로우 미니 바 + TTS + 카테고리 비율 바) / 펼친 상태(KPI 그리드 + 도넛 차트 + 태그 클라우드 + 브리핑 전문)
 - **PersonalizedFeed**: Scoring based on like history (category +3, tag +2)
 - **SideDrawer**: Animated left panel (82% width, max 320px)
 
@@ -231,7 +231,7 @@ topic_cluster_id                 — "domain/topic" (e.g., "nlp/language_models"
 | `daily_news/{date}` | 1 doc/day | highlights[], categorized_articles{}, source_articles{} |
 | `daily_principles/{date}` | 1 doc/day | 3-step insight + deepDive + verification |
 | `articles/{article_id}` | 1 doc/article | Full article + entities, related_ids, timeline_ids |
-| `daily_briefings/{date}` | 1 doc/day | briefing_ko, briefing_en, story_count |
+| `daily_briefings/{date}` | 1 doc/day | briefing_ko, briefing_en, story_count, category_stats |
 | `glossary_terms/{term}` | 1 doc/term | term/desc (KO+EN), article_ids |
 | `users/{uid}` | 1 doc/user | profile, expoPushToken |
 | `users/{uid}/bookmarks` | subcollection | type, itemId, metadata |
