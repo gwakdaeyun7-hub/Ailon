@@ -107,7 +107,7 @@ cd ../functions && firebase deploy --only functions
 - **HighlightedText**: Auto glossary term detection + definition modal
 - **RelatedArticlesSection**: Horizontal card carousel (entity/cluster matching)
 - **TimelineSection**: Vertical timeline with past article links
-- **DailyBriefingCard**: Morphing Blob 스타일 — 접힌 상태(글로우 미니 바 + TTS + 카테고리 비율 바) / 펼친 상태(KPI 그리드 + 도넛 차트 + 태그 클라우드 + 브리핑 전문)
+- **DailyBriefingCard**: Morphing Blob 스타일 — 접힌 상태(글로우 미니 바 + TTS + 미니 도넛 링) / 펼친 상태(KPI 그리드 + 도넛 차트 + 태그 클라우드 + 브리핑 전문)
 - **PersonalizedFeed**: Scoring based on like history (category +3, tag +2)
 - **SideDrawer**: Animated left panel (82% width, max 320px)
 
@@ -153,7 +153,7 @@ LangGraph 8-node pipeline with parallel EN/KO branches:
 | collector | 16 RSS sources + scraping + LLM AI filter | trafilatura + Chrome UA, 10 parallel workers |
 | en_process | EN→KO translation + summarization | batch=5, max_tokens=12288, thinking=False |
 | ko_process | KO summarization | batch=2, max_tokens=12288, thinking=False |
-| categorizer | LLM 3-category classification + 7-layer dedup | batch=5, 3 parallel workers, AI 필터 소스 티어별 분기 |
+| categorizer | LLM 3-category classification + 7-layer dedup | batch=5, 3 parallel workers |
 | ranker | Per-category LLM ranking → score (1st=100, last=30) | token_budget=max(6144, count*100) |
 | entity_extractor | Entity extraction + topic clustering | batch=5, 4 parallel workers |
 | selector | Highlight Top 3 + Category Top 25 | today articles only for highlights |
@@ -161,7 +161,7 @@ LangGraph 8-node pipeline with parallel EN/KO branches:
 
 ### News Sources (16 total, 3 tiers)
 
-**Tier 1+2 (12 EN sources)** — CATEGORY_SOURCES, used for highlights + categories, AI 필터 "의심 시 포함":
+**Tier 1+2 (12 EN sources)** — CATEGORY_SOURCES, used for highlights + categories, AI 필터 없음 (AI 전문 피드):
 Wired AI, TechCrunch AI, The Verge AI, MIT Tech Review, VentureBeat, MarkTechPost, The Decoder, The Rundown AI, Google DeepMind, NVIDIA, Hugging Face, Ars Technica AI
 
 **Tier 3 (4 KO sources)** — SOURCE_SECTION_SOURCES, separate sections, AI 필터 "의심 시 제거":
@@ -182,8 +182,7 @@ AI타임스, GeekNews, ZDNet AI 에디터 (HTML scrape), 요즘IT AI
 | DEDUP layers | 7 (L1 URL→L2 orig_title→L3 disp_title→L4 one_line→L5 key_tokens→L6 embedding→L7 title_entity) | |
 | Embedding threshold | 0.92 cosine | L6 |
 | L7 title_entity | 제품+버전 일치 + one_line 토큰 Jaccard ≥ 0.30 | GPT-5.4 등 동일 이벤트 다소스 중복 감지 |
-| AI 필터 기본값 | Tier 1+2: "의심 시 포함" (MANDATORY INCLUDE 규칙), Tier 3: "의심 시 제거" (AI+개발/IT 기술 포함) | AI 전문 피드 오탐 방지, Tier 3는 개발 기사도 통과 |
-| AI 필터 안전망 | Tier 1+2 제목에 AI 키워드(AI, LLM, GPT, Claude, Anthropic 등) 있으면 LLM 판단 무시 강제 포함 | `_MANDATORY_TITLE_KEYWORDS` 정규식, LLM 간헐적 오탐 방지 |
+| AI 필터 | Tier 1+2: 필터 없음 (AI 전문 피드, 전체 통과), Tier 3: "의심 시 제거" (AI+개발/IT 기술 포함) | Tier 1+2는 비AI 4.5%로 필터 불필요, Tier 3는 비AI 9%+완전 무관 기사 혼재 |
 
 ### Classification Categories
 - `models_products` — NEW model/product/tool/feature release, first wide rollout (NOT: events/meetups, non-AI products)

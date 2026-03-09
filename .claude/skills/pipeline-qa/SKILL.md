@@ -21,27 +21,23 @@ qa-pipeline-tester 에이전트를 사용하여 로그를 분석합니다.
 5. **소요 시간**: 노드별 소요 시간 이상 여부 (전체 10분 초과 시 경고)
 6. **요약 품질**: key_points 0-1개 기사, one_line 누락 기사
 
-### 1.2 AI 필터 검사 (★ 심층 분석)
+### 1.2 AI 필터 검사 (Tier 3만 해당)
+
+**Tier 1/2 (CATEGORY_SOURCES, 12 EN sources)**: AI 필터 없음 — AI 전문 피드이므로 필터 생략, 전체 통과.
+- Tier 1/2 소스에서 `[AI 필터]` 로그가 나오면 → 코드 레그레션 (Critical)
+- Tier 1/2 소스 기사에 `_ai_filtered=True`가 있으면 → 코드 레그레션 (Critical)
+
+**Tier 3 (SOURCE_SECTION_SOURCES, 4 KO sources)**: LLM AI 필터 적용.
 
 로그 패턴: `[AI 필터] {source}: {total}개 중 {passed}개 통과, {marked}개 비AI 마킹`
 
 | 검사 항목 | 정상 범위 | 이상 징후 | 심각도 |
 |-----------|----------|-----------|--------|
-| Tier 1/2 필터율 | 0-20% 마킹 | >30% 마킹 → 오탐 의심 (AI 전문 피드에서 과도 필터) | Major |
 | Tier 3 필터율 (소스별) | aitimes 15-30%, geeknews 5-15%, yozm_ai 0-10%, zdnet_ai_editor 0-10% | 소스별 정상 범위 벗어남 → 프롬프트 조정 | Major |
 | 필터 실패 | 없음 | `LLM AI 필터 실패 -> 전체 통과` 로그 | Critical |
 | research 면제 | 적용됨 | selector에서 research 기사가 AI 필터로 누락 | Major |
-| 안전망 작동 | `[안전망]` 로그 있으면 정상 작동 | Tier 1/2에서 오탐이 있는데 `[안전망]` 로그 없음 → 안전망 미작동 의심 | Critical |
 
-**안전망(`_MANDATORY_TITLE_KEYWORDS`) 검사:**
-- `[안전망] {source}: {n}개 키워드 기반 복구` 로그를 확인
-- 복구된 기사 수 vs 여전히 비AI 마킹된 기사 수를 비교
-- 안전망으로 복구된 기사 제목이 실제 AI 관련인지 확인 (정탐 여부)
-- 제목에 AI/LLM/GPT/Claude/Gemini/OpenAI/Anthropic/DeepMind 등이 있는데 비AI로 남은 기사 → 안전망 정규식 패턴 누락 버그
-
-**AI 필터 오탐 판별 기준:**
-- Tier 1/2 소스(CATEGORY_SOURCES)는 AI 전문 피드 → "의심 시 포함"이 원칙
-- 제목에 AI 기업명(OpenAI, Anthropic, Google DeepMind, Meta AI 등)이 있는데 필터링됐으면 → 확실한 오탐
+**Tier 3 AI 필터 오탐 판별 기준:**
 - Tier 3 소스(SOURCE_SECTION_SOURCES)는 "의심 시 제거"가 원칙. 단, 소스별 특성이 다름:
   - aitimes: AI 전문 매체 → 비AI 마킹이 많으면 프롬프트 과도 필터
   - geeknews: 개발/IT 종합 → 대부분 개발 기사가 통과하는 것이 정상 (AI+개발/IT 기술 포함 규칙)
@@ -51,14 +47,12 @@ qa-pipeline-tester 에이전트를 사용하여 로그를 분석합니다.
 **기사 단위 오탐 판정 (필수):**
 - 비AI 마킹된 기사 제목을 하나씩 확인하여 다음 중 하나로 판정:
   - **정탐**: 기사가 실제로 AI와 무관 (요리, 스포츠, 정치 등)
-  - **오탐**: AI 관련 기사인데 비AI로 마킹 → 프롬프트 또는 안전망 수정 필요
-  - **경계**: AI와 간접 관련 (IT 인프라, 반도체 등) → Tier에 따라 판단 상이
+  - **오탐**: AI 관련 기사인데 비AI로 마킹 → 프롬프트 수정 필요
+  - **경계**: AI와 간접 관련 (IT 인프라, 반도체 등)
 
 **수정 대상 파일:** `scripts/agents/news_team.py` — `_llm_ai_filter_batch()` 함수 (line ~659)
-- 프롬프트의 INCLUDE/EXCLUDE 규칙 조정
-- `is_ai_feed` 분기의 source_context 텍스트 수정
+- Tier 3 프롬프트의 INCLUDE/EXCLUDE 규칙 조정
 - 한국어 프롬프트(`is_ko`)의 판단 기준 수정
-- `_MANDATORY_TITLE_KEYWORDS` 안전망 (line ~793): Tier 1/2 제목에 AI 키워드 있으면 LLM 판단 무시, `[안전망]` 로그 출력
 
 ### 1.3 분류(Categorization) 검사 (★ 심층 분석)
 
@@ -211,10 +205,10 @@ qa-pipeline-tester 에이전트를 사용하여 로그를 분석합니다.
 | **원래 문제** (originalProblem) | "1948년 Shannon의 'A Mathematical Theory of Communication'에서 채널 용량 한계를 증명..." — 논문명+인물+시기+구체적 문제 | "옛날에 연구자들이 문제를 발견했다" — 누가, 언제, 무엇을 불명확 | Major |
 | **영감의 다리** (bridge) | "합성곱 연산의 수학적 구조는 보존되었으나, 생물학적 시냅스 가소성은 역전파로 변형되었다" — 보존/변형을 구체적 예시와 함께 구분 | "이 원리에서 영감을 받아 AI에 적용했다" — 무엇이 보존/변형됐는지 없음 | Critical |
 | **bridge 로그 출력** | bridge 내용이 로그에서 확인 가능 (70자 이상 출력) | 로그에서 bridge가 잘려서 내용 확인 불가 → content_generator 로그 확인 필요 | Minor |
-| **핵심 직관** (coreIntuition) | "이 알고리즘은 N차원 파라미터 공간에서 손실 함수의 기울기 벡터를 따라 극소점으로 수렴한다" — 수학적/알고리즘적 직관 | "높은 산에서 공을 굴리면 골짜기를 찾는다" — 딥다이브인데 일상 비유 수준 (인사이트 analogy와 차별화 안 됨) | Major |
+| **핵심 직관** (coreIntuition) | "이 알고리즘은 N차원 파라미터 공간에서 손실 함수의 기울기 벡터를 따라 극소점으로 수렴한다" — feature map/gradient/차원/확률분포 등 기술 용어 포함, 수학적/알고리즘적 직관 | "높은 산에서 공을 굴리면 골짜기를 찾는다" — 기술 용어 없이 일상 비유 수준 (foundation.analogy와 차별화 안 됨) → deepDiveDepth ≤ 0.5 | Major |
 | **수식** (formula) | discipline이 수학/물리/정보이론/통계/공학이면 LaTeX 수식 포함 | 수학적 원리인데 formula가 빈 문자열 → 조건부 필수 위반 | Major |
 | **AI-specific 한계** (limits) | "distribution shift 환경에서 학습된 통계적 가정이 무너지며, adversarial attack에 취약하다" — AI 적용 시 구체적 한계 | "아직 갈 길이 멀다" / "더 많은 연구가 필요하다" — 추상적 회피, AI-specific 아님 | Major |
-| **학술 정보 밀도** | originalProblem+bridge에 인물명 2명+, 년도 2개+, 논문명 1개+ 포함 | 인물/년도/논문명 전혀 없이 일반적 서술만 | Major |
+| **학술 정보 밀도** | originalProblem+bridge에 인물명 1명+, 년도 1개+ 포함 | 인물/년도 전혀 없이 일반적 서술만 → deepDiveDepth ≤ 0.6 | Major |
 
 **formula 조건부 검사 기준:**
 - discipline_key의 접두사가 `math`, `phys`, `info`, `stat`, `ee`, `opt` 중 하나이면 formula 필수
@@ -250,10 +244,10 @@ qa-pipeline-tester 에이전트를 사용하여 로그를 분석합니다.
 **딥다이브 전문성 체크리스트** (분석 시 각 항목 예/아니오 판정):
 7. [ ] originalProblem에 핵심 논문/저서명이 1개 이상 포함되어 있는가?
 8. [ ] bridge에서 보존된 수학적/논리적 구조 vs 변형된 구현 방식이 구체적 예시와 함께 구분되는가?
-9. [ ] coreIntuition이 수학적/알고리즘적 직관을 제공하는가? (일상 비유 수준이면 불합격 — 인사이트 analogy와 차별화 필수)
+9. [ ] coreIntuition에 기술 용어(feature map/gradient/차원/확률분포/손실함수/가중치 등)가 포함되어 있는가? foundation.analogy와 동일한 일상 비유 수준이면 불합격 (deepDiveDepth ≤ 0.5)
 10. [ ] 수학/물리/정보이론/통계 원리인 경우 formula가 존재하는가?
 11. [ ] limits가 AI-specific 한계를 다루는가? (distribution shift, adversarial robustness, non-convexity 등)
-12. [ ] originalProblem+bridge에 인물명·년도·논문명이 2개 이상 포함되어 학술 정보 밀도가 충분한가?
+12. [ ] originalProblem+bridge에 인물명 1명+, 년도 1개+ 포함되어 학술 정보 밀도가 충분한가? (미달 시 deepDiveDepth ≤ 0.6)
 
 **수정 대상 파일:** `scripts/agents/principle_team.py`
 - `_CONTENT_PROMPT` (line ~333): 생성 프롬프트 — 설명 구체성 강화

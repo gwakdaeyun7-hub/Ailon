@@ -25,6 +25,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import {
   Bell, RefreshCw, ThumbsUp, Eye, Share2, MessageCircle, X, Cpu, Newspaper, Bookmark, ChevronDown,
 } from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useNews } from '@/hooks/useNews';
 import { useDrawer } from '@/context/DrawerContext';
 import { useLanguage } from '@/context/LanguageContext';
@@ -484,12 +485,12 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
             {/* M1: 소스 뱃지 + 날짜 + 조회수 + 읽기 시간 + 북마크 — D4 compact */}
             <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', paddingHorizontal: 20, marginTop: article.image_url ? 16 : 0, gap: 6 }}>
               <Text style={{ fontSize: 12, color: colors.textSecondary }}>{formatDate(article.published, lang)}</Text>
-              <Text style={{ fontSize: 12, color: colors.textDim }}>|</Text>
-              <Text style={{ fontSize: 12, color: colors.textSecondary }}>{views}</Text>
-              <Text style={{ fontSize: 12, color: colors.textDim }}>|</Text>
-              <Text style={{ fontSize: 12, color: colors.textSecondary }}>
-                {lang === 'en' ? `${readMin}min` : `${readMin}분`}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                <Ionicons name="time-outline" size={13} color={colors.textSecondary} />
+                <Text style={{ fontSize: 12, color: colors.textSecondary }}>
+                  {lang === 'en' ? `${readMin}min` : `${readMin}분`}
+                </Text>
+              </View>
               {/* H4: Bookmark touch target */}
               <View style={{ marginLeft: 'auto' }}>
                 <Pressable

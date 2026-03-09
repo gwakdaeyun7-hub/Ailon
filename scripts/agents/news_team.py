@@ -780,41 +780,24 @@ Return the indices as a JSON array:
 
 
 def _llm_filter_sources(sources: dict[str, list[dict]]) -> None:
-    """모든 소스를 LLM으로 AI 관련성 필터링 (병렬). 제거 대신 _ai_filtered 마킹."""
+    """Tier 3 소스만 LLM AI 필터링. Tier 1/2는 AI 전문 피드이므로 필터 생략."""
     total_marked = 0
-    # 모든 소스(Tier 1/2/3)에 LLM AI 필터링 적용
+    # Tier 1/2 (CATEGORY_SOURCES): AI 전문 피드 → 필터 없이 전체 통과
+    for key, articles in sources.items():
+        if key in CATEGORY_SOURCES:
+            for a in articles:
+                a["_ai_filtered"] = False
+    # Tier 3 (SOURCE_SECTION_SOURCES)만 LLM AI 필터링 적용
     tasks = []
     for key, articles in sources.items():
         if not articles:
             continue
+        if key in CATEGORY_SOURCES:
+            continue  # Tier 1/2 스킵
         tasks.append((key, articles))
 
-    # Tier 1/2 제목 키워드 안전망: LLM이 누락해도 강제 포함
-    _MANDATORY_TITLE_KEYWORDS = re.compile(
-        r'\b(?:AI|LLM|GPT|Claude|Gemini|neural|ML\b|'
-        r'OpenAI|Anthropic|DeepMind|xAI|Mistral|Cohere|'
-        r'LangChain|vector.?database|fine.?tun|'
-        r'KV.?cache|token|embedding|transformer|diffusion|'
-        r'AI.?agent|agentic|RAG|RLHF|'
-        r'chip.?export|NPU|TPU)\b',
-        re.IGNORECASE,
-    )
-
     def _filter_one(key: str, articles: list[dict]) -> tuple[str, int, int, int]:
-        is_ai_feed = key in CATEGORY_SOURCES
         ai_indices = _llm_ai_filter_batch(articles, source_key=key)
-        # Tier 1/2 안전망: 제목에 AI 키워드가 있으면 LLM 판단 무시하고 강제 포함
-        if is_ai_feed:
-            rescued = []
-            for i, a in enumerate(articles):
-                if i not in ai_indices:
-                    title = a.get("title") or ""
-                    if _MANDATORY_TITLE_KEYWORDS.search(title):
-                        ai_indices.add(i)
-                        rescued.append(title)
-            if rescued:
-                rescued_str = ", ".join(f'"{t[:50]}"' for t in rescued[:5])
-                print(f"    [안전망] {key}: {len(rescued)}개 키워드 기반 복구 — {rescued_str}")
         marked = 0
         passed_titles = []
         removed_titles = []
