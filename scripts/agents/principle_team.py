@@ -83,7 +83,18 @@ def _safe_json_parse(text: str) -> dict:
     if m:
         text = m.group(1).strip()
 
-    # Gemini *** 마크다운 제거 — 구조적 치환 후 컨텍스트 기반 치환
+    # Gemini *** 마크다운 제거 — 1단계: 시작/끝 *** 단순 제거
+    if re.match(r'^\*{2,}', text):
+        text = re.sub(r'^\*{2,}\s*', '', text)       # leading ***
+        text = re.sub(r'\s*\*{2,}\s*$', '', text)     # trailing ***
+        text = text.strip()
+        # trailing comma 제거 (Gemini가 마지막 필드 뒤에 쉼표 남길 수 있음)
+        text = re.sub(r',\s*$', '', text)
+        # JSON 객체 감싸기 (*** 가 { } 역할이었던 경우)
+        if text and not text.startswith('{') and not text.startswith('['):
+            text = '{' + text + '}'
+
+    # Gemini *** 마크다운 제거 — 2단계: 중간 *** 구조적 치환
     if re.search(r'\*{2,}', text):
         text = re.sub(r'\[\s*\*+', '[{', text)
         text = re.sub(r'\*+\s*\]', '}]', text)
