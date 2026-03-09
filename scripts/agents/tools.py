@@ -272,13 +272,13 @@ def _extract_rss_image(entry: dict, rss_image_field: str = "") -> str:
     if rss_image_field == "media_thumbnail":
         thumbs = entry.get("media_thumbnail", [])
         if thumbs and isinstance(thumbs, list) and thumbs[0].get("url"):
-            return thumbs[0]["url"]
+            return _upgrade_image_quality(thumbs[0]["url"])
         # media:content fallback
         media = entry.get("media_content", [])
         if media and isinstance(media, list):
             for m in media:
                 if m.get("url") and m.get("medium") == "image":
-                    return m["url"]
+                    return _upgrade_image_quality(m["url"])
 
     # media:content 우선 (MarkTechPost 등 고해상도 이미지)
     if rss_image_field == "media_content":
@@ -286,11 +286,11 @@ def _extract_rss_image(entry: dict, rss_image_field: str = "") -> str:
         if media and isinstance(media, list):
             for m in media:
                 if m.get("url") and m.get("medium") == "image":
-                    return m["url"]
+                    return _upgrade_image_quality(m["url"])
         # fallback: media:thumbnail
         thumbs = entry.get("media_thumbnail", [])
         if thumbs and isinstance(thumbs, list) and thumbs[0].get("url"):
-            return thumbs[0]["url"]
+            return _upgrade_image_quality(thumbs[0]["url"])
 
     # content에서 <img src="..."> 추출 (The Verge, AI Business)
     if rss_image_field == "content_image":
@@ -304,7 +304,7 @@ def _extract_rss_image(entry: dict, rss_image_field: str = "") -> str:
             if match:
                 url = match.group(1)
                 if url.startswith("http") and not url.endswith(".svg"):
-                    return url
+                    return _upgrade_image_quality(url)
 
     # enclosure 우선 (VentureBeat, TNW, Tom's Hardware 등)
     if rss_image_field == "enclosure":
@@ -335,10 +335,44 @@ def _is_image_url(url: str) -> bool:
 
 def _upgrade_image_quality(url: str) -> str:
     """CDN 이미지 URL의 저화질 파라미터를 고화질로 교체"""
-    # Contentful CDN (VentureBeat): ?w=300&q=30 → ?w=800&q=80
+    if not url:
+        return url
+
+    # Contentful CDN (VentureBeat): ?w=300&q=30 → ?w=1200&q=85
     if "images.ctfassets.net" in url:
-        url = re.sub(r'[?&]w=\d+', '?w=800', url)
-        url = re.sub(r'[?&]q=\d+', '&q=80', url)
+        url = re.sub(r'[?&]w=\d+', '?w=1200', url)
+        url = re.sub(r'[?&]q=\d+', '&q=85', url)
+        return url
+
+    # WordPress (MarkTechPost, SiliconANGLE, The Decoder, TNW 등): -300x200.jpg → 원본
+    url = re.sub(r'-\d+x\d+\.(jpg|jpeg|png|webp)', r'.\1', url)
+
+    # WordPress resize param: ?resize=300,200 or ?w=300&h=200
+    url = re.sub(r'[?&]resize=\d+[,x]\d+', '', url)
+    if re.search(r'[?&]w=\d+', url) and ("wp-content" in url or "wordpress" in url.lower()):
+        url = re.sub(r'[?&]w=\d+', '', url)
+        url = re.sub(r'[?&]h=\d+', '', url)
+
+    # Cloudinary: /w_300,h_200,c_fill/ → /w_1200,c_fill,q_auto,f_auto/
+    if "cloudinary.com" in url or "res.cloudinary.com" in url:
+        url = re.sub(r'/w_\d+,h_\d+,c_\w+/', '/w_1200,c_fill,q_auto,f_auto/', url)
+        url = re.sub(r'/w_\d+,c_\w+/', '/w_1200,c_fill,q_auto,f_auto/', url)
+
+    # imgix: ?w=300&h=200&fit=crop → ?w=1200&fit=crop&auto=format,compress
+    if "imgix.net" in url:
+        url = re.sub(r'[?&]w=\d+', '?w=1200', url)
+        url = re.sub(r'[?&]h=\d+', '', url)
+        if 'auto=' not in url:
+            url += '&auto=format,compress' if '?' in url else '?auto=format,compress'
+
+    # Substack CDN: /w_300/ → /w_1200/
+    if "substackcdn.com" in url:
+        url = re.sub(r'/w_\d+[,/]', '/w_1200/', url)
+
+    # Clean up malformed query strings (double ? or leading &)
+    url = re.sub(r'\?&', '?', url)
+    url = re.sub(r'\?\s*$', '', url)
+
     return url
 
 
@@ -611,7 +645,7 @@ def enrich_and_scrape(sources: dict[str, list[dict]]) -> None:
                 if body:
                     body_found += 1
                 if img and not article.get("image_url"):
-                    article["image_url"] = img
+                    article["image_url"] = _upgrade_image_quality(img)
                     img_enriched += 1
             except Exception as e:
                 article["body"] = ""
