@@ -690,6 +690,7 @@ INCLUDE (포함):
 - AI 규제, 정책, 윤리, 저작권 논의
 - AI 기업 투자, 인수합병, 파트너십
 - AI 기업 CEO/경영진 관련 뉴스 (아모데이/Amodei, 샘 알트먼/Altman, 피차이/Pichai AI 관련 발언, 전략)
+- AI 기업과 정부/국방부 관계 기사 (예: "국방부 차관, 앤트로픽 CEO에 전화" → INCLUDE, 군사 AI 계약/규제 논의)
 - AI 제품/하드웨어 (AI 안경, AI 스피커, AI 웨어러블 등 AI가 핵심인 기기)
 - AI가 산업/사회/교육/일자리에 미치는 영향
 - AI 튜토리얼, 가이드, 활용법, 개발자 팁
@@ -2066,12 +2067,11 @@ def selector_node(state: NewsGraphState) -> dict:
     highlights: list[dict] = []
     for cat in HIGHLIGHT_CATEGORIES:
         # 당일(_is_today) + 해당 카테고리 + AI 필터 통과
-        # Tier 1/2는 _ai_filtered=False, research는 AI 필터 면제
         pool = [
             c for c in candidates
             if c.get("_llm_category") == cat
             and c.get("_is_today")
-            and (not c.get("_ai_filtered") or cat == "research")
+            and not c.get("_ai_filtered")
             and c.get("one_line")  # 요약 실패 기사 하이라이트 제외
         ]
         if not pool:
@@ -2099,11 +2099,11 @@ def selector_node(state: NewsGraphState) -> dict:
     # ── Step 2: 하이라이트 제외 + 비AI 기사 제외 → 카테고리별 분류 ──
     highlight_ids = set(id(c) for c in highlights)
     remaining = [c for c in candidates if id(c) not in highlight_ids]
-    # 비AI 마킹 기사 제외 (하이라이트와 동일 정책: research는 면제)
+    # 비AI 마킹 기사 제외
     ai_excluded = 0
     filtered_remaining: list[dict] = []
     for a in remaining:
-        if a.get("_ai_filtered") and a.get("_llm_category") != "research":
+        if a.get("_ai_filtered"):
             ai_excluded += 1
         else:
             filtered_remaining.append(a)

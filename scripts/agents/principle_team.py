@@ -674,6 +674,12 @@ def _regex_extract_verification(raw: str) -> dict | None:
     fc_m = re.search(r'"factCheck"\s*:\s*"((?:[^"\\]|\\.)*)"', raw, re.DOTALL)
     if fc_m:
         result["factCheck"] = fc_m.group(1)
+    # issues 배열 추출 시도
+    issues_m = re.search(r'"issues"\s*:\s*\[(.*?)\]', raw, re.DOTALL)
+    if issues_m:
+        raw_issues = issues_m.group(1).strip()
+        if raw_issues:
+            result["issues"] = re.findall(r'"((?:[^"\\]|\\.)*)"', raw_issues)
     return result
 
 
@@ -827,6 +833,18 @@ def should_retry(state: PrincipleGraphState) -> str:
     if (not verified or confidence < 0.7) and retry_count < 3:
         ci_warning(f"검증 실패 (verified={verified}, confidence={confidence:.2f}), 재시도 {retry_count + 1}/3")
         return "retry"
+
+    # formula 필수 검사: 수학/물리/정보이론/통계/전자/최적화 분야
+    _math_prefixes = {"math", "phys", "info", "stat", "ee", "opt"}
+    content = state.get("content")
+    if content and retry_count < 3:
+        seed = state.get("seed") or {}
+        discipline = seed.get("discipline_key", seed.get("discipline", ""))
+        prefix = discipline.split("_")[0]
+        if prefix in _math_prefixes:
+            if not content.get("deepDive", {}).get("formula"):
+                ci_warning(f"formula 누락 ({discipline}), 재시도 {retry_count + 1}/3")
+                return "retry"
 
     if not verified or confidence < 0.7:
         print(f"  [라우팅] 검증 실패하지만 재시도 한도 초과 -> 현재 콘텐츠 사용")
