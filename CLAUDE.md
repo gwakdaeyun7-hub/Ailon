@@ -87,7 +87,7 @@ cd ../functions && firebase deploy --only functions
   3. Integration: Real-world impact
 - **Deep Dive Tab** (왜의 사슬): originalProblem → bridge → coreIntuition → formula → limits
 - **Metadata**: Difficulty badge (Beginner/Intermediate/Advanced), connectionType, keywords, readTime
-- **6 Disciplines**: 학문 기원, 수학적 기초, 생물학적 영감, 철학적 토대, 인지과학, 물리학 최적화
+- **4 Disciplines**: 학문 기원, 수학적 기초, 생물학적 영감, 물리학 최적화
 - Date navigation, AsyncStorage offline caching
 
 ### Tab 3: Saved (saved.tsx)
@@ -212,7 +212,7 @@ topic_cluster_id                 — "domain/topic" (e.g., "nlp/language_models"
 4-node pipeline: `seed_selector → content_generator → verifier → assembler`
 - Conditional retry: `should_retry` → `retry_reseed` (LangGraph conditional edges, max 3 retries)
 
-- Generates 1 principle per day from 6+ disciplines
+- Generates 1 principle per day from 12 disciplines (engineering, natural/formal/applied science)
 - 3-step narrative: foundation → application → integration + deepDive
 - Avoids same discipline in last 3 days, same seed in last 30 days
 - Verifier: 3-section evaluation (A. 사실정확성, B. 인사이트이해도, C. 딥다이브전문성)
