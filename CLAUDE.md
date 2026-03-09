@@ -214,7 +214,8 @@ topic_cluster_id                 — "domain/topic" (e.g., "nlp/language_models"
 - Avoids same discipline in last 3 days, same seed in last 30 days
 - Verifier: 3-section evaluation (A. 사실정확성, B. 인사이트이해도, C. 딥다이브전문성)
   - Output: confidence, insightClarity, deepDiveDepth (0.0~1.0)
-  - Retry if confidence < 0.7, JSON parse 2x fail → default fail result (not raise)
+  - Retry if confidence < 0.7, JSON parse 3x fail → default fail result (not raise)
+  - Empty response detection: Gemini 빈 응답 시 파싱 생략 후 재시도, 디버그 로깅 포함
 - Defense-in-depth: content=None → should_retry → retry_reseed flow (no exceptions)
 - Formula conditional: math/phys/info/stat/ee/opt disciplines require formula field
 - Code-level quality warnings: analogy length, problem length, bridge keywords, formula, AI-specific limits

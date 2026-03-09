@@ -605,22 +605,32 @@ def verifier(state: PrincipleGraphState) -> dict:
         ai_connection=seed["ai_connection"],
         ai_connection_en=seed["ai_connection_en"],
         problem_solved=seed["problem_solved"],
-        content_json=json.dumps(content, ensure_ascii=False, indent=2)[:8000],
+        content_json=json.dumps(content, ensure_ascii=False, indent=2)[:4000],
     )
 
-    # JSON 파싱 실패 시 1회 재시도, 2회 모두 실패 시 기본 fail 결과 반환
+    # JSON 파싱 실패 시 최대 3회 시도, 모두 실패 시 기본 fail 결과 반환
     verification = None
-    for attempt in range(2):
+    max_attempts = 3
+    for attempt in range(max_attempts):
         try:
             response = _llm_invoke_with_retry(llm, [HumanMessage(content=prompt)])
-            verification = _safe_json_parse(response.content)
+            raw = response.content
+            print(f"  [verifier] attempt {attempt+1}/{max_attempts} — response preview: {repr(raw[:300]) if raw else '(empty)'}")
+
+            # Empty/whitespace response — skip parsing, retry
+            if not raw or not raw.strip():
+                ci_warning(f"verifier attempt {attempt+1}: empty response from Gemini, retrying")
+                time.sleep(1)
+                continue
+
+            verification = _safe_json_parse(raw)
             break
         except json.JSONDecodeError as e:
-            if attempt == 0:
-                ci_warning(f"verifier JSON 파싱 실패, 재시도: {e.msg}")
+            if attempt < max_attempts - 1:
+                ci_warning(f"verifier JSON 파싱 실패 (attempt {attempt+1}), 재시도: {e.msg}")
                 time.sleep(1)
             else:
-                ci_error(f"verifier JSON 파싱 2회 연속 실패: {e.msg} — 기본 fail 결과 사용")
+                ci_error(f"verifier JSON 파싱 {max_attempts}회 연속 실패: {e.msg} — 기본 fail 결과 사용")
                 verification = {
                     "verified": False,
                     "confidence": 0.0,
@@ -631,6 +641,20 @@ def verifier(state: PrincipleGraphState) -> dict:
                     "factCheck": f"JSON 파싱 실패로 검증 불가: {e.msg}",
                     "issues": ["verifier LLM 응답이 유효한 JSON이 아님"],
                 }
+
+    # All attempts exhausted with empty responses (no JSONDecodeError raised)
+    if verification is None:
+        ci_error("verifier: 모든 시도에서 빈 응답 — 기본 fail 결과 사용")
+        verification = {
+            "verified": False,
+            "confidence": 0.0,
+            "principleAccuracy": 0.0,
+            "mappingAccuracy": 0.0,
+            "insightClarity": 0.0,
+            "deepDiveDepth": 0.0,
+            "factCheck": "Gemini 빈 응답으로 검증 불가",
+            "issues": ["verifier LLM이 빈 응답을 반환"],
+        }
 
     verified = verification.get("verified", False)
     confidence = verification.get("confidence", 0.0)
