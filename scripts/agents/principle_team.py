@@ -76,6 +76,34 @@ def _fix_invalid_escapes(s: str) -> str:
     return ''.join(result)
 
 
+def _fix_unescaped_quotes(s: str) -> str:
+    """JSON 문자열 값 내 이스케이프 안 된 큰따옴표를 수정.
+
+    Gemini json_mode에서도 ***래핑 시 factCheck 등 값에
+    "The "bridge" is..." 처럼 이스케이프 안 된 따옴표가 올 수 있음.
+    휴리스틱: key-value 구조를 추적하며 문자열 내부 따옴표를 이스케이프.
+    """
+    # 간단한 접근: json.loads 에러 위치를 반복적으로 수정
+    result = s
+    for _ in range(20):  # 최대 20회 반복
+        try:
+            json.loads(result, strict=False)
+            return result
+        except json.JSONDecodeError as e:
+            pos = e.pos
+            if pos is None or pos <= 0 or pos >= len(result):
+                break
+            # 에러 위치의 따옴표를 이스케이프
+            if result[pos] == '"':
+                result = result[:pos] + '\\"' + result[pos + 1:]
+            elif pos > 0 and result[pos - 1] == '"':
+                # 따옴표 바로 다음에서 에러 — 이전 따옴표가 문제
+                result = result[:pos - 1] + '\\"' + result[pos:]
+            else:
+                break
+    return result
+
+
 def _safe_json_parse(text: str) -> dict:
     """LLM 응답에서 JSON 추출. 코드펜스·잘못된 이스케이프·Gemini *** 마크다운도 처리."""
     text = text.strip()
@@ -87,7 +115,9 @@ def _safe_json_parse(text: str) -> dict:
         text = m.group(1).strip()
 
     # Gemini *** 마크다운 제거 — 1단계: 시작/끝 *** 단순 제거
+    phase1_applied = False
     if re.match(r'^\*{2,}', text):
+        phase1_applied = True
         text = re.sub(r'^\*{2,}\s*', '', text)       # leading ***
         text = re.sub(r'\s*\*{2,}\s*$', '', text)     # trailing ***
         text = text.strip()
@@ -106,9 +136,17 @@ def _safe_json_parse(text: str) -> dict:
             return _jloads(_fix_invalid_escapes(text))
         except json.JSONDecodeError:
             pass
+        # Phase 1 추가 복구: 문자열 내 이스케이프 안 된 큰따옴표 수정
+        # "key": "value with "quotes" inside" → "key": "value with \"quotes\" inside"
+        try:
+            fixed_quotes = _fix_unescaped_quotes(text)
+            return _jloads(fixed_quotes)
+        except (json.JSONDecodeError, Exception):
+            pass
 
     # Gemini *** 마크다운 제거 — 2단계: 중간 *** 구조적 치환
-    if re.search(r'\*{2,}', text):
+    # Phase 1이 적용됐으면 건너뜀 — 문자열 값 내 *** 오염 방지
+    if not phase1_applied and re.search(r'\*{2,}', text):
         text = re.sub(r'\[\s*\*+', '[{', text)
         text = re.sub(r'\*+\s*\]', '}]', text)
         text = re.sub(r'\*+\s*,\s*\*+', '},{', text)
@@ -612,6 +650,38 @@ Example output:
 {{"verified": true, "confidence": 0.85, "principleAccuracy": 0.9, "mappingAccuracy": 0.8, "insightClarity": 0.85, "deepDiveDepth": 0.75, "factCheck": "Hebbian learning 설명이 정확하며, 신경망 가중치 업데이트와의 연결이 적절함. 다만 coreIntuition이 일상 비유 수준에 머물러 deepDiveDepth 감점.", "issues": ["coreIntuition이 수학적 직관 부족"]}}"""
 
 
+def _regex_extract_verification(raw: str) -> dict | None:
+    """JSON 파싱 실패 시 regex로 verifier 응답 필드를 추출하는 폴백.
+
+    verifier 스키마가 고정(verified, confidence, ...)이므로
+    regex로 개별 필드를 추출하면 *** 래핑이나 따옴표 이슈를 우회할 수 있음.
+    """
+    if not raw:
+        return None
+    verified_m = re.search(r'"verified"\s*:\s*(true|false)', raw, re.IGNORECASE)
+    confidence_m = re.search(r'"confidence"\s*:\s*([0-9.]+)', raw)
+    if not verified_m or not confidence_m:
+        return None
+    def _float(pattern, default=0.0):
+        m = re.search(pattern, raw)
+        return float(m.group(1)) if m else default
+    result = {
+        "verified": verified_m.group(1).lower() == "true",
+        "confidence": float(confidence_m.group(1)),
+        "principleAccuracy": _float(r'"principleAccuracy"\s*:\s*([0-9.]+)'),
+        "mappingAccuracy": _float(r'"mappingAccuracy"\s*:\s*([0-9.]+)'),
+        "insightClarity": _float(r'"insightClarity"\s*:\s*([0-9.]+)'),
+        "deepDiveDepth": _float(r'"deepDiveDepth"\s*:\s*([0-9.]+)'),
+        "factCheck": "regex 폴백으로 추출됨",
+        "issues": [],
+    }
+    # factCheck 추출 시도 (따옴표 내 텍스트)
+    fc_m = re.search(r'"factCheck"\s*:\s*"((?:[^"\\]|\\.)*)"', raw, re.DOTALL)
+    if fc_m:
+        result["factCheck"] = fc_m.group(1)
+    return result
+
+
 @_safe_node("verifier")
 def verifier(state: PrincipleGraphState) -> dict:
     """별도 LLM 호출로 원리-AI 매핑 사실 검증"""
@@ -650,6 +720,12 @@ def verifier(state: PrincipleGraphState) -> dict:
             verification = _safe_json_parse(raw)
             break
         except json.JSONDecodeError as e:
+            # regex 폴백: *** 래핑 등으로 JSON 파싱 실패해도 필드 추출 시도
+            fallback = _regex_extract_verification(raw)
+            if fallback:
+                print(f"  [verifier] JSON 파싱 실패 → regex 폴백으로 필드 추출 성공")
+                verification = fallback
+                break
             if attempt < max_attempts - 1:
                 ci_warning(f"verifier JSON 파싱 실패 (attempt {attempt+1}), 재시도: {e.msg}")
                 time.sleep(1)
