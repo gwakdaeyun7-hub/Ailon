@@ -1,8 +1,9 @@
 """
-뉴스 수집 도구 — 16개 소스 RSS/스크래핑 기반 수집
+뉴스 수집 도구 — 22개 소스 RSS/스크래핑 기반 수집
 
 [Tier 1] 영어 AI 전문 뉴스 — Wired AI / The Verge AI / TechCrunch AI / MIT Tech Review / VentureBeat / The Decoder / MarkTechPost
 [Tier 2] AI 기업·매체 — Google DeepMind / NVIDIA / HuggingFace / Ars Technica AI / The Rundown AI
+[Tier 2+] 영어 AI/기술 매체 — AI Business / SiliconANGLE / IEEE Spectrum AI / TNW / TechXplore AI / Tom's Hardware
 [Tier 3] 한국 소스 — AI타임스 / GeekNews / ZDNet AI 에디터 / 요즘IT AI
 """
 
@@ -117,6 +118,54 @@ SOURCES = [
         "max_items": 30,
         "lang": "en",
     },
+    # Tier 2+: 영어 AI/기술 매체
+    {
+        "key": "ai_business",
+        "name": "AI Business",
+        "rss_url": "https://aibusiness.com/rss.xml",
+        "max_items": 30,
+        "lang": "en",
+        "rss_image_field": "content_image",  # content:encoded 내 <img>
+    },
+    {
+        "key": "siliconangle",
+        "name": "SiliconANGLE",
+        "rss_url": "https://siliconangle.com/feed/",
+        "max_items": 30,
+        "lang": "en",
+        "rss_image_field": "media_thumbnail",  # media:thumbnail 또는 enclosure
+    },
+    {
+        "key": "ieee_spectrum_ai",
+        "name": "IEEE Spectrum AI",
+        "rss_url": "https://spectrum.ieee.org/feeds/topic/artificial-intelligence.rss",
+        "max_items": 30,
+        "lang": "en",
+        "rss_image_field": "media_content",  # media:content (980px 고해상도)
+    },
+    {
+        "key": "tnw",
+        "name": "The Next Web",
+        "rss_url": "https://thenextweb.com/feed",
+        "max_items": 30,
+        "lang": "en",
+        "rss_image_field": "enclosure",
+    },
+    {
+        "key": "techxplore_ai",
+        "name": "TechXplore AI",
+        "rss_url": "https://techxplore.com/rss-feed/machine-learning-ai-news/",
+        "max_items": 30,
+        "lang": "en",
+    },
+    {
+        "key": "toms_hardware",
+        "name": "Tom's Hardware",
+        "rss_url": "https://www.tomshardware.com/feeds.xml",
+        "max_items": 30,
+        "lang": "en",
+        "rss_image_field": "enclosure",  # FutureCDN, 1280px
+    },
     # Tier 3: 한국 소스
     {
         "key": "aitimes",
@@ -160,13 +209,18 @@ HIGHLIGHT_SOURCES = {
     "venturebeat", "the_decoder", "marktechpost",
 }
 
-# 카테고리 분류 대상 소스 (Tier 1 + Tier 2)
+# 카테고리 분류 대상 소스 (Tier 1 + Tier 2 + Tier 2+)
 CATEGORY_SOURCES = {
     "wired_ai", "the_verge_ai", "techcrunch_ai", "mit_tech_review",
     "venturebeat", "the_decoder", "marktechpost",
     "deepmind_blog", "nvidia_blog", "huggingface_blog",
     "arstechnica_ai", "the_rundown_ai",
+    "ai_business", "siliconangle", "ieee_spectrum_ai",
+    "tnw", "techxplore_ai", "toms_hardware",
 }
+
+# CATEGORY_SOURCES 중 AI 전문 피드가 아닌 소스 → LLM AI 필터 적용
+NEEDS_AI_FILTER = set()  # 현재 모든 CATEGORY_SOURCES는 AI 필터 없이 전체 통과
 
 # 소스별 섹션 (한국 소스)
 SOURCE_SECTION_SOURCES = {
@@ -239,7 +293,7 @@ def _extract_rss_image(entry: dict, rss_image_field: str = "") -> str:
         if thumbs and isinstance(thumbs, list) and thumbs[0].get("url"):
             return thumbs[0]["url"]
 
-    # content에서 <img src="..."> 추출 (The Verge)
+    # content에서 <img src="..."> 추출 (The Verge, AI Business)
     if rss_image_field == "content_image":
         content = ""
         if entry.get("content"):
@@ -253,12 +307,31 @@ def _extract_rss_image(entry: dict, rss_image_field: str = "") -> str:
                 if url.startswith("http") and not url.endswith(".svg"):
                     return url
 
-    # enclosure (VentureBeat 등)
+    # enclosure 우선 (VentureBeat, TNW, Tom's Hardware 등)
+    if rss_image_field == "enclosure":
+        for enc in entry.get("enclosures", []):
+            href = enc.get("href") or enc.get("url", "")
+            if href and (enc.get("type", "").startswith("image/") or _is_image_url(href)):
+                return _upgrade_image_quality(href)
+
+    # 범용 enclosure fallback (rss_image_field 미지정 소스)
     for enc in entry.get("enclosures", []):
-        if enc.get("type", "").startswith("image/") and enc.get("href"):
-            return _upgrade_image_quality(enc["href"])
+        href = enc.get("href") or enc.get("url", "")
+        if href and (enc.get("type", "").startswith("image/") or _is_image_url(href)):
+            return _upgrade_image_quality(href)
 
     return ""
+
+
+def _is_image_url(url: str) -> bool:
+    """URL이 이미지 파일인지 확인 (확장자 또는 CDN 패턴 기반)"""
+    lower = url.lower().split("?")[0]
+    if any(lower.endswith(ext) for ext in (".jpg", ".jpeg", ".png", ".webp", ".gif")):
+        return True
+    # CDN 패턴: FutureCDN (Tom's Hardware), b-cdn.net (TechXplore) 등
+    if any(cdn in lower for cdn in ("cdn.mos.cms", "b-cdn.net", "futurecdn")):
+        return True
+    return False
 
 
 def _upgrade_image_quality(url: str) -> str:

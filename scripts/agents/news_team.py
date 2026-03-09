@@ -30,6 +30,7 @@ from agents.tools import (
     SOURCES,
     fetch_all_sources, enrich_and_scrape, filter_imageless,
     HIGHLIGHT_SOURCES, CATEGORY_SOURCES, SOURCE_SECTION_SOURCES,
+    NEEDS_AI_FILTER,
 )
 from agents.ci_utils import ci_warning, ci_error, ci_group, ci_endgroup
 
@@ -659,7 +660,7 @@ def _process_articles(articles: list[dict], translate: bool, batch_size: int, ma
 def _llm_ai_filter_batch(articles: list[dict], source_key: str = "") -> set[int]:
     """기사 목록에서 AI 관련 기사 인덱스를 LLM으로 판별"""
     is_ko = source_key in SOURCE_SECTION_SOURCES
-    is_ai_feed = source_key in CATEGORY_SOURCES  # Tier 1+2: AI 전문 피드
+    is_ai_feed = source_key in CATEGORY_SOURCES and source_key not in NEEDS_AI_FILTER  # AI 전문 피드 (NEEDS_AI_FILTER 제외)
     article_text = ""
     for i, a in enumerate(articles):
         title = a.get("title") or ""
@@ -780,20 +781,20 @@ Return the indices as a JSON array:
 
 
 def _llm_filter_sources(sources: dict[str, list[dict]]) -> None:
-    """Tier 3 소스만 LLM AI 필터링. Tier 1/2는 AI 전문 피드이므로 필터 생략."""
+    """Tier 3 + NEEDS_AI_FILTER 소스만 LLM AI 필터링. 나머지 Tier 1/2는 AI 전문 피드이므로 필터 생략."""
     total_marked = 0
-    # Tier 1/2 (CATEGORY_SOURCES): AI 전문 피드 → 필터 없이 전체 통과
+    # Tier 1/2 (CATEGORY_SOURCES - NEEDS_AI_FILTER): AI 전문 피드 → 필터 없이 전체 통과
     for key, articles in sources.items():
-        if key in CATEGORY_SOURCES:
+        if key in CATEGORY_SOURCES and key not in NEEDS_AI_FILTER:
             for a in articles:
                 a["_ai_filtered"] = False
-    # Tier 3 (SOURCE_SECTION_SOURCES)만 LLM AI 필터링 적용
+    # Tier 3 (SOURCE_SECTION_SOURCES) + NEEDS_AI_FILTER 소스: LLM AI 필터링 적용
     tasks = []
     for key, articles in sources.items():
         if not articles:
             continue
-        if key in CATEGORY_SOURCES:
-            continue  # Tier 1/2 스킵
+        if key in CATEGORY_SOURCES and key not in NEEDS_AI_FILTER:
+            continue  # AI 전문 피드 스킵 (NEEDS_AI_FILTER 제외)
         tasks.append((key, articles))
 
     def _filter_one(key: str, articles: list[dict]) -> tuple[str, int, int, int]:
