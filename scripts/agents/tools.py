@@ -219,7 +219,7 @@ CATEGORY_SOURCES = {
 }
 
 # CATEGORY_SOURCES 중 AI 전문 피드가 아닌 소스 → LLM AI 필터 적용
-NEEDS_AI_FILTER = set()  # 현재 모든 CATEGORY_SOURCES는 AI 필터 없이 전체 통과
+NEEDS_AI_FILTER = {"toms_hardware"}  # Tom's Hardware: 범용 RSS 피드라 비AI 기사 필터 필요
 
 # 소스별 섹션 (한국 소스)
 SOURCE_SECTION_SOURCES = {

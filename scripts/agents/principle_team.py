@@ -41,12 +41,7 @@ _DISCIPLINE_NAME_EN: dict[str, str] = {
     "신경과학": "Neuroscience",
     "수학": "Mathematics",
     "통계학": "Statistics",
-    "심리학/인지과학": "Psychology / Cognitive Science",
-    "경제학/게임이론": "Economics / Game Theory",
-    "철학/논리학": "Philosophy / Logic",
-    "언어학": "Linguistics",
     "화학": "Chemistry",
-    "사회학": "Sociology",
     "의학/생명과학": "Medicine / Life Sciences",
 }
 
