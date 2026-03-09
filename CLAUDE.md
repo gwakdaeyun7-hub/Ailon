@@ -87,7 +87,7 @@ cd ../functions && firebase deploy --only functions
   3. Integration: Real-world impact
 - **Deep Dive Tab** (왜의 사슬): originalProblem → bridge → coreIntuition → formula → limits
 - **Metadata**: Difficulty badge (Beginner/Intermediate/Advanced), connectionType, keywords, readTime
-- **4 Disciplines**: 학문 기원, 수학적 기초, 생물학적 영감, 물리학 최적화
+- **4 Super Categories**: 공학(5), 자연과학(4), 형식과학(2), 응용과학(1) — 12 disciplines total
 - Date navigation, AsyncStorage offline caching
 
 ### Tab 3: Saved (saved.tsx)
@@ -150,12 +150,12 @@ LangGraph 8-node pipeline with parallel EN/KO branches:
 
 | Node | Function | Key Config |
 |------|----------|------------|
-| collector | 22 RSS sources + scraping + LLM AI filter | trafilatura + Chrome UA, 10 parallel workers |
-| en_process | EN→KO translation + summarization | batch=5, max_tokens=12288, thinking=False |
-| ko_process | KO summarization | batch=2, max_tokens=12288, thinking=False |
+| collector | 22 RSS sources + scraping + LLM AI filter | trafilatura + Chrome UA, 6 RSS workers + 10 scrape workers + 4 AI filter workers |
+| en_process | EN→KO translation + summarization | batch=5, max_tokens=12288, 5 parallel workers, 3-phase retry (batch→individual→fallback) |
+| ko_process | KO summarization | batch=2, max_tokens=12288, 5 parallel workers, 3-phase retry |
 | categorizer | LLM 3-category classification + 7-layer dedup | batch=5, 3 parallel workers |
-| ranker | Per-category LLM ranking → score (1st=100, last=30) | token_budget=max(6144, count*100) |
-| entity_extractor | Entity extraction + topic clustering | batch=5, 4 parallel workers |
+| ranker | Per-category LLM ranking → score (1st=100, last=30) | token_budget=max(6144, count*100), 3 parallel workers (per-category) |
+| entity_extractor | Entity extraction + topic clustering | batch=5, up to 4 parallel workers, 3-tier retry (batch→sub-batch→individual) |
 | selector | Highlight Top 3 + Category Top 25 | today articles only for highlights |
 | assembler | Final structure + timing report | Korean sources in separate sections |
 
@@ -167,7 +167,7 @@ Wired AI, TechCrunch AI, The Verge AI, MIT Tech Review, VentureBeat, MarkTechPos
 **Tier 2 (6 EN sources)** — CATEGORY_SOURCES only (하이라이트 제외), AI 필터 없음:
 Google DeepMind, NVIDIA, Hugging Face, Ars Technica AI, The Rundown AI, IEEE Spectrum AI
 
-**Tier 3 (4 KO sources)** — SOURCE_SECTION_SOURCES, separate sections, AI 필터 "의심 시 제거":
+**Tier 3 (4 KO sources)** — SOURCE_SECTION_SOURCES, separate sections, AI 필터 "의심 시 제거" (AI + 개발/IT 기술 기사도 포함):
 AI타임스, GeekNews, ZDNet AI 에디터 (HTML scrape), 요즘IT AI
 
 ### Key Constants (DO NOT lower without reason)
@@ -182,7 +182,7 @@ AI타임스, GeekNews, ZDNet AI 에디터 (HTML scrape), 요즘IT AI
 | CLASSIFY_BATCH_SIZE | 5 | LLM 안정성 |
 | EN batch size | 5 | 번역+요약 |
 | KO batch size | 2 | 한국어 본문이 길어서 |
-| DEDUP layers | 7 (L1 URL→L2 orig_title→L3 disp_title→L4 one_line→L5 key_tokens→L6 embedding→L7 title_entity) | |
+| DEDUP layers | 7 (L1 URL→L2 orig_title≥0.65→L3 disp_title≥0.65→L4 one_line≥0.65→L5 key_tokens(고유명사3+숫자1 겹침)→L6 embedding→L7 title_entity) | |
 | Embedding threshold | 0.92 cosine | L6 |
 | L7 title_entity | 제품+버전 일치 + one_line 토큰 Jaccard ≥ 0.30 | GPT-5.4 등 동일 이벤트 다소스 중복 감지 |
 | AI 필터 | Tier 1+2 중 Tom's Hardware만 AI 필터 적용 (NEEDS_AI_FILTER={"toms_hardware"}, 범용 RSS 피드), 나머지 17개는 전체 통과, Tier 3: "의심 시 제거" (AI+개발/IT 기술 포함). 모든 카테고리에 AI 필터 동일 적용 (research 면제 없음). KO 필터 INCLUDE 목록에 "AI 기업과 정부/국방부 관계 기사" 포함 | Tom's Hardware는 범용 하드웨어 피드로 비AI 기사 혼재, 나머지 Tier 1+2는 AI 전문 피드로 필터 불필요, Tier 3는 비AI 9%+완전 무관 기사 혼재 |
@@ -209,16 +209,16 @@ topic_cluster_id                 — "domain/topic" (e.g., "nlp/language_models"
 
 ### Principle Pipeline (scripts/agents/principle_team.py)
 
-4-node pipeline: `seed_selector → content_generator → verifier → assembler`
+5-node pipeline: `seed_selector → content_generator → verifier → [retry_reseed (conditional)] → assembler`
 - Conditional retry: `should_retry` → `retry_reseed` (LangGraph conditional edges, max 3 retries)
 
 - Generates 1 principle per day from 12 disciplines (engineering, natural/formal/applied science)
 - 3-step narrative: foundation → application → integration + deepDive
 - Avoids same discipline in last 3 days, same seed in last 30 days
 - Verifier: 3-section evaluation (A. 사실정확성, B. 인사이트이해도, C. 딥다이브전문성)
-  - Output: confidence, insightClarity, deepDiveDepth (0.0~1.0)
-  - Retry if confidence < 0.7, JSON parse 3x fail → default fail result (not raise)
-  - Regex fallback (`_regex_extract_verification`): JSON 파싱 완전 실패 시 raw text에서 verifier 필드 + issues 배열을 regex로 직접 추출하는 최종 방어 계층
+  - Output: verified, confidence, principleAccuracy, mappingAccuracy, insightClarity, deepDiveDepth (0.0~1.0) + factCheck + issues[]
+  - Retry if confidence < 0.7, JSON parse 3회 시도 실패 → default fail result (not raise)
+  - Regex fallback (`_regex_extract_verification`): JSON 파싱 완전 실패 시 raw text에서 verifier 필드 (verified, confidence, principleAccuracy, mappingAccuracy, insightClarity, deepDiveDepth, factCheck) + issues 배열을 regex로 직접 추출하는 최종 방어 계층
   - Empty response detection: Gemini 빈 응답 시 파싱 생략 후 재시도, 디버그 로깅 포함
   - content_json 입력 4000자 제한 (토큰 절약 + 응답 안정성)
 - Defense-in-depth: content=None → should_retry → retry_reseed flow (no exceptions)
@@ -258,9 +258,10 @@ topic_cluster_id                 — "domain/topic" (e.g., "nlp/language_models"
 - Python 3.11, timeout: 40 minutes
 
 ### CI Logging (`scripts/agents/ci_utils.py`)
-- `ci_warning(msg)` / `ci_error(msg)` — `::warning::` / `::error::` 어노테이션 (CI에서만) + 항상 print
+- `ci_warning(msg)` / `ci_error(msg)` — `::warning::` / `::error::` 어노테이션 (CI에서만) + 항상 print + 내부 리스트에 수집
 - `ci_group(title)` / `ci_endgroup()` — 긴 목록 접기 (수집 기사, EN/KO 결과, QA 목록, 랭킹 상세, 소스 섹션)
 - `write_job_summary(md)` — `$GITHUB_STEP_SUMMARY`에 마크다운 테이블 (뉴스/원리 결과 + 경고/에러)
+- `get_collected_warnings()` / `get_collected_errors()` — 수집된 경고/에러를 Job Summary에 반영, `reset_collected()`으로 초기화
 - 로컬 실행 시 어노테이션 미출력, 기존 print 로그만 유지 (`CI` 환경변수 감지)
 
 ---
@@ -268,10 +269,13 @@ topic_cluster_id                 — "domain/topic" (e.g., "nlp/language_models"
 ## LLM Usage
 
 - Default model: `gemini-2.5-flash` via LangChain (`langchain-google-genai`)
+- Embedding model: `gemini-embedding-001` (L6 dedup cosine similarity)
 - LLM instances cached per (model, temperature, max_tokens, thinking, json_mode) tuple
-- Temperature: 0.0 (classify/rank), 0.3 (briefing), 0.4 (principle)
-- Thinking mode disabled for translation/summarization (speed)
+- Temperature: 0.0 (translate/summarize, classify, rank, entity, AI filter, verify), 0.3 (briefing), 0.4 (principle generation)
+- Thinking mode disabled for ALL pipeline LLM calls (speed + JSON stability)
 - JSON mode via `response_mime_type: application/json`
+- Retry: news `_llm_invoke_with_retry` max 3 attempts (string prompt), principle `_llm_invoke_with_retry` max 3 attempts (message list)
+- 모든 파이프라인 노드는 `_safe_node` 데코레이터로 감싸져 있어 개별 노드 실패 시에도 파이프라인 중단 없음 + 노드별 소요 시간(`node_timings`) 자동 기록
 
 ---
 
@@ -281,7 +285,7 @@ topic_cluster_id                 — "domain/topic" (e.g., "nlp/language_models"
 - 4-tab mobile app — feature complete (news feed, principles, saved, profile)
 - All interactions: likes, comments, bookmarks, share, TTS, glossary highlight
 - LangGraph news pipeline (8 nodes, 22 sources, EN/KO parallel)
-- Principle pipeline (6 disciplines, 3-step insight + deep dive + verification)
+- Principle pipeline (12 disciplines, 4 super categories, 3-step insight + deep dive + verification)
 - Post-pipeline: briefing, glossary, timeline, related articles
 - Auth (Google), dark mode, bilingual (KO/EN), push notifications
 
@@ -311,9 +315,9 @@ topic_cluster_id                 — "domain/topic" (e.g., "nlp/language_models"
 
 ## Known Recurring Issues
 
-- **Gemini JSON 잘림**: max_tokens 부족 시 JSON 배열이 잘림. `_parse_llm_json`에 5단계 복구 로직 있음. 복구가 발동되면 ranker token_budget 확인 필요
+- **Gemini JSON 잘림**: max_tokens 부족 시 JSON 배열이 잘림. `_parse_llm_json`에 6단계 복구 로직 있음 (1차 직접파싱 → 2차 앞뒤 텍스트 제거 → 3차 단일 객체 추출 → 4차 잘린 배열 복구 → 4-1차 잘린 객체 depth 기반 복구 → 5차 depth 기반 추출). 복구가 발동되면 ranker token_budget 확인 필요
 - **Gemini markdown artifacts**: ```json 래퍼가 JSON 파싱을 깨뜨림 — strip before parse
-- **Gemini `***` markdown wrapping**: json_mode에서도 `***\n"key": value\n***` 형태로 응답하는 버그. `_safe_json_parse`에 2-phase 복구: Phase 1) 시작/끝 `***` strip + trailing comma 제거 + `{}` 감싸기 + **즉시 json.loads 시도**, Phase 2) 컨텍스트 기반 `***` → `{`/`}` 치환 폴백. Phase 1 후 즉시 파싱하지 않으면 Phase 2가 문자열 값 내부의 `***`(마크다운 볼드)를 `{`/`}`로 치환하여 JSON 파괴. 추가 방어: `_fix_unescaped_quotes()` — json.loads 에러 위치 기반 반복 quote escape 수정 (max 20 iterations), `phase1_applied` 플래그로 Phase 1 발동 시 Phase 2 완전 스킵 (문자열 값 오염 방지), `_regex_extract_verification()` — JSON 파싱 완전 실패 시 regex로 verifier 필드 (verified, confidence, principleAccuracy, insightClarity, deepDiveDepth, factCheck) + issues 배열 직접 추출하는 최종 폴백
+- **Gemini `***` markdown wrapping**: json_mode에서도 `***\n"key": value\n***` 형태로 응답하는 버그. `_safe_json_parse`에 4단계 복구: 1) 원본 파싱 시도 2) `_fix_invalid_escapes` (LaTeX `\sigma`, `\LaTeX` 등 비표준 이스케이프 → `\\` 변환) + 파싱 3) JSON 영역 추출 (`{`...`}`) 4) 잘린 객체 depth 기반 복구. `***` 전용 방어: Phase 1) 시작/끝 `***` strip + trailing comma 제거 + `{}` 감싸기 + **즉시 json.loads 시도**, Phase 2) 컨텍스트 기반 `***` → `{`/`}` 치환 폴백. `phase1_applied` 플래그로 Phase 1 발동 시 Phase 2 완전 스킵 (문자열 값 오염 방지). 추가 방어: `_fix_unescaped_quotes()` — json.loads 에러 위치 기반 반복 quote escape 수정 (max 20 iterations), `_regex_extract_verification()` — JSON 파싱 완전 실패 시 regex로 verifier 필드 (verified, confidence, principleAccuracy, mappingAccuracy, insightClarity, deepDiveDepth, factCheck) + issues 배열 직접 추출하는 최종 폴백
 - **Pipeline 0 articles**: API quota 초과 시 silent failure — 로그에서 확인
 - **분류 편향 경고**: industry_business 60% 초과는 catch-all 설계상 정상일 수 있음. 미분류 기사 개수 로그로 확인
 - **Tom's Hardware 범용 피드**: RSS가 AI 전용이 아니라 하드웨어 전반을 포함. NEEDS_AI_FILTER에 추가하여 비AI 기사 필터링 (tools.py line 222). 다른 Tier 1 소스와 달리 범용 피드이므로 필터 제거 시 비AI 기사 유입 주의
