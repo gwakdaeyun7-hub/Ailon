@@ -49,56 +49,41 @@ def _collect_users(db) -> list[dict]:
 
 
 def _pick_highlight(news_result: dict | None) -> dict | None:
-    """하이라이트에서 image_url 있는 기사 중 랜덤 1개 선택"""
+    """하이라이트에서 랜덤 1개 선택"""
     if not news_result:
         return None
     highlights = news_result.get("highlights", [])
     if not highlights:
         return None
-    with_image = [h for h in highlights if h.get("image_url")]
-    pool = with_image if with_image else highlights
-    return random.choice(pool)
+    return random.choice(highlights)
 
 
-def _build_content(highlight: dict | None, article_count: int, lang: str) -> tuple[str, str, str, str]:
-    """(title, body, image_url, article_id) 빌드"""
+def _build_content(highlight: dict | None, article_count: int, lang: str) -> tuple[str, str, str]:
+    """(title, body, article_id) 빌드"""
     if highlight:
         title_field = "display_title" if lang == "ko" else "display_title_en"
         title = highlight.get(title_field) or highlight.get("display_title") or highlight.get("title", "")
-
-        remaining = max(article_count - 1, 0)
-        if lang == "ko":
-            body = f"외 {remaining}건의 AI 뉴스가 도착했어요" if remaining > 0 else "오늘의 AI 뉴스가 도착했어요"
-        else:
-            body = f"and {remaining} more AI news today" if remaining > 0 else "Today's AI news is here"
-
-        image_url = highlight.get("image_url", "")
         article_id = _article_id(highlight.get("link", ""))
-        return title, body, image_url, article_id
+        return title, "", article_id
 
     # 하이라이트 없는 폴백
     title = "Ailon AI 트렌드" if lang == "ko" else "Ailon AI Trends"
-    if lang == "ko":
-        body = f"오늘의 AI 뉴스 {article_count}건이 도착했어요!" if article_count else "오늘의 AI 뉴스가 도착했어요!"
-    else:
-        body = f"{article_count} AI news articles today!" if article_count else "Today's AI news is here!"
-    return title, body, "", ""
+    return title, "", ""
 
 
 def _send_fcm_batch(users: list[dict], highlight: dict | None, article_count: int) -> list[str]:
-    """FCM으로 리치 알림 발송 (이미지 포함). 실패 uid 반환."""
+    """FCM으로 알림 발송. 실패 uid 반환."""
     failed_uids = []
     messages = []
     fcm_users = [u for u in users if u.get("fcm_token")]
 
     for user in fcm_users:
         lang = user.get("language", "ko")
-        title, body, image_url, article_id = _build_content(highlight, article_count, lang)
+        title, body, article_id = _build_content(highlight, article_count, lang)
 
         notification = messaging.Notification(
             title=title,
-            body=body,
-            image=image_url or None,
+            body=body or None,
         )
         android = messaging.AndroidConfig(
             notification=messaging.AndroidNotification(
@@ -146,7 +131,7 @@ def _send_expo_fallback(users: list[dict], highlight: dict | None, article_count
         messages = []
         for user in batch:
             lang = user.get("language", "ko")
-            title, body, _, article_id = _build_content(highlight, article_count, lang)
+            title, body, article_id = _build_content(highlight, article_count, lang)
             msg = {
                 "to": user["expo_token"],
                 "sound": "default",
@@ -209,8 +194,6 @@ def send_news_notification(article_count: int = 0, news_result: dict | None = No
     highlight = _pick_highlight(news_result)
     if highlight:
         print(f"  [알림] 하이라이트 선택: {highlight.get('display_title', '')[:60]}")
-        if highlight.get("image_url"):
-            print(f"  [알림] 썸네일: {highlight['image_url'][:80]}")
     else:
         print("  [알림] 하이라이트 없음 — 기본 알림 발송")
 

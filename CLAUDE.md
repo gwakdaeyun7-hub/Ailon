@@ -14,7 +14,7 @@ ailon/
 │   ├── agents/       # Pipeline core: config.py, news_team.py, principle_team.py, tools.py
 │   ├── generate_daily.py      # Main orchestrator (news + principles + features)
 │   ├── generate_features.py   # Post-pipeline: briefing, glossary, timeline, story, related articles
-│   └── notifications.py       # FCM 리치 알림 (하이라이트 제목+썸네일) + Expo 폴백
+│   └── notifications.py       # FCM 알림 (하이라이트 기사 제목) + Expo 폴백
 ├── mobile/           # React Native (Expo SDK 54) + NativeWind
 │   ├── app/          # Expo Router file-based routing (tabs: index, snaps, saved, profile)
 │   ├── components/   # UI: briefing/, feed/, shared/
@@ -265,13 +265,13 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 
 | 레이어 | 발송 방식 | 채널 | 내용 |
 |--------|----------|------|------|
-| 뉴스 알림 (`notifications.py`) | FCM (`firebase_admin.messaging`) + Expo 폴백 | `news` | 하이라이트 기사 제목 + 썸네일 이미지 + "외 N건" |
+| 뉴스 알림 (`notifications.py`) | FCM (`firebase_admin.messaging`) + Expo 폴백 | `news` | 하이라이트 기사 제목 (랜덤 1개) |
 | 댓글 답글 (`functions/index.js`) | Expo Push API | `social` | "{이름}님이 댓글에 답글을 남겼습니다" |
 | 좋아요 (`functions/index.js`) | Expo Push API | `social` | "N명이 회원님의 글을 좋아합니다" (5분 디바운싱) |
 
 - **이중언어**: `users/{uid}.language` 필드로 KO/EN 자동 전환 (LanguageContext 변경 시 + 로그인 시 Firestore 동기화)
-- **FCM 리치 알림**: `fcmToken` 저장된 사용자에게 `messaging.Notification(image=...)` — 썸네일 포함
-- **Expo 폴백**: `fcmToken` 없는 사용자 → Expo Push API (텍스트만)
+- **FCM 알림**: `fcmToken` 저장된 사용자에게 `messaging.Notification(title=기사제목)`
+- **Expo 폴백**: `fcmToken` 없는 사용자 → Expo Push API
 - **Android 채널**: `news` (HIGH, 뉴스 알림), `social` (DEFAULT, 댓글/좋아요)
 - **좋아요 디바운싱**: `users/{uid}.lastLikeNotifiedAt` 타임스탬프, 5분 내 중복 알림 억제
 - **Cloud Functions**: v2 (`firebase-functions/v2/firestore`) — `onDocumentCreated`, `onDocumentUpdated`
