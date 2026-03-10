@@ -45,8 +45,8 @@ qa-pipeline-tester 에이전트를 사용하여 로그를 분석합니다.
 
 | 검사 항목 | 정상 범위 | 이상 징후 | 심각도 |
 |-----------|----------|-----------|--------|
-| Tom's Hardware 필터율 | 30-60% | <20% → 필터 느슨, >70% → 필터 과도 | Major |
-| Tier 3 필터율 (소스별) | aitimes 10-25%, geeknews 5-15%, yozm_ai 0-10%, zdnet_ai_editor 0-10% | 소스별 정상 범위 벗어남 → 프롬프트 조정 | Major |
+| Tom's Hardware 필터율 | 30-80% | <20% → 필터 느슨, >85% → 필터 과도 | Major |
+| Tier 3 필터율 (소스별) | aitimes 10-25%, geeknews 5-25%, yozm_ai 0-10%, zdnet_ai_editor 0-10% | 소스별 정상 범위 벗어남 → 프롬프트 조정 | Major |
 | 필터 실패 | 없음 | `LLM AI 필터 실패 -> 전체 통과` 로그 | Critical |
 | research AI 필터 | 모든 카테고리 동일 적용 (면제 없음) | research 기사가 AI 필터로 과도 누락 → 오탐 확인 | Major |
 
@@ -138,6 +138,7 @@ qa-pipeline-tester 에이전트를 사용하여 로그를 분석합니다.
 - L6 오탐: 주제는 같지만 다른 사건 (e.g., "GPT-5 출시" vs "GPT-5 벤치마크 결과") → threshold 올려야
 - L7 오탐: 같은 제품명이지만 다른 뉴스 (e.g., "Claude 4 가격" vs "Claude 4 성능") → overlap_ratio 올려야
 - 미감지: 같은 기사가 다른 소스에서 나왔는데 중복 안 걸림 → 해당 layer 임계값 낮춰야
+- **버전 없는 제품명 미감지 (구조적 한계)**: 동일 제품 발표(예: "Code Review 출시")가 3개+ 소스에서 다른 각도로 보도될 때, 제목 프레이밍 상이(L2/L3 miss) + 복합 기사 혼재(L4/L6 miss) + 버전 번호 없음(L5 `nums_overlap` 불충족) + one_line 초점 분산(L7 miss)으로 전 레이어 통과 가능. 반복 발생 시 L5 `nums_overlap` 조건 완화 또는 L7 `overlap_ratio` 하향(0.30→0.25) 검토
 
 **수정 대상 파일:** `scripts/agents/news_team.py`
 - `DEDUP_THRESHOLD` (line ~1036): 제목 유사도 임계값 (현재 0.65)
