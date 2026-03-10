@@ -150,7 +150,7 @@ LangGraph 8-node pipeline with parallel EN/KO branches:
 
 | Node | Function | Key Config |
 |------|----------|------------|
-| collector | 22 RSS sources + scraping + LLM AI filter | trafilatura + Chrome UA, 6 RSS workers + 10 scrape workers + 4 AI filter workers |
+| collector | 22 RSS sources + scraping + LLM AI filter + date recovery | trafilatura + Chrome UA, 6 RSS workers + 10 scrape workers + 4 AI filter workers. RSS 날짜 미추출 시 `date_estimated=True` 마킹 → 스크래핑에서 meta 태그(article:published_time 등), `<time>`, JSON-LD, trafilatura bare_extraction으로 날짜 복원 |
 | en_process | EN→KO translation + summarization | batch=5, max_tokens=12288, 5 parallel workers, 3-phase retry (batch→individual→fallback) |
 | ko_process | KO summarization | batch=2, max_tokens=12288, 5 parallel workers, 3-phase retry |
 | categorizer | LLM 3-category classification + 7-layer dedup | batch=5, 3 parallel workers |
@@ -205,6 +205,7 @@ tags / tags_en                   — 키워드 2-4개
 glossary / glossary_en           — 전문 용어 2-3개 ({term, desc})
 entities                         — [{name, type}] (model/company/person/technology/concept/dataset/framework)
 topic_cluster_id                 — "domain/topic" (e.g., "nlp/language_models")
+date_estimated                   — RSS/스크래핑에서 날짜 추출 실패 시 true (수집 시점으로 대체, UI에서 ~접두사 표시)
 ```
 
 ### Principle Pipeline (scripts/agents/principle_team.py)
@@ -322,6 +323,7 @@ topic_cluster_id                 — "domain/topic" (e.g., "nlp/language_models"
 - **Pipeline 0 articles**: API quota 초과 시 silent failure — 로그에서 확인
 - **분류 편향 경고**: industry_business 60% 초과는 catch-all 설계상 정상일 수 있음. 미분류 기사 개수 로그로 확인
 - **Tom's Hardware 범용 피드**: RSS가 AI 전용이 아니라 하드웨어 전반을 포함. NEEDS_AI_FILTER에 추가하여 비AI 기사 필터링 (tools.py line 222). 다른 Tier 1 소스와 달리 범용 피드이므로 필터 제거 시 비AI 기사 유입 주의. 필터율 30-80%가 정상 범위 (RSS 콘텐츠 비중에 따라 변동)
+- **날짜 추정 기사 (`date_estimated`)**: RSS에 published 필드가 없는 기사는 `date_estimated=True`로 마킹되고 수집 시점이 대입됨. 스크래핑 단계에서 HTML meta/JSON-LD/time 태그로 복원 시도. 복원 실패 시 UI에 `~2026/03/10` 형식으로 표시. 소스별 날짜 누락률이 높으면 RSS 피드 구조 변경 확인 필요
 - **VentureBeat/paywall 사이트**: trafilatura에 Chrome UA 설정 필요 (tools.py `_get_traf_config`)
 - **key_points 2개**: 프롬프트에서 허용 범위 (팩트 부족 시). 0-1개는 문제
 - **index.tsx ~1500 lines**: 더 이상 inline 컴포넌트 추가 금지, components/feed/로 추출할 것
