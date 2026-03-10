@@ -90,6 +90,7 @@ def save_articles_collection(result: dict):
                 "topic_cluster_id": a.get("topic_cluster_id", ""),
                 "related_ids": a.get("related_ids", []),
                 "timeline_ids": a.get("timeline_ids", []),
+                "date_estimated": bool(a.get("date_estimated", False)),
                 "date": today,
                 "updated_at": firestore.SERVER_TIMESTAMP,
             }
@@ -262,7 +263,25 @@ Articles:
                 t = tag.strip().lower()
                 if len(t) >= 2:
                     tag_freq[t] = tag_freq.get(t, 0) + 1
-        hot_topics = [{"tag": t, "count": c} for t, c in sorted(tag_freq.items(), key=lambda x: -x[1])[:8]]
+
+        # 하위 태그 병합: "microsoft 365" → "microsoft" 등 포함 관계 태그 합산
+        tags_sorted = sorted(tag_freq.keys(), key=len)  # 짧은 태그 먼저
+        merged: dict[str, int] = {}
+        alias: dict[str, str] = {}  # 하위태그 → 부모태그 매핑
+        for t in tags_sorted:
+            parent = None
+            for m in merged:
+                # 부모 태그가 하위 태그의 접두어이고 공백 경계로 분리되는 경우만 병합
+                if t.startswith(m + " "):
+                    parent = m
+                    break
+            if parent:
+                merged[parent] += tag_freq[t]
+                alias[t] = parent
+            else:
+                merged[t] = tag_freq[t]
+
+        hot_topics = [{"tag": t, "count": c} for t, c in sorted(merged.items(), key=lambda x: -x[1])[:8]]
 
         db = get_firestore_client()
         today = datetime.now(_KST).strftime("%Y-%m-%d")
