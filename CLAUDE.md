@@ -101,7 +101,7 @@ cd ../functions && firebase deploy --only functions
 - Notification settings: newsAlerts, commentReplies, likes (per-type toggles)
 
 ### Shared Components
-- **CommentSheet**: Full-screen modal, threaded replies, author avatars
+- **CommentSheet**: Full-screen modal, threaded replies, author avatars, report (Flag icon) + delete (Trash icon) per comment, ReportReasonModal (4 reasons), auto-hide at 3+ reports
 - **ReactionBar**: Like (count) + Comment + Share buttons
 - **BookmarkButton**: Toggle bookmark with filled/stroke icon
 - **HighlightedText**: Auto glossary term detection + definition modal
@@ -126,6 +126,7 @@ cd ../functions && firebase deploy --only functions
 | useGlossaryDB | `glossary_terms` | Term search (max 200 terms) |
 | useNotifications | `users/{uid}` | Expo + FCM token registration, Android channels (news/social) |
 | useNotificationSettings | `users/{uid}/preferences` | Per-type notification toggles |
+| useReportComment | `reports`, `comments/{docId}/entries` | Comment reporting with dedup + reportCount increment |
 
 ### Contexts
 - **LanguageContext**: KO/EN toggle, `t(key)` translation function, AsyncStorage persist
@@ -252,6 +253,7 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 | `reactions/{itemId}` | 1 doc/item | likedBy[], dislikedBy[] |
 | `comments/{docId}/entries` | subcollection | Threaded comments |
 | `article_views/{docId}` | 1 doc/article | View counter |
+| `reports/{reportId}` | 1 doc/report | commentId, docId, reporterUid, authorUid, reason, commentText, status (pending/resolved/dismissed) |
 
 ### GitHub Actions (.github/workflows/collect-news.yml)
 - Schedule: 6AM + 6PM KST daily
@@ -317,19 +319,30 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 - Any new pipeline nodes
 
 ### Build & Release
-- Preview APK: `cd mobile && eas build --platform android --profile preview`
-- Production AAB: `cd mobile && eas build --platform android --profile production`
+- **IMPORTANT**: OneDrive 폴더에서 직접 `eas build` 하면 tar Permission denied 에러 발생. 반드시 OneDrive 밖으로 복사 후 빌드:
+  ```bash
+  xcopy "C:\Users\82105\OneDrive\바탕 화면\머릿속\Think AI\Ailon\ailon" "C:\dev\ailon" /E /I /H
+  cd C:\dev\ailon\mobile
+  eas build --platform android --profile production
+  ```
+- Preview APK: `eas build --platform android --profile preview`
+- Production AAB: `eas build --platform android --profile production`
 - Submit: `eas submit --platform android`
 - Bundle ID: `com.ailon.app`
 - EAS Project ID: `bffbb3e7-cf38-4b39-ada3-e8fb04b51349`
+- `.easignore`: node_modules, .expo, .jks, .env, .claude 제외
 
 ### Pre-Launch Checklist
-- [ ] Firestore security rules reviewed (backend/firestore.rules)
-- [ ] Environment variables set in EAS secrets
+- [x] Firestore security rules reviewed + deployed (reports 컬렉션, article_views 비로그인 쓰기 허용)
+- [x] Environment variables set in EAS secrets (8개)
 - [ ] Pipeline running stable on GitHub Actions (check last 3 days)
-- [ ] Google Sign-In configured for production SHA-256
-- [ ] Splash screen / app icon assets finalized
-- [ ] Play Store listing (screenshots, description, privacy policy)
+- [x] Google Sign-In configured for production SHA-256 (Firebase Console에 등록 완료)
+- [x] Splash screen / app icon assets finalized (character.png 픽셀아트)
+- [x] Privacy Policy + Terms of Service (docs/, GitHub Pages: gwakdaeyun7-hub.github.io/Ailon/)
+- [x] Production AAB 빌드 성공 (C:\dev\ailon에서 빌드)
+- [x] 댓글 신고/삭제 기능 (useReportComment, 3건 자동 숨김)
+- [x] app.json: versionCode 1, android permissions, expo-dev-client 제거
+- [ ] Play Store listing (screenshots, description, category, content rating, data safety)
 
 ---
 
@@ -347,6 +360,7 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 - **index.tsx ~1500 lines**: 더 이상 inline 컴포넌트 추가 금지, components/feed/로 추출할 것
 - **Pipeline QA logs**: print + GitHub Actions 어노테이션 (`::warning::`, `::error::`, `::group::`) + Job Summary. Firestore에는 저장 안 됨
 - **Pipeline QA 스킬**: `/pipeline-qa`에 로그를 붙여넣으면 AI 필터/분류/중복감지/랭킹/브리핑/용어·태그/학문스낵 7개 영역 심층 분석 + 코드 자동 수정. 랭킹 검사는 **전체 기사**를 대상으로 카테고리별 순위 테이블 출력 + 미스랭킹 식별. 상세 기준은 `.claude/skills/pipeline-qa/SKILL.md` 참조
+- **EAS Build OneDrive 문제**: OneDrive 동기화 폴더에서 `eas build` 실행 시 빌드 서버 tar 해제 Permission denied. 반드시 `C:\dev\ailon` 등 로컬 폴더로 복사 후 빌드
 
 ## Behavioral Guidelines
 
