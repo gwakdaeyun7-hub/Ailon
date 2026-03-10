@@ -913,9 +913,10 @@ def collector_node(state: NewsGraphState) -> dict:
         for a in articles:
             title = (a.get("title") or "제목없음")[:60]
             pub = a.get("published", "")
+            est = "~" if a.get("date_estimated") else ""
             if pub:
                 dt = _parse_published(pub)
-                date_str = dt.strftime("%Y-%m-%d") if dt else "날짜없음"
+                date_str = f"{est}{dt.strftime('%Y-%m-%d')}" if dt else "날짜없음"
             else:
                 date_str = "날짜없음"
             print(f"    - \"{title}\" ({date_str})")
@@ -1219,14 +1220,20 @@ def _deduplicate_candidates(candidates: list[dict], mark_only: bool = False, thr
                 matched_kept = k
                 match_layer = "L3_disp_title"
                 break
-            # L4: one_line(한줄 요약) 유사도
+            # L4: one_line(한줄 요약) 유사도 + 제목 고유명사 가드
             if c_oneline:
                 k_oneline = _normalize_title(k.get("one_line", ""))
                 if k_oneline and SequenceMatcher(None, c_oneline, k_oneline).ratio() >= 0.65:
-                    is_dup = True
-                    matched_kept = k
-                    match_layer = "L4_oneline"
-                    break
+                    # 가드: 양쪽 제목에 고유명사가 있으면 1개 이상 공유 필수
+                    # (서로 다른 주체의 유사 구조 문장 오탐 방지: "A, 소송 제기" vs "B, 소송 제기")
+                    k_key_tokens_l4 = _extract_key_tokens(k.get("title", "") + " " + k.get("display_title", ""))
+                    c_names_l4 = {t for t in c_key_tokens if not t.isdigit()}
+                    k_names_l4 = {t for t in k_key_tokens_l4 if not t.isdigit()}
+                    if not c_names_l4 or not k_names_l4 or (c_names_l4 & k_names_l4):
+                        is_dup = True
+                        matched_kept = k
+                        match_layer = "L4_oneline"
+                        break
             # L5: 핵심 토큰 겹침 (고유명사 3개 이상 + 숫자 1개 이상 공유)
             if len(c_key_tokens) >= 3:
                 k_key_tokens = _extract_key_tokens(k.get("title", "") + " " + k.get("display_title", ""))
@@ -1431,7 +1438,7 @@ def _rank_category(articles: list[dict], category: str) -> list[tuple[int, int, 
     )
 
     try:
-        token_budget = max(6144, count * 100)
+        token_budget = max(6144, count * 120)
         llm = get_llm(temperature=0.0, max_tokens=token_budget, thinking=False, json_mode=True)
         content = _llm_invoke_with_retry(llm, prompt, max_retries=2)
         ranking = _parse_llm_json(content)
@@ -2194,9 +2201,10 @@ def assembler_node(state: NewsGraphState) -> dict:
         for rank, a in enumerate(articles):
             title = (a.get("display_title") or a.get("title", ""))[:60]
             pub = a.get("published", "")
+            est = "~" if a.get("date_estimated") else ""
             if pub:
                 dt = _parse_published(pub)
-                date_str = dt.strftime("%Y-%m-%d") if dt else "날짜없음"
+                date_str = f"{est}{dt.strftime('%Y-%m-%d')}" if dt else "날짜없음"
             else:
                 date_str = "날짜없음"
             print(f"    {rank+1}. \"{title}\" ({date_str})")

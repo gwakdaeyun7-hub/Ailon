@@ -328,7 +328,6 @@ qa-pipeline-tester 에이전트를 사용하여 로그를 분석합니다.
 | **핵심 직관** (coreIntuition) | "이 알고리즘은 N차원 파라미터 공간에서 손실 함수의 기울기 벡터를 따라 극소점으로 수렴한다" — feature map/gradient/차원/확률분포 등 기술 용어 포함, 수학적/알고리즘적 직관 | "높은 산에서 공을 굴리면 골짜기를 찾는다" — 기술 용어 없이 일상 비유 수준 (foundation.analogy와 차별화 안 됨) → deepDiveDepth ≤ 0.5 | Major |
 | **수식** (formula) | discipline이 수학/물리/정보이론/통계/공학이면 LaTeX 수식 포함 | 수학적 원리인데 formula가 빈 문자열 → 조건부 필수 위반 | Major |
 | **AI-specific 한계** (limits) | "distribution shift 환경에서 학습된 통계적 가정이 무너지며, adversarial attack에 취약하다" — AI 적용 시 구체적 한계 | "아직 갈 길이 멀다" / "더 많은 연구가 필요하다" — 추상적 회피, AI-specific 아님 | Major |
-| **학술 정보 밀도** | originalProblem+bridge에 인물명 1명+, 년도 1개+ 포함 | 인물/년도 전혀 없이 일반적 서술만 → deepDiveDepth ≤ 0.6 | Major |
 
 **formula 조건부 검사 기준:**
 - discipline_key의 접두사가 `math`, `phys`, `info`, `stat`, `ee`, `opt` 중 하나이면 formula 필수
@@ -368,7 +367,6 @@ qa-pipeline-tester 에이전트를 사용하여 로그를 분석합니다.
 9. [ ] coreIntuition에 기술 용어(feature map/gradient/차원/확률분포/손실함수/가중치 등)가 포함되어 있는가? foundation.analogy와 동일한 일상 비유 수준이면 불합격 (deepDiveDepth ≤ 0.5)
 10. [ ] 수학/물리/정보이론/통계 원리인 경우 formula가 존재하는가?
 11. [ ] limits가 AI-specific 한계를 다루는가? (distribution shift, adversarial robustness, non-convexity 등)
-12. [ ] originalProblem+bridge에 인물명 1명+, 년도 1개+ 포함되어 학술 정보 밀도가 충분한가? (미달 시 deepDiveDepth ≤ 0.6)
 
 **수정 대상 파일:** `scripts/agents/principle_team.py`
 - `_fix_unescaped_quotes()` (line ~74): json.loads 에러 위치(colno)를 사용하여 이스케이프 안 된 따옴표를 반복 수정 (최대 20회)

@@ -576,12 +576,6 @@ def content_generator(state: PrincipleGraphState) -> dict:
     print(f"      formula:         {'(있음)' if deep_dive.get('formula') else '(없음)'}")
     print(f"      limits:          {deep_dive.get('limits', '?')[:70]}...")
 
-    # 학술 정보 밀도 체크
-    year_pattern = re.compile(r'\b(1[89]\d{2}|20[0-2]\d)\b')
-    all_text = json.dumps(content, ensure_ascii=False)
-    year_count = len(set(year_pattern.findall(all_text)))
-    print(f"    [학술 밀도] 년도 {year_count}개 언급")
-
     # formula 조건부 경고 (수학/물리/정보이론 계열)
     _math_prefixes = {"math", "phys", "info", "stat", "ee", "opt"}
     discipline_prefix = seed.get("discipline_key", seed.get("discipline", "")).split("_")[0]

@@ -121,6 +121,7 @@ def save_news_to_firestore(result: dict):
                 "related_ids": a.get("related_ids", []),
                 "timeline_ids": a.get("timeline_ids", []),
                 "timeline_count": len(a.get("timeline_ids", [])),
+                "date_estimated": bool(a.get("date_estimated", False)),
                 "ai_filtered": bool(a.get("_ai_filtered", False)),
                 "dedup_of": a.get("_dedup_of", ""),
             }
@@ -154,19 +155,9 @@ def save_news_to_firestore(result: dict):
         old = existing_doc.to_dict()
         print("  [병합] 기존 문서 발견 — 오전+오후 병합 수행")
 
-        # highlights: 병합 → 카테고리별 최고 점수 1개씩
-        merged_hl = _merge_articles(old.get("highlights", []), highlights)
-        hl_by_cat: dict[str, dict] = {}
-        for a in merged_hl:
-            cat = a.get("category", "")
-            prev = hl_by_cat.get(cat)
-            if not prev or a.get("score", 0) > prev.get("score", 0):
-                hl_by_cat[cat] = a
-        highlights = sorted(
-            hl_by_cat.values(),
-            key=lambda a: (a.get("score", 0), a.get("published", "")),
-            reverse=True,
-        )
+        # highlights: 최신 실행 결과 사용 (병합 안 함 — GitHub Actions 로그와 모바일 일치)
+        # 기존 하이라이트 중 신규에 없는 기사 → 카테고리로 복원 예정
+        new_hl_links = {a.get("link", "") for a in highlights if a.get("link")}
 
         # categorized_articles: 카테고리별 병합 (크로스-카테고리 중복 제거) → score 내림차순
         old_cat = old.get("categorized_articles", {})
@@ -191,10 +182,27 @@ def save_news_to_firestore(result: dict):
             for cat in all_cats
         }
 
-        # 하이라이트 기사를 카테고리에서 제거 (오전/오후 병합 시 중복 방지)
+        # 기존 하이라이트 중 신규 하이라이트/카테고리에 없는 기사 → 카테고리로 복원
+        existing_cat_links = set()
+        for arts in categorized_articles.values():
+            for a in arts:
+                if a.get("link"):
+                    existing_cat_links.add(a["link"])
+        for a in old.get("highlights", []):
+            link = a.get("link", "")
+            if link and link not in new_hl_links and link not in existing_cat_links:
+                cat = a.get("category", "industry_business")
+                if cat not in categorized_articles:
+                    categorized_articles[cat] = []
+                categorized_articles[cat].append(a)
+
+        # 하이라이트 제거 + 카테고리별 Top 25 제한 (병합 후 초과 방지 — 로그와 모바일 일치)
         hl_links = {a.get("link", "") for a in highlights if a.get("link")}
         categorized_articles = {
-            cat: [a for a in arts if a.get("link", "") not in hl_links]
+            cat: sorted(
+                [a for a in arts if a.get("link", "") not in hl_links],
+                key=lambda a: a.get("score", 0), reverse=True,
+            )[:25]
             for cat, arts in categorized_articles.items()
         }
 
