@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ailon - AI News Curation</title>
+  <style>
+    :root {
+      --teal: #0D7377;
+      --teal-light: #14B8A6;
+      --teal-glow: rgba(20, 184, 166, 0.15);
+      --bg: #FAFAF8;
+      --bg-card: #FFFFFF;
+      --text: #1A1A1A;
+      --text-secondary: #555555;
+      --border: #E5E5E5;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0F172A;
+        --bg-card: #1E293B;
+        --text: #F1F5F9;
+        --text-secondary: #94A3B8;
+        --border: #334155;
+        --teal-glow: rgba(20, 184, 166, 0.1);
+      }
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans KR', sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      max-width: 480px;
+      width: 100%;
+      padding: 40px 24px;
+      text-align: center;
+    }
+
+    .logo-area {
+      margin-bottom: 32px;
+    }
+
+    .logo-circle {
+      width: 80px;
+      height: 80px;
+      border-radius: 20px;
+      background: linear-gradient(135deg, var(--teal), var(--teal-light));
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      box-shadow: 0 8px 32px var(--teal-glow);
+    }
+
+    .logo-circle span {
+      font-size: 36px;
+      font-weight: 800;
+      color: #FFFFFF;
+      letter-spacing: -1px;
+    }
+
+    h1 {
+      font-size: 32px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, var(--teal), var(--teal-light));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .tagline {
+      font-size: 16px;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      line-height: 1.6;
+    }
+
+    .tagline-en {
+      font-size: 14px;
+      color: var(--text-secondary);
+      opacity: 0.7;
+      margin-bottom: 40px;
+    }
+
+    .links {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .link-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 24px;
+      text-decoration: none;
+      color: var(--text);
+      transition: all 0.2s ease;
+    }
+
+    .link-card:hover {
+      border-color: var(--teal-light);
+      box-shadow: 0 4px 16px var(--teal-glow);
+      transform: translateY(-1px);
+    }
+
+    .link-card .label {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .link-card .desc {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    .link-card .arrow {
+      font-size: 18px;
+      color: var(--teal-light);
+      flex-shrink: 0;
+      margin-left: 16px;
+    }
+
+    .link-info {
+      text-align: left;
+    }
+
+    .footer {
+      margin-top: 48px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .footer a {
+      color: var(--teal-light);
+      text-decoration: none;
+    }
+
+    .footer a:hover {
+      text-decoration: underline;
+    }
+
+    .badge {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 8px 16px;
+      border-radius: 8px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .badge a {
+      color: var(--teal);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    @media (max-width: 480px) {
+      .container {
+        padding: 32px 20px;
+      }
+      h1 {
+        font-size: 28px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo-area">
+      <div class="logo-circle">
+        <span>A</span>
+      </div>
+      <h1>Ailon</h1>
+      <p class="tagline">AI 뉴스 큐레이션 &amp; 학제간 학습</p>
+      <p class="tagline-en">AI News Curation &amp; Interdisciplinary Learning</p>
+    </div>
+
+    <div class="links">
+      <a href="./privacy-policy.html" class="link-card">
+        <div class="link-info">
+          <div class="label">개인정보처리방침</div>
+          <div class="desc">Privacy Policy</div>
+        </div>
+        <div class="arrow">&rarr;</div>
+      </a>
+
+      <a href="./terms-of-service.html" class="link-card">
+        <div class="link-info">
+          <div class="label">이용약관</div>
+          <div class="desc">Terms of Service</div>
+        </div>
+        <div class="arrow">&rarr;</div>
+      </a>
+    </div>
+
+    <div class="footer">
+      <p>문의: <a href="mailto:gwakdaeyun7@naver.com">gwakdaeyun7@naver.com</a></p>
+      <div class="badge">
+        <a href="https://play.google.com/store/apps/details?id=com.ailon.app">Google Play</a>에서 다운로드
+      </div>
+    </div>
+  </div>
+</body>
+</html>

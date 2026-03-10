@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "845021214931-6jca33rb7rs56rhrf0hqofl6ik9232ef.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.ailon.app",
+            "certificate_hash": "5903c61fc2b48f3d986df878bda5b2b5767bc1ba"
+          }
+        },
+        {
           "client_id": "845021214931-3dqd2ns05imvgq8l1gf5ouube1k0hif7.apps.googleusercontent.com",
           "client_type": 3
         }

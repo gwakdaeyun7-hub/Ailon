@@ -88,7 +88,7 @@ service cloud.firestore {
       }
     }
 
-    // Article views (조회수) - 누구나 읽기/쓰기
+    // Article views (조회수) - 누구나 읽기/쓰기 (비로그인도 조회수 기록 가능)
     match /article_views/{articleId} {
       allow read: if true;
       allow write: if true;
