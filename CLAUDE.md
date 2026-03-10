@@ -231,7 +231,7 @@ topic_cluster_id                 — "domain/topic" (e.g., "nlp/language_models"
 |---------|--------|-------------|
 | save_articles | `articles/{id}` | Individual article docs (SHA256 URL hash) |
 | find_related | `related_ids` | Top 3 related by entity+cluster+category matching |
-| daily_briefing | `daily_briefings/{date}` | 2-3 min AI briefing (KO+EN), story_count |
+| daily_briefing | `daily_briefings/{date}` | 2-3 min AI briefing (KO+EN), story_count, hot_topics with subtag merging (prefix+space boundary, e.g. "microsoft 365" → "microsoft") |
 | glossary | `glossary_terms/{term}` | Accumulated terms across articles |
 | timeline | `timeline_ids` | Links to similar articles from past 90 days |
 | patch_daily_news | `daily_news/{date}` | Reflects related_ids/timeline_ids back |
