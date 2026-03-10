@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   collection,
   addDoc,
+  doc,
+  deleteDoc,
   onSnapshot,
   query,
   orderBy,
@@ -31,12 +33,15 @@ export interface Comment {
   authorUid: string;
   createdAt: number;
   parentId?: string;
+  reportCount: number;
 }
 
 interface UseCommentsReturn {
   comments: Comment[];
   loading: boolean;
   addComment: (text: string, parentId?: string) => Promise<void>;
+  deleteComment: (commentId: string) => Promise<void>;
+  docId: string;
 }
 
 export function useComments(itemType: ItemType, itemId: string): UseCommentsReturn {
@@ -61,6 +66,7 @@ export function useComments(itemType: ItemType, itemId: string): UseCommentsRetu
             authorUid: data.authorUid ?? '',
             createdAt: data.createdAt?.toMillis?.() ?? Date.now(),
             parentId: data.parentId ?? undefined,
+            reportCount: data.reportCount ?? 0,
           };
         })
       );
@@ -88,5 +94,14 @@ export function useComments(itemType: ItemType, itemId: string): UseCommentsRetu
     [user, docId]
   );
 
-  return { comments, loading, addComment };
+  const deleteComment = useCallback(
+    async (commentId: string) => {
+      if (!user) return;
+      const ref = doc(db, 'comments', docId, 'entries', commentId);
+      await deleteDoc(ref);
+    },
+    [user, docId],
+  );
+
+  return { comments, loading, addComment, deleteComment, docId };
 }
