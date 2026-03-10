@@ -154,7 +154,7 @@ LangGraph 8-node pipeline with parallel EN/KO branches:
 | en_process | EN→KO translation + summarization | batch=5, max_tokens=12288, 5 parallel workers, 3-phase retry (batch→individual→fallback) |
 | ko_process | KO summarization | batch=2, max_tokens=12288, 5 parallel workers, 3-phase retry |
 | categorizer | LLM 3-category classification + 7-layer dedup | batch=5, 3 parallel workers |
-| ranker | Per-category LLM ranking → score (1st=100, last=30) | token_budget=max(6144, count*100), 3 parallel workers (per-category) |
+| ranker | Per-category LLM ranking → score (1st=100, last=30) | token_budget=max(6144, count*120), 3 parallel workers (per-category) |
 | entity_extractor | Entity extraction + topic clustering | batch=5, up to 4 parallel workers, 3-tier retry (batch→sub-batch→individual) |
 | selector | Highlight Top 3 + Category Top 25 | today articles only for highlights |
 | assembler | Final structure + timing report | Korean sources in separate sections |
@@ -174,7 +174,7 @@ AI타임스, GeekNews, ZDNet AI 에디터 (HTML scrape), 요즘IT AI
 
 | Constant | Value | Why |
 |----------|-------|-----|
-| Ranker token_budget | `max(6144, count*100)` | 이전 `max(4096, count*100)`에서 41~44건 카테고리 JSON 잘림 발생 |
+| Ranker token_budget | `max(6144, count*120)` | 이전 `count*100`에서 110건 카테고리 JSON 잘림 발생 → `count*120`으로 상향 |
 | Ranker ctx thresholds | >40: title only, 25-40: 150자, ≤25: 500자 | 대규모 카테고리 랭킹 정확도 |
 | HIGHLIGHT_COUNT | 3 | 카테고리당 1개씩 |
 | CATEGORY_TOP_N | 25 | 카테고리별 최대 기사 수 |
@@ -182,7 +182,7 @@ AI타임스, GeekNews, ZDNet AI 에디터 (HTML scrape), 요즘IT AI
 | CLASSIFY_BATCH_SIZE | 5 | LLM 안정성 |
 | EN batch size | 5 | 번역+요약 |
 | KO batch size | 2 | 한국어 본문이 길어서 |
-| DEDUP layers | 7 (L1 URL→L2 orig_title≥0.65→L3 disp_title≥0.65→L4 one_line≥0.65→L5 key_tokens(고유명사3+숫자1 겹침)→L6 embedding→L7 title_entity) | |
+| DEDUP layers | 7 (L1 URL→L2 orig_title≥0.65→L3 disp_title≥0.65→L4 one_line≥0.65 + 고유명사 가드→L5 key_tokens(고유명사3+숫자1 겹침)→L6 embedding→L7 title_entity) | L4 가드: 양쪽 기사에 식별 가능한 고유명사(영어)가 있으면 최소 1개 공유 필요 — 문장 구조만 유사한 오탐 방지 (e.g., "Anthropic lawsuit" vs "Nintendo lawsuit") |
 | Embedding threshold | 0.92 cosine | L6 |
 | L7 title_entity | 제품+버전 일치 + one_line 토큰 Jaccard ≥ 0.30 | GPT-5.4 등 동일 이벤트 다소스 중복 감지 |
 | AI 필터 | Tier 1+2 중 Tom's Hardware만 AI 필터 적용 (NEEDS_AI_FILTER={"toms_hardware"}, 범용 RSS 피드), 나머지 17개는 전체 통과, Tier 3: "의심 시 제거" (AI+개발/IT 기술 포함). 모든 카테고리에 AI 필터 동일 적용 (research 면제 없음). KO 필터 INCLUDE 목록에 "AI 기업과 정부/국방부 관계 기사" 포함 | Tom's Hardware는 범용 하드웨어 피드로 비AI 기사 혼재, 나머지 Tier 1+2는 AI 전문 피드로 필터 불필요, Tier 3는 비AI 9%+완전 무관 기사 혼재 |
@@ -256,6 +256,7 @@ topic_cluster_id                 — "domain/topic" (e.g., "nlp/language_models"
 - Schedule: 6AM + 6PM KST daily
 - Manual trigger: target (all/news/principle), force flag
 - Python 3.11, timeout: 40 minutes
+- 6AM+6PM merge: `save_news_to_firestore()`에서 categorized_articles는 기존 doc과 병합 후 카테고리당 25개 cap 적용. highlights는 병합 없이 최신 실행 결과로 교체
 
 ### CI Logging (`scripts/agents/ci_utils.py`)
 - `ci_warning(msg)` / `ci_error(msg)` — `::warning::` / `::error::` 어노테이션 (CI에서만) + 항상 print + 내부 리스트에 수집
