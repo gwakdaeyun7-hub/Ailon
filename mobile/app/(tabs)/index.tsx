@@ -116,27 +116,33 @@ const DEFAULT_SOURCE_ORDER = ['aitimes', 'geeknews', 'zdnet_ai_editor', 'yozm_ai
 // ─── 헬퍼 ───────────────────────────────────────────────────────────────
 const EN_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-function formatDate(str?: string, lang?: string): string {
+function formatDate(str?: string, lang?: string, dateEstimated?: boolean): string {
   if (!str) return '';
   try {
+    let formatted = '';
     // ZDNet 등 "2026.02.19 PM 08:20" 형식 처리
     const ymdMatch = str.match(/^(\d{4})\.(\d{2})\.(\d{2})/);
     if (ymdMatch) {
       if (lang === 'en') {
         const mi = parseInt(ymdMatch[2], 10) - 1;
-        return `${EN_MONTHS[mi]} ${parseInt(ymdMatch[3], 10)}, ${ymdMatch[1]}`;
+        formatted = `${EN_MONTHS[mi]} ${parseInt(ymdMatch[3], 10)}, ${ymdMatch[1]}`;
+      } else {
+        formatted = `${ymdMatch[1]}/${ymdMatch[2]}/${ymdMatch[3]}`;
       }
-      return `${ymdMatch[1]}/${ymdMatch[2]}/${ymdMatch[3]}`;
+    } else {
+      const d = new Date(str);
+      if (isNaN(d.getTime())) return '';
+      const y = d.getFullYear();
+      const m = d.getMonth();
+      const day = d.getDate();
+      if (lang === 'en') {
+        formatted = `${EN_MONTHS[m]} ${day}, ${y}`;
+      } else {
+        formatted = `${y}/${String(m + 1).padStart(2, '0')}/${String(day).padStart(2, '0')}`;
+      }
     }
-    const d = new Date(str);
-    if (isNaN(d.getTime())) return '';
-    const y = d.getFullYear();
-    const m = d.getMonth();
-    const day = d.getDate();
-    if (lang === 'en') {
-      return `${EN_MONTHS[m]} ${day}, ${y}`;
-    }
-    return `${y}/${String(m + 1).padStart(2, '0')}/${String(day).padStart(2, '0')}`;
+    // 날짜 추정값이면 ~ 접두사로 표시 (예: "~2026/03/10")
+    return dateEstimated ? `~${formatted}` : formatted;
   } catch { return ''; }
 }
 
@@ -191,16 +197,16 @@ const TitleText = React.memo(function TitleText({ children, style, numberOfLines
 const ArticleStats = React.memo(function ArticleStats({ likes, views, comments }: { likes?: number; views?: number; comments?: number }) {
   const { colors } = useTheme();
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
         <ThumbsUp size={12} color={colors.textSecondary} />
         <Text style={{ fontSize: 11, color: colors.textSecondary, fontWeight: '600' }}>{likes ?? 0}</Text>
       </View>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
         <MessageCircle size={12} color={colors.textSecondary} />
         <Text style={{ fontSize: 11, color: colors.textSecondary, fontWeight: '600' }}>{comments ?? 0}</Text>
       </View>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
         <Eye size={12} color={colors.textSecondary} />
         <Text style={{ fontSize: 11, color: colors.textSecondary, fontWeight: '600' }}>{views ?? 0}</Text>
       </View>
@@ -216,10 +222,10 @@ const SourceBadge = React.memo(function SourceBadge({ sourceKey, name }: { sourc
   return (
     <View style={{
       backgroundColor: color + '18',
-      paddingHorizontal: 8, paddingVertical: 3,
-      borderRadius: 6, alignSelf: 'flex-start',
+      paddingHorizontal: 8, paddingVertical: 4,
+      borderRadius: 8, alignSelf: 'flex-start',
     }}>
-      <Text style={{ fontSize: 10, fontWeight: '700', color }}>{name || sourceKey}</Text>
+      <Text style={{ fontSize: 11, fontWeight: '700', color }}>{name || sourceKey}</Text>
     </View>
   );
 });
@@ -268,7 +274,7 @@ const HighlightScrollCard = React.memo(function HighlightScrollCard({
         flexGrow: 0,
         flexShrink: 0,
         backgroundColor: colors.card,
-        borderRadius: 14,
+        borderRadius: 16,
         overflow: 'hidden',
         borderWidth: 1,
         borderColor: colors.border,
@@ -302,7 +308,7 @@ const HighlightScrollCard = React.memo(function HighlightScrollCard({
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Text style={{ fontSize: 11, color: colors.textSecondary }}>{formatDate(article.published, lang)}</Text>
+            <Text style={{ fontSize: 11, color: colors.textSecondary }}>{formatDate(article.published, lang, article.date_estimated)}</Text>
           </View>
           <ArticleStats likes={likes} views={views} comments={comments} />
         </View>
@@ -453,12 +459,12 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
           </View>
 
           {/* X 닫기 버튼 */}
-          <View style={{ flexDirection: 'row', justifyContent: 'flex-end', paddingTop: 8, paddingBottom: 12, paddingHorizontal: 28 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'flex-end', paddingTop: 8, paddingBottom: 12, paddingHorizontal: 20 }}>
             <Pressable
               onPress={onClose}
               accessibilityLabel={t('modal.close')}
               accessibilityRole="button"
-              style={{ width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' }}
+              style={{ width: 44, height: 44, borderRadius: 9999, alignItems: 'center', justifyContent: 'center' }}
             >
               <X size={16} color={colors.textSecondary} />
             </Pressable>
@@ -484,7 +490,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
 
             {/* M1: 소스 뱃지 + 날짜 + 조회수 + 읽기 시간 + 북마크 — D4 compact */}
             <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', paddingHorizontal: 20, marginTop: article.image_url ? 16 : 0, gap: 6 }}>
-              <Text style={{ fontSize: 12, color: colors.textSecondary }}>{formatDate(article.published, lang)}</Text>
+              <Text style={{ fontSize: 12, color: colors.textSecondary }}>{formatDate(article.published, lang, article.date_estimated)}</Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
                 <Ionicons name="time-outline" size={13} color={colors.textSecondary} />
                 <Text style={{ fontSize: 12, color: colors.textSecondary }}>
@@ -530,8 +536,8 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
               <View style={{ paddingHorizontal: 20 }}>
                 {/* 1. One Line — D4: no card bg, compact label */}
                 <View style={{ marginTop: 16 }}>
-                  <Text style={{ fontSize: 10, fontWeight: '600', letterSpacing: 1.5, color: colors.textDim, marginBottom: 6 }}>{t('modal.one_line').toUpperCase()}</Text>
-                  <Text style={{ fontSize: 16, fontWeight: '600', lineHeight: 25, color: colors.summaryIndigo }}>
+                  <Text style={{ fontSize: 11, fontWeight: '600', letterSpacing: 1.5, color: colors.textDim, marginBottom: 6 }}>{t('modal.one_line').toUpperCase()}</Text>
+                  <Text style={{ fontSize: 16, fontWeight: '600', lineHeight: 24, color: colors.summaryIndigo }}>
                     {oneLine}
                   </Text>
                 </View>
@@ -539,7 +545,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
                 {/* 2. Background — D4: compact */}
                 {background ? (
                   <View style={{ marginTop: 16 }}>
-                    <Text style={{ fontSize: 10, fontWeight: '600', letterSpacing: 1.5, color: colors.textDim, marginBottom: 6 }}>
+                    <Text style={{ fontSize: 11, fontWeight: '600', letterSpacing: 1.5, color: colors.textDim, marginBottom: 6 }}>
                       {t('modal.background').toUpperCase()}
                     </Text>
                     <Text style={{ fontSize: 14, color: colors.textSecondary, lineHeight: 23 }}>
@@ -551,7 +557,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
                 {/* 3. Key Points — D4: small square bullets */}
                 {keyPoints.length > 0 && (
                   <View style={{ marginTop: 16 }}>
-                    <Text style={{ fontSize: 10, fontWeight: '600', letterSpacing: 1.5, color: colors.textDim, marginBottom: 6 }}>{t('modal.key_points').toUpperCase()}</Text>
+                    <Text style={{ fontSize: 11, fontWeight: '600', letterSpacing: 1.5, color: colors.textDim, marginBottom: 6 }}>{t('modal.key_points').toUpperCase()}</Text>
                     {keyPoints.map((point, idx) => (
                       <View key={idx} style={{ flexDirection: 'row', marginBottom: 10, alignItems: 'flex-start', gap: 10 }}>
                         <View style={{
@@ -574,7 +580,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
                 {/* 4. Why Important — D4: compact */}
                 {whyImportant ? (
                   <View style={{ marginTop: 16 }}>
-                    <Text style={{ fontSize: 10, fontWeight: '600', letterSpacing: 1.5, color: colors.textDim, marginBottom: 6 }}>{t('modal.why_important').toUpperCase()}</Text>
+                    <Text style={{ fontSize: 11, fontWeight: '600', letterSpacing: 1.5, color: colors.textDim, marginBottom: 6 }}>{t('modal.why_important').toUpperCase()}</Text>
                     <HighlightedText
                       text={whyImportant}
                       glossaryTerms={glossaryDBTerms}
@@ -588,7 +594,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
                 {/* Tags — D4: inline comma-separated */}
                 {tags && tags.length > 0 ? (
                   <View style={{ marginTop: 16 }}>
-                    <Text style={{ fontSize: 10, fontWeight: '600', letterSpacing: 1.5, color: colors.textDim, marginBottom: 6 }}>
+                    <Text style={{ fontSize: 11, fontWeight: '600', letterSpacing: 1.5, color: colors.textDim, marginBottom: 6 }}>
                       {t('modal.tags').toUpperCase()}
                     </Text>
                     <Text style={{ fontSize: 12, color: colors.textSecondary, lineHeight: 20 }}>
@@ -607,7 +613,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
                       accessibilityState={{ expanded: glossaryOpen }}
                       style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
                     >
-                      <Text style={{ fontSize: 10, fontWeight: '600', letterSpacing: 1.5, color: colors.textSecondary }}>
+                      <Text style={{ fontSize: 11, fontWeight: '600', letterSpacing: 1.5, color: colors.textSecondary }}>
                         {t('modal.glossary').toUpperCase()}
                       </Text>
                       <View style={{ transform: [{ rotate: glossaryOpen ? '180deg' : '0deg' }] }}>
@@ -717,7 +723,7 @@ function HighlightSection({ highlights, onArticlePress, allStats }: { highlights
   return (
     <View style={{ paddingTop: 12, paddingBottom: 24, backgroundColor: colors.highlightBg }}>
       {/* 섹션 헤더 */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 14 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 16 }}>
         <Text style={{ fontSize: 17, fontWeight: '700', color: colors.textPrimary, fontFamily: FontFamily.serif }}>{t('news.highlight_title')}</Text>
         <Text style={{ fontSize: 11, color: colors.textSecondary, marginLeft: 8 }}>Top {highlights.length}</Text>
       </View>
@@ -807,7 +813,7 @@ const HScrollCard = React.memo(function HScrollCard({
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Text style={{ fontSize: 11, color: colors.textSecondary }}>{formatDate(article.published, lang)}</Text>
+            <Text style={{ fontSize: 11, color: colors.textSecondary }}>{formatDate(article.published, lang, article.date_estimated)}</Text>
           </View>
           <ArticleStats likes={likes} views={views} comments={comments} />
         </View>
@@ -920,7 +926,7 @@ function CategoryTabSection({
               <Pressable
                 onPress={() => onArticlePress(a)}
                 style={({ pressed }) => ({
-                  height: 120, backgroundColor: colors.card, borderRadius: 14, overflow: 'hidden',
+                  height: 120, backgroundColor: colors.card, borderRadius: 12, overflow: 'hidden',
                   borderWidth: 1, borderColor: colors.border, opacity: pressed ? 0.85 : 1,
                 })}
               >
@@ -937,12 +943,12 @@ function CategoryTabSection({
                   <View style={{ flex: 1, padding: 14, justifyContent: 'space-between' }}>
                     <View>
                       <SourceBadge sourceKey={a.source_key} name={getSourceName(a.source_key || '', t)} />
-                      <TitleText style={{ fontSize: 14, fontWeight: '700', color: colors.textPrimary, lineHeight: 22, marginTop: 6, fontFamily: FontFamily.serif }} numberOfLines={2}>
+                      <TitleText style={{ fontSize: 14, fontWeight: '700', color: colors.textPrimary, lineHeight: 20, marginTop: 6, fontFamily: FontFamily.serif }} numberOfLines={2}>
                         {getLocalizedTitle(a, lang)}
                       </TitleText>
                     </View>
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <Text style={{ fontSize: 11, color: colors.textSecondary }}>{formatDate(a.published, lang)}</Text>
+                      <Text style={{ fontSize: 11, color: colors.textSecondary }}>{formatDate(a.published, lang, a.date_estimated)}</Text>
                       <ArticleStats likes={allStats[a.link]?.likes} views={allStats[a.link]?.views} comments={allStats[a.link]?.comments} />
                     </View>
                   </View>
@@ -964,7 +970,7 @@ function CategoryTabSection({
               style={({ pressed }) => ({
                 height: 120,
                 backgroundColor: colors.card,
-                borderRadius: 14,
+                borderRadius: 12,
                 overflow: 'hidden',
                 borderWidth: 1,
                 borderColor: colors.border,
@@ -993,7 +999,7 @@ function CategoryTabSection({
                       <SourceBadge sourceKey={a.source_key} name={getSourceName(a.source_key || '', t)} />
                     </View>
                     <TitleText
-                      style={{ fontSize: 14, fontWeight: '700', color: colors.textPrimary, lineHeight: 22, marginTop: 6, fontFamily: FontFamily.serif }}
+                      style={{ fontSize: 14, fontWeight: '700', color: colors.textPrimary, lineHeight: 20, marginTop: 6, fontFamily: FontFamily.serif }}
                       numberOfLines={2}
                     >
                       {getLocalizedTitle(a, lang)}
@@ -1001,7 +1007,7 @@ function CategoryTabSection({
                   </View>
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      <Text style={{ fontSize: 11, color: colors.textSecondary }}>{formatDate(a.published, lang)}</Text>
+                      <Text style={{ fontSize: 11, color: colors.textSecondary }}>{formatDate(a.published, lang, a.date_estimated)}</Text>
                     </View>
                     <ArticleStats likes={stats[a.link]?.likes} views={stats[a.link]?.views} comments={stats[a.link]?.comments} />
                   </View>
@@ -1020,7 +1026,7 @@ function CategoryTabSection({
           accessibilityRole="button"
           style={{ alignItems: 'center', paddingVertical: 12, marginHorizontal: 16 }}
         >
-          <View style={{ paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10, backgroundColor: colors.border, borderWidth: 1, borderColor: colors.border }}>
+          <View style={{ paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12, backgroundColor: colors.border, borderWidth: 1, borderColor: colors.border }}>
             <Text style={{ fontSize: 13, fontWeight: '700', color: colors.textSecondary }}>
               +{remaining}{t('news.more')}
             </Text>
@@ -1055,7 +1061,7 @@ function SourceHScrollSection({
 
   return (
     <View style={{ marginBottom: 24 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 14 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 16 }}>
         <View style={{ width: 4, height: 18, borderRadius: 2, backgroundColor: color, marginRight: 8 }} />
         <Text style={{ fontSize: 17, fontWeight: '700', color: colors.textPrimary, flex: 1, fontFamily: FontFamily.serif }}>
           {name}
@@ -1123,7 +1129,7 @@ const GeekNewsSection = React.memo(function GeekNewsSection({ articles, onArticl
   return (
     <View style={{ marginBottom: 24 }}>
       <View
-        style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 14 }}
+        style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 16 }}
         accessibilityRole="header"
       >
         <View style={{ width: 4, height: 18, borderRadius: 2, backgroundColor: color, marginRight: 8 }} />
@@ -1150,14 +1156,14 @@ const GeekNewsSection = React.memo(function GeekNewsSection({ articles, onArticl
           >
             <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
               <TitleText
-                style={{ fontSize: 14, fontWeight: '700', color: colors.textPrimary, lineHeight: 22, flex: 1, marginRight: 8, fontFamily: FontFamily.serif }}
+                style={{ fontSize: 14, fontWeight: '700', color: colors.textPrimary, lineHeight: 20, flex: 1, marginRight: 8, fontFamily: FontFamily.serif }}
                 numberOfLines={2}
               >
                 {getLocalizedTitle(a, lang)}
               </TitleText>
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
-              <Text style={{ fontSize: 11, color: colors.textSecondary }}>{formatDate(a.published, lang)}</Text>
+              <Text style={{ fontSize: 11, color: colors.textSecondary }}>{formatDate(a.published, lang, a.date_estimated)}</Text>
               <ArticleStats likes={stats[a.link]?.likes} views={stats[a.link]?.views} comments={stats[a.link]?.comments} />
             </View>
           </Pressable>
@@ -1334,7 +1340,7 @@ export default function NewsScreen() {
         paddingHorizontal: 16, paddingTop: 20, paddingBottom: 12, backgroundColor: colors.bg,
       }}>
         <View style={{
-          width: 36, height: 36, borderRadius: 10,
+          width: 36, height: 36, borderRadius: 8,
           backgroundColor: colors.textPrimary, alignItems: 'center', justifyContent: 'center', marginRight: 10,
         }}>
           <Text style={{ color: colors.card, fontSize: 16, fontWeight: '800' }}>A</Text>
@@ -1420,8 +1426,8 @@ export default function NewsScreen() {
 
             {/* 구분선: 카테고리 → 소스별 */}
             {sourceOrder.some(key => (sourceArticles[key]?.length ?? 0) > 0) && (
-              <View style={{ paddingHorizontal: 16, marginBottom: 20, marginTop: 16 }}>
-                <View style={{ height: 8, backgroundColor: colors.surface, borderRadius: 4, marginBottom: 20 }} />
+              <View style={{ paddingHorizontal: 16, marginTop: 24, marginBottom: 24 }}>
+                <View style={{ height: 8, backgroundColor: colors.surface, borderRadius: 4, marginBottom: 16 }} />
                 <Text style={{ fontSize: 16, fontWeight: '700', color: colors.textPrimary, fontFamily: FontFamily.serif }}>
                   {t('news.source_title')}
                 </Text>
@@ -1449,7 +1455,7 @@ export default function NewsScreen() {
           </>
         )}
 
-        <View style={{ height: 40 }} />
+        <View style={{ height: 32 }} />
       </ScrollView>
 
       {/* 요약 모달 */}

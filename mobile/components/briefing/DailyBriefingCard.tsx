@@ -501,7 +501,7 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
   // ── Collapsed State ──
   if (!expanded) {
     return (
-      <View ref={cardRef} style={{ marginHorizontal: 16, marginTop: 12, marginBottom: 8 }}>
+      <View ref={cardRef} style={{ marginHorizontal: 16, marginTop: 12, marginBottom: 12 }}>
         <Pressable
           onPress={toggleExpand}
           accessibilityRole="button"
@@ -591,7 +591,7 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
 
   // ── Expanded State ──
   return (
-    <View ref={cardRef} style={{ marginHorizontal: 16, marginTop: 12, marginBottom: 8 }}>
+    <View ref={cardRef} style={{ marginHorizontal: 16, marginTop: 12, marginBottom: 12 }}>
       <View
         style={{
           borderRadius: 16,

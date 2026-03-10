@@ -22,6 +22,7 @@ export interface Article {
   why_important_en?: string;  // 영어 중요성
   link: string;
   published: string;
+  date_estimated?: boolean;  // true = RSS/스크래핑에서 날짜 추출 실패, 수집 시점으로 대체
   source: string;
   source_key?: string;
   image_url?: string;

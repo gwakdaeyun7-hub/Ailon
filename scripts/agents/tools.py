@@ -429,13 +429,15 @@ def _fetch_scrape_source(source_config: dict) -> list[dict]:
                 date_filtered += 1
                 continue
 
+            has_date = bool(published)
             articles.append({
                 "title": title,
                 "display_title": "",
                 "description": "",
                 "summary": "",
                 "link": link,
-                "published": _clamp_future_date(published) if published else datetime.now().isoformat(),
+                "published": _clamp_future_date(published) if has_date else datetime.now().isoformat(),
+                "date_estimated": not has_date,  # 날짜 미추출 시 True
                 "source": name,
                 "source_key": key,
                 "lang": lang,
@@ -502,13 +504,28 @@ def fetch_source(source_config: dict) -> list[dict]:
             link = entry.get("link", "")
             image_url = _extract_rss_image(entry, rss_image_field)
 
+            # published가 비어있으면 feedparser의 published_parsed/updated_parsed 폴백
+            has_date = bool(published)
+            if not has_date:
+                for parsed_field in ("published_parsed", "updated_parsed"):
+                    tp = entry.get(parsed_field)
+                    if tp:
+                        try:
+                            from time import mktime
+                            published = datetime.fromtimestamp(mktime(tp)).isoformat()
+                            has_date = True
+                        except Exception:
+                            pass
+                        break
+
             articles.append({
                 "title": title,
                 "display_title": "",  # 번역 후 채워짐
                 "description": description,
                 "summary": "",  # 번역 후 채워짐
                 "link": link,
-                "published": _clamp_future_date(published) if published else datetime.now().isoformat(),
+                "published": _clamp_future_date(published) if has_date else datetime.now().isoformat(),
+                "date_estimated": not has_date,  # RSS에 날짜 없으면 True → 스크래핑에서 복구 시도
                 "source": name,
                 "source_key": key,
                 "lang": lang,
@@ -582,10 +599,14 @@ _FALLBACK_HEADERS = {
 }
 
 
-def _scrape_body_and_image(url: str) -> tuple[str, str]:
-    """기사 URL에서 본문 텍스트 + og:image를 한 번의 HTTP로 추출"""
+def _scrape_body_and_image(url: str) -> tuple[str, str, str]:
+    """기사 URL에서 본문 텍스트 + og:image + 발행일을 한 번의 HTTP로 추출
+
+    Returns:
+        (body_text, image_url, published_date) — published_date는 ISO 형식 문자열 또는 ""
+    """
     if not url:
-        return "", ""
+        return "", "", ""
     try:
         import trafilatura
         downloaded = trafilatura.fetch_url(url, config=_get_traf_config())
@@ -598,10 +619,11 @@ def _scrape_body_and_image(url: str) -> tuple[str, str]:
                 downloaded = resp.text
                 print(f"    [SCRAPE] requests 폴백 성공: {url[:80]}")
             except Exception:
-                return "", ""
+                return "", "", ""
 
-        # og:image 추출 (HTML 앞부분에서)
+        # og:image + 발행일 추출 (HTML 앞부분에서)
         image_url = ""
+        scraped_date = ""
         from bs4 import BeautifulSoup
         soup = BeautifulSoup(downloaded[:10000], "html.parser")
         for prop, attr in [("og:image", "property"), ("twitter:image", "name")]:
@@ -612,15 +634,66 @@ def _scrape_body_and_image(url: str) -> tuple[str, str]:
                     image_url = img
                     break
 
+        # HTML meta 태그에서 발행일 추출 시도
+        for date_prop, date_attr in [
+            ("article:published_time", "property"),
+            ("og:article:published_time", "property"),
+            ("datePublished", "itemprop"),
+            ("date", "name"),
+            ("DC.date.issued", "name"),
+            ("pubdate", "name"),
+        ]:
+            meta = soup.find("meta", {date_attr: date_prop})
+            if meta and meta.get("content"):
+                scraped_date = str(meta["content"]).strip()
+                break
+
+        # <time> 태그에서도 시도 (datetime 속성 우선)
+        if not scraped_date:
+            time_tag = soup.find("time", {"datetime": True})
+            if time_tag:
+                scraped_date = str(time_tag["datetime"]).strip()
+
+        # JSON-LD에서 datePublished 추출 시도
+        if not scraped_date:
+            for script in soup.find_all("script", {"type": "application/ld+json"}):
+                try:
+                    import json
+                    ld = json.loads(script.string or "")
+                    # JSON-LD가 리스트일 수 있음
+                    items = ld if isinstance(ld, list) else [ld]
+                    for item in items:
+                        dp = item.get("datePublished", "")
+                        if dp:
+                            scraped_date = str(dp).strip()
+                            break
+                    if scraped_date:
+                        break
+                except Exception:
+                    pass
+
+        # trafilatura bare_extraction으로 날짜 추출 시도 (위에서 못 찾은 경우)
+        if not scraped_date:
+            try:
+                meta_info = trafilatura.bare_extraction(downloaded)
+                if meta_info and meta_info.get("date"):
+                    scraped_date = str(meta_info["date"]).strip()
+            except Exception:
+                pass
+
         text = trafilatura.extract(downloaded)
-        return (text[:3000] if text else ""), image_url
+        return (text[:3000] if text else ""), image_url, scraped_date
     except Exception as e:
         print(f"    [SCRAPE] {url[:80]}: {type(e).__name__}")
-        return "", ""
+        return "", "", ""
 
 
 def enrich_and_scrape(sources: dict[str, list[dict]]) -> None:
-    """og:image + 본문을 단일 HTTP 요청으로 병렬 추출 (in-place)"""
+    """og:image + 본문 + 발행일을 단일 HTTP 요청으로 병렬 추출 (in-place)
+
+    RSS published가 비어있거나 date_estimated=True인 기사의 경우,
+    스크래핑에서 추출한 날짜로 보정합니다.
+    """
     tasks = []
     for articles in sources.values():
         for a in articles:
@@ -629,7 +702,7 @@ def enrich_and_scrape(sources: dict[str, list[dict]]) -> None:
     if not tasks:
         return
 
-    print(f"  [fetch] {len(tasks)}개 기사: og:image + 본문 통합 스크래핑...")
+    print(f"  [fetch] {len(tasks)}개 기사: og:image + 본문 + 발행일 통합 스크래핑...")
     with ThreadPoolExecutor(max_workers=10) as executor:
         futures = {
             executor.submit(_scrape_body_and_image, a["link"]): a
@@ -637,21 +710,32 @@ def enrich_and_scrape(sources: dict[str, list[dict]]) -> None:
         }
         body_found = 0
         img_enriched = 0
+        date_recovered = 0
         for future in as_completed(futures):
             article = futures[future]
             try:
-                body, img = future.result()
+                body, img, scraped_date = future.result()
                 article["body"] = body
                 if body:
                     body_found += 1
                 if img and not article.get("image_url"):
                     article["image_url"] = _upgrade_image_quality(img)
                     img_enriched += 1
+                # RSS에 날짜가 없어서 date_estimated로 마킹된 기사에 스크래핑 날짜 보정
+                if scraped_date and article.get("date_estimated"):
+                    parsed = _parse_date(scraped_date)
+                    if parsed:
+                        article["published"] = scraped_date
+                        article["date_estimated"] = False
+                        date_recovered += 1
             except Exception as e:
                 article["body"] = ""
                 print(f"    [SCRAPE future] {article.get('link', '?')[:60]}: {type(e).__name__}")
 
-    print(f"  [fetch] 본문 {body_found}/{len(tasks)}개, 이미지 보강 {img_enriched}개")
+    print(f"  [fetch] 본문 {body_found}/{len(tasks)}개, 이미지 보강 {img_enriched}개, 날짜 복원 {date_recovered}개")
+    date_estimated_count = sum(1 for a in tasks if a.get("date_estimated"))
+    if date_estimated_count > 0:
+        print(f"  [fetch] 날짜 추정(date_estimated) 기사: {date_estimated_count}개")
     failed_urls = [a["link"][:80] for a in tasks if not a.get("body") and a.get("link")]
     if failed_urls:
         print(f"  [fetch] 본문 실패 {len(failed_urls)}개:")
