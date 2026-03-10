@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { doc, setDoc } from 'firebase/firestore';
 import translations, { type Language } from '@/lib/translations';
+import { auth, db } from '@/lib/firebase';
 
 const STORAGE_KEY = 'ailon_language';
 
@@ -25,6 +27,11 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const setLanguage = useCallback((newLang: Language) => {
     setLangState(newLang);
     AsyncStorage.setItem(STORAGE_KEY, newLang);
+    // Firestore에 언어 동기화 (서버 측 이중언어 알림용)
+    const user = auth.currentUser;
+    if (user) {
+      setDoc(doc(db, 'users', user.uid), { language: newLang }, { merge: true }).catch(() => {});
+    }
   }, []);
 
   const t = useCallback(

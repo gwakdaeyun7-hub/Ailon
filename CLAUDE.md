@@ -14,14 +14,14 @@ ailon/
 │   ├── agents/       # Pipeline core: config.py, news_team.py, principle_team.py, tools.py
 │   ├── generate_daily.py      # Main orchestrator (news + principles + features)
 │   ├── generate_features.py   # Post-pipeline: briefing, glossary, timeline, story, related articles
-│   └── notifications.py       # Expo push notifications
+│   └── notifications.py       # FCM 리치 알림 (하이라이트 제목+썸네일) + Expo 폴백
 ├── mobile/           # React Native (Expo SDK 54) + NativeWind
 │   ├── app/          # Expo Router file-based routing (tabs: index, snaps, saved, profile)
 │   ├── components/   # UI: briefing/, feed/, shared/
 │   ├── hooks/        # Data hooks: useNews, usePrinciple, useBriefing, useAuth, etc.
 │   ├── context/      # DrawerContext, LanguageContext, ThemeContext
 │   └── lib/          # firebase.ts, types.ts, colors.ts, translations.ts, theme.ts
-├── functions/        # Firebase Cloud Functions (comment/like push notifications)
+├── functions/        # Firebase Cloud Functions v2 (comment/like push notifications)
 ├── backend/          # Firebase config (firebase.json, firestore.rules)
 └── .github/workflows/collect-news.yml  # Scheduled pipeline (6AM + 6PM KST)
 ```
@@ -124,7 +124,7 @@ cd ../functions && firebase deploy --only functions
 | useBatchStats | Multiple collections | Batch fetch likes/views/comments for feed cards |
 | useBriefing | `daily_briefings/{date}` | AI briefing text + story count |
 | useGlossaryDB | `glossary_terms` | Term search (max 200 terms) |
-| useNotifications | `users/{uid}` | Expo push token registration |
+| useNotifications | `users/{uid}` | Expo + FCM token registration, Android channels (news/social) |
 | useNotificationSettings | `users/{uid}/preferences` | Per-type notification toggles |
 
 ### Contexts
@@ -246,7 +246,7 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 | `articles/{article_id}` | 1 doc/article | Full article + entities, related_ids, timeline_ids |
 | `daily_briefings/{date}` | 1 doc/day | briefing_ko, briefing_en, story_count, category_stats, hot_topics, trend_history |
 | `glossary_terms/{term}` | 1 doc/term | term/desc (KO+EN), article_ids |
-| `users/{uid}` | 1 doc/user | profile, expoPushToken |
+| `users/{uid}` | 1 doc/user | profile, expoPushToken, fcmToken, language (ko/en), lastLikeNotifiedAt |
 | `users/{uid}/bookmarks` | subcollection | type, itemId, metadata |
 | `users/{uid}/preferences/notifications` | subdoc | newsAlerts, commentReplies, likes |
 | `reactions/{itemId}` | 1 doc/item | likedBy[], dislikedBy[] |
@@ -258,6 +258,24 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 - Manual trigger: target (all/news/principle), force flag
 - Python 3.11, timeout: 40 minutes
 - 6AM+6PM merge: `save_news_to_firestore()`에서 categorized_articles는 기존 doc과 병합 후 카테고리당 25개 cap 적용. highlights는 병합 없이 최신 실행 결과로 교체
+
+### Push Notification System
+
+3-레이어 알림 시스템: 파이프라인(뉴스) + Cloud Functions(소셜) + 모바일 클라이언트
+
+| 레이어 | 발송 방식 | 채널 | 내용 |
+|--------|----------|------|------|
+| 뉴스 알림 (`notifications.py`) | FCM (`firebase_admin.messaging`) + Expo 폴백 | `news` | 하이라이트 기사 제목 + 썸네일 이미지 + "외 N건" |
+| 댓글 답글 (`functions/index.js`) | Expo Push API | `social` | "{이름}님이 댓글에 답글을 남겼습니다" |
+| 좋아요 (`functions/index.js`) | Expo Push API | `social` | "N명이 회원님의 글을 좋아합니다" (5분 디바운싱) |
+
+- **이중언어**: `users/{uid}.language` 필드로 KO/EN 자동 전환 (LanguageContext 변경 시 + 로그인 시 Firestore 동기화)
+- **FCM 리치 알림**: `fcmToken` 저장된 사용자에게 `messaging.Notification(image=...)` — 썸네일 포함
+- **Expo 폴백**: `fcmToken` 없는 사용자 → Expo Push API (텍스트만)
+- **Android 채널**: `news` (HIGH, 뉴스 알림), `social` (DEFAULT, 댓글/좋아요)
+- **좋아요 디바운싱**: `users/{uid}.lastLikeNotifiedAt` 타임스탬프, 5분 내 중복 알림 억제
+- **Cloud Functions**: v2 (`firebase-functions/v2/firestore`) — `onDocumentCreated`, `onDocumentUpdated`
+- **딥링크 데이터**: `{ type, tab, articleId }` — 추후 기사 상세 딥링크 확장 가능
 
 ### CI Logging (`scripts/agents/ci_utils.py`)
 - `ci_warning(msg)` / `ci_error(msg)` — `::warning::` / `::error::` 어노테이션 (CI에서만) + 항상 print + 내부 리스트에 수집

@@ -14,6 +14,7 @@ import {
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { auth, db } from '@/lib/firebase';
 
 const WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? '';
@@ -52,17 +53,22 @@ export function useAuth() {
           const userRef = doc(db, 'users', firebaseUser.uid);
           const userDoc = await getDoc(userRef);
 
+          // 언어 설정 Firestore 동기화 (서버 측 이중언어 알림용)
+          const savedLang = await AsyncStorage.getItem('ailon_language');
+          const language = savedLang === 'en' ? 'en' : 'ko';
+
           if (!userDoc.exists()) {
             await setDoc(userRef, {
               uid: firebaseUser.uid,
               email: firebaseUser.email,
               displayName: firebaseUser.displayName,
               photoURL: firebaseUser.photoURL,
+              language,
               createdAt: serverTimestamp(),
               lastLoginAt: serverTimestamp(),
             });
           } else {
-            await setDoc(userRef, { lastLoginAt: serverTimestamp() }, { merge: true });
+            await setDoc(userRef, { lastLoginAt: serverTimestamp(), language }, { merge: true });
           }
         }
       } catch (error: unknown) {

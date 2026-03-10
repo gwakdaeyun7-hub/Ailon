@@ -309,7 +309,10 @@ def run_news():
     print("  [AI 기능] 완료")
 
     try:
-        send_news_notification(article_count=news_result.get("total_count", 0))
+        send_news_notification(
+            article_count=news_result.get("total_count", 0),
+            news_result=news_result,
+        )
     except Exception as e:
         print(f"  [알림 실패] {e} — 파이프라인은 계속 진행")
 
