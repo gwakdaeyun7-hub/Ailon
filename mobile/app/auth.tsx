@@ -63,7 +63,7 @@ export default function AuthScreen() {
             <Zap size={40} color="#FFFFFF" strokeWidth={2.5} />
           </View>
           <Text style={{ fontSize: 32, fontWeight: '800', color: '#FFFFFF', marginBottom: 4, fontFamily: FontFamily.serifItalic }}>
-            Ailon
+            AILON
           </Text>
           <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)', textAlign: 'center', lineHeight: 20 }}>
             {t('auth.tagline')}

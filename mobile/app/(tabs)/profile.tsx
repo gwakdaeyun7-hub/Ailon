@@ -10,7 +10,7 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LogOut, Bookmark, User as UserIcon, ChevronRight, Globe, Bell, MessageCircle, Heart, Moon } from 'lucide-react-native';
+import { LogOut, Bookmark, User as UserIcon, ChevronRight, Globe, Bell, MessageCircle, Heart, Moon, ExternalLink, Shield, FileText } from 'lucide-react-native';
 // expo-notifications는 dev build에서만 동작
 let Notifications: typeof import('expo-notifications') | null = null;
 try { Notifications = require('expo-notifications'); } catch {}
@@ -227,6 +227,45 @@ export default function ProfileScreen() {
             >
               <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '600' }}>{t('profile.view')}</Text>
               <ChevronRight size={14} color={colors.primary} />
+            </Pressable>
+          </View>
+        </View>
+
+        {/* Legal */}
+        <View style={{ marginHorizontal: 16, marginBottom: 16, backgroundColor: colors.card, borderRadius: 20, padding: 20, ...cardShadow }}>
+          <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 14 }}>{t('profile.legal')}</Text>
+          <View style={{ gap: 4 }}>
+            <Pressable
+              onPress={() => Linking.openURL(
+                lang === 'ko'
+                  ? 'https://gwakdaeyun7-hub.github.io/Ailon/privacy-policy.html'
+                  : 'https://gwakdaeyun7-hub.github.io/Ailon/privacy-policy-en.html'
+              )}
+              accessibilityRole="button"
+              accessibilityLabel={t('profile.privacy_policy')}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 44, paddingVertical: 6 }}
+            >
+              <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' }}>
+                <Shield size={18} color={colors.textSecondary} />
+              </View>
+              <Text style={{ flex: 1, color: colors.textPrimary, fontSize: 15, fontWeight: '600' }}>{t('profile.privacy_policy')}</Text>
+              <ExternalLink size={14} color={colors.textDim} />
+            </Pressable>
+            <Pressable
+              onPress={() => Linking.openURL(
+                lang === 'ko'
+                  ? 'https://gwakdaeyun7-hub.github.io/Ailon/terms-of-service.html'
+                  : 'https://gwakdaeyun7-hub.github.io/Ailon/terms-of-service-en.html'
+              )}
+              accessibilityRole="button"
+              accessibilityLabel={t('profile.terms_of_service')}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 44, paddingVertical: 6 }}
+            >
+              <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' }}>
+                <FileText size={18} color={colors.textSecondary} />
+              </View>
+              <Text style={{ flex: 1, color: colors.textPrimary, fontSize: 15, fontWeight: '600' }}>{t('profile.terms_of_service')}</Text>
+              <ExternalLink size={14} color={colors.textDim} />
             </Pressable>
           </View>
         </View>

@@ -1,10 +1,22 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { doc, setDoc } from 'firebase/firestore';
+import { getLocales } from 'expo-localization';
 import translations, { type Language } from '@/lib/translations';
 import { auth, db } from '@/lib/firebase';
 
 const STORAGE_KEY = 'ailon_language';
+
+/** 시스템 언어가 한국어이면 'ko', 그 외 'en' */
+function getSystemLanguage(): Language {
+  try {
+    const locales = getLocales();
+    if (locales.length > 0 && locales[0].languageCode?.startsWith('ko')) {
+      return 'ko';
+    }
+  } catch {}
+  return 'en';
+}
 
 interface LanguageContextValue {
   lang: Language;
@@ -15,9 +27,9 @@ interface LanguageContextValue {
 const LanguageContext = createContext<LanguageContextValue | null>(null);
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [lang, setLangState] = useState<Language>('ko');
+  const [lang, setLangState] = useState<Language>(getSystemLanguage);
 
-  // 저장된 언어 설정 로드
+  // 저장된 언어 설정 로드 (사용자가 수동 설정한 값이 시스템 감지보다 우선)
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY).then((val) => {
       if (val === 'en' || val === 'ko') setLangState(val);

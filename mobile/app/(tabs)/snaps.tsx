@@ -399,7 +399,7 @@ function ActionBar({ principleData, lang }: { principleData: DailyPrinciples; la
     const title = lang === 'en' && p.title_en ? p.title_en : p.title;
     const headline = L(p.foundation.headline, p.foundation.headline_en, lang);
     await Share.share({
-      message: `${title} \u2014 ${getDisciplineName(principleData, lang)}\n\n\u201C${headline}\u201D\n\n\u2014 Ailon`,
+      message: `${title} \u2014 ${getDisciplineName(principleData, lang)}\n\n\u201C${headline}\u201D\n\n\u2014 AILON`,
     });
   }, [principleData, lang]);
 

@@ -23,7 +23,7 @@ import { Image } from 'expo-image';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import {
-  Bell, RefreshCw, ThumbsUp, Eye, Share2, MessageCircle, X, Cpu, Newspaper, Bookmark, ChevronDown, Heart,
+  Bell, RefreshCw, ThumbsUp, Eye, Share2, MessageCircle, X, Cpu, Newspaper, Bookmark, ChevronDown, Heart, ExternalLink,
 } from 'lucide-react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNews } from '@/hooks/useNews';
@@ -518,13 +518,20 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
               </View>
             </View>
 
+            {/* AI Summary badge */}
+            <View style={{ paddingHorizontal: 20, marginTop: 12 }}>
+              <View style={{ alignSelf: 'flex-start', backgroundColor: colors.surface, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
+                <Text style={{ fontSize: 10, fontWeight: '700', color: colors.textDim, letterSpacing: 0.5 }}>{t('article.ai_summary')}</Text>
+              </View>
+            </View>
+
             {/* H3: 제목 — D4 compact */}
             <Text
               accessibilityRole="header"
               style={{
                 fontSize: 22, fontWeight: '700', color: colors.textPrimary, lineHeight: 32,
                 letterSpacing: -0.5,
-                marginTop: 16,
+                marginTop: 10,
                 paddingHorizontal: 20, fontFamily: FontFamily.serif,
               }}
             >
@@ -653,6 +660,33 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
                 </Text>
               </View>
             )}
+
+            {/* Read Original 버튼 */}
+            {article.link ? (
+              <View style={{ paddingHorizontal: 20, marginTop: 20, marginBottom: 8 }}>
+                <Pressable
+                  onPress={() => Linking.openURL(article.link)}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('article.read_original')}
+                  style={({ pressed }) => ({
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                    borderWidth: 1.5,
+                    borderColor: colors.primary,
+                    borderRadius: 14,
+                    paddingVertical: 13,
+                    paddingHorizontal: 20,
+                    minHeight: 44,
+                    opacity: pressed ? 0.7 : 1,
+                  })}
+                >
+                  <ExternalLink size={16} color={colors.primary} />
+                  <Text style={{ fontSize: 15, fontWeight: '700', color: colors.primary }}>{t('article.read_original')}</Text>
+                </Pressable>
+              </View>
+            ) : null}
 
           </ScrollView>
 
@@ -1495,7 +1529,7 @@ export default function NewsScreen() {
                     borderWidth: 1, borderColor: colors.border,
                   }}>
                     <Text style={{ fontSize: 15, fontWeight: '600', color: colors.textPrimary }} numberOfLines={2}>
-                      {n.request?.content?.title ?? 'Ailon'}
+                      {n.request?.content?.title ?? 'AILON'}
                     </Text>
                     <Text style={{ fontSize: 13, color: colors.textSecondary, marginTop: 4 }} numberOfLines={3}>
                       {n.request?.content?.body ?? ''}

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Ailon** is a bilingual (Korean/English) AI news curation and interdisciplinary learning mobile app. It collects AI news from 22 sources, processes them through a LangGraph pipeline (translate, summarize, categorize, rank, extract entities), and delivers curated content via a React Native mobile app. A secondary pipeline generates daily "principle" content linking academic disciplines to AI concepts.
+**AILON** (AI Insight Linked On Network) is a bilingual (Korean/English) AI news curation and interdisciplinary learning mobile app developed by 정다윗 (David Jung). It collects AI news from 22 sources, processes them through a LangGraph pipeline (translate, summarize, categorize, rank, extract entities), and delivers curated content via a React Native mobile app. A secondary pipeline generates daily "principle" content linking academic disciplines to AI concepts.
 
 ## Architecture
 
@@ -73,7 +73,7 @@ cd ../functions && firebase deploy --only functions
 - **Daily Briefing**: AI-generated 2-3 min briefing card with TTS playback (expo-speech)
 - **Categories**: Horizontal scroll tabs (research / models_products / industry_business), Top 25 per category
 - **Sources**: 22 source sections, Korean sources (AI타임스, GeekNews, ZDNet AI, 요즘IT) in separate tabs
-- **Article Card**: display_title, one_line, key_points (3), why_important, background, tags, glossary
+- **Article Card**: display_title, one_line, key_points (3), why_important, background, tags, glossary, "AI Summary" badge, "Read Original" button (Linking.openURL)
 - **Interactions**: Like/dislike (ReactionBar), comments (CommentSheet modal), share, bookmark
 - **Glossary Highlighting**: Auto-detects terms in text, tap for definition popup (HighlightedText)
 - **Related Articles**: Horizontal carousel in summary modal (RelatedArticlesSection)
@@ -97,8 +97,9 @@ cd ../functions && firebase deploy --only functions
 
 ### Tab 4: Profile (profile.tsx)
 - Google Sign-In authentication
-- Language toggle (KO/EN), dark/light theme switch
+- Language toggle (KO/EN, system language detection default), dark/light theme switch
 - Notification settings: newsAlerts, commentReplies, likes (per-type toggles)
+- Legal links: Privacy Policy + Terms of Service (bilingual KO/EN via GitHub Pages)
 
 ### Shared Components
 - **CommentSheet**: Full-screen modal, threaded replies, author avatars, report (Flag icon) + delete (Trash icon) per comment, ReportReasonModal (4 reasons), auto-hide at 3+ reports
@@ -338,11 +339,15 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 - [ ] Pipeline running stable on GitHub Actions (check last 3 days)
 - [x] Google Sign-In configured for production SHA-256 (Firebase Console에 등록 완료)
 - [x] Splash screen / app icon assets finalized (character.png 픽셀아트)
-- [x] Privacy Policy + Terms of Service (docs/, GitHub Pages: gwakdaeyun7-hub.github.io/Ailon/)
+- [x] Privacy Policy + Terms of Service (docs/, GitHub Pages: gwakdaeyun7-hub.github.io/Ailon/) — 영문 버전 포함 (CCPA, DMCA, Publisher Opt-Out)
 - [x] Production AAB 빌드 성공 (C:\dev\ailon에서 빌드)
 - [x] 댓글 신고/삭제 기능 (useReportComment, 3건 자동 숨김)
 - [x] app.json: versionCode 1, android permissions, expo-dev-client 제거
-- [ ] Play Store listing (screenshots, description, category, content rating, data safety)
+- [x] Play Store listing 콘텐츠 준비 (play-store-listing.md: 설명, Data Safety, 콘텐츠 등급, 카테고리)
+- [x] AI Summary 뱃지 + Read Original 버튼 (요약 모달)
+- [x] 기본 언어 시스템 감지 (expo-localization, 영어 기본값)
+- [ ] Play Store 스크린샷 촬영 (영문 UI)
+- [ ] Play Store Console 등록 + 심사 제출
 
 ---
 

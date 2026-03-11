@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Ailon",
+    "name": "AILON",
     "slug": "ailon",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -39,7 +39,13 @@
       "expo-router",
       "expo-asset",
       "@react-native-google-signin/google-signin",
-      ["expo-notifications", { "color": "#E53935" }]
+      [
+        "expo-notifications",
+        {
+          "color": "#E53935"
+        }
+      ],
+      "expo-localization"
     ],
     "scheme": "ailon",
     "extra": {

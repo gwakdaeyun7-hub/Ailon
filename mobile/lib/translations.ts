@@ -45,12 +45,14 @@ const translations: Record<string, Record<Language, string>> = {
   'modal.background': { ko: '배경', en: 'Background' },
   'modal.glossary': { ko: '용어 해설', en: 'Glossary' },
   'modal.tags': { ko: '키워드', en: 'Keywords' },
+  'article.ai_summary': { ko: 'AI 요약', en: 'AI Summary' },
+  'article.read_original': { ko: '원문 보기', en: 'Read Original' },
 
   // ─── 공유 메시지 ───
   'share.one_line_label': { ko: '💡 핵심 한줄', en: '💡 Key Takeaway' },
   'share.key_points_label': { ko: '📌 주요 포인트', en: '📌 Key Points' },
   'share.why_important_label': { ko: '⚡ 왜 중요해요?', en: '⚡ Why It Matters' },
-  'share.footer': { ko: '— Ailon AI 뉴스', en: '— Ailon AI News' },
+  'share.footer': { ko: '— AILON AI 뉴스', en: '— AILON AI News' },
 
   // ─── 인증 ───
   'auth.login_required': { ko: '로그인이 필요해요', en: 'Login required' },
@@ -88,6 +90,9 @@ const translations: Record<string, Record<Language, string>> = {
   'profile.dark_mode': { ko: '다크 모드', en: 'Dark Mode' },
   'profile.theme': { ko: '테마', en: 'Theme' },
   'profile.error': { ko: '오류', en: 'Error' },
+  'profile.legal': { ko: '법률 정보', en: 'Legal' },
+  'profile.privacy_policy': { ko: '개인정보 처리방침', en: 'Privacy Policy' },
+  'profile.terms_of_service': { ko: '이용약관', en: 'Terms of Service' },
 
   // ─── 알림 설정 ───
   'notification.title': { ko: '알림', en: 'Notifications' },
@@ -144,7 +149,7 @@ const translations: Record<string, Record<Language, string>> = {
 
   // ─── 사이드 드로어 ───
   'drawer.title': { ko: 'AI News', en: 'AI News' },
-  'drawer.desc': { ko: '14개 소스에서 최신 AI 뉴스를 수집합니다.', en: 'Aggregating the latest AI news from 14 sources.' },
+  'drawer.desc': { ko: '22개 소스에서 최신 AI 뉴스를 수집합니다.', en: 'Aggregating the latest AI news from 22 sources.' },
 
   // ─── 댓글 ───
   'comment.title': { ko: '댓글', en: 'Comments' },
