@@ -232,15 +232,20 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 - Generates 1 principle per day from 12 disciplines (engineering, natural/formal/applied science)
 - 3-step narrative: foundation → application → integration + deepDive
 - Avoids same discipline in last 3 days, same seed in last 30 days
-- Verifier: 3-section evaluation (A. 사실정확성, B. 인사이트이해도, C. 딥다이브전문성)
+- Content prompt: "같은 질문, 다른 맥락" 서사 구조 (근본 질문 → AI 재등장 → 현실 임팩트)
+  - foundation.body: 원래 학문의 실제 작동 메커니즘(물리량·변수·현상) 필수 — AI 관점만 서술 금지
+  - bridge: 명시적 매핑(X→Y) 최소 3쌍 + 보존/변형 구분
+  - coreIntuition: 완전한 작동 규칙 (① 변수 의미 ② 조건별 분기 ③ 파라미터 감수성 ④ 수렴 조건, 100~180자)
+  - formula: 단일 줄, \begin/\end 금지, \frac 1단 중첩까지 (모바일 LaTeX→Unicode 변환 대응)
+- Verifier: 4-section evaluation (A. 사실정확성, B. 인사이트이해도, C. 딥다이브전문성, D. 한영일관성및품질)
   - Output: verified, confidence, principleAccuracy, mappingAccuracy, insightClarity, deepDiveDepth (0.0~1.0) + factCheck + issues[]
-  - Retry if confidence < 0.7, JSON parse 3회 시도 실패 → default fail result (not raise)
-  - Regex fallback (`_regex_extract_verification`): JSON 파싱 완전 실패 시 raw text에서 verifier 필드 (verified, confidence, principleAccuracy, mappingAccuracy, insightClarity, deepDiveDepth, factCheck) + issues 배열을 regex로 직접 추출하는 최종 방어 계층
+  - Retry if confidence < 0.7 OR any sub-score < 0.5 (principleAccuracy/mappingAccuracy/insightClarity/deepDiveDepth)
+  - Regex fallback (`_regex_extract_verification`): JSON 파싱 완전 실패 시 raw text에서 verifier 필드를 regex로 직접 추출하는 최종 방어 계층
   - Empty response detection: Gemini 빈 응답 시 파싱 생략 후 재시도, 디버그 로깅 포함
   - content_json 입력 4000자 제한 (토큰 절약 + 응답 안정성)
 - Defense-in-depth: content=None → should_retry → retry_reseed flow (no exceptions)
 - Formula enforcement: math/phys/info/stat/ee/opt disciplines require formula field — `should_retry` forces retry if missing (not just warning)
-- Code-level quality warnings: analogy length, problem length, bridge keywords, AI-specific limits
+- Code-level quality warnings: analogy length, problem length, bridge keywords (보존/변형/추상화/생략), AI-specific limits, headline length >25, body length >150, _en field existence
 
 ### Post-Pipeline Features (scripts/generate_features.py)
 

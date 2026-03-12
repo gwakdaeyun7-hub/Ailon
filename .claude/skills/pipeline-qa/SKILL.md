@@ -287,6 +287,7 @@ qa-pipeline-tester 에이전트를 사용하여 로그를 분석합니다.
 | 검사 항목 | 정상 | 이상 징후 | 심각도 |
 |-----------|------|-----------|--------|
 | 검증 통과 | verified=true, confidence≥0.7 | verified=false 또는 confidence<0.7 → 재시도 | Major |
+| sub-score 재시도 | 모든 sub-score ≥0.5 | principleAccuracy/mappingAccuracy/insightClarity/deepDiveDepth 중 <0.5 → 재시도 | Major |
 | 재시도 횟수 | 0-1회 | 3회 연속 실패 → 최선 시도 사용 | Critical |
 | 필수 필드 누락 | 전체 존재 | foundation/application/integration/deepDive 중 누락 → `content=None` 반환 → retry_reseed | Critical |
 | 문자 수 범위 | 각 필드별 기준 내 | headline >20자, body >120자, analogy >50자 등 초과 | Minor |
@@ -315,7 +316,7 @@ qa-pipeline-tester 에이전트를 사용하여 로그를 분석합니다.
 
 | 검사 항목 | 좋은 예 | 나쁜 예 | 심각도 |
 |-----------|---------|---------|--------|
-| **원리 설명+필요성** (foundation.body) | "정보를 전송할 때 노이즈가 불가피한데, 이를 극복하기 위해 여분의 비트를 추가하는 원리가 등장했다" — 정의 + 왜 필요한지 맥락 | "채널 코딩은 정보 전송에서 중요한 개념이다" — 정의만, 필요성 맥락 없음 | Major |
+| **원리 설명+메커니즘** (foundation.body) | "금속에 열을 가하면 원자가 활발히 움직여 재배치되고, 서서히 냉각하면 낮은 에너지 상태에 안착해 결함 적은 결정 구조가 된다" — 원래 학문의 물리적/수학적 메커니즘 + 근본 질문 | "복잡한 문제에서 눈앞의 해에 갇히곤 한다. 뜨거울 땐 나쁜 길도 가보고 식어가며 신중해진다" — 최적화 관점만, 원래 학문의 실체 없음 | Major |
 | **비유 메커니즘** (foundation.analogy) | "편지에 같은 내용을 두 번 적어 한 줄이 지워져도 복구하는 것" — 핵심 메커니즘(여분 정보로 오류 복구)을 비유 | "두 번 말해서 확인하는 것" — 결과만 비유, 어떻게 복구하는지 메커니즘 없음 | Major |
 | **문제 구체성** (application.problem) | "자율주행차가 안개 속에서 센서 데이터 50%가 왜곡될 때 판단 불가" — 구체적 시나리오+수치 | "노이즈에 취약하다" — 무슨 상황에서, 얼마나 취약한지 불명확 | Major |
 | **problem→solution 연결** (application.body) | "problem에서 50% 왜곡이라 했고 → 이 원리의 '여분 인코딩' 특성이 → 왜곡된 비트를 복구" — 논리적 연결 | "이 원리를 적용하면 문제가 해결된다" — problem과의 연결 없이 결론만 | Major |
@@ -329,9 +330,9 @@ qa-pipeline-tester 에이전트를 사용하여 로그를 분석합니다.
 | 검사 항목 | 좋은 예 | 나쁜 예 | 심각도 |
 |-----------|---------|---------|--------|
 | **원래 문제** (originalProblem) | "1948년 Shannon의 'A Mathematical Theory of Communication'에서 채널 용량 한계를 증명..." — 논문명+인물+시기+구체적 문제 | "옛날에 연구자들이 문제를 발견했다" — 누가, 언제, 무엇을 불명확 | Major |
-| **영감의 다리** (bridge) | "합성곱 연산의 수학적 구조는 보존되었으나, 생물학적 시냅스 가소성은 역전파로 변형되었다" — 보존/변형을 구체적 예시와 함께 구분 | "이 원리에서 영감을 받아 AI에 적용했다" — 무엇이 보존/변형됐는지 없음 | Critical |
+| **영감의 다리** (bridge) | "에너지→목적함수, 물리온도→탐색온도T, 원자배치→해공간상태. Boltzmann분포 보존 / 결정격자·원자간 상호작용 생략" — 명시적 매핑(X→Y) 최소 3쌍 + 보존/변형 구분 | "이 원리에서 영감을 받아 AI에 적용했다" — 매핑 없이 추상적 서술만 → deepDiveDepth ≤ 0.5 | Critical |
 | **bridge 로그 출력** | bridge 내용이 로그에서 확인 가능 (70자 이상 출력) | 로그에서 bridge가 잘려서 내용 확인 불가 → content_generator 로그 확인 필요 | Minor |
-| **핵심 직관** (coreIntuition) | "이 알고리즘은 N차원 파라미터 공간에서 손실 함수의 기울기 벡터를 따라 극소점으로 수렴한다" — feature map/gradient/차원/확률분포 등 기술 용어 포함, 수학적/알고리즘적 직관 | "높은 산에서 공을 굴리면 골짜기를 찾는다" — 기술 용어 없이 일상 비유 수준 (foundation.analogy와 차별화 안 됨) → deepDiveDepth ≤ 0.5 | Major |
+| **핵심 직관** (coreIntuition) | "ΔE≤0이면 무조건 수용, ΔE>0일 때 exp(-ΔE/T)로 확률 판단. T↑→수용확률↑→광역탐색, T↓→수렴. T0↑, cooling_rate→1이면 수렴 확률↑" — 완전한 작동 규칙 (4요소: ①변수 의미 ②조건 분기 ③파라미터 감수성 ④수렴 조건) | "높은 산에서 공을 굴리면 골짜기를 찾는다" — 일상 비유 수준 → deepDiveDepth ≤ 0.4 | Major |
 | **수식** (formula) | discipline이 수학/물리/정보이론/통계/공학이면 LaTeX 수식 포함 | 수학적 원리인데 formula가 빈 문자열 → 조건부 필수 위반 | Major |
 | **AI-specific 한계** (limits) | "distribution shift 환경에서 학습된 통계적 가정이 무너지며, adversarial attack에 취약하다" — AI 적용 시 구체적 한계 | "아직 갈 길이 멀다" / "더 많은 연구가 필요하다" — 추상적 회피, AI-specific 아님 | Major |
 
@@ -360,17 +361,17 @@ qa-pipeline-tester 에이전트를 사용하여 로그를 분석합니다.
 - **Failed**: 검증 미통과 3회 → 시드 풀 또는 생성 프롬프트 문제
 
 **인사이트 이해도 체크리스트** (분석 시 각 항목 예/아니오 판정):
-1. [ ] foundation.body가 원리의 정의 + "왜 필요한지" 맥락을 모두 전달하는가?
+1. [ ] foundation.body가 **원래 학문의 물리적/수학적 메커니즘**(구체적 물리량·변수·현상)을 포함하는가? AI 관점만 서술하면 불합격
 2. [ ] analogy가 핵심 메커니즘(과정)을 비유하는가? (결과만 비유하면 불합격)
 3. [ ] application.problem이 구체적 시나리오/수치를 포함하여 "왜 어려웠는지" 전달하는가?
 4. [ ] application.body가 problem의 난제를 원리의 **어떤 특성**으로 해결하는지 논리적으로 연결하는가?
 5. [ ] integration.impact가 구체적 수치나 사례를 포함하는가?
-6. [ ] 전체 3-step을 읽었을 때 "원리→문제→해결→영향"의 내러티브가 자연스러운가?
+6. [ ] 전체 3-step을 읽었을 때 "근본 질문→AI 재등장→현실 임팩트"의 내러티브가 자연스러운가?
 
 **딥다이브 전문성 체크리스트** (분석 시 각 항목 예/아니오 판정):
 7. [ ] originalProblem에 핵심 논문/저서명이 1개 이상 포함되어 있는가?
-8. [ ] bridge에서 보존된 수학적/논리적 구조 vs 변형된 구현 방식이 구체적 예시와 함께 구분되는가?
-9. [ ] coreIntuition에 기술 용어(feature map/gradient/차원/확률분포/손실함수/가중치 등)가 포함되어 있는가? foundation.analogy와 동일한 일상 비유 수준이면 불합격 (deepDiveDepth ≤ 0.5)
+8. [ ] bridge에서 **명시적 매핑(X→Y) 최소 3쌍** + 보존/변형 구분이 있는가? 매핑 없이 추상적 서술만이면 불합격 (deepDiveDepth ≤ 0.5)
+9. [ ] coreIntuition이 **완전한 작동 규칙** (①변수 의미 ②조건별 분기 ③파라미터 감수성 ④수렴 조건)을 포함하는가? 4가지 중 2개 이하면 불합격 (deepDiveDepth ≤ 0.5). 일상 비유 수준이면 deepDiveDepth ≤ 0.4
 10. [ ] 수학/물리/정보이론/통계 원리인 경우 formula가 존재하는가?
 11. [ ] limits가 AI-specific 한계를 다루는가? (distribution shift, adversarial robustness, non-convexity 등)
 
