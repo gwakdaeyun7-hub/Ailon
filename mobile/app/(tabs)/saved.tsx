@@ -9,7 +9,7 @@
 import React, { useMemo, useCallback } from 'react';
 import { View, Text, FlatList, Pressable, Linking, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Bookmark, ExternalLink, Trash2, Newspaper, BookOpen } from 'lucide-react-native';
+import { Bookmark, ExternalLink, Trash2, Newspaper, BookOpen, Wrench } from 'lucide-react-native';
 import { useAuth } from '@/hooks/useAuth';
 import { useBookmarks } from '@/hooks/useBookmarks';
 import { useLanguage } from '@/context/LanguageContext';
@@ -24,6 +24,7 @@ function useTypeConfig(colors: ThemeColors) {
     news: { label: t('saved.type_news'), color: colors.primary, bgColor: colors.primaryLight, Icon: Newspaper },
     snap: { label: t('saved.type_principle'), color: colors.coreTech, bgColor: colors.coreTechBg, Icon: BookOpen },
     principle: { label: t('saved.type_principle'), color: colors.coreTech, bgColor: colors.coreTechBg, Icon: BookOpen },
+    tool: { label: t('saved.type_tool'), color: colors.accent, bgColor: colors.surface, Icon: Wrench },
   } as const;
 }
 
@@ -91,7 +92,7 @@ function SavedItemCard({
             ? new Date(bookmark.createdAt).toLocaleDateString(lang === 'en' ? 'en-US' : 'ko-KR')
             : ''}
         </Text>
-        {bookmark.type === 'news' && meta?.link && (
+        {(bookmark.type === 'news' || bookmark.type === 'tool') && meta?.link && (
           <Pressable
             onPress={() => Linking.openURL(meta.link!)}
             accessibilityLabel={t('saved.view_original')}
@@ -125,13 +126,14 @@ export default function SavedScreen() {
     return db_ - da;
   }), [bookmarks]);
 
-  const { newsCount, snapCount } = useMemo(() => {
-    let news = 0, snap = 0;
+  const { newsCount, snapCount, toolCount } = useMemo(() => {
+    let news = 0, snap = 0, tool = 0;
     for (const b of bookmarks) {
       if (b.type === 'news') news++;
       else if (b.type === 'snap' || b.type === 'principle') snap++;
+      else if (b.type === 'tool') tool++;
     }
-    return { newsCount: news, snapCount: snap };
+    return { newsCount: news, snapCount: snap, toolCount: tool };
   }, [bookmarks]);
 
   const handleDelete = useCallback((bookmark: BookmarkType) => {
@@ -217,6 +219,12 @@ export default function SavedScreen() {
             <View style={{ flex: 1, backgroundColor: colors.coreTechBg, borderRadius: 14, paddingVertical: 12, alignItems: 'center', justifyContent: 'center', minHeight: 56 }}>
               <Text style={{ color: colors.coreTech, fontSize: 20, fontWeight: '800' }}>{snapCount}</Text>
               <Text style={{ color: colors.coreTech, fontSize: 11, fontWeight: '600', marginTop: 2 }}>{t('saved.type_principle')}</Text>
+            </View>
+          )}
+          {toolCount > 0 && (
+            <View style={{ flex: 1, backgroundColor: colors.surface, borderRadius: 14, paddingVertical: 12, alignItems: 'center', justifyContent: 'center', minHeight: 56 }}>
+              <Text style={{ color: colors.accent, fontSize: 20, fontWeight: '800' }}>{toolCount}</Text>
+              <Text style={{ color: colors.accent, fontSize: 11, fontWeight: '600', marginTop: 2 }}>{t('saved.type_tool')}</Text>
             </View>
           )}
         </View>

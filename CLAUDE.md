@@ -13,12 +13,12 @@ ailon/
 ├── scripts/          # Python backend — LangGraph pipelines + Firebase writes
 │   ├── agents/       # Pipeline core: config.py, news_team.py, principle_team.py, tools.py
 │   ├── generate_daily.py      # Main orchestrator (news + principles + features)
-│   ├── generate_features.py   # Post-pipeline: briefing, glossary, timeline, story, related articles
+│   ├── generate_features.py   # Post-pipeline: briefing, glossary, timeline, story, related articles, daily tools
 │   └── notifications.py       # FCM 알림 (하이라이트 기사 제목) + Expo 폴백
 ├── mobile/           # React Native (Expo SDK 54) + NativeWind
-│   ├── app/          # Expo Router file-based routing (tabs: index, snaps, saved, profile)
-│   ├── components/   # UI: briefing/, feed/, shared/
-│   ├── hooks/        # Data hooks: useNews, usePrinciple, useBriefing, useAuth, etc.
+│   ├── app/          # Expo Router file-based routing (tabs: index, snaps, tools, saved, profile)
+│   ├── components/   # UI: briefing/, feed/, tools/, shared/
+│   ├── hooks/        # Data hooks: useNews, usePrinciple, useTools, useBriefing, useAuth, etc.
 │   ├── context/      # DrawerContext, LanguageContext, ThemeContext
 │   └── lib/          # firebase.ts, types.ts, colors.ts, translations.ts, theme.ts
 ├── functions/        # Firebase Cloud Functions v2 (comment/like push notifications)
@@ -90,12 +90,23 @@ cd ../functions && firebase deploy --only functions
 - **4 Super Categories**: 공학(5), 자연과학(4), 형식과학(2), 응용과학(1) — 12 disciplines total
 - Date navigation, AsyncStorage offline caching
 
-### Tab 3: Saved (saved.tsx)
-- Bookmark collection with type filter (News | Principles)
-- Delete with confirmation, "View Original" for news
+### Tab 3: AI Tools & Tips (tools.tsx)
+- **Daily AI Tools**: 3-5 curated AI tools per day from `daily_tools/{date}`, LLM-generated based on trending news
+- **Tips**: 1-2 practical usage tips per day
+- **Tool Card**: name (KO/EN), description, category badge, difficulty badge, "why useful" highlight, "Try it" external link button, bookmark
+- **Category Filter**: Horizontal scroll chips (coding/research/productivity/creative/writing/other)
+- **6 Categories**: Color-coded icons (Code2/Search/Zap/Palette/PenTool/MoreHorizontal)
+- **3 Difficulty Levels**: Beginner (green), Intermediate (amber), Advanced (red)
+- **Tool Spotlight**: Single tool card in news feed (below briefing), sourced from `daily_briefings/{date}.tool_spotlight`
+- Date navigation (30 days back), pull-to-refresh, AsyncStorage offline caching
+- Skeleton loading, error/empty states
+
+### Tab 4: Saved (saved.tsx)
+- Bookmark collection with type filter (News | Principles | Tools)
+- Delete with confirmation, "View Original" for news/tools
 - Real-time sync from `users/{uid}/bookmarks` subcollection
 
-### Tab 4: Profile (profile.tsx)
+### Tab 5: Profile (profile.tsx)
 - Google Sign-In authentication
 - Language toggle (KO/EN, system language detection default), dark/light theme switch
 - Notification settings: newsAlerts, commentReplies, likes (per-type toggles)
@@ -109,6 +120,8 @@ cd ../functions && firebase deploy --only functions
 - **RelatedArticlesSection**: Horizontal card carousel (entity/cluster matching)
 - **TimelineSection**: Vertical timeline with past article links
 - **DailyBriefingCard**: Morphing Blob 스타일 — 접힌 상태(글로우 미니 바 + TTS + 미니 도넛 링) / 펼친 상태(도메인 도넛 차트 + 태그 클라우드 + 스파크라인 + 브리핑 전문). 도넛 차트는 topic_cluster_id 기반 도메인 분포(Top 5 + Others) 표시, 7색 도메인 팔레트(NLP/Vision/ML/Robotics/Multimodal/Business/Others)
+- **ToolSpotlightCard**: Single AI tool card in news feed (below briefing), category color accent, "Try it" external link, reads from `useBriefing().tool_spotlight`
+- **ToolsContent**: Tool cards + tip cards for AI Tools tab, category icons, difficulty badges, bookmark support, skeleton/error/empty states
 - **PersonalizedFeed**: Scoring based on like history (category +3, tag +2)
 - **SideDrawer**: Animated left panel (82% width, max 320px)
 
@@ -123,7 +136,8 @@ cd ../functions && firebase deploy --only functions
 | useComments | `comments/{docId}/entries` | Threaded comments |
 | useArticleViews | `article_views/{docId}` | View tracking (daily dedup) |
 | useBatchStats | Multiple collections | Batch fetch likes/views/comments for feed cards |
-| useBriefing | `daily_briefings/{date}` | AI briefing text + story count |
+| useTools | `daily_tools/{date}` | Daily AI tools with date navigation + offline cache |
+| useBriefing | `daily_briefings/{date}` | AI briefing text + story count + tool_spotlight |
 | useGlossaryDB | `glossary_terms` | Term search (max 200 terms) |
 | useNotifications | `users/{uid}` | Expo + FCM token registration, Android channels (news/social) |
 | useNotificationSettings | `users/{uid}/preferences` | Per-type notification toggles |
@@ -234,7 +248,8 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 |---------|--------|-------------|
 | save_articles | `articles/{id}` | Individual article docs (SHA256 URL hash) |
 | find_related | `related_ids` | Top 3 related by entity+cluster+category matching |
-| daily_briefing | `daily_briefings/{date}` | 2-3 min AI briefing (KO+EN), story_count, hot_topics with subtag merging (prefix+space boundary, e.g. "microsoft 365" → "microsoft") |
+| daily_briefing | `daily_briefings/{date}` | 2-3 min AI briefing (KO+EN), story_count, hot_topics, tool_spotlight (single tool card for news feed) |
+| daily_tools | `daily_tools/{date}` | 3-5 AI tools + 1-2 tips per day, LLM-generated from trending news context |
 | glossary | `glossary_terms/{term}` | Accumulated terms across articles |
 | timeline | `timeline_ids` | Links to similar articles from past 90 days |
 | patch_daily_news | `daily_news/{date}` | Reflects related_ids/timeline_ids back |
@@ -246,7 +261,8 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 | `daily_news/{date}` | 1 doc/day | highlights[], categorized_articles{}, source_articles{} |
 | `daily_principles/{date}` | 1 doc/day | 3-step insight + deepDive + verification |
 | `articles/{article_id}` | 1 doc/article | Full article + entities, related_ids, timeline_ids |
-| `daily_briefings/{date}` | 1 doc/day | briefing_ko, briefing_en, story_count, category_stats, domain_stats, hot_topics, trend_history |
+| `daily_briefings/{date}` | 1 doc/day | briefing_ko, briefing_en, story_count, category_stats, domain_stats, hot_topics, trend_history, tool_spotlight |
+| `daily_tools/{date}` | 1 doc/day | tools[] (3-5 AI tools), tips[] (1-2 tips), date, updated_at |
 | `glossary_terms/{term}` | 1 doc/term | term/desc (KO+EN), article_ids |
 | `users/{uid}` | 1 doc/user | profile, expoPushToken, fcmToken, language (ko/en), lastLikeNotifiedAt |
 | `users/{uid}/bookmarks` | subcollection | type, itemId, metadata |
@@ -294,7 +310,7 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 - Default model: `gemini-2.5-flash` via LangChain (`langchain-google-genai`)
 - Embedding model: `gemini-embedding-001` (L6 dedup cosine similarity)
 - LLM instances cached per (model, temperature, max_tokens, thinking, json_mode) tuple
-- Temperature: 0.0 (translate/summarize, classify, rank, entity, AI filter, verify), 0.3 (briefing), 0.4 (principle generation)
+- Temperature: 0.0 (translate/summarize, classify, rank, entity, AI filter, verify), 0.3 (briefing, daily tools), 0.4 (principle generation)
 - Thinking mode disabled for ALL pipeline LLM calls (speed + JSON stability)
 - JSON mode via `response_mime_type: application/json`
 - Retry: news `_llm_invoke_with_retry` max 3 attempts (string prompt), principle `_llm_invoke_with_retry` max 3 attempts (message list)
@@ -305,11 +321,13 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 ## Current Phase: Launch Readiness (MVP)
 
 ### What's Done
-- 4-tab mobile app — feature complete (news feed, principles, saved, profile)
-- All interactions: likes, comments, bookmarks, share, TTS, glossary highlight
+- 5-tab mobile app — feature complete (news feed, snaps, AI tools, saved, profile)
+- AI Tools & Tips tab: daily curated tools (3-5) + tips (1-2), category filter, date navigation
+- Tool Spotlight card in news feed (below briefing)
+- All interactions: likes, comments, bookmarks (news/principle/tool), share, TTS, glossary highlight
 - LangGraph news pipeline (8 nodes, 22 sources, EN/KO parallel)
 - Principle pipeline (12 disciplines, 4 super categories, 3-step insight + deep dive + verification)
-- Post-pipeline: briefing, glossary, timeline, related articles
+- Post-pipeline: briefing (+ tool_spotlight), glossary, timeline, related articles, daily tools
 - Auth (Google), dark mode, bilingual (KO/EN), push notifications
 
 ### What NOT to Build Before Launch
@@ -317,7 +335,7 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 - Search functionality
 - Onboarding tutorial
 - Premium/payment features
-- Any new pipeline nodes
+- Any new LangGraph pipeline nodes (post-pipeline features like generate_daily_tools are OK)
 
 ### Build & Release
 - **IMPORTANT**: OneDrive 폴더에서 직접 `eas build` 하면 tar Permission denied 에러 발생. 반드시 OneDrive 밖으로 복사 후 빌드:

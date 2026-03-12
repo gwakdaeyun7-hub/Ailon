@@ -8,6 +8,7 @@ const translations: Record<string, Record<Language, string>> = {
   // ─── 탭 이름 ───
   'tab.news': { ko: 'AI 트렌드', en: 'AI Trends' },
   'tab.snaps': { ko: '학문 스낵', en: 'Snacks' },
+  'tab.tools': { ko: 'AI 도구', en: 'Tools' },
   'tab.saved': { ko: '저장', en: 'Saved' },
   'tab.profile': { ko: '프로필', en: 'Profile' },
 
@@ -126,12 +127,12 @@ const translations: Record<string, Record<Language, string>> = {
   'snaps.tab_insight': { ko: '인사이트', en: 'Insight' },
   'snaps.tab_deepdive': { ko: '딥다이브', en: 'Deep Dive' },
   'snaps.foundation': { ko: '원리 발견', en: 'Discovery' },
-  'snaps.application': { ko: 'AI의 난제', en: 'Challenge' },
+  'snaps.application': { ko: 'AI의 난제', en: 'AI Challenge' },
   'snaps.integration': { ko: '현실 임팩트', en: 'Impact' },
-  'snaps.next_application': { ko: '다음: AI의 난제 →', en: 'Next: Challenge →' },
+  'snaps.next_application': { ko: '다음: AI의 난제 →', en: 'Next: AI Challenge →' },
   'snaps.next_integration': { ko: '다음: 현실 임팩트 →', en: 'Next: Impact →' },
   'snaps.complete': { ko: '완료!', en: 'Complete!' },
-  'snaps.problem': { ko: 'AI의 난제', en: 'The Challenge' },
+  'snaps.problem': { ko: 'AI의 난제', en: 'AI Challenge' },
   'snaps.original_problem': { ko: '원래 문제', en: 'Original Problem' },
   'snaps.bridge': { ko: '영감의 다리', en: 'The Bridge' },
   'snaps.core_intuition': { ko: '핵심 직관', en: 'Core Intuition' },
@@ -252,6 +253,30 @@ const translations: Record<string, Record<Language, string>> = {
   'story.count': { ko: '개 스토리', en: ' stories' },
   'story.summary': { ko: '정리하면', en: 'In summary' },
   'story.no_data': { ko: '오늘의 스토리를 준비하고 있어요', en: 'Preparing today\'s stories' },
+
+  // ─── Tool Spotlight (Phase 1) ───
+  'tool.spotlight_title': { ko: '오늘의 AI 도구', en: "Today's AI Tool" },
+  'tool.try_it': { ko: '사용해보기', en: 'Try it' },
+  'tool.why_useful': { ko: '왜 유용해요?', en: 'Why useful?' },
+
+  // ─── Tools 탭 (Phase 2) ───
+  'snaps.tab_tools': { ko: 'AI 도구', en: 'AI Tools' },
+  'tools.title': { ko: 'AI 도구 & 팁', en: 'AI Tools & Tips' },
+  'tools.section_tools': { ko: '오늘의 도구', en: "Today's Tools" },
+  'tools.section_tips': { ko: '오늘의 팁', en: "Today's Tips" },
+  'tools.no_content': { ko: '아직 도구 추천이 없어요', en: 'No tool recommendations yet' },
+  'tools.no_content_desc': { ko: '새로운 AI 도구를 준비하고 있어요', en: 'New AI tool picks are being prepared' },
+  'tools.try_it': { ko: '사용해보기', en: 'Try it' },
+  'tools.beginner': { ko: '입문', en: 'Beginner' },
+  'tools.intermediate': { ko: '중급', en: 'Intermediate' },
+  'tools.advanced': { ko: '고급', en: 'Advanced' },
+  'tools.cat_coding': { ko: '코딩', en: 'Coding' },
+  'tools.cat_research': { ko: '리서치', en: 'Research' },
+  'tools.cat_productivity': { ko: '생산성', en: 'Productivity' },
+  'tools.cat_creative': { ko: '크리에이티브', en: 'Creative' },
+  'tools.cat_writing': { ko: '글쓰기', en: 'Writing' },
+  'tools.cat_other': { ko: '기타', en: 'Other' },
+  'saved.type_tool': { ko: '도구', en: 'Tools' },
 };
 
 export default translations;

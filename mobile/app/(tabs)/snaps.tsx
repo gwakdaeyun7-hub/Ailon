@@ -42,6 +42,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useBookmarks } from '@/hooks/useBookmarks';
 import { cardShadow, FontFamily } from '@/lib/theme';
+import { latexToDisplay } from '@/lib/latexToDisplay';
 import type { DailyPrinciples, Principle, DeepDive } from '@/lib/types';
 
 
@@ -85,10 +86,10 @@ type CategoryIconConfig = {
 };
 
 const CATEGORY_ICONS: Record<string, CategoryIconConfig> = {
-  '학문 기원': { icon: Landmark, lightColor: '#B45309', darkColor: '#FBBF24', lightBg: '#FFFBEB', darkBg: '#2D2513' },
-  '수학적 기초': { icon: Sigma, lightColor: '#0D7377', darkColor: '#2DD4BF', lightBg: '#F0FDFA', darkBg: '#112525' },
-  '생물학적 영감': { icon: Dna, lightColor: '#15803D', darkColor: '#4ADE80', lightBg: '#F0FDF4', darkBg: '#052E16' },
-  '물리학 최적화': { icon: Atom, lightColor: '#EA580C', darkColor: '#FB923C', lightBg: '#FFF7ED', darkBg: '#431407' },
+  '공학': { icon: Landmark, lightColor: '#B45309', darkColor: '#FBBF24', lightBg: '#FFFBEB', darkBg: '#2D2513' },
+  '자연과학': { icon: Dna, lightColor: '#15803D', darkColor: '#4ADE80', lightBg: '#F0FDF4', darkBg: '#052E16' },
+  '형식과학': { icon: Sigma, lightColor: '#0D7377', darkColor: '#2DD4BF', lightBg: '#F0FDFA', darkBg: '#112525' },
+  '응용과학': { icon: Atom, lightColor: '#EA580C', darkColor: '#FB923C', lightBg: '#FFF7ED', darkBg: '#431407' },
 };
 
 function getCategoryConfig(superCategory: string, isDark: boolean): { Icon: React.ComponentType<{ size: number; color: string }>; color: string; bg: string } | null {
@@ -195,18 +196,10 @@ function NotebookCard({
         </Text>
       </View>
 
-      {/* Body */}
-      <Text style={{
-        fontSize: 12, lineHeight: 19.2, color: colors.textSecondary,
-        paddingHorizontal: 20, marginBottom: problemLine ? 10 : 12,
-      }}>
-        {body}
-      </Text>
-
-      {/* Problem line (Application only) */}
+      {/* Problem line first, then body — "problem → solution" narrative order */}
       {problemLine ? (
         <View style={{
-          marginHorizontal: 20, marginBottom: 12,
+          marginHorizontal: 20, marginBottom: 10,
           backgroundColor: colors.warningLight, borderRadius: 10,
           paddingHorizontal: 12, paddingVertical: 8,
           borderWidth: 1, borderColor: colors.warningBorder,
@@ -216,6 +209,14 @@ function NotebookCard({
           </Text>
         </View>
       ) : null}
+
+      {/* Body (solution when problemLine is present, description otherwise) */}
+      <Text style={{
+        fontSize: 12, lineHeight: 19.2, color: colors.textSecondary,
+        paddingHorizontal: 20, marginBottom: 12,
+      }}>
+        {body}
+      </Text>
 
       {/* Sub line (analogy / mechanism / impact) */}
       {subLine ? (
@@ -355,7 +356,7 @@ function DeepDiveContent({ deepDive, lang }: { deepDive: DeepDive; lang: string 
               fontSize: 12, lineHeight: 19.2, color: colors.textPrimary,
               fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
             }}>
-              {L(deepDive.formula, deepDive.formula_en, lang)}
+              {latexToDisplay(L(deepDive.formula, deepDive.formula_en, lang))}
             </Text>
           </View>
         ) : null}
@@ -600,7 +601,7 @@ export default function SnapsScreen() {
                     backgroundColor: colors.surface, borderRadius: 16, paddingHorizontal: 8, paddingVertical: 3,
                   }}>
                     <Clock size={10} color={colors.textDim} />
-                    <Text style={{ fontSize: 10, fontWeight: '600', color: colors.textDim }}>{principle.readTime}</Text>
+                    <Text style={{ fontSize: 10, fontWeight: '600', color: colors.textDim }}>{lang === 'en' ? (principle.readTime || '').replace('분', ' min') : principle.readTime}</Text>
                   </View>
                 )}
               </View>

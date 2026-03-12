@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-AI 기능 파이프라인 (7개 기능)
+AI 기능 파이프라인 (8개 기능)
 1. articles 독립 컬렉션 저장
 2. 관련 기사 매칭
-3. 데일리 브리핑
+3. 데일리 브리핑 (+ tool_spotlight)
 4. 용어 사전 축적
 5. 타임라인 빌드
 6. 스토리 타임라인 생성
+7. AI 도구 & 팁 생성 (daily_tools)
 
 generate_daily.py에서 호출됩니다.
 """
@@ -218,8 +219,10 @@ Write a 2-3 minute AI news briefing covering today's top stories.
 Korean: 해요체. Proper nouns stay in English. 5-7 stories, fact-focused.
 Open with greeting, close with sign-off.
 
+Also pick ONE notable AI tool/service mentioned in or related to today's articles. If no specific tool stands out, recommend a well-known AI tool relevant to the day's themes.
+
 Output format:
-{{"briefing_ko": "안녕하세요...", "briefing_en": "Hello...", "story_count": 5, "mentioned_indices": [0,1,2]}}
+{{"briefing_ko": "안녕하세요...", "briefing_en": "Hello...", "story_count": 5, "mentioned_indices": [0,1,2], "tool_spotlight": {{"name": "ToolName", "name_en": "ToolName", "description_ko": "한줄 설명", "description_en": "One-line desc", "url": "https://...", "category": "coding|research|productivity|creative|writing|other", "why_useful_ko": "왜 유용한지 1-2문장", "why_useful_en": "Why useful 1-2 sentences"}}}}
 
 Articles:
 {articles_text}"""
@@ -343,7 +346,14 @@ Articles:
             ci_warning(f"trend_history 조회 실패 (무시): {e}")
             trend_history = [{"date": today, "count": story_count}]
 
-        db.collection("daily_briefings").document(today).set({
+        # Tool Spotlight (Phase 1: 오늘의 AI 도구)
+        tool_spotlight = data.get("tool_spotlight")
+        if isinstance(tool_spotlight, dict) and tool_spotlight.get("name"):
+            print(f"  Tool Spotlight: {tool_spotlight.get('name')} ({tool_spotlight.get('category', '?')})")
+        else:
+            tool_spotlight = None
+
+        briefing_doc = {
             "date": today,
             "briefing_ko": data.get("briefing_ko", ""),
             "briefing_en": data.get("briefing_en", ""),
@@ -354,7 +364,11 @@ Articles:
             "hot_topics": hot_topics,
             "trend_history": trend_history,
             "updated_at": firestore.SERVER_TIMESTAMP,
-        })
+        }
+        if tool_spotlight:
+            briefing_doc["tool_spotlight"] = tool_spotlight
+
+        db.collection("daily_briefings").document(today).set(briefing_doc)
         print(f"  브리핑 저장 완료: {story_count}개 스토리")
 
         # CI 로그에 브리핑 전문 출력
@@ -630,3 +644,90 @@ def patch_daily_news_ids(result: dict):
         ci_warning(f"daily_news 패치 실패: {e}")
 
 
+# ─── 7. AI 도구 & 팁 생성 (Phase 2) ──────────────────────────────────────
+def generate_daily_tools(result: dict):
+    """오늘의 뉴스 기반 AI 도구 3-5개 + 팁 1-2개를 daily_tools/{date}에 저장."""
+    try:
+        from agents.config import get_llm
+        from agents.news_team import _parse_llm_json
+
+        highlights = result.get("highlights", [])[:3]
+        cat_articles = result.get("categorized_articles", {})
+        # 도구 추천을 위한 기사 컨텍스트 수집 (최대 10개)
+        seen_links = {a.get("link") for a in highlights if a.get("link")}
+        all_articles = list(highlights)
+        for arts in cat_articles.values():
+            for a in arts[:5]:
+                if a.get("link") not in seen_links:
+                    seen_links.add(a.get("link"))
+                    all_articles.append(a)
+                    if len(all_articles) >= 10:
+                        break
+            if len(all_articles) >= 10:
+                break
+
+        if len(all_articles) < 2:
+            print("  도구 추천 생략: 기사 부족")
+            return None
+
+        articles_text = ""
+        for i, a in enumerate(all_articles):
+            title = a.get("display_title", "") or a.get("title", "")
+            one_line = a.get("one_line", "")
+            tags = ", ".join(a.get("tags", [])[:3])
+            articles_text += f"[{i}] {title} | {one_line} | tags: {tags}\n"
+
+        prompt = f"""IMPORTANT: Output ONLY a valid JSON object. No markdown, no explanation. Start with open brace.
+
+Based on today's AI news articles, recommend 3-5 AI tools/services that are relevant, useful, and currently available.
+Also provide 1-2 practical tips for using AI tools effectively.
+
+Requirements:
+- Tools must be REAL, currently available services with valid URLs
+- Mix of categories (coding, research, productivity, creative, writing, other)
+- Mix of difficulty levels (beginner, intermediate, advanced)
+- Korean descriptions: 해요체, proper nouns in English
+- Each tool needs a unique id (lowercase, underscores, e.g. "cursor_ai")
+- Tips should be actionable and specific
+
+Output format:
+{{"tools": [{{"id": "tool_id", "name": "도구 이름", "name_en": "Tool Name", "description_ko": "한국어 설명 1-2문장", "description_en": "English desc 1-2 sentences", "category": "coding", "url": "https://...", "why_useful_ko": "왜 유용한지", "why_useful_en": "Why useful", "difficulty": "beginner"}}], "tips": [{{"id": "tip_id", "title_ko": "팁 제목", "title_en": "Tip title", "body_ko": "구체적인 팁 내용 2-3문장", "body_en": "Specific tip content 2-3 sentences", "tool_name": "관련 도구 이름 (선택)"}}]}}
+
+Today's articles:
+{articles_text}"""
+
+        llm = get_llm(temperature=0.3, max_tokens=4096, thinking=False, json_mode=True)
+        resp = llm.invoke([HumanMessage(content=prompt)])
+        data = _parse_llm_json(resp.content if hasattr(resp, "content") else str(resp))
+        if not isinstance(data, dict) or "tools" not in data:
+            ci_error(f"도구 추천 실패: 잘못된 응답 형식")
+            return None
+
+        tools = data.get("tools", [])
+        tips = data.get("tips", [])
+        if not tools:
+            ci_warning("도구 추천: 도구 0개 — 생략")
+            return None
+
+        db = get_firestore_client()
+        today = datetime.now(_KST).strftime("%Y-%m-%d")
+
+        db.collection("daily_tools").document(today).set({
+            "date": today,
+            "tools": tools,
+            "tips": tips,
+            "updated_at": firestore.SERVER_TIMESTAMP,
+        })
+        print(f"  도구 추천 저장 완료: {len(tools)}개 도구 + {len(tips)}개 팁")
+
+        ci_group(f"오늘의 AI 도구 ({len(tools)}개)")
+        for t in tools:
+            print(f"    [{t.get('category', '?')}] {t.get('name', '?')} — {t.get('description_ko', '')[:50]}")
+        for tip in tips:
+            print(f"    [팁] {tip.get('title_ko', '')}")
+        ci_endgroup()
+
+        return data
+    except Exception as e:
+        ci_error(f"도구 추천 실패: {e}")
+        return None

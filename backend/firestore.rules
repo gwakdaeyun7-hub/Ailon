@@ -36,6 +36,12 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Daily tools (AI 도구 추천) - 모두 읽기 가능
+    match /daily_tools/{date} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     // Articles collection - 모두 읽기 가능
     match /articles/{articleId} {
       allow read: if true;

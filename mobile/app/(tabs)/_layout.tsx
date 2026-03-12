@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import { View } from 'react-native';
-import { Cpu, BookOpen, Bookmark, User } from 'lucide-react-native';
+import { Cpu, BookOpen, Wand2, Bookmark, User } from 'lucide-react-native';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
 
@@ -62,6 +62,13 @@ export default function TabLayout() {
         options={{
           title: t('tab.snaps'),
           tabBarIcon: ({ color, focused }) => <TabIcon Icon={BookOpen} color={color} focused={focused} />,
+        }}
+      />
+      <Tabs.Screen
+        name="tools"
+        options={{
+          title: t('tab.tools'),
+          tabBarIcon: ({ color, focused }) => <TabIcon Icon={Wand2} color={color} focused={focused} />,
         }}
       />
       <Tabs.Screen

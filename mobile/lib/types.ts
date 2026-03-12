@@ -124,7 +124,12 @@ export interface DeepDive {
 export interface PrincipleVerification {
   verified: boolean;
   confidence: number;
+  principleAccuracy?: number;
+  mappingAccuracy?: number;
+  insightClarity?: number;
+  deepDiveDepth?: number;
   factCheck: string;
+  issues?: string[];
 }
 
 export interface Principle {
@@ -182,7 +187,7 @@ export interface BookmarkMeta {
 }
 
 export interface Bookmark {
-  type: 'news' | 'principle' | 'snap';
+  type: 'news' | 'principle' | 'snap' | 'tool';
   itemId: string;
   createdAt: Timestamp | string | null;
   metadata?: BookmarkMeta;
@@ -201,6 +206,17 @@ export interface UserFeedback {
 // AI Features: Briefing, Glossary, Timeline
 // ---------------------------------------------------------------------------
 
+export interface ToolSpotlight {
+  name: string;
+  name_en: string;
+  description_ko: string;
+  description_en: string;
+  url: string;
+  category: string;
+  why_useful_ko: string;
+  why_useful_en: string;
+}
+
 export interface DailyBriefing {
   date: string;
   briefing_ko: string;
@@ -217,6 +233,7 @@ export interface DailyBriefing {
   domain_stats?: { domain: string; count: number }[];
   hot_topics?: { tag: string; count: number }[];
   trend_history?: { date: string; count: number }[];
+  tool_spotlight?: ToolSpotlight;
 }
 
 
@@ -234,4 +251,38 @@ export interface TimelineNode {
   title: string;
   date: string;
   source: string;
+}
+
+// ---------------------------------------------------------------------------
+// AI Tools & Tips (Phase 2)
+// ---------------------------------------------------------------------------
+
+export interface ToolItem {
+  id: string;
+  name: string;
+  name_en: string;
+  description_ko: string;
+  description_en: string;
+  category: 'coding' | 'research' | 'productivity' | 'creative' | 'writing' | 'other';
+  url: string;
+  why_useful_ko: string;
+  why_useful_en: string;
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  source_article_id?: string;
+}
+
+export interface TipItem {
+  id: string;
+  title_ko: string;
+  title_en: string;
+  body_ko: string;
+  body_en: string;
+  tool_name?: string;
+}
+
+export interface DailyTools {
+  date: string;
+  tools: ToolItem[];
+  tips: TipItem[];
+  updated_at: Timestamp | string | null;
 }
