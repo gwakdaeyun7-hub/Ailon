@@ -21,6 +21,7 @@ const translations: Record<string, Record<Language, string>> = {
   'news.source_subtitle': { ko: '한국 AI 미디어 소식', en: 'Korean AI Media' },
   'news.more': { ko: '개 더보기', en: ' more' },
   'news.show_more': { ko: '더보기', en: 'Show more' },
+  'news.collapse': { ko: '접기', en: 'Collapse' },
   'news.no_news': { ko: '아직 뉴스가 없어요', en: 'No news yet' },
   'news.connection_error': { ko: '연결에 문제가 있어요', en: 'Connection error' },
   'news.retry': { ko: '다시 시도', en: 'Retry' },

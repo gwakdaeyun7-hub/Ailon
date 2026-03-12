@@ -71,7 +71,7 @@ cd ../functions && firebase deploy --only functions
 ### Tab 1: News Feed (index.tsx ~1500 lines)
 - **Highlights**: Hero card + 2x2 grid, top 1 article per category (3 total)
 - **Daily Briefing**: AI-generated 2-3 min briefing card with TTS playback (expo-speech)
-- **Categories**: Horizontal scroll tabs (research / models_products / industry_business), Top 25 per category
+- **Categories**: Horizontal scroll tabs (research / models_products / industry_business), Top 20 per category
 - **Sources**: 22 source sections, Korean sources (AI타임스, GeekNews, ZDNet AI, 요즘IT) in separate tabs
 - **Article Card**: display_title, one_line, key_points (3), why_important, background, tags, glossary, "AI Summary" badge, "Read Original" button (Linking.openURL)
 - **Interactions**: Like/dislike (ReactionBar), comments (CommentSheet modal), share, bookmark
@@ -158,7 +158,7 @@ LangGraph 8-node pipeline with parallel EN/KO branches:
 | categorizer | LLM 3-category classification + 7-layer dedup | batch=5, 3 parallel workers |
 | ranker | Per-category LLM ranking → score (1st=100, last=30) | token_budget=max(6144, count*120), 3 parallel workers (per-category) |
 | entity_extractor | Entity extraction + topic clustering | batch=5, up to 4 parallel workers, 3-tier retry (batch→sub-batch→individual) |
-| selector | Highlight Top 3 + Category Top 25 | today articles only for highlights |
+| selector | Highlight Top 3 + Category Top 20 | today articles only for highlights |
 | assembler | Final structure + timing report | Korean sources in separate sections |
 
 ### News Sources (22 total, 3 tiers)
@@ -179,7 +179,7 @@ AI타임스, GeekNews, ZDNet AI 에디터 (HTML scrape), 요즘IT AI
 | Ranker token_budget | `max(6144, count*120)` | 이전 `count*100`에서 110건 카테고리 JSON 잘림 발생 → `count*120`으로 상향 |
 | Ranker ctx thresholds | >40: title only, 25-40: 150자, ≤25: 500자 | 대규모 카테고리 랭킹 정확도 |
 | HIGHLIGHT_COUNT | 3 | 카테고리당 1개씩 |
-| CATEGORY_TOP_N | 25 | 카테고리별 최대 기사 수 |
+| CATEGORY_TOP_N | 20 | 카테고리별 최대 기사 수 |
 | MAX_ARTICLE_AGE_DAYS | 5 | 표시 범위 |
 | CLASSIFY_BATCH_SIZE | 5 | LLM 안정성 |
 | EN batch size | 5 | 번역+요약 |
@@ -260,7 +260,7 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 - Schedule: 6AM + 6PM KST daily
 - Manual trigger: target (all/news/principle), force flag
 - Python 3.11, timeout: 40 minutes
-- 6AM+6PM merge: `save_news_to_firestore()`에서 categorized_articles는 기존 doc과 병합 후 카테고리당 25개 cap 적용. highlights는 병합 없이 최신 실행 결과로 교체
+- 6AM+6PM merge: `save_news_to_firestore()`에서 categorized_articles는 기존 doc과 병합 후 카테고리당 20개 cap 적용. highlights는 병합 없이 최신 실행 결과로 교체
 
 ### Push Notification System
 

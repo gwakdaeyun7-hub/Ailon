@@ -863,19 +863,24 @@ function CategoryTabSection({
   categorizedArticles: Record<string, Article[]>; categoryOrder: string[]; onArticlePress: (article: Article) => void; allStats: Record<string, BatchStats>; userLikedLinks?: string[];
 }) {
   const [activeTab, setActiveTab] = useState(categoryOrder[0] || 'research');
-  // 0=초기 5개, 1=전체
+  // 0=5개, 1=10개, 2=15개, 3=20개(전체)
+  const BATCH_SIZE = 5;
   const [expandLevel, setExpandLevel] = useState(0);
   const { lang, t } = useLanguage();
   const { colors } = useTheme();
 
   const articles = categorizedArticles[activeTab] || [];
   const stats = allStats;
+  const maxLevel = Math.max(0, Math.ceil(articles.length / BATCH_SIZE) - 1);
+
   const visible = useMemo(() => {
-    if (expandLevel === 0) return articles.slice(0, Math.min(5, articles.length));
-    return articles;
+    const count = Math.min((expandLevel + 1) * BATCH_SIZE, articles.length);
+    return articles.slice(0, count);
   }, [articles, expandLevel]);
 
-  const remaining = expandLevel === 0 ? articles.length - Math.min(5, articles.length) : 0;
+  const isFullyExpanded = expandLevel >= maxLevel;
+  const shownCount = visible.length;
+  const totalCount = articles.length;
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
@@ -1051,24 +1056,52 @@ function CategoryTabSection({
         ))}
       </View>}
 
-      {activeTab !== '_personalized' && <>
-      {/* 더보기 1단계: 전체 카테고리 기사 */}
-      {remaining > 0 && (
+      {activeTab !== '_personalized' && totalCount > BATCH_SIZE && (
         <Pressable
-          onPress={() => setExpandLevel(1)}
-          accessibilityLabel={`${remaining}${t('news.more')}`}
+          onPress={() => {
+            if (isFullyExpanded) {
+              setExpandLevel(0);
+            } else {
+              setExpandLevel(prev => Math.min(prev + 1, maxLevel));
+            }
+          }}
+          accessibilityLabel={isFullyExpanded ? t('news.collapse') : `${t('news.show_more')} ${shownCount}/${totalCount}`}
           accessibilityRole="button"
           style={{ alignItems: 'center', paddingVertical: 12, marginHorizontal: 16 }}
         >
-          <View style={{ paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12, backgroundColor: colors.border, borderWidth: 1, borderColor: colors.border }}>
+          <View style={{
+            flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+            paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12,
+            backgroundColor: colors.border, borderWidth: 1, borderColor: colors.border,
+            gap: 12,
+          }}>
+            {/* 프로그레스 닷 */}
+            <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
+              {Array.from({ length: maxLevel + 1 }, (_, i) => (
+                <View key={i} style={{
+                  width: 6, height: 6, borderRadius: 3,
+                  backgroundColor: i <= expandLevel ? colors.primary : colors.placeholder,
+                }} />
+              ))}
+            </View>
+            {/* 라벨 */}
             <Text style={{ fontSize: 13, fontWeight: '700', color: colors.textSecondary }}>
-              +{remaining}{t('news.more')}
+              {isFullyExpanded ? t('news.collapse') : t('news.show_more')}
             </Text>
+            {/* 카운트 + 쉐브론 */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Text style={{ fontSize: 12, color: colors.textSecondary }}>
+                {shownCount}/{totalCount}
+              </Text>
+              <Ionicons
+                name={isFullyExpanded ? 'chevron-up' : 'chevron-down'}
+                size={14}
+                color={colors.textSecondary}
+              />
+            </View>
           </View>
         </Pressable>
       )}
-
-      </>}
     </View>
   );
 }

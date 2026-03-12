@@ -1987,7 +1987,7 @@ def entity_extractor_node(state: NewsGraphState) -> dict:
 
 # ─── Node 6: selector (하이라이트 Top 3 + 카테고리별 Top 25 + 품질 검증) ───
 HIGHLIGHT_COUNT = 3
-CATEGORY_TOP_N = 25
+CATEGORY_TOP_N = 20
 
 
 
