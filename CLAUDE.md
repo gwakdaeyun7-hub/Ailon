@@ -158,7 +158,7 @@ LangGraph 8-node pipeline with parallel EN/KO branches:
 | Node | Function | Key Config |
 |------|----------|------------|
 | collector | 22 RSS sources + scraping + LLM AI filter + date recovery | trafilatura + Chrome UA, 6 RSS workers + 10 scrape workers + 4 AI filter workers. RSS 날짜 미추출 시 `date_estimated=True` 마킹 → 스크래핑에서 meta 태그(article:published_time 등), `<time>`, JSON-LD, trafilatura bare_extraction으로 날짜 복원 |
-| en_process | EN→KO translation + summarization | batch=5, max_tokens=12288, 5 parallel workers, 3-phase retry (batch→individual→fallback) |
+| en_process | EN→KO translation + summarization | batch=5, max_tokens=12288, 5 parallel workers, 4-phase retry (batch→individual→fallback→간이번역) |
 | ko_process | KO summarization | batch=2, max_tokens=12288, 5 parallel workers, 3-phase retry |
 | categorizer | LLM 3-category classification + 7-layer dedup | batch=5, 3 parallel workers |
 | ranker | Per-category LLM ranking → score (1st=100, last=30) | token_budget=max(6144, count*150), 3 parallel workers (per-category) |
@@ -375,6 +375,7 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 - **index.tsx ~1500 lines**: 더 이상 inline 컴포넌트 추가 금지, components/feed/로 추출할 것
 - **Pipeline QA logs**: print + GitHub Actions 어노테이션 (`::warning::`, `::error::`, `::group::`) + Job Summary. Firestore에는 저장 안 됨
 - **Pipeline QA 스킬**: `/pipeline-qa`에 로그를 붙여넣으면 AI 필터/분류/중복감지/랭킹/브리핑/용어·태그/학문스낵 7개 영역 심층 분석 + 코드 자동 수정. 랭킹 검사는 **전체 기사**를 대상으로 카테고리별 순위 테이블 출력 + 미스랭킹 식별. 상세 기준은 `.claude/skills/pipeline-qa/SKILL.md` 참조
+- **EN 기사 번역 실패 폴백**: 배치+개별 재시도 모두 실패 시 Phase 3에서 `display_title = title` (영어 원본). Phase 4 간이 번역이 제목+one_line만 LLM으로 최소 복구 시도. Phase 4마저 실패 시 `ci_warning` 경고 + 영어 제목 유지 (제거하지 않음 — 상위 기사일 수 있으므로). 로그 패턴: `미번역 EN 기사 N개 감지`, `[간이 번역 복구]`, `미번역 EN 기사 N개 잔존`
 - **EAS Build OneDrive 문제**: OneDrive 동기화 폴더에서 `eas build` 실행 시 빌드 서버 tar 해제 Permission denied. 반드시 `C:\dev\ailon` 등 로컬 폴더로 복사 후 빌드
 
 ## Behavioral Guidelines
