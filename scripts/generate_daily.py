@@ -66,25 +66,6 @@ def _validate_output(result: dict) -> list[str]:
     return warnings
 
 
-def _merge_articles(existing: list[dict], new: list[dict]) -> list[dict]:
-    """link 기준 병합. 중복 시 신규(최신 수집) 우선. link 없으면 title 폴백."""
-    seen = {}
-    for a in new:
-        link = a.get("link", "")
-        key = link if link else a.get("title", "")
-        if not key:
-            continue
-        seen[key] = a
-    for a in existing:
-        link = a.get("link", "")
-        key = link if link else a.get("title", "")
-        if not key:
-            continue
-        if key not in seen:
-            seen[key] = a
-    return list(seen.values())
-
-
 def save_news_to_firestore(result: dict):
     """뉴스 결과를 Firestore에 저장 (3-Section 구조: highlights + categorized + source_articles)"""
     db = get_firestore_client()
@@ -138,100 +119,55 @@ def save_news_to_firestore(result: dict):
         for src, articles in result.get("source_articles", {}).items()
     }
 
-    # 필터/중복 기사는 더 이상 분리하지 않음 — 빈 값으로 기존 데이터 덮어쓰기
-    filtered_articles: list[dict] = []
-    deduped_articles: dict[str, list[dict]] = {}
-
     doc_ref = db.collection("daily_news").document(today)
 
-    # ─── 기존 문서와 병합 (오전+오후 수집 결과 보존) ───
+    # ─── 기존 문서에서 중복되지 않는 기사를 archived_articles에 보존 ───
+    archived_articles: dict[str, list[dict]] = {}
     try:
         existing_doc = doc_ref.get()
-    except Exception as e:
-        ci_warning(f"기존 문서 조회 실패 (신규로 저장): {type(e).__name__}: {e}")
+    except Exception:
         existing_doc = None
 
     if existing_doc and existing_doc.exists:
         old = existing_doc.to_dict()
-        print("  [병합] 기존 문서 발견 — 오전+오후 병합 수행")
 
-        # highlights: 최신 실행 결과 사용 (병합 안 함 — GitHub Actions 로그와 모바일 일치)
-        # 기존 하이라이트 중 신규에 없는 기사 → 카테고리로 복원 예정
-        new_hl_links = {a.get("link", "") for a in highlights if a.get("link")}
-
-        # categorized_articles: 카테고리별 병합 (크로스-카테고리 중복 제거) → score 내림차순
-        old_cat = old.get("categorized_articles", {})
-        # 신규 categorized 기사 link 수집 → 기존 모든 카테고리에서 제거
-        # (카테고리 변경 시 이전 카테고리의 구 데이터 잔존 방지)
-        new_cat_links: set[str] = set()
-        for cat_arts in categorized_articles.values():
-            for a in cat_arts:
-                link = a.get("link", "")
-                if link:
-                    new_cat_links.add(link)
-        cleaned_old_cat = {
-            cat: [a for a in arts if a.get("link", "") not in new_cat_links]
-            for cat, arts in old_cat.items()
-        }
-        all_cats = set(list(cleaned_old_cat.keys()) + list(categorized_articles.keys()))
-        categorized_articles = {
-            cat: sorted(
-                _merge_articles(cleaned_old_cat.get(cat, []), categorized_articles.get(cat, [])),
-                key=lambda a: a.get("score", 0), reverse=True,
-            )
-            for cat in all_cats
-        }
-
-        # 기존 하이라이트 중 신규 하이라이트/카테고리에 없는 기사 → 카테고리로 복원
-        existing_cat_links = set()
+        # 최신 실행의 모든 link 수집
+        new_links = {a.get("link", "") for a in highlights if a.get("link")}
         for arts in categorized_articles.values():
             for a in arts:
                 if a.get("link"):
-                    existing_cat_links.add(a["link"])
-        for a in old.get("highlights", []):
+                    new_links.add(a["link"])
+        for arts in source_articles.values():
+            for a in arts:
+                if a.get("link"):
+                    new_links.add(a["link"])
+
+        # 기존 categorized + archived에서 중복되지 않는 기사만 archived로 보존
+        all_old_articles: list[dict] = []
+        for arts in old.get("categorized_articles", {}).values():
+            all_old_articles.extend(arts)
+        for arts in old.get("archived_articles", {}).values():
+            all_old_articles.extend(arts)
+
+        seen_links: set[str] = set(new_links)
+        for a in all_old_articles:
             link = a.get("link", "")
-            if link and link not in new_hl_links and link not in existing_cat_links:
-                cat = a.get("category", "industry_business")
-                if cat not in categorized_articles:
-                    categorized_articles[cat] = []
-                categorized_articles[cat].append(a)
+            if not link or link in seen_links:
+                continue
+            seen_links.add(link)
+            cat = a.get("category", "industry_business")
+            if cat not in archived_articles:
+                archived_articles[cat] = []
+            archived_articles[cat].append(a)
 
-        # 하이라이트 제거 + 카테고리별 Top 25 제한 (병합 후 초과 방지 — 로그와 모바일 일치)
-        hl_links = {a.get("link", "") for a in highlights if a.get("link")}
-        categorized_articles = {
-            cat: sorted(
-                [a for a in arts if a.get("link", "") not in hl_links],
-                key=lambda a: a.get("score", 0), reverse=True,
-            )[:25]
-            for cat, arts in categorized_articles.items()
-        }
-
-        # source_articles: 소스별 병합
-        old_src = old.get("source_articles", {})
-        all_srcs = set(list(old_src.keys()) + list(source_articles.keys()))
-        source_articles = {
-            src: _merge_articles(old_src.get(src, []), source_articles.get(src, []))
-            for src in all_srcs
-        }
-
-    # category_order, source_order: 합집합(순서 유지)
-    def _union_order(existing_order: list, new_order: list) -> list:
-        seen = set()
-        merged = []
-        for item in new_order + existing_order:
-            if item not in seen:
-                seen.add(item)
-                merged.append(item)
-        return merged
+        preserved = sum(len(arts) for arts in archived_articles.values())
+        if preserved:
+            print(f"  [보존] 기존 문서 발견 — 중복되지 않는 기사 {preserved}개 archived에 보존")
 
     category_order = result.get("category_order", [])
     source_order = result.get("source_order", [])
-    if existing_doc and existing_doc.exists:
-        old = existing_doc.to_dict()
-        category_order = _union_order(old.get("category_order", []), category_order)
-        source_order = _union_order(old.get("source_order", []), source_order)
 
-    # total_count 재계산
+    # total_count: 표시용 기사만 카운트
     total_count = sum(len(v) for v in categorized_articles.values())
 
     doc_data = {
@@ -241,8 +177,7 @@ def save_news_to_firestore(result: dict):
         "category_order": category_order,
         "source_articles": source_articles,
         "source_order": source_order,
-        "filtered_articles": filtered_articles,
-        "deduped_articles": deduped_articles,
+        "archived_articles": archived_articles,
         "total_count": total_count,
         "updated_at": firestore.SERVER_TIMESTAMP,
     }

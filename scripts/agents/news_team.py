@@ -658,8 +658,44 @@ def _process_articles(articles: list[dict], translate: bool, batch_size: int, ma
         if not a.get("why_important_en"):
             a["why_important_en"] = ""
 
+    # 4차: 미번역 EN 기사 간이 번역 (제목 + one_line 최소 복구)
+    if translate:
+        untranslated = [a for a in articles if a.get("lang") != "ko" and a.get("display_title") == a.get("title") and a.get("title")]
+        if untranslated:
+            ci_warning(f"미번역 EN 기사 {len(untranslated)}개 감지 — 간이 번역 시도")
+            llm = get_llm(temperature=0.0, max_tokens=2048, thinking=False, json_mode=True)
+            for a in untranslated:
+                try:
+                    title = a["title"]
+                    desc = (a.get("description") or "")[:500]
+                    prompt = f"""다음 영어 뉴스 기사의 제목과 한줄 요약을 한국어로 번역/생성해주세요.
+
+제목: {title}
+본문 요약: {desc}
+
+JSON 형식으로 응답:
+{{"display_title": "한국어 뉴스 헤드라인 스타일 제목", "display_title_en": "{title}", "one_line": "한국어 한줄 요약 (누가+무엇을)", "one_line_en": "English one-line summary"}}"""
+                    content = _llm_invoke_with_retry(llm, prompt, max_retries=2)
+                    if content:
+                        data = _parse_llm_json(content)
+                        if isinstance(data, dict):
+                            if data.get("display_title"):
+                                a["display_title"] = data["display_title"]
+                            if data.get("display_title_en"):
+                                a["display_title_en"] = data["display_title_en"]
+                            if data.get("one_line"):
+                                a["one_line"] = data["one_line"]
+                            if data.get("one_line_en"):
+                                a["one_line_en"] = data["one_line_en"]
+                            print(f"    [간이 번역 복구] {a['display_title'][:60]}")
+                except Exception as e:
+                    ci_warning(f"간이 번역 실패: {a.get('title', '')[:50]} — {e}")
+
     success = len([a for a in articles if a.get("summary") and len(a["summary"]) > 50])
-    print(f"  [{label}] 최종 {success}/{len(articles)}개 완료")
+    still_untranslated = len([a for a in articles if a.get("lang") != "ko" and a.get("display_title") == a.get("title") and a.get("title")]) if translate else 0
+    if still_untranslated:
+        ci_warning(f"[{label}] 미번역 EN 기사 {still_untranslated}개 잔존")
+    print(f"  [{label}] 최종 {success}/{len(articles)}개 완료" + (f" (미번역 {still_untranslated}개)" if still_untranslated else ""))
 
 
 # ─── LLM AI 관련성 필터 ───

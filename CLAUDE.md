@@ -253,7 +253,7 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 
 | Collection | Format | Content |
 |-----------|--------|---------|
-| `daily_news/{date}` | 1 doc/day | highlights[], categorized_articles{}, source_articles{} |
+| `daily_news/{date}` | 1 doc/day | highlights[], categorized_articles{}, source_articles{}, archived_articles{} (이전 실행 고유 기사 보존) |
 | `daily_principles/{date}` | 1 doc/day | 3-step insight + deepDive + verification |
 | `articles/{article_id}` | 1 doc/article | Full article + entities, related_ids, timeline_ids |
 | `daily_briefings/{date}` | 1 doc/day | briefing_ko, briefing_en, story_count, category_stats, domain_stats, hot_topics, trend_history |
@@ -270,7 +270,7 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 - Schedule: 6AM + 6PM KST daily
 - Manual trigger: target (all/news/principle), force flag
 - Python 3.11, timeout: 40 minutes
-- 6AM+6PM merge: `save_news_to_firestore()`에서 categorized_articles는 기존 doc과 병합 후 카테고리당 20개 cap 적용. highlights는 병합 없이 최신 실행 결과로 교체
+- 6AM+6PM: `save_news_to_firestore()`는 최신 실행 결과로 표시 데이터(highlights/categorized_articles/source_articles) 덮어쓰기. 기존 기사 중 중복되지 않는 것은 `archived_articles`에 별도 보존 (link 기준 dedup). 모바일은 표시 데이터만 읽음
 
 ### Push Notification System
 
