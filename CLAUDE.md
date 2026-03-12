@@ -108,7 +108,7 @@ cd ../functions && firebase deploy --only functions
 - **HighlightedText**: Auto glossary term detection + definition modal
 - **RelatedArticlesSection**: Horizontal card carousel (entity/cluster matching)
 - **TimelineSection**: Vertical timeline with past article links
-- **DailyBriefingCard**: Morphing Blob 스타일 — 접힌 상태(글로우 미니 바 + TTS + 미니 도넛 링) / 펼친 상태(KPI 그리드 + 도넛 차트 + 태그 클라우드 + 브리핑 전문)
+- **DailyBriefingCard**: Morphing Blob 스타일 — 접힌 상태(글로우 미니 바 + TTS + 미니 도넛 링) / 펼친 상태(도메인 도넛 차트 + 태그 클라우드 + 스파크라인 + 브리핑 전문). 도넛 차트는 topic_cluster_id 기반 도메인 분포(Top 5 + Others) 표시, 7색 도메인 팔레트(NLP/Vision/ML/Robotics/Multimodal/Business/Others)
 - **PersonalizedFeed**: Scoring based on like history (category +3, tag +2)
 - **SideDrawer**: Animated left panel (82% width, max 320px)
 
@@ -246,7 +246,7 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 | `daily_news/{date}` | 1 doc/day | highlights[], categorized_articles{}, source_articles{} |
 | `daily_principles/{date}` | 1 doc/day | 3-step insight + deepDive + verification |
 | `articles/{article_id}` | 1 doc/article | Full article + entities, related_ids, timeline_ids |
-| `daily_briefings/{date}` | 1 doc/day | briefing_ko, briefing_en, story_count, category_stats, hot_topics, trend_history |
+| `daily_briefings/{date}` | 1 doc/day | briefing_ko, briefing_en, story_count, category_stats, domain_stats, hot_topics, trend_history |
 | `glossary_terms/{term}` | 1 doc/term | term/desc (KO+EN), article_ids |
 | `users/{uid}` | 1 doc/user | profile, expoPushToken, fcmToken, language (ko/en), lastLikeNotifiedAt |
 | `users/{uid}/bookmarks` | subcollection | type, itemId, metadata |

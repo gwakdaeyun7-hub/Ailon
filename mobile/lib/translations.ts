@@ -211,6 +211,19 @@ const translations: Record<string, Record<Language, string>> = {
   'briefing.trend': { ko: '7일 추이', en: '7-Day Trend' },
   'briefing.briefingText': { ko: '브리핑', en: 'Briefing' },
   'briefing.infographic': { ko: 'Daily Infographic', en: 'Daily Infographic' },
+  'briefing.domainDist': { ko: '토픽 도메인 분포', en: 'Topic Domain Distribution' },
+
+  // ─── 도메인 라벨 ───
+  'domain.NLP': { ko: '자연어처리', en: 'NLP' },
+  'domain.Vision': { ko: '비전', en: 'Vision' },
+  'domain.ML': { ko: '머신러닝', en: 'ML' },
+  'domain.Robotics': { ko: '로보틱스', en: 'Robotics' },
+  'domain.Multimodal': { ko: '멀티모달', en: 'Multimodal' },
+  'domain.Infra': { ko: '인프라', en: 'Infra' },
+  'domain.Business': { ko: '비즈니스', en: 'Business' },
+  'domain.Regulation': { ko: '규제·안전', en: 'Regulation' },
+  'domain.Audio': { ko: '오디오', en: 'Audio' },
+  'domain.Others': { ko: '기타', en: 'Others' },
 
 
   // ─── 타임라인 ───

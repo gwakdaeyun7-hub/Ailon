@@ -252,6 +252,46 @@ Articles:
             total += count
         category_stats["total"] = total
 
+        # 도메인 통계 (topic_cluster_id 기반, highlights + categorized_articles)
+        DOMAIN_ALIASES = {
+            "nlp": "NLP", "language": "NLP", "text": "NLP",
+            "vision": "Vision", "image": "Vision", "video": "Vision",
+            "ml": "ML", "training": "ML", "optimization": "ML", "machine_learning": "ML",
+            "robotics": "Robotics", "autonomous": "Robotics", "embodied": "Robotics",
+            "multimodal": "Multimodal", "agents": "Multimodal",
+            "infra": "Infra", "compute": "Infra", "hardware": "Infra",
+            "business": "Business", "funding": "Business",
+            "regulation": "Regulation", "policy": "Regulation", "safety": "Regulation",
+            "audio": "Audio", "speech": "Audio",
+        }
+        domain_freq: dict[str, int] = {}
+        domain_articles = list(highlights)
+        for arts in cat_articles.values():
+            domain_articles.extend(arts)
+        seen_domain_links: set[str] = set()
+        for a in domain_articles:
+            link = a.get("link", "")
+            if link in seen_domain_links:
+                continue
+            seen_domain_links.add(link)
+            cluster = a.get("topic_cluster_id", "")
+            raw_domain = cluster.split("/")[0].strip().lower() if "/" in cluster else cluster.strip().lower()
+            if not raw_domain:
+                raw_domain = "other"
+            domain = DOMAIN_ALIASES.get(raw_domain, raw_domain.capitalize())
+            domain_freq[domain] = domain_freq.get(domain, 0) + 1
+        # Top 5 + Others
+        sorted_domains = sorted(domain_freq.items(), key=lambda x: -x[1])
+        domain_stats = []
+        others_count = 0
+        for i, (dom, cnt) in enumerate(sorted_domains):
+            if i < 5:
+                domain_stats.append({"domain": dom, "count": cnt})
+            else:
+                others_count += cnt
+        if others_count > 0:
+            domain_stats.append({"domain": "Others", "count": others_count})
+
         # Hot topics: 전체 기사 태그 빈도 Top 8 (KO + EN 합산, 소문자 기준 중복 제거)
         tag_freq: dict[str, int] = {}
         for art in all_articles:
@@ -310,6 +350,7 @@ Articles:
             "story_count": story_count,
             "article_ids": article_ids,
             "category_stats": category_stats,
+            "domain_stats": domain_stats,
             "hot_topics": hot_topics,
             "trend_history": trend_history,
             "updated_at": firestore.SERVER_TIMESTAMP,
@@ -332,6 +373,10 @@ Articles:
             if cat != "total":
                 print(f"    {cat}: {cnt}개")
         print(f"    총계: {category_stats['total']}개")
+        if domain_stats:
+            print(f"\n  도메인 분포 ({len(domain_stats)}개):")
+            for ds in domain_stats:
+                print(f"    {ds['domain']}: {ds['count']}개")
         if hot_topics:
             print(f"\n  핫 토픽 ({len(hot_topics)}개):")
             for ht in hot_topics:

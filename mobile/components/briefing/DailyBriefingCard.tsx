@@ -39,31 +39,74 @@ if (
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-const CATEGORY_LABELS: Record<string, Record<'ko' | 'en', string>> = {
-  research: { ko: '연구', en: 'Research' },
-  models_products: { ko: '모델/제품', en: 'Models' },
-  industry_business: { ko: '산업', en: 'Industry' },
+// ── Domain color map key → theme color key ──
+const DOMAIN_COLOR_KEYS: Record<string, string> = {
+  NLP: 'domainNLP',
+  Vision: 'domainVision',
+  ML: 'domainML',
+  Robotics: 'domainRobotics',
+  Multimodal: 'domainMultimodal',
+  Infra: 'domainNLP', // reuse teal
+  Business: 'domainBusiness',
+  Regulation: 'domainBusiness', // reuse indigo
+  Audio: 'domainMultimodal', // reuse rose
+  Others: 'domainOthers',
 };
 
-// ── Category stats from categorized_articles or backend stats ──
-function computeCategoryStats(
+// ── Domain aliases for client-side fallback ──
+const DOMAIN_ALIASES: Record<string, string> = {
+  nlp: 'NLP', language: 'NLP', text: 'NLP',
+  vision: 'Vision', image: 'Vision', video: 'Vision',
+  ml: 'ML', training: 'ML', optimization: 'ML', machine_learning: 'ML',
+  robotics: 'Robotics', autonomous: 'Robotics', embodied: 'Robotics',
+  multimodal: 'Multimodal', agents: 'Multimodal',
+  infra: 'Infra', compute: 'Infra', hardware: 'Infra',
+  business: 'Business', funding: 'Business',
+  regulation: 'Regulation', policy: 'Regulation', safety: 'Regulation',
+  audio: 'Audio', speech: 'Audio',
+};
+
+type DomainStat = { domain: string; count: number };
+
+// ── Compute domain stats from backend or client fallback ──
+function computeDomainStats(
+  backendDomainStats?: DomainStat[],
   categorizedArticles?: Record<string, Article[]>,
-  backendStats?: {
-    research: number;
-    models_products: number;
-    industry_business: number;
-    total: number;
-  },
-) {
-  if (backendStats && backendStats.total > 0) return backendStats;
+  highlights?: Article[],
+): { items: DomainStat[]; total: number } | null {
+  // Prefer backend data
+  if (backendDomainStats && backendDomainStats.length > 0) {
+    const total = backendDomainStats.reduce((s, d) => s + d.count, 0);
+    if (total > 0) return { items: backendDomainStats, total };
+  }
+  // Client-side fallback
   if (!categorizedArticles) return null;
-  const research = categorizedArticles['research']?.length ?? 0;
-  const models_products = categorizedArticles['models_products']?.length ?? 0;
-  const industry_business =
-    categorizedArticles['industry_business']?.length ?? 0;
-  const total = research + models_products + industry_business;
+  const freq: Record<string, number> = {};
+  const allArticles: Article[] = [...(highlights ?? [])];
+  for (const arts of Object.values(categorizedArticles)) {
+    allArticles.push(...arts);
+  }
+  const seen = new Set<string>();
+  for (const a of allArticles) {
+    if (a.link && seen.has(a.link)) continue;
+    if (a.link) seen.add(a.link);
+    const cluster = a.topic_cluster_id ?? '';
+    let raw = cluster.includes('/') ? cluster.split('/')[0].trim().toLowerCase() : cluster.trim().toLowerCase();
+    if (!raw) raw = 'other';
+    const domain = DOMAIN_ALIASES[raw] ?? (raw.charAt(0).toUpperCase() + raw.slice(1));
+    freq[domain] = (freq[domain] ?? 0) + 1;
+  }
+  const sorted = Object.entries(freq).sort((a, b) => b[1] - a[1]);
+  const items: DomainStat[] = [];
+  let othersCount = 0;
+  for (let i = 0; i < sorted.length; i++) {
+    if (i < 5) items.push({ domain: sorted[i][0], count: sorted[i][1] });
+    else othersCount += sorted[i][1];
+  }
+  if (othersCount > 0) items.push({ domain: 'Others', count: othersCount });
+  const total = items.reduce((s, d) => s + d.count, 0);
   if (total === 0) return null;
-  return { research, models_products, industry_business, total };
+  return { items, total };
 }
 
 // ── Extract top tags from categorized_articles ──
@@ -119,18 +162,18 @@ const SectionTitle = React.memo(function SectionTitle({
   );
 });
 
-// ── Donut Chart ──
+// ── Donut Chart (domain-based) ──
 const DonutChart = React.memo(function DonutChart({
-  stats,
+  domainStats,
   lang,
-  categoryColors,
+  colorMap,
   size = 120,
   textColor = '#E7E5E4',
   subTextColor = '#A8A29E',
 }: {
-  stats: { research: number; models_products: number; industry_business: number; total: number };
+  domainStats: { items: DomainStat[]; total: number };
   lang: 'ko' | 'en';
-  categoryColors: Record<'research' | 'models_products' | 'industry_business', string>;
+  colorMap: Record<string, string>;
   size?: number;
   textColor?: string;
   subTextColor?: string;
@@ -140,20 +183,15 @@ const DonutChart = React.memo(function DonutChart({
   const circumference = 2 * Math.PI * radius;
   const center = size / 2;
 
-  const segments = [
-    { key: 'research' as const, value: stats.research },
-    { key: 'models_products' as const, value: stats.models_products },
-    { key: 'industry_business' as const, value: stats.industry_business },
-  ].filter((s) => s.value > 0);
-
   let cumulativeOffset = 0;
 
   return (
     <View style={{ alignItems: 'center' }}>
       <Svg width={size} height={size}>
         <G rotation={-90} origin={`${center}, ${center}`}>
-          {segments.map((segment) => {
-            const ratio = segment.value / stats.total;
+          {domainStats.items.map((item) => {
+            if (item.count <= 0) return null;
+            const ratio = item.count / domainStats.total;
             const dashLength = ratio * circumference;
             const gapLength = circumference - dashLength;
             const offset = cumulativeOffset;
@@ -161,11 +199,11 @@ const DonutChart = React.memo(function DonutChart({
 
             return (
               <Circle
-                key={segment.key}
+                key={item.domain}
                 cx={center}
                 cy={center}
                 r={radius}
-                stroke={categoryColors[segment.key]}
+                stroke={colorMap[item.domain] ?? colorMap['Others']}
                 strokeWidth={strokeWidth}
                 strokeDasharray={`${dashLength} ${gapLength}`}
                 strokeDashoffset={-offset}
@@ -188,7 +226,7 @@ const DonutChart = React.memo(function DonutChart({
         }}
       >
         <Text style={{ fontSize: 22, fontWeight: '800', color: textColor }}>
-          {stats.total}
+          {domainStats.total}
         </Text>
         <Text style={{ fontSize: 11, color: subTextColor, marginTop: -2 }}>
           {lang === 'en' ? 'articles' : '기사'}
@@ -291,13 +329,13 @@ const SparklineChart = React.memo(function SparklineChart({
   );
 });
 
-// ── Mini Donut Ring (collapsed state preview) ──
+// ── Mini Donut Ring (collapsed state preview, domain-based) ──
 const MiniDonut = React.memo(function MiniDonut({
-  stats,
-  categoryColors,
+  domainStats,
+  colorMap,
 }: {
-  stats: { research: number; models_products: number; industry_business: number; total: number };
-  categoryColors: Record<'research' | 'models_products' | 'industry_business', string>;
+  domainStats: { items: DomainStat[]; total: number };
+  colorMap: Record<string, string>;
 }) {
   const size = 20;
   const strokeWidth = 3;
@@ -305,30 +343,25 @@ const MiniDonut = React.memo(function MiniDonut({
   const circumference = 2 * Math.PI * radius;
   const center = size / 2;
 
-  const segments = [
-    { key: 'research' as const, value: stats.research },
-    { key: 'models_products' as const, value: stats.models_products },
-    { key: 'industry_business' as const, value: stats.industry_business },
-  ].filter((s) => s.value > 0);
-
   let cumulativeOffset = 0;
 
   return (
     <Svg width={size} height={size}>
       <G rotation={-90} origin={`${center}, ${center}`}>
-        {segments.map((segment) => {
-          const ratio = segment.value / stats.total;
+        {domainStats.items.map((item) => {
+          if (item.count <= 0) return null;
+          const ratio = item.count / domainStats.total;
           const dashLength = ratio * circumference;
           const gapLength = circumference - dashLength;
           const offset = cumulativeOffset;
           cumulativeOffset += dashLength;
           return (
             <Circle
-              key={segment.key}
+              key={item.domain}
               cx={center}
               cy={center}
               r={radius}
-              stroke={categoryColors[segment.key]}
+              stroke={colorMap[item.domain] ?? colorMap['Others']}
               strokeWidth={strokeWidth}
               strokeDasharray={`${dashLength} ${gapLength}`}
               strokeDashoffset={-offset}
@@ -463,13 +496,14 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
   }, [scrollViewRef]);
 
   // Data
-  const categoryStats = useMemo(
+  const domainStats = useMemo(
     () =>
-      computeCategoryStats(
+      computeDomainStats(
+        briefing?.domain_stats,
         newsData?.categorized_articles,
-        briefing?.category_stats,
+        newsData?.highlights,
       ),
-    [newsData?.categorized_articles, briefing?.category_stats],
+    [briefing?.domain_stats, newsData?.categorized_articles, newsData?.highlights],
   );
 
   const hotTopics = useMemo(() => {
@@ -490,11 +524,13 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
     return briefing.date;
   }, [briefing?.date]);
 
-  const categoryColors = useMemo(() => ({
-    research: colors.scoreResearch,
-    models_products: colors.scoreProduct,
-    industry_business: colors.scoreBiz,
-  }), [colors.scoreResearch, colors.scoreProduct, colors.scoreBiz]);
+  const domainColorMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const [domain, colorKey] of Object.entries(DOMAIN_COLOR_KEYS)) {
+      map[domain] = (colors as any)[colorKey] ?? colors.domainOthers;
+    }
+    return map;
+  }, [colors]);
 
   if (loading || !briefing) return null;
 
@@ -578,8 +614,8 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
             </View>
 
             {/* Mini donut ring */}
-            {categoryStats ? (
-              <MiniDonut stats={categoryStats} categoryColors={categoryColors} />
+            {domainStats ? (
+              <MiniDonut domainStats={domainStats} colorMap={domainColorMap} />
             ) : null}
 
             <ChevronDown size={16} color={colors.textSecondary} style={{ marginLeft: 8 }} />
@@ -712,10 +748,10 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
             paddingBottom: 20,
           }}
         >
-          {/* 1. Category Distribution (Donut) */}
-          {categoryStats && categoryStats.total > 0 && (
+          {/* 1. Topic Domain Distribution (Donut) */}
+          {domainStats && domainStats.total > 0 && (
             <View style={{ marginBottom: 20 }}>
-              <SectionTitle title={t('briefing.categoryDist')} color={colors.textSecondary} />
+              <SectionTitle title={t('briefing.domainDist')} color={colors.textSecondary} />
               <View
                 style={{
                   flexDirection: 'row',
@@ -726,61 +762,61 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
                 }}
               >
                 <DonutChart
-                  stats={categoryStats}
+                  domainStats={domainStats}
                   lang={lang}
-                  categoryColors={categoryColors}
+                  colorMap={domainColorMap}
                   size={110}
                   textColor={colors.textPrimary}
                   subTextColor={colors.textSecondary}
                 />
                 <View style={{ flex: 1, marginLeft: 20, gap: 10 }}>
-                  {(['research', 'models_products', 'industry_business'] as const).map(
-                    (cat) => {
-                      const count = categoryStats[cat];
-                      if (count === 0) return null;
-                      const pct = Math.round((count / categoryStats.total) * 100);
-                      return (
+                  {domainStats.items.map((item) => {
+                    if (item.count <= 0) return null;
+                    const pct = Math.round((item.count / domainStats.total) * 100);
+                    const label = t(`domain.${item.domain}`) !== `domain.${item.domain}`
+                      ? t(`domain.${item.domain}`)
+                      : item.domain;
+                    return (
+                      <View
+                        key={item.domain}
+                        style={{ flexDirection: 'row', alignItems: 'center' }}
+                      >
                         <View
-                          key={cat}
-                          style={{ flexDirection: 'row', alignItems: 'center' }}
+                          style={{
+                            width: 10,
+                            height: 10,
+                            borderRadius: 3,
+                            backgroundColor: domainColorMap[item.domain] ?? domainColorMap['Others'],
+                            marginRight: 8,
+                          }}
+                        />
+                        <Text
+                          style={{
+                            fontSize: 12,
+                            color: colors.textSecondary,
+                            flex: 1,
+                          }}
                         >
-                          <View
-                            style={{
-                              width: 10,
-                              height: 10,
-                              borderRadius: 3,
-                              backgroundColor: categoryColors[cat],
-                              marginRight: 8,
-                            }}
-                          />
-                          <Text
-                            style={{
-                              fontSize: 12,
-                              color: colors.textSecondary,
-                              flex: 1,
-                            }}
-                          >
-                            {CATEGORY_LABELS[cat][lang]}
-                          </Text>
-                          <Text
-                            style={{
-                              fontSize: 13,
-                              fontWeight: '700',
-                              color: colors.textPrimary,
-                              marginRight: 4,
-                            }}
-                          >
-                            {count}
-                          </Text>
-                          <Text
-                            style={{ fontSize: 11, color: colors.textSecondary }}
-                          >
-                            ({pct}%)
-                          </Text>
-                        </View>
-                      );
-                    },
-                  )}
+                          {label}
+                        </Text>
+                        <Text
+                          style={{
+                            fontSize: 13,
+                            fontWeight: '700',
+                            color: colors.textPrimary,
+                            marginRight: 4,
+                          }}
+                        >
+                          {item.count}
+                        </Text>
+                        <Text
+                          style={{ fontSize: 11, color: colors.textSecondary }}
+                        >
+                          ({pct}%)
+                        </Text>
+                      </View>
+                    );
+                  })}
                 </View>
               </View>
             </View>

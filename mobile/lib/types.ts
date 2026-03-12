@@ -214,6 +214,7 @@ export interface DailyBriefing {
     industry_business: number;
     total: number;
   };
+  domain_stats?: { domain: string; count: number }[];
   hot_topics?: { tag: string; count: number }[];
   trend_history?: { date: string; count: number }[];
 }
