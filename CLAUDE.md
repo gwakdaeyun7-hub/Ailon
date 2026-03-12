@@ -156,7 +156,7 @@ LangGraph 8-node pipeline with parallel EN/KO branches:
 | en_process | EN→KO translation + summarization | batch=5, max_tokens=12288, 5 parallel workers, 3-phase retry (batch→individual→fallback) |
 | ko_process | KO summarization | batch=2, max_tokens=12288, 5 parallel workers, 3-phase retry |
 | categorizer | LLM 3-category classification + 7-layer dedup | batch=5, 3 parallel workers |
-| ranker | Per-category LLM ranking → score (1st=100, last=30) | token_budget=max(6144, count*120), 3 parallel workers (per-category) |
+| ranker | Per-category LLM ranking → score (1st=100, last=30) | token_budget=max(6144, count*150), 3 parallel workers (per-category) |
 | entity_extractor | Entity extraction + topic clustering | batch=5, up to 4 parallel workers, 3-tier retry (batch→sub-batch→individual) |
 | selector | Highlight Top 3 + Category Top 20 | today articles only for highlights |
 | assembler | Final structure + timing report | Korean sources in separate sections |
@@ -176,7 +176,7 @@ AI타임스, GeekNews, ZDNet AI 에디터 (HTML scrape), 요즘IT AI
 
 | Constant | Value | Why |
 |----------|-------|-----|
-| Ranker token_budget | `max(6144, count*120)` | 이전 `count*100`에서 110건 카테고리 JSON 잘림 발생 → `count*120`으로 상향 |
+| Ranker token_budget | `max(6144, count*150)` | 이전 `count*120`에서 107건 industry_business JSON 잘림 발생 → `count*150`으로 상향 |
 | Ranker ctx thresholds | >40: title only, 25-40: 150자, ≤25: 500자 | 대규모 카테고리 랭킹 정확도 |
 | HIGHLIGHT_COUNT | 3 | 카테고리당 1개씩 |
 | CATEGORY_TOP_N | 20 | 카테고리별 최대 기사 수 |

@@ -2,7 +2,7 @@
   "name": "ailon-functions",
   "description": "Ailon Cloud Functions — 댓글 답글 / 좋아요 알림",
   "engines": {
-    "node": ">=18"
+    "node": "20"
   },
   "main": "index.js",
   "dependencies": {

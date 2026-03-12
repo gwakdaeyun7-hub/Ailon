@@ -1438,7 +1438,7 @@ def _rank_category(articles: list[dict], category: str) -> list[tuple[int, int, 
     )
 
     try:
-        token_budget = max(6144, count * 120)
+        token_budget = max(6144, count * 150)
         llm = get_llm(temperature=0.0, max_tokens=token_budget, thinking=False, json_mode=True)
         content = _llm_invoke_with_retry(llm, prompt, max_retries=2)
         ranking = _parse_llm_json(content)

@@ -46,7 +46,7 @@ qa-pipeline-tester 에이전트를 사용하여 로그를 분석합니다.
 | 검사 항목 | 정상 범위 | 이상 징후 | 심각도 |
 |-----------|----------|-----------|--------|
 | Tom's Hardware 필터율 | 30-80% | <20% → 필터 느슨, >85% → 필터 과도 | Major |
-| Tier 3 필터율 (소스별) | aitimes 10-25%, geeknews 5-25%, yozm_ai 0-10%, zdnet_ai_editor 0-10% | 소스별 정상 범위 벗어남 → 프롬프트 조정 | Major |
+| Tier 3 필터율 (소스별) | aitimes 0-25%, geeknews 5-25%, yozm_ai 0-10%, zdnet_ai_editor 0-10% | 소스별 정상 범위 벗어남 → 프롬프트 조정. aitimes는 AI 전문 매체로 0% 필터율도 정상 (전 기사가 AI 관련일 수 있음) | Major |
 | 필터 실패 | 없음 | `LLM AI 필터 실패 -> 전체 통과` 로그 | Critical |
 | research AI 필터 | 모든 카테고리 동일 적용 (면제 없음) | research 기사가 AI 필터로 과도 누락 → 오탐 확인 | Major |
 
@@ -129,7 +129,7 @@ qa-pipeline-tester 에이전트를 사용하여 로그를 분석합니다.
 | 총 중복 감지율 | 3-15% | >25% → 오탐 의심, <1% → 미감지 의심 | Major |
 | L6 임베딩 건수 | 0-5건 | >10건 → EMBED_DEDUP_THRESHOLD 너무 낮음 | Major |
 | L7 엔티티 건수 | 0-3건 | >5건 → overlap_ratio 너무 낮음 | Minor |
-| L2/L3 제목 유사도 | 정상 | 다른 기사인데 제목이 비슷해서 중복 처리 → DEDUP_THRESHOLD 조정 | Major |
+| L2/L3 제목 유사도 | 정상 | 다른 기사인데 제목이 비슷해서 중복 처리 → DEDUP_THRESHOLD 조정. 보일러플레이트 제목 패턴(예: SiliconANGLE "What to expect...") 주의 — 같은 소스의 템플릿 제목이 L2에서 오탐 가능 | Major |
 | L4 고유명사 가드 | 유사 구조 문장 오탐 차단 | "A, 소송 제기" vs "B, 소송 제기"가 L4에서 중복 처리됨 → 가드 작동 확인 | Major |
 
 **중복감지 오탐 판별 기준:**
@@ -138,6 +138,7 @@ qa-pipeline-tester 에이전트를 사용하여 로그를 분석합니다.
 - L6 오탐: 주제는 같지만 다른 사건 (e.g., "GPT-5 출시" vs "GPT-5 벤치마크 결과") → threshold 올려야
 - L7 오탐: 같은 제품명이지만 다른 뉴스 (e.g., "Claude 4 가격" vs "Claude 4 성능") → overlap_ratio 올려야
 - 미감지: 같은 기사가 다른 소스에서 나왔는데 중복 안 걸림 → 해당 layer 임계값 낮춰야
+- **L5 유사 제품명 오탐**: 같은 카테고리의 다른 제품이 유사한 naming convention을 공유할 때 (e.g., "Arrow Lake" vs "Nova Lake" — 다른 Intel CPU이지만 key_tokens "lake"가 겹침), L5 `names_overlap ≥ 3`을 충족하여 오탐 발생 가능. 비AI 기사 간 오탐이면 user-facing 영향 없음 (이미 AI 필터에서 제외). AI 기사 간 오탐이면 _DEDUP_STOPWORDS에 공통 토큰 추가 검토
 - **버전 없는 제품명 미감지 (구조적 한계)**: 동일 제품 발표(예: "Code Review 출시")가 3개+ 소스에서 다른 각도로 보도될 때, 제목 프레이밍 상이(L2/L3 miss) + 복합 기사 혼재(L4/L6 miss) + 버전 번호 없음(L5 `nums_overlap` 불충족) + one_line 초점 분산(L7 miss)으로 전 레이어 통과 가능. 반복 발생 시 L5 `nums_overlap` 조건 완화 또는 L7 `overlap_ratio` 하향(0.30→0.25) 검토
 
 **수정 대상 파일:** `scripts/agents/news_team.py`
@@ -234,7 +235,7 @@ qa-pipeline-tester 에이전트를 사용하여 로그를 분석합니다.
 - 각 카테고리 Top 1 기사가 "해당 날의 가장 중요한 뉴스"인지 상식적으로 판단
 - 명백한 대형 뉴스(주요 모델 출시, 대규모 투자 등)가 1위가 아닌 경우 → 랭킹 프롬프트 수정 필요
 - 하위 기사 중 상위에 있어야 할 기사가 있으면 → 랭킹 기준 또는 컨텍스트 부족 의심
-- 폴백 발생 → `token_budget = max(6144, count*120)` 부족 가능성 → 상수 조정
+- 폴백 발생 → `token_budget = max(6144, count*150)` 부족 가능성 → 상수 조정
 - 컨텍스트 축소 임계값 재검토: `>40: 제목만, 25-40: 150자, ≤25: 500자`
 
 **하이라이트 선정 로직 (판정 시 필수 이해):**
@@ -260,6 +261,7 @@ qa-pipeline-tester 에이전트를 사용하여 로그를 분석합니다.
 | 특정 카테고리만 랭킹 이상 | 해당 카테고리 기사 수 과다 → 컨텍스트 축소로 제목만 보고 판단 | ctx_len 임계값 조정 또는 token_budget 증가 (backend-pipeline-developer) |
 | 튜토리얼/가이드가 research 상위 | 프롬프트가 "novelty" 기준으로 논문과 튜토리얼을 동등 취급 | `_RANK_PROMPT`에 "tutorial/guide는 novelty 낮음" 명시 (prompt-engineer) |
 | 하드웨어/벤치마크 기사 과대평가 | 제목에 인상적 숫자(1GHz, 50배 등)가 있어 LLM이 과대평가 | `_RANK_PROMPT`에 "하드웨어 벤치마크는 AI 직접 관련 아니면 낮게" 추가 (prompt-engineer) |
+| 회고/기념 기사가 카테고리 1위 | LLM이 역사적 의의를 과대평가 (e.g., "AlphaGo 10주년") | 하이라이트에는 영향 없음(비당일 제외). 카테고리 피드 정렬에만 영향 → Minor. 반복 시 `_RANK_PROMPT`에 "retrospective/anniversary는 당일 뉴스보다 낮게" 추가 |
 | JSON 잘림으로 하위 기사 누락 | token_budget 부족 | token_budget 상수 증가 (backend-pipeline-developer) |
 | 폴백(최신순) 사용 | LLM 랭킹 실패 | 재시도 로직 또는 token_budget 확인 (backend-pipeline-developer) |
 
@@ -431,6 +433,7 @@ qa-pipeline-tester 에이전트를 사용하여 로그를 분석합니다.
 | 부적절한 병합 없음 | 무관한 태그가 독립 유지 | 짧은 일반 태그("ai")가 "ai safety" 등을 흡수하여 카운트 과대 | Major |
 | Top 8 대표성 | 구체적이고 변별력 있는 태그 | "기술", "뉴스" 등 변별력 없는 태그가 상위 독점 | Major |
 | 태그 수 | 3-8개 | <3개 → 기사 태그 생성 부족, 0개 → 전체 태그 누락 | Minor |
+| KO/EN 동일 개념 미병합 | 현재 접두어+공백 경계만 병합 | "ai 에이전트"와 "ai agent"가 별도 태그로 존재 (KO/EN 동일 개념) → 현재 병합 로직은 접두어 매칭만 지원하여 교차 언어 병합 불가 (구조적 한계) | Minor |
 
 **수정 대상 파일:** `scripts/generate_features.py` — 핫토픽 병합 로직 (line ~267-284)
 
