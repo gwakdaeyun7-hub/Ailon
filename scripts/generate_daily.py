@@ -30,7 +30,7 @@ from notifications import send_news_notification
 from generate_features import (
     _article_id,
     save_articles_collection, find_related_articles,
-    generate_daily_briefing, generate_daily_tools,
+    generate_daily_briefing,
     accumulate_glossary, build_timeline,
     patch_daily_news_ids,
 )
@@ -293,10 +293,6 @@ def run_news():
         briefing_data = generate_daily_briefing(news_result)
     except Exception as e:
         ci_error(f"브리핑 실패: {e}")
-    try:
-        generate_daily_tools(news_result)
-    except Exception as e:
-        ci_error(f"도구 추천 실패: {e}")
     glossary_count = 0
     try:
         glossary_count = accumulate_glossary(news_result) or 0
