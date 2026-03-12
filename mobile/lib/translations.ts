@@ -254,11 +254,6 @@ const translations: Record<string, Record<Language, string>> = {
   'story.summary': { ko: '정리하면', en: 'In summary' },
   'story.no_data': { ko: '오늘의 스토리를 준비하고 있어요', en: 'Preparing today\'s stories' },
 
-  // ─── Tool Spotlight (Phase 1) ───
-  'tool.spotlight_title': { ko: '오늘의 AI 도구', en: "Today's AI Tool" },
-  'tool.try_it': { ko: '사용해보기', en: 'Try it' },
-  'tool.why_useful': { ko: '왜 유용해요?', en: 'Why useful?' },
-
   // ─── Tools 탭 (Phase 2) ───
   'snaps.tab_tools': { ko: 'AI 도구', en: 'AI Tools' },
   'tools.title': { ko: 'AI 도구 & 팁', en: 'AI Tools & Tips' },

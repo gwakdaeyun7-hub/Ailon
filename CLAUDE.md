@@ -97,7 +97,6 @@ cd ../functions && firebase deploy --only functions
 - **Category Filter**: Horizontal scroll chips (coding/research/productivity/creative/writing/other)
 - **6 Categories**: Color-coded icons (Code2/Search/Zap/Palette/PenTool/MoreHorizontal)
 - **3 Difficulty Levels**: Beginner (green), Intermediate (amber), Advanced (red)
-- **Tool Spotlight**: Single tool card in news feed (below briefing), sourced from `daily_briefings/{date}.tool_spotlight`
 - Date navigation (30 days back), pull-to-refresh, AsyncStorage offline caching
 - Skeleton loading, error/empty states
 
@@ -120,7 +119,6 @@ cd ../functions && firebase deploy --only functions
 - **RelatedArticlesSection**: Horizontal card carousel (entity/cluster matching)
 - **TimelineSection**: Vertical timeline with past article links
 - **DailyBriefingCard**: Morphing Blob 스타일 — 접힌 상태(글로우 미니 바 + TTS + 미니 도넛 링) / 펼친 상태(도메인 도넛 차트 + 태그 클라우드 + 스파크라인 + 브리핑 전문). 도넛 차트는 topic_cluster_id 기반 도메인 분포(Top 5 + Others) 표시, 7색 도메인 팔레트(NLP/Vision/ML/Robotics/Multimodal/Business/Others)
-- **ToolSpotlightCard**: Single AI tool card in news feed (below briefing), category color accent, "Try it" external link, reads from `useBriefing().tool_spotlight`
 - **ToolsContent**: Tool cards + tip cards for AI Tools tab, category icons, difficulty badges, bookmark support, skeleton/error/empty states
 - **PersonalizedFeed**: Scoring based on like history (category +3, tag +2)
 - **SideDrawer**: Animated left panel (82% width, max 320px)
@@ -137,7 +135,7 @@ cd ../functions && firebase deploy --only functions
 | useArticleViews | `article_views/{docId}` | View tracking (daily dedup) |
 | useBatchStats | Multiple collections | Batch fetch likes/views/comments for feed cards |
 | useTools | `daily_tools/{date}` | Daily AI tools with date navigation + offline cache |
-| useBriefing | `daily_briefings/{date}` | AI briefing text + story count + tool_spotlight |
+| useBriefing | `daily_briefings/{date}` | AI briefing text + story count |
 | useGlossaryDB | `glossary_terms` | Term search (max 200 terms) |
 | useNotifications | `users/{uid}` | Expo + FCM token registration, Android channels (news/social) |
 | useNotificationSettings | `users/{uid}/preferences` | Per-type notification toggles |
@@ -253,7 +251,7 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 |---------|--------|-------------|
 | save_articles | `articles/{id}` | Individual article docs (SHA256 URL hash) |
 | find_related | `related_ids` | Top 3 related by entity+cluster+category matching |
-| daily_briefing | `daily_briefings/{date}` | 2-3 min AI briefing (KO+EN), story_count, hot_topics, tool_spotlight (single tool card for news feed) |
+| daily_briefing | `daily_briefings/{date}` | 2-3 min AI briefing (KO+EN), story_count, hot_topics with subtag merging |
 | daily_tools | `daily_tools/{date}` | 3-5 AI tools + 1-2 tips per day, LLM-generated from trending news context |
 | glossary | `glossary_terms/{term}` | Accumulated terms across articles |
 | timeline | `timeline_ids` | Links to similar articles from past 90 days |
@@ -266,7 +264,7 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 | `daily_news/{date}` | 1 doc/day | highlights[], categorized_articles{}, source_articles{} |
 | `daily_principles/{date}` | 1 doc/day | 3-step insight + deepDive + verification |
 | `articles/{article_id}` | 1 doc/article | Full article + entities, related_ids, timeline_ids |
-| `daily_briefings/{date}` | 1 doc/day | briefing_ko, briefing_en, story_count, category_stats, domain_stats, hot_topics, trend_history, tool_spotlight |
+| `daily_briefings/{date}` | 1 doc/day | briefing_ko, briefing_en, story_count, category_stats, domain_stats, hot_topics, trend_history |
 | `daily_tools/{date}` | 1 doc/day | tools[] (3-5 AI tools), tips[] (1-2 tips), date, updated_at |
 | `glossary_terms/{term}` | 1 doc/term | term/desc (KO+EN), article_ids |
 | `users/{uid}` | 1 doc/user | profile, expoPushToken, fcmToken, language (ko/en), lastLikeNotifiedAt |
@@ -328,11 +326,10 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 ### What's Done
 - 5-tab mobile app — feature complete (news feed, snaps, AI tools, saved, profile)
 - AI Tools & Tips tab: daily curated tools (3-5) + tips (1-2), category filter, date navigation
-- Tool Spotlight card in news feed (below briefing)
 - All interactions: likes, comments, bookmarks (news/principle/tool), share, TTS, glossary highlight
 - LangGraph news pipeline (8 nodes, 22 sources, EN/KO parallel)
 - Principle pipeline (12 disciplines, 4 super categories, 3-step insight + deep dive + verification)
-- Post-pipeline: briefing (+ tool_spotlight), glossary, timeline, related articles, daily tools
+- Post-pipeline: briefing, glossary, timeline, related articles, daily tools
 - Auth (Google), dark mode, bilingual (KO/EN), push notifications
 
 ### What NOT to Build Before Launch

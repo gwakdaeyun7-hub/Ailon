@@ -3,7 +3,7 @@
 AI 기능 파이프라인 (8개 기능)
 1. articles 독립 컬렉션 저장
 2. 관련 기사 매칭
-3. 데일리 브리핑 (+ tool_spotlight)
+3. 데일리 브리핑
 4. 용어 사전 축적
 5. 타임라인 빌드
 6. 스토리 타임라인 생성
@@ -219,10 +219,8 @@ Write a 2-3 minute AI news briefing covering today's top stories.
 Korean: 해요체. Proper nouns stay in English. 5-7 stories, fact-focused.
 Open with greeting, close with sign-off.
 
-Also pick ONE notable AI tool/service mentioned in or related to today's articles. If no specific tool stands out, recommend a well-known AI tool relevant to the day's themes.
-
 Output format:
-{{"briefing_ko": "안녕하세요...", "briefing_en": "Hello...", "story_count": 5, "mentioned_indices": [0,1,2], "tool_spotlight": {{"name": "ToolName", "name_en": "ToolName", "description_ko": "한줄 설명", "description_en": "One-line desc", "url": "https://...", "category": "coding|research|productivity|creative|writing|other", "why_useful_ko": "왜 유용한지 1-2문장", "why_useful_en": "Why useful 1-2 sentences"}}}}
+{{"briefing_ko": "안녕하세요...", "briefing_en": "Hello...", "story_count": 5, "mentioned_indices": [0,1,2]}}
 
 Articles:
 {articles_text}"""
@@ -346,13 +344,6 @@ Articles:
             ci_warning(f"trend_history 조회 실패 (무시): {e}")
             trend_history = [{"date": today, "count": story_count}]
 
-        # Tool Spotlight (Phase 1: 오늘의 AI 도구)
-        tool_spotlight = data.get("tool_spotlight")
-        if isinstance(tool_spotlight, dict) and tool_spotlight.get("name"):
-            print(f"  Tool Spotlight: {tool_spotlight.get('name')} ({tool_spotlight.get('category', '?')})")
-        else:
-            tool_spotlight = None
-
         briefing_doc = {
             "date": today,
             "briefing_ko": data.get("briefing_ko", ""),
@@ -365,8 +356,6 @@ Articles:
             "trend_history": trend_history,
             "updated_at": firestore.SERVER_TIMESTAMP,
         }
-        if tool_spotlight:
-            briefing_doc["tool_spotlight"] = tool_spotlight
 
         db.collection("daily_briefings").document(today).set(briefing_doc)
         print(f"  브리핑 저장 완료: {story_count}개 스토리")

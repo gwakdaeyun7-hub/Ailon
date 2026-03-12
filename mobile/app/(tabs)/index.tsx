@@ -44,7 +44,6 @@ import { FontFamily } from '@/lib/theme';
 import type { Language } from '@/lib/translations';
 import type { BatchStats } from '@/hooks/useBatchStats';
 import { DailyBriefingCard } from '@/components/briefing/DailyBriefingCard';
-import { ToolSpotlightCard } from '@/components/feed/ToolSpotlightCard';
 import type { ScrollView as ScrollViewType } from 'react-native';
 
 import { RelatedArticlesSection } from '@/components/shared/RelatedArticlesSection';
@@ -1467,7 +1466,6 @@ export default function NewsScreen() {
           <>
             {/* Daily Briefing */}
             <DailyBriefingCard scrollViewRef={mainScrollRef} />
-            <ToolSpotlightCard />
 
             {/* Section 1: 하이라이트 */}
             <HighlightSection highlights={highlights} onArticlePress={handleArticlePress} allStats={allStats} />

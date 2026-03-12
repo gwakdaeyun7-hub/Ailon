@@ -206,17 +206,6 @@ export interface UserFeedback {
 // AI Features: Briefing, Glossary, Timeline
 // ---------------------------------------------------------------------------
 
-export interface ToolSpotlight {
-  name: string;
-  name_en: string;
-  description_ko: string;
-  description_en: string;
-  url: string;
-  category: string;
-  why_useful_ko: string;
-  why_useful_en: string;
-}
-
 export interface DailyBriefing {
   date: string;
   briefing_ko: string;
@@ -233,7 +222,6 @@ export interface DailyBriefing {
   domain_stats?: { domain: string; count: number }[];
   hot_topics?: { tag: string; count: number }[];
   trend_history?: { date: string; count: number }[];
-  tool_spotlight?: ToolSpotlight;
 }
 
 
