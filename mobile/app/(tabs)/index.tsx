@@ -1067,38 +1067,17 @@ function CategoryTabSection({
           }}
           accessibilityLabel={isFullyExpanded ? t('news.collapse') : `${t('news.show_more')} ${shownCount}/${totalCount}`}
           accessibilityRole="button"
-          style={{ alignItems: 'center', paddingVertical: 12, marginHorizontal: 16 }}
+          style={{ alignItems: 'center', paddingVertical: 14, minHeight: 44, justifyContent: 'center' }}
         >
-          <View style={{
-            flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-            paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12,
-            backgroundColor: colors.border, borderWidth: 1, borderColor: colors.border,
-            gap: 12,
-          }}>
-            {/* 프로그레스 닷 */}
-            <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
-              {Array.from({ length: maxLevel + 1 }, (_, i) => (
-                <View key={i} style={{
-                  width: 6, height: 6, borderRadius: 3,
-                  backgroundColor: i <= expandLevel ? colors.primary : colors.placeholder,
-                }} />
-              ))}
-            </View>
-            {/* 라벨 */}
-            <Text style={{ fontSize: 13, fontWeight: '700', color: colors.textSecondary }}>
-              {isFullyExpanded ? t('news.collapse') : t('news.show_more')}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: colors.primary }}>
+              {isFullyExpanded ? t('news.collapse') : `${t('news.show_more')} (${shownCount}/${totalCount})`}
             </Text>
-            {/* 카운트 + 쉐브론 */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <Text style={{ fontSize: 12, color: colors.textSecondary }}>
-                {shownCount}/{totalCount}
-              </Text>
-              <Ionicons
-                name={isFullyExpanded ? 'chevron-up' : 'chevron-down'}
-                size={14}
-                color={colors.textSecondary}
-              />
-            </View>
+            <Ionicons
+              name={isFullyExpanded ? 'chevron-up' : 'chevron-down'}
+              size={14}
+              color={colors.primary}
+            />
           </View>
         </Pressable>
       )}
@@ -1155,6 +1134,8 @@ function SourceHScrollSection({
         {more5.length > 0 && !showMore && (
           <Pressable
             onPress={() => setShowMore(true)}
+            accessibilityRole="button"
+            accessibilityLabel={`${name} ${t('news.show_more')} ${more5.length}`}
             style={{
               width: 80,
               height: HCARD_HEIGHT,
@@ -1165,8 +1146,12 @@ function SourceHScrollSection({
               justifyContent: 'center',
             }}
           >
-            <Text style={{ fontSize: 12, fontWeight: '700', color: colors.textSecondary, textAlign: 'center' }}>
-              +{more5.length}{'\n'}{t('news.show_more')}
+            <Ionicons name="chevron-forward" size={20} color={colors.primary} style={{ marginBottom: 4 }} />
+            <Text style={{ fontSize: 14, fontWeight: '700', color: colors.primary, textAlign: 'center' }}>
+              +{more5.length}
+            </Text>
+            <Text style={{ fontSize: 11, fontWeight: '500', color: colors.textSecondary, textAlign: 'center' }}>
+              {t('news.show_more')}
             </Text>
           </Pressable>
         )}
@@ -1244,7 +1229,10 @@ const GeekNewsSection = React.memo(function GeekNewsSection({ articles, onArticl
           accessibilityRole="button"
           style={{ alignItems: 'center', paddingVertical: 14, minHeight: 44, justifyContent: 'center' }}
         >
-          <Text style={{ fontSize: 13, fontWeight: '600', color: colors.primary }}>{t('news.show_more')} ({moreCount})</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: colors.primary }}>{t('news.show_more')} ({moreCount})</Text>
+            <Ionicons name="chevron-down" size={14} color={colors.primary} />
+          </View>
         </Pressable>
       )}
     </View>
