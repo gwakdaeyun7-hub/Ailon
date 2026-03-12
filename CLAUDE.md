@@ -32,10 +32,11 @@ ailon/
 ```bash
 cd mobile
 npm install
-npx expo start                    # Dev server (Expo Go or dev client)
+npx expo start                    # Dev server (dev client 연결, hot reload)
 npx expo start --android          # Android
-eas build --platform android --profile preview   # APK build
-eas build --platform android --profile production # AAB build
+eas build --platform android --profile development  # Dev client APK (1회 빌드 후 hot reload)
+eas build --platform android --profile preview      # Preview APK
+eas build --platform android --profile production   # Production AAB
 ```
 
 ### Backend Pipeline (Python)
@@ -334,12 +335,18 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
   ```bash
   xcopy "C:\Users\82105\OneDrive\바탕 화면\머릿속\Think AI\Ailon\ailon" "C:\dev\ailon" /E /I /H
   cd C:\dev\ailon\mobile
+  npm install   # 최초 또는 dependencies 변경 시
   eas build --platform android --profile production
+  ```
+- **Development (hot reload)**: Dev client APK 1회 빌드 → 이후 `npx expo start`로 실시간 코드 반영 (같은 WiFi 필요)
+  ```bash
+  eas build --platform android --profile development   # 1회만 (네이티브 코드 변경 시 재빌드)
+  npx expo start                                       # 매일 개발 시
   ```
 - Preview APK: `eas build --platform android --profile preview`
 - Production AAB: `eas build --platform android --profile production`
 - Submit: `eas submit --platform android`
-- Bundle ID: `com.ailon.app`
+- Bundle ID: `com.ailon.app` (dev/preview/production 동일 — 동시 설치 불가, 하나만 유지)
 - EAS Project ID: `bffbb3e7-cf38-4b39-ada3-e8fb04b51349`
 - `.easignore`: node_modules, .expo, .jks, .env, .claude 제외
 
