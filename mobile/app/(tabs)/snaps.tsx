@@ -15,8 +15,6 @@ import {
   RefreshControl,
   Share,
   Platform,
-  NativeSyntheticEvent,
-  NativeScrollEvent,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -147,14 +145,14 @@ interface NotebookCardProps {
   accentColor: string;
   accentBg: string;
   IconComponent: React.ComponentType<{ size: number; color: string }>;
-  /** Bottom bar: progress hint */
-  nextHint: string;
+  /** Bottom bar: progress hint (deprecated, unused) */
+  nextHint?: string;
   keywords?: string[];
 }
 
 function NotebookCard({
   step, label, headline, body, problemLine, subLine,
-  accentColor, accentBg, IconComponent, nextHint, keywords,
+  accentColor, accentBg, IconComponent, keywords,
 }: NotebookCardProps) {
   const { colors } = useTheme();
 
@@ -245,11 +243,11 @@ function NotebookCard({
         </View>
       )}
 
-      {/* Bottom bar: progress dots + next hint */}
+      {/* Bottom bar: progress dots */}
       <View style={{
         borderTopWidth: 1, borderTopColor: colors.border,
         paddingHorizontal: 20, paddingVertical: 12,
-        flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+        flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
       }}>
         <View style={{ flexDirection: 'row', gap: 5 }}>
           {[1, 2, 3].map(s => (
@@ -259,9 +257,6 @@ function NotebookCard({
             }} />
           ))}
         </View>
-        <Text style={{ fontSize: 10, fontWeight: '500', color: colors.textDim }}>
-          {nextHint}
-        </Text>
       </View>
     </View>
   );
@@ -520,19 +515,11 @@ export default function SnapsScreen() {
 
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'insight' | 'deepdive'>('insight');
-  const [scrollProgress, setScrollProgress] = useState(0);
-
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     await refresh();
     setRefreshing(false);
   }, [refresh]);
-
-  const handleScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
-    const scrollable = contentSize.height - layoutMeasurement.height;
-    if (scrollable > 0) setScrollProgress(Math.min(contentOffset.y / scrollable, 1));
-  }, []);
 
   const principle = principleData?.principle ?? null;
   const deepDive = principle?.deepDive ?? null;
@@ -541,20 +528,9 @@ export default function SnapsScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top']}>
-      {/* Scroll progress bar */}
-      <View style={{ height: 3, backgroundColor: 'transparent' }}>
-        <View style={{
-          height: 3, backgroundColor: colors.primary,
-          width: `${scrollProgress * 100}%`,
-          borderTopRightRadius: 2, borderBottomRightRadius: 2,
-        }} />
-      </View>
-
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.textSecondary} />}
       >
         {/* --- Header --- */}
@@ -629,7 +605,6 @@ export default function SnapsScreen() {
               )}
             </>
           )}
-          <View style={{ width: 32, height: 3, backgroundColor: colors.primary, borderRadius: 2, marginTop: 16 }} />
         </View>
 
         {/* --- Content --- */}
@@ -637,9 +612,7 @@ export default function SnapsScreen() {
           <SkeletonLoading />
         ) : error ? (
           <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 60, paddingHorizontal: 16 }}>
-            <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: colors.errorBg, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-              <BookOpen size={30} color={colors.errorColor} />
-            </View>
+            <BookOpen size={36} color={colors.textDim} style={{ marginBottom: 16 }} />
             <Text style={{ color: colors.textPrimary, fontWeight: '700', fontSize: 17, marginBottom: 6, textAlign: 'center' }}>
               {t('principle.connection_error')}
             </Text>
@@ -655,9 +628,7 @@ export default function SnapsScreen() {
           </View>
         ) : !principle ? (
           <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 60 }}>
-            <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: colors.primaryLight, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-              <BookOpen size={30} color={colors.primary} />
-            </View>
+            <BookOpen size={36} color={colors.textDim} style={{ marginBottom: 16 }} />
             <Text style={{ fontSize: 17, fontWeight: '700', color: colors.textPrimary, marginBottom: 6 }}>
               {t('snaps.no_content')}
             </Text>
@@ -683,8 +654,6 @@ export default function SnapsScreen() {
                   accentColor={colors.coreTech}
                   accentBg={colors.coreTechBg}
                   IconComponent={Lightbulb}
-                  nextHint={t('snaps.next_application')}
-                  keywords={LArr(principle.keywords ?? [], principle.keywords_en, lang)}
                 />
                 {/* 2. Challenge & Solution (Application) */}
                 <NotebookCard
@@ -697,7 +666,6 @@ export default function SnapsScreen() {
                   accentColor={colors.indigo}
                   accentBg={colors.indigoBg}
                   IconComponent={Cpu}
-                  nextHint={t('snaps.next_integration')}
                 />
                 {/* 3. Impact (Integration) */}
                 <NotebookCard
@@ -709,7 +677,6 @@ export default function SnapsScreen() {
                   accentColor={colors.primary}
                   accentBg={colors.primaryLight}
                   IconComponent={Zap}
-                  nextHint={t('snaps.complete')}
                 />
 
                 {/* Deep Dive nudge */}

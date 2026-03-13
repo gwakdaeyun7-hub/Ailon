@@ -90,9 +90,7 @@ export function SnapCardSkeleton() {
         shadowRadius: 4,
       }}
     >
-      {/* Accent bar */}
-      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, backgroundColor: colors.border }} />
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, marginTop: 4 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
         <SkeletonItem width={80} height={20} borderRadius={10} />
         <SkeletonItem width={50} height={20} borderRadius={10} />
       </View>

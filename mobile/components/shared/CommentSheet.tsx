@@ -347,9 +347,7 @@ export function CommentSheet({ visible, onClose, itemType, itemId }: CommentShee
             </View>
           ) : comments.length === 0 ? (
             <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 40 }}>
-              <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: colors.primaryLight, alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
-                <MessageCircle size={24} color={colors.primary} />
-              </View>
+              <MessageCircle size={32} color={colors.textDim} style={{ marginBottom: 12 }} />
               <Text style={{ color: colors.textDark, fontSize: 15, fontWeight: '600', marginBottom: 4 }}>{t('comment.first')}</Text>
               <Text style={{ color: colors.placeholder, fontSize: 13 }}>{t('comment.curious')}</Text>
             </View>

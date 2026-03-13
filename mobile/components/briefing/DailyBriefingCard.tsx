@@ -4,7 +4,7 @@
  * Expanded: Header + Donut + Hot Topics + Sparkline + Briefing Text + Collapse
  */
 
-import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -12,7 +12,6 @@ import {
   LayoutAnimation,
   Platform,
   UIManager,
-  Animated as RNAnimated,
   ScrollView,
 } from 'react-native';
 import {
@@ -424,32 +423,6 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
   const [speaking, setSpeaking] = useState(false);
   const [expanded, setExpanded] = useState(false);
 
-  // Glow animation (pulsing blob)
-  const glowAnim = useRef(new RNAnimated.Value(0)).current;
-  useEffect(() => {
-    const loop = RNAnimated.loop(
-      RNAnimated.sequence([
-        RNAnimated.timing(glowAnim, {
-          toValue: 1,
-          duration: 2500,
-          useNativeDriver: false,
-        }),
-        RNAnimated.timing(glowAnim, {
-          toValue: 0,
-          duration: 2500,
-          useNativeDriver: false,
-        }),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [glowAnim]);
-
-  const glowOpacity = glowAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.25, 0.6],
-  });
-
   const text = briefing
     ? lang === 'en'
       ? briefing.briefing_en
@@ -543,19 +516,6 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
           accessibilityRole="button"
           accessibilityLabel={t('briefing.readMore')}
         >
-          {/* Blob glow */}
-          <RNAnimated.View
-            style={{
-              position: 'absolute',
-              top: -3,
-              left: -3,
-              right: -3,
-              bottom: -3,
-              borderRadius: 19,
-              backgroundColor: colors.primary,
-              opacity: glowOpacity,
-            }}
-          />
           <View
             style={{
               backgroundColor: colors.primaryLight,

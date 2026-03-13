@@ -196,20 +196,30 @@ const TitleText = React.memo(function TitleText({ children, style, numberOfLines
 // ─── 좋아요+뷰 카운트 (정적 — 피드 카드에서 리스너 폭발 방지) ──────────
 const ArticleStats = React.memo(function ArticleStats({ likes, views, comments }: { likes?: number; views?: number; comments?: number }) {
   const { colors } = useTheme();
+  const l = likes ?? 0;
+  const c = comments ?? 0;
+  const v = views ?? 0;
+  if (l === 0 && c === 0 && v === 0) return null;
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-        <ThumbsUp size={12} color={colors.textSecondary} />
-        <Text style={{ fontSize: 11, color: colors.textSecondary, fontWeight: '600' }}>{likes ?? 0}</Text>
-      </View>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-        <MessageCircle size={12} color={colors.textSecondary} />
-        <Text style={{ fontSize: 11, color: colors.textSecondary, fontWeight: '600' }}>{comments ?? 0}</Text>
-      </View>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-        <Eye size={12} color={colors.textSecondary} />
-        <Text style={{ fontSize: 11, color: colors.textSecondary, fontWeight: '600' }}>{views ?? 0}</Text>
-      </View>
+      {l > 0 && (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <ThumbsUp size={12} color={colors.textSecondary} />
+          <Text style={{ fontSize: 11, color: colors.textSecondary, fontWeight: '600' }}>{l}</Text>
+        </View>
+      )}
+      {c > 0 && (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <MessageCircle size={12} color={colors.textSecondary} />
+          <Text style={{ fontSize: 11, color: colors.textSecondary, fontWeight: '600' }}>{c}</Text>
+        </View>
+      )}
+      {v > 0 && (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <Eye size={12} color={colors.textSecondary} />
+          <Text style={{ fontSize: 11, color: colors.textSecondary, fontWeight: '600' }}>{v}</Text>
+        </View>
+      )}
     </View>
   );
 });
@@ -1108,7 +1118,6 @@ function SourceHScrollSection({
   return (
     <View style={{ marginBottom: 24 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 16 }}>
-        <View style={{ width: 4, height: 18, borderRadius: 2, backgroundColor: color, marginRight: 8 }} />
         <Text style={{ fontSize: 17, fontWeight: '700', color: colors.textPrimary, flex: 1, fontFamily: FontFamily.serif }}>
           {name}
         </Text>
@@ -1184,7 +1193,6 @@ const GeekNewsSection = React.memo(function GeekNewsSection({ articles, onArticl
         style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 16 }}
         accessibilityRole="header"
       >
-        <View style={{ width: 4, height: 18, borderRadius: 2, backgroundColor: color, marginRight: 8 }} />
         <Text style={{ fontSize: 17, fontWeight: '700', color: colors.textPrimary, flex: 1, fontFamily: FontFamily.serif }}>{name}</Text>
         <Text style={{ fontSize: 11, color: colors.textSecondary }}>{capped.length}{t('news.articles_suffix')}</Text>
       </View>
@@ -1413,7 +1421,6 @@ export default function NewsScreen() {
               })()}
             </Text>
           )}
-          <View style={{ width: 40, height: 3, backgroundColor: colors.primary, borderRadius: 2, marginTop: 12 }} />
         </View>
         <Pressable onPress={openNotifications} accessibilityLabel={t('notification.title')} accessibilityRole="button" style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
           <Bell size={22} color={colors.textSecondary} />
@@ -1434,9 +1441,7 @@ export default function NewsScreen() {
         ) : error ? (
           <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 60, paddingHorizontal: 32 }}>
             {/* 이슈 #2: 에러 색상 토큰화 */}
-            <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: colors.errorBg, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-              <RefreshCw size={30} color={colors.errorColor} />
-            </View>
+            <RefreshCw size={36} color={colors.textDim} style={{ marginBottom: 16 }} />
             <Text style={{ color: colors.textPrimary, fontWeight: '700', fontSize: 16, marginBottom: 8 }}>{t(error)}</Text>
             <Pressable onPress={refresh} style={{ backgroundColor: colors.primary, paddingHorizontal: 28, paddingVertical: 12, borderRadius: 12 }}>
               <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 15 }}>{t('news.retry')}</Text>
@@ -1444,9 +1449,7 @@ export default function NewsScreen() {
           </View>
         ) : totalArticles === 0 ? (
           <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 40 }}>
-            <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: colors.primaryLight, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-              <Cpu size={30} color={colors.primary} />
-            </View>
+            <Cpu size={36} color={colors.textDim} style={{ marginBottom: 16 }} />
             <Text style={{ fontSize: 15, fontWeight: '600', color: colors.textPrimary, marginBottom: 4 }}>{t('news.no_news')}</Text>
           </View>
         ) : isLegacy ? (
@@ -1482,7 +1485,7 @@ export default function NewsScreen() {
             {/* 구분선: 카테고리 → 소스별 */}
             {sourceOrder.some(key => (sourceArticles[key]?.length ?? 0) > 0) && (
               <View style={{ paddingHorizontal: 16, marginTop: 24, marginBottom: 24 }}>
-                <View style={{ height: 8, backgroundColor: colors.surface, borderRadius: 4, marginBottom: 16 }} />
+                <View style={{ height: 1, backgroundColor: colors.border, marginBottom: 16 }} />
                 <Text style={{ fontSize: 16, fontWeight: '700', color: colors.textPrimary, fontFamily: FontFamily.serif }}>
                   {t('news.source_title')}
                 </Text>

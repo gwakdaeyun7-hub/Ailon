@@ -125,15 +125,6 @@ export default function SavedScreen() {
     return db_ - da;
   }), [bookmarks]);
 
-  const { newsCount, snapCount } = useMemo(() => {
-    let news = 0, snap = 0;
-    for (const b of bookmarks) {
-      if (b.type === 'news') news++;
-      else if (b.type === 'snap' || b.type === 'principle') snap++;
-    }
-    return { newsCount: news, snapCount: snap };
-  }, [bookmarks]);
-
   const handleDelete = useCallback((bookmark: BookmarkType) => {
     Alert.alert(
       t('saved.delete'),
@@ -166,9 +157,7 @@ export default function SavedScreen() {
 
   const ListEmptyComponent = !user ? (
     <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 80, paddingHorizontal: 32 }}>
-      <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: colors.primaryLight, alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
-        <Bookmark size={30} color={colors.primary} />
-      </View>
+      <Bookmark size={36} color={colors.textDim} style={{ marginBottom: 20 }} />
       <Text style={{ color: colors.textPrimary, fontWeight: '700', fontSize: 17, lineHeight: 24, marginBottom: 6 }}>{t('auth.login_required')}</Text>
       <Text style={{ color: colors.textDim, fontSize: 14, textAlign: 'center', lineHeight: 20 }}>
         {t('saved.bookmark_login')}
@@ -176,9 +165,7 @@ export default function SavedScreen() {
     </View>
   ) : (
     <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 80, paddingHorizontal: 32 }}>
-      <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: colors.primaryLight, alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
-        <Bookmark size={30} color={colors.primary} />
-      </View>
+      <Bookmark size={36} color={colors.textDim} style={{ marginBottom: 20 }} />
       <Text style={{ color: colors.textPrimary, fontWeight: '700', fontSize: 17, lineHeight: 24, marginBottom: 6 }}>{t('saved.no_items_yet')}</Text>
       <Text style={{ color: colors.textDim, fontSize: 14, textAlign: 'center', lineHeight: 20 }}>
         {t('saved.bookmark_hint')}
@@ -197,30 +184,8 @@ export default function SavedScreen() {
               {sorted.length > 0 ? `${sorted.length}${t('saved.total')}` : t('saved.empty')}
             </Text>
           </View>
-          <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.primaryLight, alignItems: 'center', justifyContent: 'center' }}>
-            <Bookmark size={20} color={colors.primary} />
-          </View>
         </View>
-        <View style={{ width: 40, height: 3, backgroundColor: colors.primary, borderRadius: 2, marginTop: 12 }} />
       </View>
-
-      {/* 타입별 통계 카드 */}
-      {sorted.length > 0 && (
-        <View style={{ flexDirection: 'row', marginHorizontal: 16, marginBottom: 16, gap: 8 }}>
-          {newsCount > 0 && (
-            <View style={{ flex: 1, backgroundColor: colors.primaryLight, borderRadius: 14, paddingVertical: 12, alignItems: 'center', justifyContent: 'center', minHeight: 56 }}>
-              <Text style={{ color: colors.primary, fontSize: 20, fontWeight: '800' }}>{newsCount}</Text>
-              <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '600', marginTop: 2 }}>{t('saved.type_news')}</Text>
-            </View>
-          )}
-          {snapCount > 0 && (
-            <View style={{ flex: 1, backgroundColor: colors.coreTechBg, borderRadius: 14, paddingVertical: 12, alignItems: 'center', justifyContent: 'center', minHeight: 56 }}>
-              <Text style={{ color: colors.coreTech, fontSize: 20, fontWeight: '800' }}>{snapCount}</Text>
-              <Text style={{ color: colors.coreTech, fontSize: 11, fontWeight: '600', marginTop: 2 }}>{t('saved.type_principle')}</Text>
-            </View>
-          )}
-        </View>
-      )}
 
       <FlatList
         data={sorted}

@@ -49,10 +49,6 @@ export function ReactionBar({ itemType, itemId, shareText, shareTitle }: Reactio
             gap: 5,
             paddingHorizontal: 12,
             paddingVertical: 12,
-            borderRadius: 20,
-            backgroundColor: liked ? colors.primaryLight : colors.bg,
-            borderWidth: 1,
-            borderColor: liked ? colors.primaryBorder : colors.border,
           }}
         >
           <Heart
@@ -84,10 +80,6 @@ export function ReactionBar({ itemType, itemId, shareText, shareTitle }: Reactio
             gap: 5,
             paddingHorizontal: 12,
             paddingVertical: 12,
-            borderRadius: 20,
-            backgroundColor: colors.bg,
-            borderWidth: 1,
-            borderColor: colors.border,
           }}
         >
           <MessageCircle size={15} color={colors.textDim} />
@@ -105,10 +97,6 @@ export function ReactionBar({ itemType, itemId, shareText, shareTitle }: Reactio
             gap: 5,
             paddingHorizontal: 12,
             paddingVertical: 12,
-            borderRadius: 20,
-            backgroundColor: colors.bg,
-            borderWidth: 1,
-            borderColor: colors.border,
           }}
         >
           <Share2 size={15} color={colors.textDim} />

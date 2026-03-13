@@ -1,26 +1,11 @@
 import { Tabs } from 'expo-router';
-import { View } from 'react-native';
 import { Cpu, BookOpen, Wand2, Bookmark, User } from 'lucide-react-native';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
 
 function TabIcon({ Icon, color, focused }: { Icon: React.ComponentType<{ size: number; color: string; strokeWidth?: number }>; color: string; focused: boolean }) {
-  const { colors } = useTheme();
   return (
-    <View style={{ alignItems: 'center' }}>
-      <Icon size={22} color={color} strokeWidth={focused ? 2.5 : 1.8} />
-      {focused && (
-        <View
-          style={{
-            width: 5,
-            height: 5,
-            borderRadius: 2.5,
-            backgroundColor: colors.primary,
-            marginTop: 4,
-          }}
-        />
-      )}
-    </View>
+    <Icon size={22} color={color} strokeWidth={focused ? 2.5 : 1.8} />
   );
 }
 

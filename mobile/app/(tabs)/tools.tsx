@@ -16,14 +16,7 @@ export default function ToolsScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top']}>
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 }}>
-        <View style={{
-          width: 72, height: 72, borderRadius: 36,
-          backgroundColor: colors.primaryLight,
-          alignItems: 'center', justifyContent: 'center',
-          marginBottom: 20,
-        }}>
-          <Wand2 size={30} color={colors.primary} />
-        </View>
+        <Wand2 size={36} color={colors.textDim} style={{ marginBottom: 20 }} />
         <Text style={{
           fontSize: 18, fontWeight: '700', color: colors.textPrimary,
           marginBottom: 8, textAlign: 'center',

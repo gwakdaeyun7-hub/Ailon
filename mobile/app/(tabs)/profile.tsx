@@ -64,9 +64,7 @@ export default function ProfileScreen() {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top']}>
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
-          <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: colors.primaryLight, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-            <UserIcon size={32} color={colors.primary} />
-          </View>
+          <UserIcon size={40} color={colors.textDim} style={{ marginBottom: 16 }} />
           <Text style={{ color: colors.textPrimary, fontSize: 20, fontWeight: '800', marginBottom: 8 }}>{t('auth.login_required')}</Text>
           <Text style={{ color: colors.textDim, fontSize: 14, textAlign: 'center', lineHeight: 22, marginBottom: 28 }}>
             {t('auth.login_benefits')}
@@ -87,7 +85,6 @@ export default function ProfileScreen() {
       {/* Header */}
       <View style={{ paddingHorizontal: 16, paddingTop: 20, paddingBottom: 12 }}>
         <Text style={{ color: colors.textPrimary, fontSize: 24, fontWeight: '800', fontFamily: FontFamily.serifItalic }}>{t('profile.title')}</Text>
-        <View style={{ width: 40, height: 3, backgroundColor: colors.primary, borderRadius: 2, marginTop: 12 }} />
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -106,9 +103,7 @@ export default function ProfileScreen() {
         <View style={{ marginHorizontal: 16, marginBottom: 16, backgroundColor: colors.card, borderRadius: 20, padding: 20, ...cardShadow }}>
           <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 14 }}>{t('profile.language')}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.indigoBg, alignItems: 'center', justifyContent: 'center' }}>
-              <Globe size={18} color={colors.indigo} />
-            </View>
+            <Globe size={20} color={colors.textSecondary} />
             <View style={{ flex: 1, flexDirection: 'row', gap: 8 }}>
               <Pressable
                 onPress={() => setLanguage('ko')}
@@ -140,9 +135,7 @@ export default function ProfileScreen() {
         <View style={{ marginHorizontal: 16, marginBottom: 16, backgroundColor: colors.card, borderRadius: 20, padding: 20, ...cardShadow }}>
           <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 14 }}>{t('profile.theme')}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.indigoBg, alignItems: 'center', justifyContent: 'center' }}>
-              <Moon size={18} color={colors.indigo} />
-            </View>
+            <Moon size={20} color={colors.textSecondary} />
             <Text style={{ flex: 1, color: colors.textPrimary, fontSize: 15, fontWeight: '600' }}>{t('profile.dark_mode')}</Text>
             <Switch
               value={isDark}
@@ -192,9 +185,7 @@ export default function ProfileScreen() {
                 { key: 'likes' as const, icon: Heart, label: t('notification.likes') },
               ]).map(({ key, icon: Icon, label }) => (
                 <View key={key} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                  <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.warningLight, alignItems: 'center', justifyContent: 'center' }}>
-                    <Icon size={18} color={colors.warning} />
-                  </View>
+                  <Icon size={20} color={colors.textSecondary} />
                   <Text style={{ flex: 1, color: colors.textPrimary, fontSize: 15, fontWeight: '600' }}>{label}</Text>
                   <Switch
                     value={settings[key]}
@@ -213,9 +204,7 @@ export default function ProfileScreen() {
         <View style={{ marginHorizontal: 16, marginBottom: 16, backgroundColor: colors.card, borderRadius: 20, padding: 20, ...cardShadow }}>
           <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 14 }}>{t('profile.activity')}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.primaryLight, alignItems: 'center', justifyContent: 'center' }}>
-              <Bookmark size={18} color={colors.primary} />
-            </View>
+            <Bookmark size={20} color={colors.textSecondary} />
             <View style={{ flex: 1 }}>
               <Text style={{ color: colors.textPrimary, fontSize: 16, fontWeight: '700' }}>{bookmarks.length}</Text>
               <Text style={{ color: colors.textDim, fontSize: 13 }}>{t('profile.saved_bookmarks')}</Text>
@@ -245,9 +234,7 @@ export default function ProfileScreen() {
               accessibilityLabel={t('profile.privacy_policy')}
               style={{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 44, paddingVertical: 6 }}
             >
-              <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' }}>
-                <Shield size={18} color={colors.textSecondary} />
-              </View>
+              <Shield size={20} color={colors.textSecondary} />
               <Text style={{ flex: 1, color: colors.textPrimary, fontSize: 15, fontWeight: '600' }}>{t('profile.privacy_policy')}</Text>
               <ExternalLink size={14} color={colors.textDim} />
             </Pressable>
@@ -261,9 +248,7 @@ export default function ProfileScreen() {
               accessibilityLabel={t('profile.terms_of_service')}
               style={{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 44, paddingVertical: 6 }}
             >
-              <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' }}>
-                <FileText size={18} color={colors.textSecondary} />
-              </View>
+              <FileText size={20} color={colors.textSecondary} />
               <Text style={{ flex: 1, color: colors.textPrimary, fontSize: 15, fontWeight: '600' }}>{t('profile.terms_of_service')}</Text>
               <ExternalLink size={14} color={colors.textDim} />
             </Pressable>
@@ -278,9 +263,7 @@ export default function ProfileScreen() {
             accessibilityRole="button"
             style={{ backgroundColor: colors.card, borderRadius: 16, paddingHorizontal: 20, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', gap: 12, ...cardShadow, borderWidth: 1, borderColor: colors.primaryLight }}
           >
-            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.primaryLight, alignItems: 'center', justifyContent: 'center' }}>
-              <LogOut size={18} color={colors.primary} />
-            </View>
+            <LogOut size={20} color={colors.textSecondary} />
             <Text style={{ color: colors.primary, fontSize: 15, fontWeight: '700', flex: 1 }}>
               {signingOut ? t('profile.signing_out') : t('profile.signout')}
             </Text>
