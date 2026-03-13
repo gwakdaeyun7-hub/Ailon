@@ -1397,18 +1397,21 @@ Classify each article into ONE category:
   Explains HOW something works or teaches HOW to build something. NOT: social impact trends, security vulnerabilities.
   Includes: papers, studies, proposed architectures without released artifact, coding tutorials.
   Includes: paper-based tools/methods (e.g. academic audit tool from a paper → research, not models_products).
+  NOT: corporate data/tech licensing or partnership deals, concept comparison/explainer articles without novel method.
 
 ■ industry_business — Everything else: funding, M&A, regulation, trends, milestones, strategy, security issues.
   Includes: pricing/subscription changes, user growth stats, partnerships, lawsuits, policy.
   Includes: product events/meetups/fan meetings, community announcements, conferences.
+  Includes: company data/tech licensing deals, concept comparison/explainer articles (e.g. "X vs Y 차이점").
 
 ⚠ Product name in title ≠ models_products. Only actual NEW releases count.
 ⚠ Mixed article (blueprint + model release) → classify by the PRIMARY news.
 ⚠ New framework/tool "공개"/"release"/"launch" → models_products (not research).
 ⚠ Paper + released code/weights → models_products. Paper only → research.
 ⚠ Paper-based tool/method without downloadable artifact → research (not models_products).
+⚠ Company using/licensing tech or data for business = industry_business. Concept explainer comparing X vs Y = industry_business. Only novel algorithm/method analysis = research.
 
-Examples: "가우스2 공개"→models_products | "ChatGPT 9억명 돌파"→industry_business | "GRPO 논문"→research | "청사진 공개"→industry_business | "AI 쇼핑 테스트"→industry_business | "GPT-5 API 출시"→models_products | "LLM 파인튜닝 구축 가이드"→research | "AI 에이전트 OS 튜토리얼"→research | "소송 제기"→industry_business | "저작권 판결"→industry_business | "Self-Flow 기술로 훈련 효율 향상"→research | "새 AI Mode 전역 확대 출시"→models_products | "AI 검색 3억명 돌파"→industry_business | "에이전트 AI 프레임워크 공개"→models_products | "Claude Code 구독 가격 변경"→industry_business | "CiteAudit 논문, 환각성 인용 문제"→research | "OpenClaw 팬 미팅"→industry_business | "GeForce NOW 15종 신규 게임"→industry_business
+Examples: "가우스2 공개"→models_products | "ChatGPT 9억명 돌파"→industry_business | "GRPO 논문"→research | "청사진 공개"→industry_business | "AI 쇼핑 테스트"→industry_business | "GPT-5 API 출시"→models_products | "LLM 파인튜닝 구축 가이드"→research | "AI 에이전트 OS 튜토리얼"→research | "소송 제기"→industry_business | "저작권 판결"→industry_business | "Self-Flow 기술로 훈련 효율 향상"→research | "새 AI Mode 전역 확대 출시"→models_products | "AI 검색 3억명 돌파"→industry_business | "에이전트 AI 프레임워크 공개"→models_products | "Claude Code 구독 가격 변경"→industry_business | "CiteAudit 논문, 환각성 인용 문제"→research | "OpenClaw 팬 미팅"→industry_business | "GeForce NOW 15종 신규 게임"→industry_business | "포켓몬Go 데이터, 배달 로봇에 제공"→industry_business | "MCP와 스킬의 차이점은?"→industry_business
 
 Articles:
 {article_text}

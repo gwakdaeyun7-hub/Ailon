@@ -102,7 +102,7 @@ qa-pipeline-tester 에이전트를 사용하여 로그를 분석합니다.
 **기사 단위 분류 검증 (필수):**
 - 각 카테고리 Top 5 기사 제목을 확인하여 해당 카테고리에 맞는지 판정
   - models_products Top 5: 실제 신규 출시/공개인지? 기존 제품 언급이면 오분류
-  - research Top 5: 논문/벤치마크/알고리즘인지? 제품 출시면 오분류
+  - research Top 5: 논문/벤치마크/알고리즘인지? 제품 출시면 오분류. 기업 기술/데이터 활용 사례나 개념 비교(X vs Y) 기사면 industry_business 오분류
   - industry_business Top 5: catch-all이므로 위 두 카테고리에 해당하지 않는지만 확인
 - 의심 분류 건수가 5건 이상이면 `[QA] 의심 분류` 로그의 기사별 판정 수행
 
@@ -111,8 +111,8 @@ qa-pipeline-tester 에이전트를 사용하여 로그를 분석합니다.
   - "공개", "출시", "release", "launch" → models_products 강조
   - "논문", "paper", "benchmark" → research 강조
 - **models_products 오분류**: 제품명만 있고 신규 출시가 아닌 기사가 models_products로 → `⚠ Product name in title ≠ models_products` 규칙 강화
-- **research 오분류**: 튜토리얼/가이드 기사가 industry_business로 → Examples 추가
-- **경계 사례 Examples** (프롬프트에 이미 포함됨): "CiteAudit 논문"→research, "OpenClaw 팬 미팅"→industry_business, "GeForce NOW 15종 신규 게임"→industry_business
+- **research 오분류 (→industry_business)**: 기업 기술/데이터 활용 사례, 개념 비교/설명(explainer) 기사가 research로 → 프롬프트 NOT 규칙 + Examples로 경계 강화
+- **경계 사례 Examples** (프롬프트에 이미 포함됨): "CiteAudit 논문"→research, "OpenClaw 팬 미팅"→industry_business, "GeForce NOW 15종 신규 게임"→industry_business, "포켓몬Go 데이터, 배달 로봇에 제공"→industry_business, "MCP와 스킬의 차이점은?"→industry_business
 
 **수정 대상 파일:** `scripts/agents/news_team.py` — `_CLASSIFY_PROMPT` (line ~1387)
 - 프롬프트 텍스트 수정 (기존 Examples에 새 예시 추가)

@@ -53,8 +53,8 @@ AI타임스, GeekNews, ZDNet AI 에디터 (HTML scrape), 요즘IT AI
 
 ### Classification Categories
 - `models_products` — NEW model/product/tool/feature release, first wide rollout (NOT: events/meetups, non-AI products)
-- `research` — Paper, algorithm, benchmark, tutorial/how-to (includes paper-based tools)
-- `industry_business` — Everything else (catch-all: funding, regulation, trends, strategy, events)
+- `research` — Paper, algorithm, benchmark, tutorial/how-to (includes paper-based tools). NOT: corporate tech/data licensing deals, concept comparison/explainer articles without novel method
+- `industry_business` — Everything else (catch-all: funding, regulation, trends, strategy, events, concept explainers, corporate tech deals)
 - industry_business가 50-65%인 것은 정상 (catch-all 설계). 60% 초과 시 경고만 출력. 메가 이벤트(예: Anthropic-Pentagon 갈등 등 다소스 대형 사건) 발생 시 70%+도 자연 편향으로 허용 — 연속 3회 70%+ 시에만 프롬프트 조정 검토
 - 미분류 기사 → industry_business 기본값 적용 (로그로 개수 추적)
 
