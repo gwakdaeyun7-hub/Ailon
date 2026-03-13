@@ -19,6 +19,10 @@ function normalizePrinciple(raw: any): DailyPrinciples {
   if (!raw?.principle) return raw;
 
   const p = raw.principle;
+
+  // content_ko가 있으면 새 자유형식 콘텐츠 → 레거시 필드 매핑 불필요
+  if (p.content_ko) return raw as DailyPrinciples;
+
   const f = p.foundation;
   const a = p.application;
   const ig = p.integration;

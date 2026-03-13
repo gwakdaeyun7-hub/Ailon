@@ -126,6 +126,10 @@ export interface PrincipleVerification {
   confidence: number;
   principleAccuracy?: number;
   mappingAccuracy?: number;
+  // v2 (자유 형식 콘텐츠)
+  contentQuality?: number;
+  bilingualConsistency?: number;
+  // v1 (레거시 구조)
   insightClarity?: number;
   deepDiveDepth?: number;
   factCheck: string;
@@ -135,6 +139,10 @@ export interface PrincipleVerification {
 export interface Principle {
   title: string;
   title_en?: string;
+  // 자유 형식 마크다운 콘텐츠 (content_ko 존재 시 새 단일 스크롤 UI 사용)
+  content_ko?: string;
+  content_en?: string;
+  content_source?: 'curated' | 'generated';
   connectionType?: 'direct_inspiration' | 'structural_analogy' | 'mathematical_foundation';
   difficulty?: 'beginner' | 'intermediate' | 'advanced';
   keywords?: string[];
@@ -147,9 +155,10 @@ export interface Principle {
   category: string;
   superCategory: string;
 
-  foundation: PrincipleFoundation;
-  application: PrincipleApplication;
-  integration: PrincipleIntegration;
+  // 레거시 카드 구조 필드 (content_ko 없을 때 사용)
+  foundation?: PrincipleFoundation;
+  application?: PrincipleApplication;
+  integration?: PrincipleIntegration;
   deepDive?: DeepDive;
   verification?: PrincipleVerification;
 }

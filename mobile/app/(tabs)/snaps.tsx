@@ -1,9 +1,9 @@
 /**
- * 학문 스낵 -- Notebook 디자인 (인사이트 / 딥다이브 2-탭)
- * 풀카드 + 프로그레스 도트 + 스텝 서클 아이콘
+ * 학문 스낵 -- 단일 스크롤 마크다운 뷰 (content_ko 있을 때)
+ *              + 레거시 Notebook 카드 + 딥다이브 탭 (content_ko 없을 때)
  *
- * 인사이트 3단계: Discovery(원리발견) → Challenge(AI의 난제) → Impact(현실 임팩트)
- * 딥다이브 (왜의 사슬): originalProblem → bridge → coreIntuition(+formula) → limits
+ * 새 UI: 헤더(제목+배지) -> SnapsContentRenderer(마크다운 본문) -> 액션바
+ * 레거시: 인사이트 3단계 카드 + 딥다이브 탭 + 액션바
  */
 
 import React, { useState, useCallback } from 'react';
@@ -42,6 +42,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useBookmarks } from '@/hooks/useBookmarks';
 import { cardShadow, FontFamily } from '@/lib/theme';
 import { latexToDisplay } from '@/lib/latexToDisplay';
+import { SnapsContentRenderer } from '@/components/snaps/SnapsContentRenderer';
 import type { DailyPrinciples, Principle, DeepDive } from '@/lib/types';
 
 
@@ -101,6 +102,7 @@ function getCategoryConfig(superCategory: string, isDark: boolean): { Icon: Reac
   };
 }
 
+
 // --- Badge Components -------------------------------------------------------
 
 const CONNECTION_TYPE_DESC: Record<string, { ko: string; en: string }> = {
@@ -158,21 +160,23 @@ function DifficultyBadge({ level, colors, lang, isDark }: { level: string; color
   );
 }
 
-// --- Notebook Card (full-width, progress dots) ------------------------------
+
+// =============================================================================
+// Legacy Components (content_ko 없을 때 사용하는 기존 카드 UI)
+// =============================================================================
+
+// --- Notebook Card -----------------------------------------------------------
 
 interface NotebookCardProps {
   step: 1 | 2 | 3;
   label: string;
   headline: string;
   body: string;
-  /** Optional problem line (only for Application card) */
   problemLine?: string;
   subLine: string;
   accentColor: string;
   accentBg: string;
   IconComponent: React.ComponentType<{ size: number; color: string }>;
-  /** Bottom bar: progress hint (deprecated, unused) */
-  nextHint?: string;
   keywords?: string[];
 }
 
@@ -191,9 +195,7 @@ function NotebookCard({
       accessibilityRole="summary"
       accessibilityLabel={`${label}: ${headline}`}
     >
-      {/* Top section */}
       <View style={{ padding: 20, paddingBottom: 0 }}>
-        {/* Step circle + label */}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 }}>
           <View style={{
             width: 28, height: 28, borderRadius: 14,
@@ -210,8 +212,6 @@ function NotebookCard({
             {label}
           </Text>
         </View>
-
-        {/* Headline */}
         <Text style={{
           fontFamily: FontFamily.serif, fontSize: 14, fontWeight: '700',
           color: colors.textPrimary, lineHeight: 21, marginBottom: 10,
@@ -220,7 +220,6 @@ function NotebookCard({
         </Text>
       </View>
 
-      {/* Problem line first, then body — "problem → solution" narrative order */}
       {problemLine ? (
         <View style={{
           marginHorizontal: 20, marginBottom: 10,
@@ -234,7 +233,6 @@ function NotebookCard({
         </View>
       ) : null}
 
-      {/* Body (solution when problemLine is present, description otherwise) */}
       <Text style={{
         fontSize: 12, lineHeight: 19.2, color: colors.textSecondary,
         paddingHorizontal: 20, marginBottom: 12,
@@ -242,7 +240,6 @@ function NotebookCard({
         {body}
       </Text>
 
-      {/* Sub line (analogy / mechanism / impact) */}
       {subLine ? (
         <View style={{
           marginHorizontal: 20, marginBottom: keywords && keywords.length > 0 ? 10 : 14,
@@ -255,7 +252,6 @@ function NotebookCard({
         </View>
       ) : null}
 
-      {/* Keywords (foundation card only) */}
       {keywords && keywords.length > 0 && (
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingHorizontal: 20, marginBottom: 14 }}>
           {keywords.map((kw) => (
@@ -269,7 +265,6 @@ function NotebookCard({
         </View>
       )}
 
-      {/* Bottom bar: progress dots */}
       <View style={{
         borderTopWidth: 1, borderTopColor: colors.border,
         paddingHorizontal: 20, paddingVertical: 12,
@@ -337,7 +332,6 @@ function DeepDiveContent({ deepDive, lang, principle, catConfig }: {
     : null;
   return (
     <>
-      {/* Narrative breadcrumb: foundation headline -> Deep Dive */}
       {foundationHeadline && (
         <View style={{
           flexDirection: 'row', alignItems: 'center', gap: 6,
@@ -354,7 +348,6 @@ function DeepDiveContent({ deepDive, lang, principle, catConfig }: {
         </View>
       )}
 
-      {/* 1. Original Problem (원래 문제) */}
       <DeepDiveSection
         icon={<Clock size={12} color={colors.coreTech} />}
         iconBg={colors.coreTechBg}
@@ -365,7 +358,6 @@ function DeepDiveContent({ deepDive, lang, principle, catConfig }: {
         </Text>
       </DeepDiveSection>
 
-      {/* 2. The Bridge (영감의 다리) */}
       {deepDive.bridge ? (
         <DeepDiveSection
           icon={<Link2 size={12} color={colors.indigo} />}
@@ -378,7 +370,6 @@ function DeepDiveContent({ deepDive, lang, principle, catConfig }: {
         </DeepDiveSection>
       ) : null}
 
-      {/* 3. Core Intuition (핵심 직관) + formula (선택) */}
       <DeepDiveSection
         icon={<Lightbulb size={12} color={colors.primary} />}
         iconBg={colors.primaryLight}
@@ -405,7 +396,6 @@ function DeepDiveContent({ deepDive, lang, principle, catConfig }: {
         ) : null}
       </DeepDiveSection>
 
-      {/* 4. Limits (한계와 열린 질문) */}
       <DeepDiveSection
         icon={<Globe size={12} color={colors.accent} />}
         iconBg={colors.surface}
@@ -418,6 +408,7 @@ function DeepDiveContent({ deepDive, lang, principle, catConfig }: {
     </>
   );
 }
+
 
 // --- Action Bar -------------------------------------------------------------
 
@@ -441,14 +432,25 @@ function ActionBar({ principleData, lang }: { principleData: DailyPrinciples; la
     const p = principleData.principle;
     if (!p) return;
     const title = lang === 'en' && p.title_en ? p.title_en : p.title;
-    const headline = L(p.foundation.headline, p.foundation.headline_en, lang);
+    // content_ko가 있으면 첫 줄, 없으면 foundation.headline 사용
+    let snippet = '';
+    if (p.content_ko) {
+      snippet = (p.content_ko.split('\n').find(l => l.trim() !== '') || '').replace(/[#*]/g, '').trim();
+    } else if (p.foundation) {
+      snippet = L(p.foundation.headline, p.foundation.headline_en, lang);
+    }
     await Share.share({
-      message: `${title} \u2014 ${getDisciplineName(principleData, lang)}\n\n\u201C${headline}\u201D\n\n\u2014 AILON`,
+      message: `${title} \u2014 ${getDisciplineName(principleData, lang)}\n\n\u201C${snippet}\u201D\n\n\u2014 AILON`,
     });
   }, [principleData, lang]);
 
   return (
-    <View style={{ flexDirection: 'row', gap: 12, marginTop: 20, marginBottom: 8 }}>
+    <View style={{
+      flexDirection: 'row', gap: 12,
+      marginTop: 24, marginBottom: 8,
+      paddingTop: 20,
+      borderTopWidth: 1, borderTopColor: colors.border,
+    }}>
       <Pressable onPress={handleBookmark} style={({ pressed }) => ({
         flexDirection: 'row' as const, alignItems: 'center' as const, gap: 6,
         backgroundColor: isBookmarked ? colors.bookmarkActiveBg : colors.surface,
@@ -472,6 +474,7 @@ function ActionBar({ principleData, lang }: { principleData: DailyPrinciples; la
   );
 }
 
+
 // --- Skeleton ---------------------------------------------------------------
 
 function SkeletonBlock({ width, height, rounded }: { width: number | `${number}%`; height: number; rounded?: number }) {
@@ -484,46 +487,48 @@ function SkeletonLoading() {
   return (
     <View style={{ paddingTop: 8 }}>
       <View style={{ marginBottom: 24 }}>
-        <SkeletonBlock width={80} height={22} rounded={11} />
-        <View style={{ height: 10 }} />
-        <SkeletonBlock width="70%" height={28} />
-        <View style={{ height: 8 }} />
-        <SkeletonBlock width="90%" height={16} />
-      </View>
-      {[0, 1, 2].map(i => (
-        <View key={i} style={{
-          backgroundColor: colors.card, borderRadius: 16, marginBottom: 16,
-          borderWidth: 1, borderColor: colors.border, overflow: 'hidden',
-        }}>
-          <View style={{ padding: 20, paddingBottom: 0 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }}>
-              <SkeletonBlock width={32} height={32} rounded={16} />
-              <View style={{ width: 10 }} />
-              <SkeletonBlock width={80} height={12} />
-            </View>
-            <SkeletonBlock width="85%" height={16} />
-          </View>
-          <View style={{ paddingHorizontal: 20, paddingVertical: 10 }}>
-            <SkeletonBlock width="100%" height={14} />
-            <View style={{ height: 6 }} />
-            <SkeletonBlock width="75%" height={14} />
-          </View>
-          <View style={{ paddingHorizontal: 20, paddingBottom: 14 }}>
-            <SkeletonBlock width="90%" height={32} rounded={10} />
-          </View>
-          <View style={{ borderTopWidth: 1, borderTopColor: colors.border, paddingHorizontal: 20, paddingVertical: 12, flexDirection: 'row', justifyContent: 'space-between' }}>
-            <View style={{ flexDirection: 'row', gap: 5 }}>
-              {[0, 1, 2].map(d => <SkeletonBlock key={d} width={7} height={7} rounded={4} />)}
-            </View>
-            <SkeletonBlock width={80} height={10} />
-          </View>
+        <View style={{ flexDirection: 'row', gap: 6, marginBottom: 10 }}>
+          <SkeletonBlock width={80} height={22} rounded={11} />
+          <SkeletonBlock width={60} height={22} rounded={11} />
         </View>
-      ))}
+        <SkeletonBlock width="80%" height={28} />
+        <View style={{ height: 8 }} />
+        <SkeletonBlock width="50%" height={16} />
+      </View>
+      {/* Content skeleton: article-like paragraphs */}
+      <View style={{ marginBottom: 20 }}>
+        <SkeletonBlock width="40%" height={20} rounded={4} />
+        <View style={{ height: 12 }} />
+        <SkeletonBlock width="100%" height={16} />
+        <View style={{ height: 6 }} />
+        <SkeletonBlock width="95%" height={16} />
+        <View style={{ height: 6 }} />
+        <SkeletonBlock width="80%" height={16} />
+      </View>
+      <View style={{
+        backgroundColor: colors.primaryLight, borderRadius: 8,
+        borderLeftWidth: 3, borderLeftColor: colors.border,
+        padding: 16, marginBottom: 20,
+      }}>
+        <SkeletonBlock width="70%" height={14} />
+        <View style={{ height: 6 }} />
+        <SkeletonBlock width="50%" height={14} />
+      </View>
+      <View style={{ marginBottom: 20 }}>
+        <SkeletonBlock width="45%" height={20} rounded={4} />
+        <View style={{ height: 12 }} />
+        <SkeletonBlock width="100%" height={16} />
+        <View style={{ height: 6 }} />
+        <SkeletonBlock width="90%" height={16} />
+        <View style={{ height: 6 }} />
+        <SkeletonBlock width="70%" height={16} />
+      </View>
     </View>
   );
 }
 
-// --- Segment Control --------------------------------------------------------
+
+// --- Segment Control (레거시 UI 전용) ----------------------------------------
 
 function SegmentControl({ activeTab, onTabChange, colors, t }: {
   activeTab: 'insight' | 'deepdive';
@@ -554,7 +559,10 @@ function SegmentControl({ activeTab, onTabChange, colors, t }: {
   );
 }
 
-// --- Main Screen ------------------------------------------------------------
+
+// =============================================================================
+// Main Screen
+// =============================================================================
 
 export default function SnapsScreen() {
   const { principleData, loading, error, refresh, currentDate, goNext, goPrev, canGoNext, canGoPrev } = usePrinciple();
@@ -574,15 +582,21 @@ export default function SnapsScreen() {
   const superCategory = principle?.superCategory ?? principleData?.discipline_info?.superCategory;
   const catConfig = superCategory ? getCategoryConfig(superCategory, isDark) : null;
 
+  // content_ko 존재 여부로 새 UI / 레거시 UI 분기
+  const hasMarkdownContent = !!(principle?.content_ko);
+  const markdownText = hasMarkdownContent
+    ? (lang === 'en' && principle?.content_en ? principle.content_en : principle!.content_ko!)
+    : '';
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top']}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.textSecondary} />}
       >
         {/* --- Header --- */}
-        <View style={{ paddingTop: 20, paddingBottom: 20 }}>
+        <View style={{ paddingTop: 20, paddingBottom: 24, borderBottomWidth: 1, borderBottomColor: colors.border }}>
           {/* Top: tab label + date nav */}
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <Text style={{ fontSize: 15, fontWeight: '600', color: colors.textDim }}>{t('snaps.title')}</Text>
@@ -625,16 +639,21 @@ export default function SnapsScreen() {
                     backgroundColor: colors.surface, borderRadius: 16, paddingHorizontal: 8, paddingVertical: 3,
                   }}>
                     <Clock size={10} color={colors.textDim} />
-                    <Text style={{ fontSize: 10, fontWeight: '600', color: colors.textDim }}>{lang === 'en' ? (principle.readTime || '').replace('분', ' min') : principle.readTime}</Text>
+                    <Text style={{ fontSize: 10, fontWeight: '600', color: colors.textDim }}>
+                      {lang === 'en' ? (principle.readTime || '').replace('분', ' min') : principle.readTime}
+                    </Text>
                   </View>
                 )}
               </View>
 
               {/* Principle name (hero) */}
-              <Text style={{
-                fontSize: 26, fontWeight: '800', color: colors.textPrimary,
-                lineHeight: 34, marginBottom: 8, fontFamily: FontFamily.serif,
-              }}>
+              <Text
+                style={{
+                  fontSize: 26, fontWeight: '800', color: colors.textPrimary,
+                  lineHeight: 34, marginBottom: 8, fontFamily: FontFamily.serif,
+                }}
+                accessibilityRole="header"
+              >
                 {L(principle.title, principle.title_en, lang)}
               </Text>
 
@@ -684,50 +703,81 @@ export default function SnapsScreen() {
               {t('snaps.no_content_desc')}
             </Text>
           </View>
-        ) : (
+        ) : hasMarkdownContent ? (
+          /* ===== 새 UI: 단일 스크롤 마크다운 뷰 (content_ko 존재) ===== */
           <>
-            {/* Segment control */}
+            <View style={{ paddingTop: 8 }}>
+              <SnapsContentRenderer content={markdownText} />
+            </View>
+
+            {/* Takeaway */}
+            {principle.takeaway && (
+              <View style={{
+                backgroundColor: colors.surface, borderRadius: 12, padding: 14,
+                marginTop: 16, borderLeftWidth: 3, borderLeftColor: colors.primary,
+              }}>
+                <Text style={{
+                  fontSize: 10, fontWeight: '700', color: colors.textDim,
+                  letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 6,
+                }}>
+                  TAKEAWAY
+                </Text>
+                <Text style={{
+                  fontSize: 13, lineHeight: 20, color: colors.textPrimary,
+                  fontFamily: FontFamily.serif, fontStyle: 'italic',
+                }}>
+                  {L(principle.takeaway, principle.takeaway_en, lang)}
+                </Text>
+              </View>
+            )}
+
+            {principleData && <ActionBar principleData={principleData} lang={lang} />}
+          </>
+        ) : (
+          /* ===== 레거시 UI: 카드 3장 + 딥다이브 탭 (content_ko 없음) ===== */
+          <>
             {deepDive && <SegmentControl activeTab={activeTab} onTabChange={setActiveTab} colors={colors} t={t} />}
 
             {activeTab === 'insight' || !deepDive ? (
               <>
-                {/* Notebook cards */}
-                {/* 1. Discovery (Foundation) */}
-                <NotebookCard
-                  step={1}
-                  label={t('snaps.foundation')}
-                  headline={L(principle.foundation.headline, principle.foundation.headline_en, lang)}
-                  body={L(principle.foundation.body, principle.foundation.body_en, lang)}
-                  subLine={L(principle.foundation.analogy, principle.foundation.analogy_en, lang)}
-                  accentColor={colors.coreTech}
-                  accentBg={colors.coreTechBg}
-                  IconComponent={Lightbulb}
-                />
-                {/* 2. Challenge & Solution (Application) */}
-                <NotebookCard
-                  step={2}
-                  label={t('snaps.application')}
-                  headline={L(principle.application.headline, principle.application.headline_en, lang)}
-                  body={L(principle.application.body, principle.application.body_en, lang)}
-                  problemLine={principle.application.problem ? `${t('snaps.problem')}: ${L(principle.application.problem, principle.application.problem_en, lang)}` : undefined}
-                  subLine={L(principle.application.mechanism, principle.application.mechanism_en, lang)}
-                  accentColor={colors.indigo}
-                  accentBg={colors.indigoBg}
-                  IconComponent={Cpu}
-                />
-                {/* 3. Impact (Integration) */}
-                <NotebookCard
-                  step={3}
-                  label={t('snaps.integration')}
-                  headline={L(principle.integration.headline, principle.integration.headline_en, lang)}
-                  body={L(principle.integration.body, principle.integration.body_en, lang)}
-                  subLine={L(principle.integration.impact, principle.integration.impact_en, lang)}
-                  accentColor={colors.primary}
-                  accentBg={colors.primaryLight}
-                  IconComponent={Zap}
-                />
+                {principle.foundation && (
+                  <NotebookCard
+                    step={1}
+                    label={t('snaps.foundation')}
+                    headline={L(principle.foundation.headline, principle.foundation.headline_en, lang)}
+                    body={L(principle.foundation.body, principle.foundation.body_en, lang)}
+                    subLine={L(principle.foundation.analogy, principle.foundation.analogy_en, lang)}
+                    accentColor={colors.coreTech}
+                    accentBg={colors.coreTechBg}
+                    IconComponent={Lightbulb}
+                  />
+                )}
+                {principle.application && (
+                  <NotebookCard
+                    step={2}
+                    label={t('snaps.application')}
+                    headline={L(principle.application.headline, principle.application.headline_en, lang)}
+                    body={L(principle.application.body, principle.application.body_en, lang)}
+                    problemLine={principle.application.problem ? `${t('snaps.problem')}: ${L(principle.application.problem, principle.application.problem_en, lang)}` : undefined}
+                    subLine={L(principle.application.mechanism, principle.application.mechanism_en, lang)}
+                    accentColor={colors.indigo}
+                    accentBg={colors.indigoBg}
+                    IconComponent={Cpu}
+                  />
+                )}
+                {principle.integration && (
+                  <NotebookCard
+                    step={3}
+                    label={t('snaps.integration')}
+                    headline={L(principle.integration.headline, principle.integration.headline_en, lang)}
+                    body={L(principle.integration.body, principle.integration.body_en, lang)}
+                    subLine={L(principle.integration.impact, principle.integration.impact_en, lang)}
+                    accentColor={colors.primary}
+                    accentBg={colors.primaryLight}
+                    IconComponent={Zap}
+                  />
+                )}
 
-                {/* Takeaway (핵심 학습 요약) */}
                 {principle.takeaway && (
                   <View style={{
                     backgroundColor: colors.surface, borderRadius: 12, padding: 14,
@@ -737,7 +787,7 @@ export default function SnapsScreen() {
                       fontSize: 10, fontWeight: '700', color: colors.textDim,
                       letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 6,
                     }}>
-                      {lang === 'en' ? 'TAKEAWAY' : 'TAKEAWAY'}
+                      TAKEAWAY
                     </Text>
                     <Text style={{
                       fontSize: 13, lineHeight: 20, color: colors.textPrimary,
@@ -748,7 +798,6 @@ export default function SnapsScreen() {
                   </View>
                 )}
 
-                {/* Deep Dive nudge */}
                 {deepDive && activeTab === 'insight' && (
                   <Pressable onPress={() => setActiveTab('deepdive')} style={{
                     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
@@ -771,7 +820,6 @@ export default function SnapsScreen() {
               <DeepDiveContent deepDive={deepDive} lang={lang} principle={principle} catConfig={catConfig} />
             )}
 
-            {/* Action Bar (both tabs) */}
             {principleData && <ActionBar principleData={principleData} lang={lang} />}
           </>
         )}

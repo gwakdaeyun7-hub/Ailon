@@ -78,32 +78,23 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 - Conditional retry: `should_retry` → `retry_reseed` (LangGraph conditional edges, max 3 retries)
 
 - Generates 1 principle per day from 12 disciplines (engineering, natural/formal/applied science)
-- 3-step narrative: foundation → application → integration + deepDive
+- **자유 형식 마크다운 텍스트** 생성 (기존 7-섹션 JSON 구조에서 전환)
+- content_ko (300~600자) + content_en (영어 동일 내용) 쌍으로 생성
 - Avoids same discipline in last 3 days, same seed in last 30 days
-- **TEMP**: 프롬프트 튜닝을 위해 Simulated Annealing(`opt_simulated_annealing`) 시드 고정 중 — seed_selector + retry_reseed 모두 동일 시드 강제 선택. 튜닝 완료 후 `# ── TEMP:` 블록 제거하면 원래 로직 복원
-- Content prompt: "같은 질문, 다른 맥락" 서사 구조 (근본 질문 → AI 재등장 → 현실 임팩트)
-  - foundation.body: 원래 학문의 실제 작동 메커니즘(물리량·변수·현상) 필수 — AI 관점만 서술 금지
-  - analogy: 핵심 메커니즘(과정)을 비유 — 작동의 핵심 단계(조건부 수용, 피드백, 경쟁 등)가 반영 필수, 결과만 비유 금지. difficulty별 전문 용어 수준 차등 (beginner: 최소화+괄호 설명, advanced: 자유 사용)
-  - impact: 수치(벤치마크/%) 또는 구체적 모델/프로젝트명 1개+ 필수, 추상 표현 금지
-  - limits: 원리 자체의 일반 한계 금지, AI 시스템 적용 시만 드러나는 한계 필수 (gradient-based 대비 열위, 고차원 스케일링, distribution shift 등)
-  - bridge: 명시적 매핑(X→Y) 최소 2쌍 + 각 쌍마다 WHY 설명 1문장 + 보존/변형 구분 (200~300자)
-  - coreIntuition: difficulty별 분기 — beginner: ①② 필수 (150~250자), intermediate: ①②③ 필수, advanced: ①②③④ 모두 필수. ① 변수 의미 ② 조건별 분기 ③ 파라미터 감수성 ④ 수렴 조건
-  - originalProblem: foundation.body 내용 반복 금지 — 반드시 새로운 학술 맥락(논문/저서명, 저자, 연도) 추가
-  - formula: 단일 줄, \begin/\end 금지, \frac 1단 중첩까지 (모바일 LaTeX→Unicode 변환 대응). formula_en은 formula 복사 (LaTeX는 언어 무관)
-  - **New fields**: `deepDiveHook` (30~40자, 콘텐츠 맞춤형 딥다이브 티저), `deepDiveHook_en` (max 60), `takeaway` (30~50자, 핵심 인사이트 한 문장), `takeaway_en` (max 70)
-  - readTime: LLM 출력이 아닌 코드에서 글자 수 기반 계산 (`_calc_read_time`, 500자/분 기준)
-- Verifier: 6-section evaluation (A. 사실정확성, B. 인사이트이해도, C. 딥다이브전문성, D. 한영일관성및품질, E. difficulty수준적합성, F. 신규필드검증)
-  - Section E: beginner 전문 용어 검사, advanced 깊이 검사 (coreIntuition ①② 수준이면 감점)
-  - Section F: deepDiveHook 콘텐츠 특화 여부 (범용 문구 감점), takeaway 핵심 압축 여부 (headline 반복 감점)
-  - Output: verified, confidence, principleAccuracy, mappingAccuracy, insightClarity, deepDiveDepth (0.0~1.0) + factCheck + issues[]
-  - Retry if confidence < 0.7 OR any sub-score < 0.5 (principleAccuracy/mappingAccuracy/insightClarity/deepDiveDepth)
-  - limits에 원리 자체의 일반 한계만 서술하면 deepDiveDepth ≤ 0.5 감점
-  - Regex fallback (`_regex_extract_verification`): JSON 파싱 완전 실패 시 raw text에서 verifier 필드를 regex로 직접 추출하는 최종 방어 계층
-  - Empty response detection: Gemini 빈 응답 시 파싱 생략 후 재시도, 디버그 로깅 포함
-  - content_json 입력 6000자 제한 (indent=None 직렬화, 토큰 절약 + 응답 안정성)
+- **Curated 콘텐츠 지원**: `scripts/curated_principles/{seed_id}.md` 파일이 존재하면 LLM 생성 없이 직접 사용. front-matter(difficulty, connectionType, keywords) + `---EN---` 구분자로 KO/EN 분리
+- Content prompt: 자유 형식 마크다운으로 한줄 정의 → 원리 해설 → AI 연결 → 수식과 직관 → 실제 임팩트 순 서사
+  - 수식은 LaTeX가 아닌 평문 표기 (dE = E(new) - E(old) 형태)
+  - 괄호 안에 AI 대응 개념 병기 (온도(탐색 범위))
+  - 인라인 용어 정의 (Annealing(담금질) - 설명)
+  - readTime: 코드에서 content_ko 글자 수 기반 계산 (`_calc_read_time`, 500자/분 기준)
+- Verifier: 4-section evaluation (A. 사실정확성/principleAccuracy, B. 매핑정확성/mappingAccuracy, C. 텍스트품질/contentQuality, D. 한영일관성/bilingualConsistency)
+  - Output: verified, confidence, principleAccuracy, mappingAccuracy, contentQuality, bilingualConsistency (0.0~1.0) + factCheck + issues[]
+  - Retry if confidence < 0.7 OR any sub-score < 0.5
+  - Curated 콘텐츠는 검증 건너뜀 (사전 검수 완료)
+  - Regex fallback (`_regex_extract_verification`): JSON 파싱 완전 실패 시 raw text에서 verifier 필드를 regex로 직접 추출
+  - Empty response detection: Gemini 빈 응답 시 파싱 생략 후 재시도
 - Defense-in-depth: content=None → should_retry → retry_reseed flow (no exceptions)
-- Formula enforcement: math/phys/info/stat/ee/opt disciplines require formula field — `should_retry` forces retry if missing (not just warning)
-- Code-level quality warnings: analogy length, problem length, bridge keywords (보존/변형/추상화/생략), AI-specific limits, headline length >25, body length >150, _en field existence, deepDiveHook/takeaway 존재 여부
+- Code-level quality warnings: content_ko 길이 범위 (200~800자), content_en 존재, 한줄 정의 패턴, 수식 존재
 
 ### Post-Pipeline Features (scripts/generate_features.py)
 

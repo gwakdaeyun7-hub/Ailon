@@ -19,16 +19,18 @@
 - **Pull-to-refresh**, skeleton loading, batch stats fetching
 
 ### Tab 2: Snaps (snaps.tsx) — Principles/Daily Learning
-- **3-Step Insight Cards** with progress dots:
-  1. Foundation: Academic principle + everyday analogy (icon per superCategory)
-  2. Application: AI connection + problem + mechanism
-  3. Integration: Real-world impact
-- **Takeaway Section**: quote-style box after Integration card — 핵심 인사이트 한 문장 (takeaway/takeaway_en)
-- **Deep Dive Tab** (왜의 사슬): originalProblem → bridge → coreIntuition → formula → limits
-  - Breadcrumb: `foundation.headline → Deep Dive` (탭 상단 내비게이션)
-  - deepDiveHook CTA: 콘텐츠 맞춤형 티저 텍스트로 딥다이브 유도 (deepDiveHook/deepDiveHook_en, 정적 폴백 있음)
+- **단일 스크롤 자유 형식 텍스트 뷰**: 기존 3-카드 + 딥다이브 탭 구조 제거, 수식이 텍스트 속에 녹아든 자연스러운 읽기 경험
+- **SnapsContentRenderer** (`components/snaps/SnapsContentRenderer.tsx`): 마크다운 파싱 + 블록 렌더링
+  - 7가지 블록 타입: heading, formula, definition, steps (번호 리스트 그룹), emphasis, list_item (불릿), body
+  - 인라인 서식: `**텍스트**` → fontWeight 700 굵은 글씨 (renderBoldText 헬퍼)
+  - 배경색 3-규칙: Teal(primaryLight)=수식, Beige(surface)=용어 정의+알고리즘 스텝, 없음=그 외
+  - 수식 감지: LaTeX 명령, 그리스 문자, 수학 기호 패턴 (한글 25% 미만, 80자 이하), `latexToDisplay` 변환
+  - 용어 정의: "term - description" 패턴 → beige 배경 + 볼드 용어명
+  - 알고리즘 스텝: 연속 번호 리스트(1. 2. 3.)를 그룹화 → beige 배경 컨테이너
+  - 강조 문장: ! 느낌표 종료 → 배경 없이 굵은 텍스트
+- **buildFreeformContent**: 구조화된 Principle + DeepDive 데이터를 자유 텍스트로 조합 (파이프라인 freeform 전환 시 bypass 가능)
+- **Header**: 제목(serif 26pt), 분야 배지(superCategory 아이콘), connectionType, difficulty, readTime, keywords
 - **connectionType**: 탭 시 educational Alert popup (direct_inspiration/structural_analogy/mathematical_foundation 설명)
-- **Metadata**: Difficulty badge (Beginner/Intermediate/Advanced), connectionType, keywords, readTime
 - **4 Super Categories**: 공학(5), 자연과학(4), 형식과학(2), 응용과학(1) — 12 disciplines total
 - Date navigation, AsyncStorage offline caching
 - **normalizePrinciple**: snake_case 필드 폴백 (deepDiveHook, takeaway 등 신규 필드 포함)
