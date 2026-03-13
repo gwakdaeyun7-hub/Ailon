@@ -93,6 +93,16 @@ function normalizePrinciple(raw: any): DailyPrinciples {
     }
   }
 
+  // deepDiveHook / takeaway: 새 필드 폴백
+  if (!p.deepDiveHook && (p as any).deep_dive_hook) {
+    p.deepDiveHook = (p as any).deep_dive_hook;
+    p.deepDiveHook_en = p.deepDiveHook_en || (p as any).deep_dive_hook_en;
+  }
+  if (!p.takeaway && (p as any).take_away) {
+    p.takeaway = (p as any).take_away;
+    p.takeaway_en = p.takeaway_en || (p as any).take_away_en;
+  }
+
   return raw as DailyPrinciples;
 }
 

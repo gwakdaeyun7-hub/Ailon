@@ -23,10 +23,15 @@
   1. Foundation: Academic principle + everyday analogy (icon per superCategory)
   2. Application: AI connection + problem + mechanism
   3. Integration: Real-world impact
+- **Takeaway Section**: quote-style box after Integration card — 핵심 인사이트 한 문장 (takeaway/takeaway_en)
 - **Deep Dive Tab** (왜의 사슬): originalProblem → bridge → coreIntuition → formula → limits
+  - Breadcrumb: `foundation.headline → Deep Dive` (탭 상단 내비게이션)
+  - deepDiveHook CTA: 콘텐츠 맞춤형 티저 텍스트로 딥다이브 유도 (deepDiveHook/deepDiveHook_en, 정적 폴백 있음)
+- **connectionType**: 탭 시 educational Alert popup (direct_inspiration/structural_analogy/mathematical_foundation 설명)
 - **Metadata**: Difficulty badge (Beginner/Intermediate/Advanced), connectionType, keywords, readTime
 - **4 Super Categories**: 공학(5), 자연과학(4), 형식과학(2), 응용과학(1) — 12 disciplines total
 - Date navigation, AsyncStorage offline caching
+- **normalizePrinciple**: snake_case 필드 폴백 (deepDiveHook, takeaway 등 신규 필드 포함)
 
 ### Tab 3: AI Tools & Tips (tools.tsx) — 준비 중
 - "Coming Soon" 플레이스홀더 화면 (향후 업데이트에서 구현 예정)

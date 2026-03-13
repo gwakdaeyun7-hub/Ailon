@@ -15,6 +15,7 @@ import {
   RefreshControl,
   Share,
   Platform,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -102,6 +103,21 @@ function getCategoryConfig(superCategory: string, isDark: boolean): { Icon: Reac
 
 // --- Badge Components -------------------------------------------------------
 
+const CONNECTION_TYPE_DESC: Record<string, { ko: string; en: string }> = {
+  direct_inspiration: {
+    ko: '이 학문의 원리가 직접적으로 AI 기술 설계에 영감을 주었습니다',
+    en: 'This principle directly inspired AI technology design',
+  },
+  structural_analogy: {
+    ko: 'AI와 구조적으로 유사하지만 직접적 영감 관계는 아닙니다',
+    en: 'Structurally similar to AI but not a direct inspiration',
+  },
+  mathematical_foundation: {
+    ko: '이 학문의 수학적 프레임워크가 AI의 기초가 되었습니다',
+    en: 'The mathematical framework became a foundation of AI',
+  },
+};
+
 function ConnectionTypeBadge({ type, colors, lang }: { type: string; colors: Record<string, string>; lang: string }) {
   const config: Record<string, { bg: string; color: string; ko: string; en: string }> = {
     direct_inspiration: { bg: colors.coreTechBg, color: colors.coreTech, ko: '직접 영감', en: 'Direct' },
@@ -110,10 +126,20 @@ function ConnectionTypeBadge({ type, colors, lang }: { type: string; colors: Rec
   };
   const c = config[type];
   if (!c) return null;
+  const desc = CONNECTION_TYPE_DESC[type];
+  const handlePress = () => {
+    if (!desc) return;
+    Alert.alert(
+      lang === 'en' ? c.en : c.ko,
+      lang === 'en' ? desc.en : desc.ko,
+    );
+  };
   return (
-    <View style={{ backgroundColor: c.bg, borderRadius: 16, paddingHorizontal: 8, paddingVertical: 3 }}>
-      <Text style={{ fontSize: 10, fontWeight: '700', color: c.color }}>{lang === 'en' ? c.en : c.ko}</Text>
-    </View>
+    <Pressable onPress={handlePress} hitSlop={4}>
+      <View style={{ backgroundColor: c.bg, borderRadius: 16, paddingHorizontal: 8, paddingVertical: 3 }}>
+        <Text style={{ fontSize: 10, fontWeight: '700', color: c.color }}>{lang === 'en' ? c.en : c.ko}</Text>
+      </View>
+    </Pressable>
   );
 }
 
@@ -301,11 +327,33 @@ function DeepDiveSection({ icon, iconBg, title, children }: {
   );
 }
 
-function DeepDiveContent({ deepDive, lang }: { deepDive: DeepDive; lang: string }) {
+function DeepDiveContent({ deepDive, lang, principle, catConfig }: {
+  deepDive: DeepDive; lang: string; principle?: Principle | null; catConfig?: { Icon: React.ComponentType<{ size: number; color: string }>; color: string; bg: string } | null;
+}) {
   const { colors } = useTheme();
   const { t } = useLanguage();
+  const foundationHeadline = principle?.foundation
+    ? L(principle.foundation.headline, principle.foundation.headline_en, lang)
+    : null;
   return (
     <>
+      {/* Narrative breadcrumb: foundation headline -> Deep Dive */}
+      {foundationHeadline && (
+        <View style={{
+          flexDirection: 'row', alignItems: 'center', gap: 6,
+          marginBottom: 16, paddingHorizontal: 4,
+        }}>
+          {catConfig && <catConfig.Icon size={11} color={colors.textDim} />}
+          <Text style={{ fontSize: 11, color: colors.textDim, flex: 1 }} numberOfLines={1}>
+            {foundationHeadline}
+          </Text>
+          <ChevronRight size={10} color={colors.textDim} />
+          <Text style={{ fontSize: 11, fontWeight: '700', color: colors.textDim }}>
+            {t('snaps.tab_deepdive')}
+          </Text>
+        </View>
+      )}
+
       {/* 1. Original Problem (원래 문제) */}
       <DeepDiveSection
         icon={<Clock size={12} color={colors.coreTech} />}
@@ -679,6 +727,27 @@ export default function SnapsScreen() {
                   IconComponent={Zap}
                 />
 
+                {/* Takeaway (핵심 학습 요약) */}
+                {principle.takeaway && (
+                  <View style={{
+                    backgroundColor: colors.surface, borderRadius: 12, padding: 14,
+                    marginBottom: 16, borderLeftWidth: 3, borderLeftColor: colors.primary,
+                  }}>
+                    <Text style={{
+                      fontSize: 10, fontWeight: '700', color: colors.textDim,
+                      letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 6,
+                    }}>
+                      {lang === 'en' ? 'TAKEAWAY' : 'TAKEAWAY'}
+                    </Text>
+                    <Text style={{
+                      fontSize: 13, lineHeight: 20, color: colors.textPrimary,
+                      fontFamily: FontFamily.serif, fontStyle: 'italic',
+                    }}>
+                      {L(principle.takeaway, principle.takeaway_en, lang)}
+                    </Text>
+                  </View>
+                )}
+
                 {/* Deep Dive nudge */}
                 {deepDive && activeTab === 'insight' && (
                   <Pressable onPress={() => setActiveTab('deepdive')} style={{
@@ -688,14 +757,18 @@ export default function SnapsScreen() {
                   }}>
                     <BookOpen size={14} color={colors.indigo} />
                     <Text style={{ fontSize: 12, fontWeight: '600', color: colors.indigo }}>
-                      {lang === 'en' ? 'Explore the Deep Dive for more details' : '딥다이브 탭에서 더 자세히 알아보기'}
+                      {L(
+                        principle.deepDiveHook || '딥다이브 탭에서 더 자세히 알아보기',
+                        principle.deepDiveHook_en || 'Explore the Deep Dive for more details',
+                        lang,
+                      )}
                     </Text>
                     <ChevronRight size={12} color={colors.indigo} />
                   </Pressable>
                 )}
               </>
             ) : (
-              <DeepDiveContent deepDive={deepDive} lang={lang} />
+              <DeepDiveContent deepDive={deepDive} lang={lang} principle={principle} catConfig={catConfig} />
             )}
 
             {/* Action Bar (both tabs) */}

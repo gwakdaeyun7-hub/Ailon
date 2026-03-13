@@ -140,6 +140,10 @@ export interface Principle {
   keywords?: string[];
   keywords_en?: string[];
   readTime?: string;       // '1분' | '2분'
+  deepDiveHook?: string;   // 딥다이브 유도 문구 (동적 CTA)
+  deepDiveHook_en?: string;
+  takeaway?: string;       // 핵심 한줄 학습 요약
+  takeaway_en?: string;
   category: string;
   superCategory: string;
 
