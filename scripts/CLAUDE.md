@@ -80,6 +80,7 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 - Generates 1 principle per day from 12 disciplines (engineering, natural/formal/applied science)
 - 3-step narrative: foundation → application → integration + deepDive
 - Avoids same discipline in last 3 days, same seed in last 30 days
+- **TEMP**: 프롬프트 튜닝을 위해 Simulated Annealing(`opt_simulated_annealing`) 시드 고정 중 — seed_selector + retry_reseed 모두 동일 시드 강제 선택. 튜닝 완료 후 `# ── TEMP:` 블록 제거하면 원래 로직 복원
 - Content prompt: "같은 질문, 다른 맥락" 서사 구조 (근본 질문 → AI 재등장 → 현실 임팩트)
   - foundation.body: 원래 학문의 실제 작동 메커니즘(물리량·변수·현상) 필수 — AI 관점만 서술 금지
   - bridge: 명시적 매핑(X→Y) 최소 3쌍 + 보존/변형 구분

@@ -374,7 +374,13 @@ def seed_selector(state: PrincipleGraphState) -> dict:
         print("  [seed_selector] 사용 가능한 시드 없음 -> 전체에서 선택")
         candidates = list(PRINCIPLE_SEEDS)
 
-    seed = random.choice(candidates)
+    # ── TEMP: 프롬프트 튜닝을 위해 Simulated Annealing 고정 ──
+    sa_seed = next((s for s in PRINCIPLE_SEEDS if s["id"] == "opt_simulated_annealing"), None)
+    if sa_seed:
+        seed = sa_seed
+        print("  [seed_selector] ⚠ TEMP: Simulated Annealing 고정 모드")
+    else:
+        seed = random.choice(candidates)
     print(f"  [seed_selector] ── 최종 선택 ──")
     print(f"    시드 ID:    {seed['id']}")
     print(f"    원리:       {seed['principle_name']} ({seed['principle_name_en']})")
@@ -914,13 +920,17 @@ def retry_reseed(state: PrincipleGraphState) -> dict:
     retry_count = state.get("retry_count", 0) + 1
     old_seed_id = state.get("seed", {}).get("id", "")
 
-    # 현재 시드 제외하고 랜덤 선택
-    candidates = [s for s in PRINCIPLE_SEEDS if s["id"] != old_seed_id]
-    if not candidates:
-        candidates = list(PRINCIPLE_SEEDS)
-    new_seed = random.choice(candidates)
-
-    print(f"  [retry_reseed] 시드 교체: {old_seed_id} -> {new_seed['id']} (재시도 {retry_count}/3)")
+    # ── TEMP: Simulated Annealing 고정 모드 — 시드 교체 없이 유지 ──
+    sa_seed = next((s for s in PRINCIPLE_SEEDS if s["id"] == "opt_simulated_annealing"), None)
+    if sa_seed:
+        new_seed = sa_seed
+        print(f"  [retry_reseed] ⚠ TEMP: Simulated Annealing 고정 유지 (재시도 {retry_count}/3)")
+    else:
+        candidates = [s for s in PRINCIPLE_SEEDS if s["id"] != old_seed_id]
+        if not candidates:
+            candidates = list(PRINCIPLE_SEEDS)
+        new_seed = random.choice(candidates)
+        print(f"  [retry_reseed] 시드 교체: {old_seed_id} -> {new_seed['id']} (재시도 {retry_count}/3)")
     return {"seed": new_seed, "retry_count": retry_count, "content": None, "verification": None}
 
 

@@ -278,6 +278,8 @@ qa-pipeline-tester 에이전트를 사용하여 로그를 분석합니다.
 로그 패턴:
 - `[seed_selector] 전체 시드 풀: {n}개`
 - `[seed_selector] 최근 30일 사용 시드: {n}개`
+- `[seed_selector] ⚠ TEMP: Simulated Annealing 고정 모드` — 프롬프트 튜닝 중 시드 고정 (정상)
+- `[retry_reseed] ⚠ TEMP: Simulated Annealing 고정 유지` — 재시도 시에도 시드 유지 (정상)
 - `[content_generator] 생성 완료`
 - `[verifier] 검증 결과 — verified={bool}, confidence={float}, insightClarity={float}, deepDiveDepth={float}`
 - `RANKER 폴백` / `재시도 {n}/3` — 검증 실패 후 재생성
@@ -350,7 +352,7 @@ qa-pipeline-tester 에이전트를 사용하여 로그를 분석합니다.
 | connectionType 정확성 | direct_inspiration: 실제 역사적 채택 | structural_analogy인데 direct_inspiration으로 표기 → 과장 | Major |
 | difficulty 적절성 | beginner: 일상 비유 중심 | beginner인데 수식/전문용어 과다 → 사용자 이탈 | Minor |
 | keywords 관련성 | 원리+AI 양쪽 키워드 | 관련 없는 키워드, 또는 너무 일반적("AI", "기술") | Minor |
-| 시드 다양성 | 최근 3일 분야 중복 없음 | 같은 분야 연속 → seed_selector 로직 확인 | Minor |
+| 시드 다양성 | 최근 3일 분야 중복 없음 | 같은 분야 연속 → seed_selector 로직 확인 (TEMP 고정 모드 중이면 정상) | Minor |
 
 #### 1.6.5 학문스낵 품질 종합 판정
 
