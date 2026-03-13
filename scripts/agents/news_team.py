@@ -1785,6 +1785,85 @@ def categorizer_node(state: NewsGraphState) -> dict:
         print("    ── [QA] 의심 분류 없음 ──")
     ci_endgroup()
 
+    # ── QA: 제목 품질 검증 ──
+    ci_group("QA: 제목 품질 검증")
+    print("    ── [QA] 제목 품질 검증 ──")
+    _title_issues = 0
+    _ellipsis_ko_titles = []   # '...'로 끝나는 KO 제목 목록
+    _ellipsis_en_titles = []   # '...'로 끝나는 EN 제목 목록
+    _plain_ko_titles = []      # '...'로 안 끝나는 KO 제목 목록
+    _untranslated_count = 0
+    _no_oneline_count = 0
+    _too_long_count = 0
+
+    _EN_ONLY_PATTERN = re.compile(r'^[A-Za-z0-9\s\-\'",.!?:;()&@#$%*/+\[\]{}|\\~`^]+$')
+
+    for a in candidates:
+        if a.get("_deduped") or a.get("_ai_filtered"):
+            continue
+        d_title = a.get("display_title", "")
+        d_title_en = a.get("display_title_en", "")
+        one_line = a.get("one_line", "")
+        original_title = a.get("title", "")
+        flags = []
+
+        # 1) '...' 사용 분류 — KO/EN 분리 추적
+        ko_ellipsis = d_title.rstrip().endswith("...") or d_title.rstrip().endswith("…")
+        en_ellipsis = d_title_en.rstrip().endswith("...") or d_title_en.rstrip().endswith("…")
+        if ko_ellipsis:
+            _ellipsis_ko_titles.append(d_title)
+        elif d_title:
+            _plain_ko_titles.append(d_title)
+        if en_ellipsis:
+            _ellipsis_en_titles.append(d_title_en)
+
+        # 2) 미번역 검사: display_title이 영어만으로 구성 (EN→KO 번역 실패)
+        if d_title and _EN_ONLY_PATTERN.match(d_title):
+            _untranslated_count += 1
+            flags.append("미번역")
+
+        # 3) one_line 누락 (알림 body에 사용되므로 중요)
+        if not one_line:
+            _no_oneline_count += 1
+            flags.append("one_line 없음")
+
+        # 4) 제목 과도하게 긴 경우 (80자 초과)
+        if len(d_title) > 80:
+            _too_long_count += 1
+            flags.append(f"제목 {len(d_title)}자")
+
+        if flags:
+            _title_issues += 1
+            print(f"      ⚠ [{', '.join(flags)}] {d_title[:60] or original_title[:60]}")
+
+    # 말줄임표 사용 기사 목록 출력 (pipeline-qa가 적절성 판단)
+    _total_active = len(_ellipsis_ko_titles) + len(_plain_ko_titles)
+    print(f"    [제목 통계] 말줄임표('...') KO: {len(_ellipsis_ko_titles)}건, EN: {len(_ellipsis_en_titles)}건 / 전체 {_total_active}건")
+    if _ellipsis_ko_titles:
+        print(f"    [말줄임표 KO] '...'로 끝나는 제목 ({len(_ellipsis_ko_titles)}건):")
+        for t in _ellipsis_ko_titles:
+            print(f"      ✓ {t}")
+    if _ellipsis_en_titles:
+        print(f"    [말줄임표 EN] '...'로 끝나는 제목 ({len(_ellipsis_en_titles)}건):")
+        for t in _ellipsis_en_titles:
+            print(f"      ✓ {t}")
+    if _plain_ko_titles:
+        print(f"    [일반 KO] '...' 없는 제목 ({len(_plain_ko_titles)}건):")
+        for t in _plain_ko_titles:
+            print(f"      - {t}")
+
+    if _untranslated_count:
+        ci_warning(f"미번역 제목 {_untranslated_count}건 — 영어 원문이 display_title에 그대로 사용됨")
+    if _no_oneline_count:
+        ci_warning(f"one_line 누락 {_no_oneline_count}건 — 알림 body 비어 있을 수 있음")
+    if _too_long_count:
+        print(f"    [제목 통계] 80자 초과 제목: {_too_long_count}건")
+    if _title_issues:
+        print(f"    ── [QA] 제목 품질 이슈 {_title_issues}건 감지 ──")
+    else:
+        print("    ── [QA] 제목 품질 이슈 없음 ──")
+    ci_endgroup()
+
     return {"scored_candidates": candidates}
 
 

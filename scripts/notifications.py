@@ -63,8 +63,11 @@ def _build_content(highlight: dict | None, article_count: int, lang: str) -> tup
     if highlight:
         title_field = "display_title" if lang == "ko" else "display_title_en"
         title = highlight.get(title_field) or highlight.get("display_title") or highlight.get("title", "")
+        # one_line을 body로 사용 → 알림에서 제목 + 한줄요약 2줄 표시
+        body_field = "one_line" if lang == "ko" else "one_line_en"
+        body = highlight.get(body_field) or highlight.get("one_line") or ""
         article_id = _article_id(highlight.get("link", ""))
-        return title, "", article_id
+        return title, body, article_id
 
     # 하이라이트 없는 폴백
     title = "Ailon AI 트렌드" if lang == "ko" else "Ailon AI Trends"
@@ -193,7 +196,10 @@ def send_news_notification(article_count: int = 0, news_result: dict | None = No
 
     highlight = _pick_highlight(news_result)
     if highlight:
-        print(f"  [알림] 하이라이트 선택: {highlight.get('display_title', '')[:60]}")
+        title_preview = highlight.get('display_title', '')[:60]
+        body_preview = highlight.get('one_line', '')[:60]
+        print(f"  [알림] 하이라이트 선택: {title_preview}")
+        print(f"  [알림] 알림 본문(one_line): {body_preview}")
     else:
         print("  [알림] 하이라이트 없음 — 기본 알림 발송")
 

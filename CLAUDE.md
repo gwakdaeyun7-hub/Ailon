@@ -14,7 +14,7 @@ ailon/
 │   ├── agents/       # Pipeline core: config.py, news_team.py, principle_team.py, tools.py
 │   ├── generate_daily.py      # Main orchestrator (news + principles + features)
 │   ├── generate_features.py   # Post-pipeline: briefing, glossary, timeline, story, related articles
-│   └── notifications.py       # FCM 알림 (하이라이트 기사 제목) + Expo 폴백
+│   └── notifications.py       # FCM 알림 (제목 + one_line 2줄 표시) + Expo 폴백
 ├── mobile/           # React Native (Expo SDK 54) + NativeWind
 │   ├── app/          # Expo Router file-based routing (tabs: index, snaps, tools, saved, profile)
 │   ├── components/   # UI: briefing/, feed/, shared/

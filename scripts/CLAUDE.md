@@ -136,7 +136,7 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 
 | 레이어 | 발송 방식 | 채널 | 내용 |
 |--------|----------|------|------|
-| 뉴스 알림 (`notifications.py`) | FCM (`firebase_admin.messaging`) + Expo 폴백 | `news` | 하이라이트 기사 제목 (랜덤 1개) |
+| 뉴스 알림 (`notifications.py`) | FCM (`firebase_admin.messaging`) + Expo 폴백 | `news` | title=하이라이트 기사 제목, body=one_line 한줄요약 (2줄 표시) |
 | 댓글 답글 (`functions/index.js`) | Expo Push API | `social` | "{이름}님이 댓글에 답글을 남겼습니다" |
 | 좋아요 (`functions/index.js`) | Expo Push API | `social` | "N명이 회원님의 글을 좋아합니다" (5분 디바운싱) |
 
@@ -182,5 +182,5 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 - **VentureBeat/paywall 사이트**: trafilatura에 Chrome UA 설정 필요 (tools.py `_get_traf_config`)
 - **key_points 2개**: 프롬프트에서 허용 범위 (팩트 부족 시). 0-1개는 문제
 - **Pipeline QA logs**: print + GitHub Actions 어노테이션 (`::warning::`, `::error::`, `::group::`) + Job Summary. Firestore에는 저장 안 됨
-- **Pipeline QA 스킬**: `/pipeline-qa`에 로그를 붙여넣으면 AI 필터/분류/중복감지/랭킹/브리핑/용어·태그/학문스낵 7개 영역 심층 분석 + 코드 자동 수정. 랭킹 검사는 **전체 기사**를 대상으로 카테고리별 순위 테이블 출력 + 미스랭킹 식별. 상세 기준은 `.claude/skills/pipeline-qa/SKILL.md` 참조
+- **Pipeline QA 스킬**: `/pipeline-qa`에 로그를 붙여넣으면 AI 필터/분류/중복감지/랭킹/제목 품질/브리핑/용어·태그/학문스낵 8개 영역 심층 분석 + 코드 자동 수정. 랭킹 검사는 **전체 기사**를 대상으로 카테고리별 순위 테이블 출력 + 미스랭킹 식별. 제목 품질 검사는 말줄임표('...') 적절성을 기사 단위로 판정 (적절/부자연스러움/놓친 기회). 상세 기준은 `.claude/skills/pipeline-qa/SKILL.md` 참조
 - **EN 기사 번역 실패 폴백**: 배치+개별 재시도 모두 실패 시 Phase 3에서 `display_title = title` (영어 원본). Phase 4 간이 번역이 제목+one_line만 LLM으로 최소 복구 시도. Phase 4마저 실패 시 `ci_warning` 경고 + 영어 제목 유지 (제거하지 않음 — 상위 기사일 수 있으므로). 로그 패턴: `미번역 EN 기사 N개 감지`, `[간이 번역 복구]`, `미번역 EN 기사 N개 잔존`
