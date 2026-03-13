@@ -83,12 +83,16 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 - **TEMP**: 프롬프트 튜닝을 위해 Simulated Annealing(`opt_simulated_annealing`) 시드 고정 중 — seed_selector + retry_reseed 모두 동일 시드 강제 선택. 튜닝 완료 후 `# ── TEMP:` 블록 제거하면 원래 로직 복원
 - Content prompt: "같은 질문, 다른 맥락" 서사 구조 (근본 질문 → AI 재등장 → 현실 임팩트)
   - foundation.body: 원래 학문의 실제 작동 메커니즘(물리량·변수·현상) 필수 — AI 관점만 서술 금지
+  - analogy: 핵심 메커니즘(과정)을 비유 — 작동의 핵심 단계(조건부 수용, 피드백, 경쟁 등)가 반영 필수, 결과만 비유 금지
+  - impact: 수치(벤치마크/%) 또는 구체적 모델/프로젝트명 1개+ 필수, 추상 표현 금지
+  - limits: 원리 자체의 일반 한계 금지, AI 시스템 적용 시만 드러나는 한계 필수 (gradient-based 대비 열위, 고차원 스케일링, distribution shift 등)
   - bridge: 명시적 매핑(X→Y) 최소 3쌍 + 보존/변형 구분
   - coreIntuition: 완전한 작동 규칙 (① 변수 의미 ② 조건별 분기 ③ 파라미터 감수성 ④ 수렴 조건, 100~180자)
   - formula: 단일 줄, \begin/\end 금지, \frac 1단 중첩까지 (모바일 LaTeX→Unicode 변환 대응)
 - Verifier: 4-section evaluation (A. 사실정확성, B. 인사이트이해도, C. 딥다이브전문성, D. 한영일관성및품질)
   - Output: verified, confidence, principleAccuracy, mappingAccuracy, insightClarity, deepDiveDepth (0.0~1.0) + factCheck + issues[]
   - Retry if confidence < 0.7 OR any sub-score < 0.5 (principleAccuracy/mappingAccuracy/insightClarity/deepDiveDepth)
+  - limits에 원리 자체의 일반 한계만 서술하면 deepDiveDepth ≤ 0.5 감점
   - Regex fallback (`_regex_extract_verification`): JSON 파싱 완전 실패 시 raw text에서 verifier 필드를 regex로 직접 추출하는 최종 방어 계층
   - Empty response detection: Gemini 빈 응답 시 파싱 생략 후 재시도, 디버그 로깅 포함
   - content_json 입력 4000자 제한 (토큰 절약 + 응답 안정성)
