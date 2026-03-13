@@ -869,8 +869,10 @@ const HScrollCard = React.memo(function HScrollCard({
 // ─── Section 2: 카테고리 탭 + 세로 리스트 ──────────────────────────────
 function CategoryTabSection({
   categorizedArticles, categoryOrder, onArticlePress, allStats, userLikedLinks,
+  scrollViewRef,
 }: {
   categorizedArticles: Record<string, Article[]>; categoryOrder: string[]; onArticlePress: (article: Article) => void; allStats: Record<string, BatchStats>; userLikedLinks?: string[];
+  scrollViewRef?: React.RefObject<ScrollViewType>;
 }) {
   const [activeTab, setActiveTab] = useState(categoryOrder[0] || 'research');
   // 0=5개, 1=10개, 2=15개, 3=20개(전체)
@@ -878,6 +880,7 @@ function CategoryTabSection({
   const [expandLevel, setExpandLevel] = useState(0);
   const { lang, t } = useLanguage();
   const { colors } = useTheme();
+  const sectionY = useRef(0);
 
   const articles = categorizedArticles[activeTab] || [];
   const stats = allStats;
@@ -898,7 +901,7 @@ function CategoryTabSection({
   };
 
   return (
-    <View style={{ marginBottom: 24 }}>
+    <View style={{ marginBottom: 24 }} onLayout={(e) => { sectionY.current = e.nativeEvent.layout.y; }}>
       {/* 섹션 헤더 + 카테고리 탭 */}
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 16 }}>
         <Text style={{ fontSize: 17, fontWeight: '700', color: colors.textPrimary, marginRight: 12, fontFamily: FontFamily.serif }}>{t('news.category_title')}</Text>
@@ -1071,6 +1074,9 @@ function CategoryTabSection({
           onPress={() => {
             if (isFullyExpanded) {
               setExpandLevel(0);
+              requestAnimationFrame(() => {
+                scrollViewRef?.current?.scrollTo({ y: sectionY.current, animated: true });
+              });
             } else {
               setExpandLevel(prev => Math.min(prev + 1, maxLevel));
             }
@@ -1480,6 +1486,7 @@ export default function NewsScreen() {
               onArticlePress={handleArticlePress}
               allStats={allStats}
               userLikedLinks={Object.entries(allStats).filter(([, s]) => s.likes > 0).map(([link]) => link)}
+              scrollViewRef={mainScrollRef}
             />
 
             {/* 구분선: 카테고리 → 소스별 */}
