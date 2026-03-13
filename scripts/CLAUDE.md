@@ -81,7 +81,7 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 - **자유 형식 마크다운 텍스트** 생성 (기존 7-섹션 JSON 구조에서 전환)
 - content_ko (300~600자) + content_en (영어 동일 내용) 쌍으로 생성
 - Avoids same discipline in last 3 days, same seed in last 30 days
-- **Curated 콘텐츠 지원**: `scripts/curated_principles/{seed_id}.md` 파일이 존재하면 LLM 생성 없이 직접 사용. front-matter(difficulty, connectionType, keywords) + `---EN---` 구분자로 KO/EN 분리
+- **Curated 전용 모드**: seed_selector가 `scripts/curated_principles/` 폴더에 .md 파일이 있는 시드만 선택. LLM 생성 비활성화. curated 파일 1개면 해당 시드 고정, 여러 개면 30일 중복 회피 + 로테이션. front-matter(difficulty, connectionType, keywords) + `---EN---` 구분자로 KO/EN 분리
 - Content prompt: 자유 형식 마크다운으로 한줄 정의 → 원리 해설 → AI 연결 → 수식과 직관 → 실제 임팩트 순 서사
   - 수식은 LaTeX가 아닌 평문 표기 (dE = E(new) - E(old) 형태)
   - 괄호 안에 AI 대응 개념 병기 (온도(탐색 범위))

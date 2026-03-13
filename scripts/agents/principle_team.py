@@ -320,73 +320,84 @@ def _safe_node(node_name: str):
 
 
 # ─── Node 1: seed_selector ───
+def _get_curated_seed_ids() -> set[str]:
+    """curated_principles/ 폴더에 .md 파일이 있는 시드 ID 목록 반환."""
+    if not _CURATED_DIR.exists():
+        return set()
+    return {p.stem for p in _CURATED_DIR.glob("*.md")}
+
+
 @_safe_node("seed_selector")
 def seed_selector(state: PrincipleGraphState) -> dict:
-    """최근 30일 사용 시드 제외 + 학문 로테이션 (최근 3일 동일 분야 회피) + 랜덤 선택"""
+    """curated 콘텐츠가 있는 시드만 선택 (LLM 생성 비활성화).
+
+    curated_principles/ 폴더의 .md 파일이 있는 시드만 후보로 사용.
+    curated 시드가 1개면 항상 해당 시드 선택 (현재: SA 고정 효과).
+    curated 시드가 여러 개면 30일 중복 회피 + 3일 분야 로테이션 적용.
+    """
     db = get_firestore_client()
     now_kst = datetime.now(_KST)
-    today_str = now_kst.strftime("%Y-%m-%d")
 
-    # 최근 30일 사용 시드 ID 및 최근 3일 분야 조회
-    used_ids: set[str] = set()
-    recent_disciplines: list[str] = []
+    # curated 시드 ID 스캔
+    curated_ids = _get_curated_seed_ids()
+    curated_seeds = [s for s in PRINCIPLE_SEEDS if s["id"] in curated_ids]
+    print(f"  [seed_selector] curated 시드: {len(curated_seeds)}개 ({', '.join(sorted(curated_ids))})")
 
-    try:
-        cutoff = now_kst - timedelta(days=30)
-        cutoff_str = cutoff.strftime("%Y-%m-%d")
-        docs = (
-            db.collection("daily_principles")
-            .where(filter=FieldFilter("date", ">=", cutoff_str))
-            .order_by("date", direction="DESCENDING")
-            .stream()
-        )
-        for doc in docs:
-            data = doc.to_dict()
-            # 시드 ID 추출
-            seed_id = data.get("seed_id", "")
-            if seed_id:
-                used_ids.add(seed_id)
-            # 최근 3일 분야 로테이션
-            if len(recent_disciplines) < 3:
-                disc = data.get("discipline_key", "")
-                if disc:
-                    recent_disciplines.append(disc)
-    except Exception as e:
-        # 컬렉션이 아직 없는 경우 (첫 실행)
-        print(f"  [seed_selector] Firestore 조회 실패 (첫 실행일 수 있음): {e}")
+    if not curated_seeds:
+        ci_warning("seed_selector: curated 콘텐츠가 0개 — curated_principles/ 폴더에 .md 파일을 추가하세요")
+        # 폴백: 전체 시드에서 선택 (LLM 생성됨)
+        seed = random.choice(list(PRINCIPLE_SEEDS))
+        print(f"  [seed_selector] 폴백 선택: {seed['id']}")
+        return {"seed": seed}
 
-    print(f"  [seed_selector] 전체 시드 풀: {len(PRINCIPLE_SEEDS)}개")
-    print(f"  [seed_selector] 최근 30일 사용 시드: {len(used_ids)}개")
-    if used_ids:
-        print(f"    사용 시드 ID: {', '.join(sorted(used_ids)[:10])}{'...' if len(used_ids) > 10 else ''}")
-    print(f"  [seed_selector] 최근 3일 분야: {recent_disciplines if recent_disciplines else '(없음 — 첫 실행 또는 데이터 부족)'}")
+    # curated 시드가 1개면 바로 선택
+    if len(curated_seeds) == 1:
+        seed = curated_seeds[0]
+        print(f"  [seed_selector] curated 1개 → 고정 선택: {seed['id']}")
+    else:
+        # 여러 개: 30일 중복 회피 + 3일 분야 로테이션 적용
+        used_ids: set[str] = set()
+        recent_disciplines: list[str] = []
 
-    # 후보 필터링: 최근 30일 사용 시드 제외
-    candidates = [s for s in PRINCIPLE_SEEDS if s["id"] not in used_ids]
-    print(f"  [seed_selector] 30일 필터 후 후보: {len(candidates)}개")
+        try:
+            cutoff = now_kst - timedelta(days=30)
+            cutoff_str = cutoff.strftime("%Y-%m-%d")
+            docs = (
+                db.collection("daily_principles")
+                .where(filter=FieldFilter("date", ">=", cutoff_str))
+                .order_by("date", direction="DESCENDING")
+                .stream()
+            )
+            for doc in docs:
+                data = doc.to_dict()
+                seed_id = data.get("seed_id", "")
+                if seed_id:
+                    used_ids.add(seed_id)
+                if len(recent_disciplines) < 3:
+                    disc = data.get("discipline_key", "")
+                    if disc:
+                        recent_disciplines.append(disc)
+        except Exception as e:
+            print(f"  [seed_selector] Firestore 조회 실패 (첫 실행일 수 있음): {e}")
 
-    # 분야 로테이션: 최근 3일과 같은 분야 회피
-    if recent_disciplines and candidates:
-        rotated = [s for s in candidates if s["discipline"] not in recent_disciplines]
-        if rotated:
-            print(f"  [seed_selector] 분야 로테이션 적용: {len(candidates)} → {len(rotated)}개 (제외 분야: {recent_disciplines})")
-            candidates = rotated
-        else:
-            print(f"  [seed_selector] 분야 로테이션 건너뜀: 로테이션 적용 시 후보 0개")
+        candidates = [s for s in curated_seeds if s["id"] not in used_ids]
+        if not candidates:
+            candidates = list(curated_seeds)
 
-    # 모든 시드 소진 시 전체에서 선택
-    if not candidates:
-        print("  [seed_selector] 사용 가능한 시드 없음 -> 전체에서 선택")
-        candidates = list(PRINCIPLE_SEEDS)
+        if recent_disciplines and len(candidates) > 1:
+            rotated = [s for s in candidates if s["discipline"] not in recent_disciplines]
+            if rotated:
+                candidates = rotated
 
-    seed = random.choice(candidates)
+        seed = random.choice(candidates)
+        print(f"  [seed_selector] curated {len(curated_seeds)}개 중 선택 (후보 {len(candidates)}개)")
+
     print(f"  [seed_selector] ── 최종 선택 ──")
     print(f"    시드 ID:    {seed['id']}")
     print(f"    원리:       {seed['principle_name']} ({seed['principle_name_en']})")
     print(f"    학문 분야:  {seed['discipline_name']}")
     print(f"    AI 연결:    {seed['ai_connection'][:60]}{'...' if len(seed.get('ai_connection', '')) > 60 else ''}")
     print(f"    superCat:   {seed.get('super_category', '?')}")
-    print(f"    후보 중:    {len(candidates)}개 중 랜덤 선택")
 
     return {"seed": seed}
 
@@ -861,11 +872,15 @@ def should_retry(state: PrincipleGraphState) -> str:
 # ─── 재시도 시 시드 교체용 래퍼 ───
 @_safe_node("retry_reseed")
 def retry_reseed(state: PrincipleGraphState) -> dict:
-    """재시도 시 retry_count 증가 + 다른 시드 선택"""
+    """재시도 시 retry_count 증가 + 다른 curated 시드 선택"""
     retry_count = state.get("retry_count", 0) + 1
     old_seed_id = state.get("seed", {}).get("id", "")
 
-    candidates = [s for s in PRINCIPLE_SEEDS if s["id"] != old_seed_id]
+    curated_ids = _get_curated_seed_ids()
+    candidates = [s for s in PRINCIPLE_SEEDS if s["id"] in curated_ids and s["id"] != old_seed_id]
+    if not candidates:
+        # curated 시드가 1개뿐이면 동일 시드 재시도
+        candidates = [s for s in PRINCIPLE_SEEDS if s["id"] in curated_ids]
     if not candidates:
         candidates = list(PRINCIPLE_SEEDS)
     new_seed = random.choice(candidates)
