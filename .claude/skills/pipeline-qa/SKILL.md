@@ -276,7 +276,7 @@ qa-pipeline-tester 에이전트를 사용하여 로그를 분석합니다.
 
 ### 1.6 학문스낵(Principle) 콘텐츠 품질 검사 (★ 심층 분석)
 
-**v2 구조**: content_ko/content_en 자유 형식 마크다운. **curated 전용 모드** — seed_selector가 `scripts/curated_principles/` 폴더에 .md 파일이 있는 시드만 선택 (LLM 생성 비활성화). curated 1개면 해당 시드 고정, 여러 개면 30일 중복 회피 + 로테이션. **curated 제목 규칙**: principle_name에 영어 알고리즘 이름 사용 (한국어 UI에서도 영문 표시), 콘텐츠 첫 줄 "English Name - 한줄 정의" 형태.
+**v2 구조**: content_ko/content_en 자유 형식 마크다운. **curated 전용 모드** — seed_selector가 `scripts/curated_principles/` 폴더에 .md 파일이 있는 39개 시드만 선택 (LLM 생성 비활성화). 30일 중복 회피 + 3일 분야 로테이션. **curated 제목 규칙**: principle_name에 영어 알고리즘 이름 사용 (한국어 UI에서도 영문 표시), 콘텐츠 첫 줄 "English Name - 한줄 정의" 형태. **connectionType**: direct_inspiration / structural_analogy / mathematical_foundation / conceptual_borrowing / reverse_inspiration.
 
 로그 패턴:
 - `[seed_selector] curated 시드: {n}개 ({id1}, {id2}, ...)` — curated 파일이 있는 시드만 후보
@@ -353,12 +353,12 @@ qa-pipeline-tester 에이전트를 사용하여 로그를 분석합니다.
 
 | 검사 항목 | 정상 | 이상 징후 | 심각도 |
 |-----------|------|-----------|--------|
-| connectionType 정확성 | direct_inspiration: 실제 역사적 채택 | structural_analogy인데 direct_inspiration으로 표기 → 과장 | Major |
+| connectionType 정확성 | direct_inspiration / structural_analogy / mathematical_foundation / conceptual_borrowing / reverse_inspiration 중 적절한 유형 | 유형 불일치 (예: 사후 유추인데 direct_inspiration) → 과장 | Major |
 | difficulty 적절성 | beginner: 일상 비유 중심. advanced: 수학적 엄밀성, 수렴 조건 등 | beginner인데 수식/전문용어 과다, advanced인데 피상적 | Major |
 | content_source 정확성 | curated: curated_principles/ 파일 존재. generated: LLM 생성 | curated인데 파일 미존재, generated인데 파일 존재 → 로직 불일치 | Minor |
 | readTime 계산 방식 | 코드에서 _calc_read_time으로 자동 계산 (500자/분) | LLM이 출력한 readTime 값이 그대로 사용됨 → 코드 레그레션 | Minor |
 | keywords 관련성 | 원리+AI 양쪽 키워드 (KO + EN 쌍) | 관련 없는 키워드, 또는 너무 일반적("AI", "기술") | Minor |
-| 시드 다양성 | curated 시드 여러 개일 때 최근 3일 분야 중복 없음 | 같은 시드 연속 → curated 파일 추가 필요 | Minor |
+| 시드 다양성 | 39개 curated 시드, 최근 3일 분야 중복 없음, 30일 시드 중복 없음 | 같은 시드 연속 → 로테이션 로직 점검 | Minor |
 
 #### 1.6.5 학문스낵 품질 종합 판정
 

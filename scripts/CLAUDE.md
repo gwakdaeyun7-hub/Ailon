@@ -77,13 +77,15 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 5-node pipeline: `seed_selector → content_generator → verifier → [retry_reseed (conditional)] → assembler`
 - Conditional retry: `should_retry` → `retry_reseed` (LangGraph conditional edges, max 3 retries)
 
-- Generates 1 principle per day from 12 disciplines (engineering, natural/formal/applied science)
+- Generates 1 principle per day from 12 disciplines, **39개 curated 시드** (공학 5분야, 자연과학 4분야, 형식과학 2분야, 응용과학 1분야)
 - **자유 형식 마크다운 텍스트** 생성 (기존 7-섹션 JSON 구조에서 전환)
-- content_ko (300~600자) + content_en (영어 동일 내용) 쌍으로 생성
+- content_ko (2000~5000자) + content_en (영어 동일 내용) 쌍으로 생성
 - Avoids same discipline in last 3 days, same seed in last 30 days
-- **Curated 전용 모드**: seed_selector가 `scripts/curated_principles/` 폴더에 .md 파일이 있는 시드만 선택. LLM 생성 비활성화. curated 파일 1개면 해당 시드 고정, 여러 개면 30일 중복 회피 + 로테이션. front-matter(difficulty, connectionType, keywords) + `---EN---` 구분자로 KO/EN 분리
+- **Curated 전용 모드**: seed_selector가 `scripts/curated_principles/` 폴더에 .md 파일이 있는 시드만 선택. LLM 생성 비활성화. 39개 curated 파일을 30일 중복 회피 + 3일 분야 로테이션. front-matter(difficulty, connectionType, keywords) + `---EN---` 구분자로 KO/EN 분리
   - **curated 제목 규칙**: principle_name에 영어 알고리즘/원리 이름 사용 (한국어 UI에서도 영문 표시). 콘텐츠 첫 줄도 "English Name - 한줄 정의" 형태
   - **curated content_ko 길이**: 2000~5000자 (LLM 생성 대비 훨씬 길고 깊이 있는 콘텐츠)
+  - **connectionType 유형**: direct_inspiration (직접 영감), structural_analogy (구조적 유사성), mathematical_foundation (수학적 토대), conceptual_borrowing (개념적 차용), reverse_inspiration (역방향 영감 — 다른 학문의 비판이 AI 발전 촉발)
+  - **분야별 시드**: 제어공학 4, 전기/전자 3, 정보/통신 4, 최적화 5(SA 포함), 로보틱스 1, 물리학 4, 생물학 3, 화학 1, 신경과학 4, 수학 4, 통계학 4, 의학 2
 - Content prompt: 자유 형식 마크다운으로 한줄 정의 → 원리 해설 → AI 연결 → 수식과 직관 → 실제 임팩트 순 서사
   - 수식은 LaTeX가 아닌 평문 표기 (dE = E(new) - E(old) 형태)
   - 괄호 안에 AI 대응 개념 병기 (온도(탐색 범위))
