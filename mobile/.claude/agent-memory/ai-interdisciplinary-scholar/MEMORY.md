@@ -1,0 +1,1 @@
+- [project_principle_prompt_review.md](project_principle_prompt_review.md) — [DORMANT] 2026-03-12 principle_team.py prompt review — curated 전용 모드 전환으로 LLM 생성 비활성화 (2026-03-14)

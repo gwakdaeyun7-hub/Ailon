@@ -1,0 +1,2 @@
+- [feedback_principle_specificity.md](feedback_principle_specificity.md) — [DORMANT] Gemini outputs too abstract; prompt strengthened — curated 전용 모드 전환으로 LLM 생성 비활성화 (2026-03-14)
+- [user_sa_expertise.md](user_sa_expertise.md) — User has deep SA/optimization expertise, expects graduate-level accuracy in principle content

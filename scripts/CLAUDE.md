@@ -72,46 +72,38 @@ topic_cluster_id                 — "domain/topic" (e.g., "nlp/language_models"
 date_estimated                   — RSS/스크래핑에서 날짜 추출 실패 시 true (수집 시점으로 대체, UI에서 ~접두사 표시)
 ```
 
-### Principle Pipeline (scripts/agents/principle_team.py)
+### Principle Pipeline (scripts/agents/principle_team.py) — Curated 전용 모드
 
 5-node pipeline: `seed_selector → content_generator → verifier → [retry_reseed (conditional)] → assembler`
-- Conditional retry: `should_retry` → `retry_reseed` (LangGraph conditional edges, max 3 retries)
+- **현재: curated 전용 모드** — LLM 생성 비활성화, 사전 작성된 39개 .md 파일만 사용
+- 실제 실행 흐름: `seed_selector → content_generator(curated 파일 로드) → verifier(skip) → assembler(Firestore 저장)`
+- Conditional retry, verifier, defense-in-depth는 코드에 존재하나 curated 모드에서 비활성화
 
-- Generates 1 principle per day from 12 disciplines, **39개 curated 시드** (공학 5분야, 자연과학 4분야, 형식과학 2분야, 응용과학 1분야)
-- **자유 형식 마크다운 텍스트** 생성 (기존 7-섹션 JSON 구조에서 전환)
-- content_ko (2000~5000자) + content_en (영어 동일 내용) 쌍으로 생성
-- Avoids same discipline in last 3 days, same seed in last 30 days
-- **Curated 전용 모드**: seed_selector가 `scripts/curated_principles/` 폴더에 .md 파일이 있는 시드만 선택. LLM 생성 비활성화. 39개 curated 파일을 30일 중복 회피 + 3일 분야 로테이션. front-matter(difficulty, connectionType, keywords) + `---EN---` 구분자로 KO/EN 분리
-  - **curated 제목 규칙**: principle_name에 영어 알고리즘/원리 이름 사용 (한국어 UI에서도 영문 표시). 콘텐츠 첫 줄도 "English Name - 한줄 정의" 형태
-  - **curated content_ko 길이**: 2000~5000자 (LLM 생성 대비 훨씬 길고 깊이 있는 콘텐츠)
-  - **connectionType 유형**: direct_inspiration (직접 영감), structural_analogy (구조적 유사성), mathematical_foundation (수학적 토대), conceptual_borrowing (개념적 차용), reverse_inspiration (역방향 영감 — 다른 학문의 비판이 AI 발전 촉발)
-  - **분야별 시드**: 제어공학 4, 전기/전자 3, 정보/통신 4, 최적화 5(SA 포함), 로보틱스 1, 물리학 4, 생물학 3, 화학 1, 신경과학 4, 수학 4, 통계학 4, 의학 2
-- Content prompt: 자유 형식 마크다운으로 한줄 정의 → 원리 해설 → AI 연결 → 수식과 직관 → 실제 임팩트 순 서사
-  - 수식은 LaTeX가 아닌 평문 표기 (dE = E(x') - E(x) 형태), ≤/≥ 등 유니코드 수학 기호 사용
-  - 괄호 안에 AI 대응 개념 병기 (온도(탐색 범위))
-  - 인라인 용어 정의 (Annealing(담금질) - 설명)
-  - readTime: 코드에서 content_ko 글자 수 기반 계산 (`_calc_read_time`, 500자/분 기준)
-  - **난이도 관리 원칙** (대상: AI 관심 일반인~초중급):
-    - 구체적 적용 사례 포함 (예: TSP 외판원 문제) — "조합 최적화" 같은 추상어에 정박점 제공
-    - 공간적 비유 활용 (예: 에너지 경관 = 산악 지형에서 가장 깊은 골짜기 찾기)
-    - 수식 설명 시 중간 단계 추가 ("T가 매우 크면 dE/T가 거의 0이 되어 수용 확률이 거의 100%")
-    - 물리 상수 생략 이유 설명 (예: "SA에서는 에너지가 수학적 목적 함수이므로 k를 생략하고 T만 남겼다")
-    - 이론 vs 실무 문단은 핵심만 압축 (Geman 수치 비교 불필요, 트레이드오프 한 문장으로)
-    - 전문 용어는 풀어쓴 설명 먼저, 용어명 나중에 ("이 성질을 에르고딕성이라 부른다")
-    - 복합 개념(Boltzmann Machine 등)은 문장 분리 — 한 문장에 3개념 이상 과밀 금지
-    - AI 연결 시 직접 적용(direct application)과 구조적 유사성(structural analogy, 독립적 기원)을 명시적으로 구분
-    - 인과 계보 과장 금지 — 독립적 기원인 기법을 "영감을 받았다"/"차용했다"로 서술하지 않음 (예: epsilon-greedy는 SA가 아닌 multi-armed bandit에서 발전)
-    - 추상 개념(에르고딕성 등) 도입 시 직관적 한 문장 보충 — "이 성질을 X라 부른다" 직후에 "쉽게 말하면 Y라는 뜻이다" 패턴
-    - 동일 수식이 여러 섹션에 등장하면 한 곳에 통합, 이후 섹션에서는 참조만
-    - 용어 정리에는 본문에서 실제 사용된 용어만 포함 (미사용 용어 제외)
-- Verifier: 4-section evaluation (A. 사실정확성/principleAccuracy, B. 매핑정확성/mappingAccuracy, C. 텍스트품질/contentQuality, D. 한영일관성/bilingualConsistency)
-  - Output: verified, confidence, principleAccuracy, mappingAccuracy, contentQuality, bilingualConsistency (0.0~1.0) + factCheck + issues[]
-  - Retry if confidence < 0.7 OR any sub-score < 0.5
-  - Curated 콘텐츠는 검증 건너뜀 (사전 검수 완료)
-  - Regex fallback (`_regex_extract_verification`): JSON 파싱 완전 실패 시 raw text에서 verifier 필드를 regex로 직접 추출
-  - Empty response detection: Gemini 빈 응답 시 파싱 생략 후 재시도
-- Defense-in-depth: content=None → should_retry → retry_reseed flow (no exceptions)
-- Code-level quality warnings: content_ko 길이 범위 (200~800자), content_en 존재, 한줄 정의 패턴, 수식 존재
+**Curated 모드 동작:**
+- seed_selector가 `scripts/curated_principles/` 폴더에 .md 파일이 있는 시드만 선택 → 30일 중복 회피 + 3일 분야(super_category) 로테이션
+- content_generator가 curated 파일을 로드 (`_load_curated_content()`), LLM 호출 없음, `content_source='curated'`
+- Curated 콘텐츠는 사전 검수 완료 → verifier 건너뜀
+- assembler가 Firestore `daily_principles/{date}`에 저장
+
+**Curated 콘텐츠 사양 (39개 시드, 12분야):**
+- **분야별 시드**: 제어공학 4, 전기/전자 3, 정보/통신 4, 최적화 5(SA 포함), 로보틱스 1, 물리학 4, 생물학 3, 화학 1, 신경과학 4, 수학 4, 통계학 4, 의학 2
+- **4 Super Categories**: 공학(5분야), 자연과학(4분야), 형식과학(2분야), 응용과학(1분야)
+- **파일 형식**: front-matter(difficulty, connectionType, keywords) + 자유 형식 마크다운 KO 본문 + `---EN---` 구분자 + EN 본문
+- content_ko (2000~5000자) + content_en (영어 동일 내용) 쌍
+- **제목 규칙**: principle_name에 영어 알고리즘/원리 이름 사용, 콘텐츠 첫 줄 "English Name - 한줄 정의" 형태
+- **connectionType 유형**: direct_inspiration, structural_analogy, mathematical_foundation, conceptual_borrowing, reverse_inspiration
+- 수식은 LaTeX가 아닌 평문 표기 (dE = E(x') - E(x) 형태), ≤/≥ 등 유니코드 수학 기호 사용
+- readTime: 코드에서 content_ko 글자 수 기반 자동 계산 (`_calc_read_time`, 500자/분 기준)
+- **난이도 관리 원칙** (대상: AI 관심 일반인~초중급) — curated 콘텐츠 작성 시 적용:
+  - 구체적 적용 사례 포함, 공간적 비유 활용, 수식 중간 단계 추가
+  - 전문 용어는 풀어쓴 설명 먼저, 인과 계보 과장 금지, 복합 개념 문장 분리
+  - 상세 기준은 curated 콘텐츠 작성 시 참조 (골드 스탠다드: `opt_simulated_annealing.md`)
+
+**LLM 생성 폴백 (비상 시만, 현재 비활성):**
+- curated 풀 고갈(39개 모두 30일 내 사용) 시에만 LLM 폴백 발동
+- Verifier: 4-section evaluation, confidence < 0.7 OR sub-score < 0.5 시 retry
+- Defense-in-depth: content=None → should_retry → retry_reseed flow
+- 정상 운영에서는 발생하지 않아야 함 — 발생 시 시드 추가 필요
 
 ### Post-Pipeline Features (scripts/generate_features.py)
 
@@ -129,7 +121,7 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 | Collection | Format | Content |
 |-----------|--------|---------|
 | `daily_news/{date}` | 1 doc/day | highlights[], categorized_articles{}, source_articles{}, archived_articles{} (이전 실행 고유 기사 보존) |
-| `daily_principles/{date}` | 1 doc/day | 3-step insight + deepDive + verification |
+| `daily_principles/{date}` | 1 doc/day | curated 자유 형식 마크다운 (content_ko/en, principle_name, discipline, connectionType, difficulty, keywords, readTime, content_source='curated') |
 | `articles/{article_id}` | 1 doc/article | Full article + entities, related_ids, timeline_ids |
 | `daily_briefings/{date}` | 1 doc/day | briefing_ko, briefing_en, story_count, category_stats, domain_stats, hot_topics, trend_history |
 | `glossary_terms/{term}` | 1 doc/term | term/desc (KO+EN), article_ids |
@@ -166,10 +158,10 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 - Default model: `gemini-2.5-flash` via LangChain (`langchain-google-genai`)
 - Embedding model: `gemini-embedding-001` (L6 dedup cosine similarity)
 - LLM instances cached per (model, temperature, max_tokens, thinking, json_mode) tuple
-- Temperature: 0.0 (translate/summarize, classify, rank, entity, AI filter, verify), 0.3 (briefing, daily tools), 0.4 (principle generation)
+- Temperature: 0.0 (translate/summarize, classify, rank, entity, AI filter, verify), 0.3 (briefing, daily tools), 0.4 (principle generation — curated 전용 모드에서 미사용)
 - Thinking mode disabled for ALL pipeline LLM calls (speed + JSON stability)
 - JSON mode via `response_mime_type: application/json`
-- Retry: news `_llm_invoke_with_retry` max 3 attempts (string prompt), principle `_llm_invoke_with_retry` max 3 attempts (message list)
+- Retry: news `_llm_invoke_with_retry` max 3 attempts (string prompt), principle `_llm_invoke_with_retry` max 3 attempts (message list, curated 전용 모드에서 미사용)
 - 모든 파이프라인 노드는 `_safe_node` 데코레이터로 감싸져 있어 개별 노드 실패 시에도 파이프라인 중단 없음 + 노드별 소요 시간(`node_timings`) 자동 기록
 
 ---

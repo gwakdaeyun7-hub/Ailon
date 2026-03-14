@@ -28,7 +28,7 @@
   - 용어 정의: "term - description" 패턴 (용어 1~40자) → beige 배경 + 볼드 용어명
   - 알고리즘 스텝: 연속 번호 리스트(1. 2. 3.)를 그룹화 → beige 배경 컨테이너
   - 강조 문장: ! 느낌표 종료 → 배경 없이 굵은 텍스트
-- **buildFreeformContent**: 구조화된 Principle + DeepDive 데이터를 자유 텍스트로 조합 (파이프라인 freeform 전환 시 bypass 가능)
+- **buildFreeformContent**: 구조화된 Principle + DeepDive 데이터를 자유 텍스트로 조합 (curated 전용 모드에서는 content_ko/en이 이미 자유 형식 마크다운이므로 bypass됨)
 - **Header**: 제목(serif 26pt), 분야 배지(superCategory 아이콘), connectionType, difficulty, readTime, keywords
 - **connectionType**: 탭 시 educational Alert popup (direct_inspiration/structural_analogy/mathematical_foundation 설명)
 - **4 Super Categories**: 공학(5), 자연과학(4), 형식과학(2), 응용과학(1) — 12 disciplines total
