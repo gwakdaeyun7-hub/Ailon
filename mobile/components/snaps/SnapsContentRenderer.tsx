@@ -90,13 +90,13 @@ function isFormulaLine(line: string): boolean {
 
 /**
  * 용어 정의 패턴: "용어 - 설명" 또는 "용어: 설명"
- * - 용어 부분이 짧고 (1~20자)
+ * - 용어 부분이 짧고 (1~40자) — 영문 괄호 포함 용어 대응
  * - 구분자가 " - " 또는 ":" 이며
  * - 설명 부분이 존재
  */
 function parseDefinition(line: string): { term: string; desc: string } | null {
   // "용어 - 설명" 패턴
-  const dashMatch = line.match(/^(.{1,20})\s+[-–—]\s+(.+)$/);
+  const dashMatch = line.match(/^(.{1,40})\s+[-–—]\s+(.+)$/);
   if (dashMatch) {
     return { term: dashMatch[1].trim(), desc: dashMatch[2].trim() };
   }

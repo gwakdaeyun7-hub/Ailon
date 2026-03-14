@@ -744,7 +744,7 @@ PRINCIPLE_SEEDS = [
         "discipline": "optimization",
         "discipline_name": "최적화공학",
         "super_category": "공학",
-        "principle_name": "담금질 기법",
+        "principle_name": "Simulated Annealing",
         "principle_name_en": "Simulated Annealing",
         "ai_connection": "조합 최적화 / 하이퍼파라미터 탐색",
         "ai_connection_en": "Combinatorial Optimization / Hyperparameter Search",

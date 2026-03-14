@@ -82,6 +82,8 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 - content_ko (300~600자) + content_en (영어 동일 내용) 쌍으로 생성
 - Avoids same discipline in last 3 days, same seed in last 30 days
 - **Curated 전용 모드**: seed_selector가 `scripts/curated_principles/` 폴더에 .md 파일이 있는 시드만 선택. LLM 생성 비활성화. curated 파일 1개면 해당 시드 고정, 여러 개면 30일 중복 회피 + 로테이션. front-matter(difficulty, connectionType, keywords) + `---EN---` 구분자로 KO/EN 분리
+  - **curated 제목 규칙**: principle_name에 영어 알고리즘/원리 이름 사용 (한국어 UI에서도 영문 표시). 콘텐츠 첫 줄도 "English Name - 한줄 정의" 형태
+  - **curated content_ko 길이**: 2000~5000자 (LLM 생성 대비 훨씬 길고 깊이 있는 콘텐츠)
 - Content prompt: 자유 형식 마크다운으로 한줄 정의 → 원리 해설 → AI 연결 → 수식과 직관 → 실제 임팩트 순 서사
   - 수식은 LaTeX가 아닌 평문 표기 (dE = E(new) - E(old) 형태)
   - 괄호 안에 AI 대응 개념 병기 (온도(탐색 범위))

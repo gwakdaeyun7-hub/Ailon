@@ -25,7 +25,7 @@
   - 인라인 서식: `**텍스트**` → fontWeight 700 굵은 글씨 (renderBoldText 헬퍼)
   - 배경색 3-규칙: Teal(primaryLight)=수식, Beige(surface)=용어 정의+알고리즘 스텝, 없음=그 외
   - 수식 감지: LaTeX 명령, 그리스 문자, 수학 기호 패턴 (한글 25% 미만, 80자 이하), `latexToDisplay` 변환
-  - 용어 정의: "term - description" 패턴 → beige 배경 + 볼드 용어명
+  - 용어 정의: "term - description" 패턴 (용어 1~40자) → beige 배경 + 볼드 용어명
   - 알고리즘 스텝: 연속 번호 리스트(1. 2. 3.)를 그룹화 → beige 배경 컨테이너
   - 강조 문장: ! 느낌표 종료 → 배경 없이 굵은 텍스트
 - **buildFreeformContent**: 구조화된 Principle + DeepDive 데이터를 자유 텍스트로 조합 (파이프라인 freeform 전환 시 bypass 가능)

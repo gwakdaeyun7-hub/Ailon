@@ -275,7 +275,7 @@ qa-pipeline-tester 에이전트를 사용하여 로그를 분석합니다.
 
 ### 1.6 학문스낵(Principle) 콘텐츠 품질 검사 (★ 심층 분석)
 
-**v2 구조**: content_ko/content_en 자유 형식 마크다운. **curated 전용 모드** — seed_selector가 `scripts/curated_principles/` 폴더에 .md 파일이 있는 시드만 선택 (LLM 생성 비활성화). curated 1개면 해당 시드 고정, 여러 개면 30일 중복 회피 + 로테이션.
+**v2 구조**: content_ko/content_en 자유 형식 마크다운. **curated 전용 모드** — seed_selector가 `scripts/curated_principles/` 폴더에 .md 파일이 있는 시드만 선택 (LLM 생성 비활성화). curated 1개면 해당 시드 고정, 여러 개면 30일 중복 회피 + 로테이션. **curated 제목 규칙**: principle_name에 영어 알고리즘 이름 사용 (한국어 UI에서도 영문 표시), 콘텐츠 첫 줄 "English Name - 한줄 정의" 형태.
 
 로그 패턴:
 - `[seed_selector] curated 시드: {n}개 ({id1}, {id2}, ...)` — curated 파일이 있는 시드만 후보
@@ -293,7 +293,7 @@ qa-pipeline-tester 에이전트를 사용하여 로그를 분석합니다.
 | 재시도 횟수 | 0-1회 | 3회 연속 실패 → 최선 시도 사용 | Critical |
 | 필수 필드 (v2) | content_ko + content_en 존재 | content_ko 또는 content_en 누락 → retry_reseed | Critical |
 | 필수 필드 (v1 폴백) | foundation/application/integration/deepDive 존재 | v1 필드 누락 시 content=None → retry_reseed | Critical |
-| content_ko 길이 | 800~3000자 | <500자 → 너무 짧음, >4000자 → 너무 김 | Minor |
+| content_ko 길이 | generated: 800~3000자, curated: 2000~5000자 | generated <500자 → 너무 짧음. curated <1500자 → 깊이 부족. >6000자 → 너무 김 | Minor |
 | content_en 길이 | content_ko의 70~130% | 극단적 비율 차이 → 번역 품질 문제 | Minor |
 | content_source | 'curated' 또는 'generated' | curated인데 생성 로그 있음 → 로직 오류 | Minor |
 | _en 필드 존재 | content_en + title_en + keywords_en 존재 | _en 필드 누락 → 바이링구얼 표시 불가 | Major |
@@ -327,7 +327,7 @@ qa-pipeline-tester 에이전트를 사용하여 로그를 분석합니다.
 | **수식/알고리즘 포함** | 핵심 수식이 ``` 블록 또는 수식 패턴으로 포함, 직관적 해설 동반 | 수학적 원리인데 수식 없음, 또는 수식만 있고 해설 없음 | Major |
 | **구체적 수치/사례** | "ChatGPT 답변 품질 30% 향상", "Boltzmann Machine(1985)" — 수치, 모델명, 연도 포함 | "혁신적으로 향상시켰다" — 추상적 | Major |
 | **한계 AI-specific** | "gradient-based 대비 열위, 고차원 스케일링 한계" — AI 적용 시만 드러나는 한계 | "아직 갈 길이 멀다" / 원리 자체의 일반 한계만 서술 | Major |
-| **용어 정리** | 핵심 용어 5개+ "term - description" 패턴으로 정리 | 용어 정리 없음, 또는 너무 일반적인 용어만 | Minor |
+| **용어 정리** | 핵심 용어 5개+ "term - description" 패턴으로 정리. 용어 부분 40자 이내 (영문 괄호 포함 대응) | 용어 정리 없음, 또는 너무 일반적인 용어만. 용어 41자+ → SnapsContentRenderer에서 beige 배경 미적용 | Minor |
 | **마크다운 서식 일관성** | ## 제목, ``` 수식, 1. 번호 리스트, **굵은 글씨** 올바르게 사용 | 서식 혼란 (제목 누락, 코드블록 미닫힘 등) | Minor |
 
 #### 1.6.3 콘텐츠 깊이/전문성 검사 (★ 핵심)
