@@ -1153,7 +1153,7 @@ function SourceHScrollSection({
             accessibilityLabel={`${name} ${t('news.show_more')} ${more5.length}`}
             style={{
               width: 80,
-              height: HCARD_HEIGHT,
+              alignSelf: 'stretch',
               marginRight: 12,
               backgroundColor: colors.border,
               borderRadius: 12,

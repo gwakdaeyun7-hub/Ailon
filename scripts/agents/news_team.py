@@ -361,12 +361,14 @@ def _summarize_batch(batch: list[dict], batch_idx: int, translate: bool = True) 
             "  - 예: 'Anthropic Raises $2B at $60B Valuation' -> 'Anthropic, 60조 가치에 2조 원 투자 유치'\n"
             "  - 핵심 행위자 + 핵심 사건을 압축. 쉼표·능동형 서술어 활용\n"
             "  - 글자 수 제한 없음. 축약하지 말 것\n"
-            "  - 여운·궁금증·암시가 어울리는 제목은 '...'로 끝내도 좋음\n"
-            "  - 예: 'OpenAI, 차세대 모델 힌트...출시 임박?', 'AI 에이전트의 끝은 어디까지...'"
+            "  - ★ '...' 제한: 전체의 20-30%만. 나머지 70%+ 제목은 '...' 없이 마침\n"
+            "  - '...' 적절: 힌트/루머, 반전/충격, 불확실성/논쟁 → 'OpenAI, 차세대 모델 힌트...출시 임박?'\n"
+            "  - '...' 금지: 확정 사실(공개·출시·발표·인수), 숫자 보고 → 'Meta, MTIA 칩 4종 공개'처럼 마침\n"
+            "  - '주제...부가정보' 구분자 금지 → 쉼표 활용: 'NVIDIA, 모델 공개, 성능 5배 향상'"
         )
         en_fields_rule = (
             "\nAlso produce these English fields:\n"
-            "- display_title_en: concise English headline (news-style, not a literal back-translation). May end with '...' when it adds intrigue or suspense (e.g., 'OpenAI Hints at Next-Gen Model...', 'The Future of AI Agents May Not Be What You Think...')\n"
+            "- display_title_en: concise English headline (news-style, not a literal back-translation). '...' only for 20-30% of titles with genuine intrigue/suspense. Never for confirmed facts or as separator. Good: 'OpenAI Hints at Next-Gen Model...' Bad: 'Meta Launches New Chip...'\n"
             "- one_line_en: 1-sentence English headline of what happened (WHO did WHAT). No details, no numbers -- just the event.\n"
             "- key_points_en: EXACTLY 3 key details NOT mentioned in one_line_en (array of exactly 3 strings). Each must contain specific data (numbers, specs, comparisons, prices, dates). No vague statements. No overlap with one_line_en.\n"
             "- why_important_en: 1-2 sentences on impact. Name WHO is affected and HOW specifically. No overlap with one_line_en or key_points_en. Never say 'significant impact' without specifics.\n"
@@ -379,7 +381,7 @@ def _summarize_batch(batch: list[dict], batch_idx: int, translate: bool = True) 
         title_rule = "display_title: 원래 한국어 제목을 그대로 사용 (축약 금지, 원본 그대로)"
         en_fields_rule = (
             "\nAlso produce these English fields (translate the Korean summaries to English):\n"
-            "- display_title_en: concise English headline for this article. May end with '...' when it adds intrigue or suspense\n"
+            "- display_title_en: concise English headline for this article. '...' only for 20-30% with genuine intrigue/suspense, never for confirmed facts\n"
             "- one_line_en: 1-sentence English headline of what happened (WHO did WHAT). No details, no numbers -- just the event.\n"
             "- key_points_en: EXACTLY 3 key details NOT mentioned in one_line_en (array of exactly 3 strings). Each must contain specific data (numbers, specs, comparisons, prices, dates). No vague statements. No overlap with one_line_en.\n"
             "- why_important_en: 1-2 sentences on impact. Name WHO is affected and HOW specifically. No overlap with one_line_en or key_points_en. Never say 'significant impact' without specifics.\n"

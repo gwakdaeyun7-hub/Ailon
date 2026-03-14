@@ -69,8 +69,21 @@ nativewind-env.d.ts
 
 # Local Claude Code settings
 .claude/settings.local.json
+.claude/agent-memory/
+
+# Keystore files
+*.jks
 
 # Documentation (confidential business plans)
 README.md
 PRD_AILON_COMPLETE.md
 GEMINI_MODELS_REFERENCE.md
+
+# Local preview / design files (root only)
+/*.html
+/_ul
+
+# Local image assets (root only — not in mobile/assets/)
+/ailon_logo*.png
+/character.png
+/KakaoTalk_*.jpg

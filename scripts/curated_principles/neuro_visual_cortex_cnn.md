@@ -12,28 +12,28 @@ Visual Cortex Hierarchy and Convolutional Neural Networks - 고양이 시각 피
 
 이 우연한 관찰이 시각 신경과학의 패러다임을 바꾸었다. Hubel과 Wiesel은 시각 피질의 뉴런이 두 가지 뚜렷한 유형으로 나뉜다는 것을 밝혔다.
 
-- **단순 세포(simple cell)**: 특정 방향의 직선 에지에 반응한다. 수평선에만 반응하는 뉴런, 45도 대각선에만 반응하는 뉴런이 각각 존재한다. 이 뉴런들은 정확한 위치에 민감하다.
-- **복합 세포(complex cell)**: 역시 특정 방향의 에지에 반응하지만, 에지가 수용 영역 내에서 어디에 있든 반응한다. 위치 불변성(position invariance)을 보인다.
+- **단순 세포**: 특정 방향의 직선 에지에 반응한다. 수평선에만 반응하는 뉴런, 45도 대각선에만 반응하는 뉴런이 각각 존재한다. 이 뉴런들은 정확한 위치에 민감하다.
+- **복합 세포**: 역시 특정 방향의 에지에 반응하지만, 에지가 수용 영역 내에서 어디에 있든 반응한다. 위치 불변성(position invariance)을 보인다.
 
 1962년 후속 연구에서 두 사람은 시각 피질이 **계층 구조**로 조직되어 있음을 보였다. V1(일차 시각 피질)의 단순 세포가 에지를 감지하면, 이 정보가 복합 세포로 전달되어 위치에 무관한 에지 표현이 만들어지고, 상위 영역(V2, V4, IT)으로 갈수록 점점 더 복잡하고 추상적인 시각 특징이 표현된다. 이 발견으로 두 사람은 1981년 노벨 생리학·의학상을 수상했다.
 
 ## 수용 영역: 핵심 개념
 
-시각 피질을 이해하는 열쇠는 **수용 영역**(receptive field)이다. 하나의 뉴런이 반응하는 시야 내 영역을 뜻한다. 망막에 가까운 뉴런일수록 수용 영역이 작고(세밀한 지역 정보 처리), 상위 영역으로 갈수록 수용 영역이 커진다(넓은 맥락 통합).
+시각 피질을 이해하는 열쇠는 **수용 영역**이다. 하나의 뉴런이 반응하는 시야 내 영역을 뜻한다. 망막에 가까운 뉴런일수록 수용 영역이 작고(세밀한 지역 정보 처리), 상위 영역으로 갈수록 수용 영역이 커진다(넓은 맥락 통합).
 
-이것은 단순한 크기 변화가 아니다. **질적 전환**이 동반된다. V1의 뉴런은 작은 수용 영역에서 에지와 방향을 감지한다. V2는 윤곽과 텍스처 패턴을 처리한다. V4는 곡선과 색상 조합을 인식한다. 하측두 피질(IT cortex)의 뉴런은 얼굴, 손, 특정 물체 같은 고수준 개념에 반응한다. 이 계층을 올라갈수록 표현이 더 추상적이고 불변적(invariant)이 되는 패턴이 CNN 설계의 직접적 청사진이 되었다.
+이것은 단순한 크기 변화가 아니다. 질적 전환이 동반된다. V1의 뉴런은 작은 수용 영역에서 에지와 방향을 감지한다. V2는 윤곽과 텍스처 패턴을 처리한다. V4는 곡선과 색상 조합을 인식한다. 하측두 피질(IT cortex)의 뉴런은 얼굴, 손, 특정 물체 같은 고수준 개념에 반응한다. 이 계층을 올라갈수록 표현이 더 추상적이고 불변적(invariant)이 되는 패턴이 CNN 설계의 직접적 청사진이 되었다.
 
-또한 시각 피질은 **레티노토피 구조**(retinotopic mapping)를 유지한다. 망막의 인접한 점들이 피질에서도 인접하게 표현된다. 공간적 이웃 관계가 보존되는 이 성질이, CNN이 공간 구조를 유지하며 처리하는 설계의 생물학적 근거다.
+또한 시각 피질은 레티노토피 구조(retinotopic mapping)를 유지한다. 망막의 인접한 점들이 피질에서도 인접하게 표현된다. 공간적 이웃 관계가 보존되는 이 성질이, CNN이 공간 구조를 유지하며 처리하는 설계의 생물학적 근거다.
 
 ## 네오코그니트론에서 CNN으로
 
 Hubel과 Wiesel의 발견이 AI로 번역되기까지 두 번의 결정적 도약이 있었다.
 
-**첫 번째 도약 -- 네오코그니트론(1980)**: 일본의 Kunihiko Fukushima는 Hubel-Wiesel 모델을 직접 참조하여 네오코그니트론(Neocognitron)을 설계했다. S-세포(단순 세포 대응)는 특정 패턴을 감지하고, C-세포(복합 세포 대응)는 위치 변동을 흡수했다. 이 구조는 핵심 아이디어에서 CNN의 원형이었다. 하지만 학습 규칙이 비지도 학습 기반이어서, 복잡한 패턴 인식에 한계가 있었다.
+첫 번째 도약 -- 네오코그니트론(1980): 일본의 Kunihiko Fukushima는 Hubel-Wiesel 모델을 직접 참조하여 네오코그니트론(Neocognitron)을 설계했다. S-세포(단순 세포 대응)는 특정 패턴을 감지하고, C-세포(복합 세포 대응)는 위치 변동을 흡수했다. 이 구조는 핵심 아이디어에서 CNN의 원형이었다. 하지만 학습 규칙이 비지도 학습 기반이어서, 복잡한 패턴 인식에 한계가 있었다.
 
-**두 번째 도약 -- LeNet(1989, 1998)**: Yann LeCun et al.은 Fukushima의 구조에 역전파(backpropagation)를 결합했다. LeNet-5(1998)는 우편번호 손글씨 인식에서 실용적 성공을 거두며 CNN의 가능성을 입증했다. 핵심 혁신은 합성곱 필터의 가중치를 경사하강법으로 학습할 수 있게 한 것이다.
+두 번째 도약 -- LeNet(1989, 1998): Yann LeCun et al.은 Fukushima의 구조에 역전파(backpropagation)를 결합했다. LeNet-5(1998)는 우편번호 손글씨 인식에서 실용적 성공을 거두며 CNN의 가능성을 입증했다. 핵심 혁신은 합성곱 필터의 가중치를 경사하강법으로 학습할 수 있게 한 것이다.
 
-그리고 **AlexNet의 돌파(2012)**: Krizhevsky, Sutskever, Hinton이 ImageNet 대회에서 기존 방법 대비 오류율을 10% 이상 줄이며 심층 CNN의 시대를 열었다. GPU 병렬 연산, ReLU 활성화 함수, 드롭아웃이 결합되어 깊은 CNN 학습이 가능해진 것이다.
+그리고 AlexNet의 돌파(2012): Krizhevsky, Sutskever, Hinton이 ImageNet 대회에서 기존 방법 대비 오류율을 10% 이상 줄이며 심층 CNN의 시대를 열었다. GPU 병렬 연산, ReLU 활성화 함수, 드롭아웃이 결합되어 깊은 CNN 학습이 가능해진 것이다.
 
 ## 생물학에서 알고리즘으로: 대응 관계
 
@@ -65,19 +65,19 @@ Zeiler & Fergus(2014)의 시각화 연구도 이를 뒷받침한다. CNN의 첫 
 
 시각 피질 영감에서 출발한 CNN은 이후 생물학에서 크게 벗어나며 독자적으로 진화했다.
 
-- **ResNet(He et al., 2015)**: 잔차 연결(residual connection)로 100층 이상의 네트워크를 학습 가능하게 했다. 생물학적 시각 피질은 이렇게 깊지 않다.
-- **EfficientNet(Tan & Le, 2019)**: 깊이, 너비, 해상도를 체계적으로 스케일링하는 복합 스케일링 법칙을 제시했다.
-- **Vision Transformer(Dosovitskiy et al., 2020)**: 이미지를 패치로 분할하여 Transformer로 처리한다. 합성곱이라는 귀납적 편향(inductive bias)을 제거하고도 대규모 데이터에서 CNN을 능가했다. 시각 피질 영감의 직접적 계보에서 벗어난 사례다.
+- ResNet(He et al., 2015): 잔차 연결(residual connection)로 100층 이상의 네트워크를 학습 가능하게 했다. 생물학적 시각 피질은 이렇게 깊지 않다.
+- EfficientNet(Tan & Le, 2019): 깊이, 너비, 해상도를 체계적으로 스케일링하는 복합 스케일링 법칙을 제시했다.
+- **Vision Transformer**(Dosovitskiy et al., 2020): 이미지를 패치로 분할하여 Transformer로 처리한다. 합성곱이라는 귀납적 편향(inductive bias)을 제거하고도 대규모 데이터에서 CNN을 능가했다. 시각 피질 영감의 직접적 계보에서 벗어난 사례다.
 
 ## 한계와 약점
 
 시각 피질과 CNN 사이의 유비는 강력하지만, 본질적으로 다른 점들을 간과해서는 안 된다.
 
-- **피드백 연결의 부재**: 생물학적 시각 피질에서 하향 피드백(top-down feedback) 연결은 상향 연결만큼이나 풍부하다. V1으로 가는 입력의 약 80%가 상위 영역에서 온다. 표준 CNN은 순방향(feedforward)만 존재한다. 이 차이는 맥락 의존적 지각(예: 착시 현상에서 기대가 지각을 바꾸는 것)을 CNN이 재현하지 못하는 이유와 관련된다.
-- **측면 연결의 부재**: 같은 계층 내 뉴런 간 상호 억제와 흥분(lateral inhibition/excitation)이 시각 피질에서 중요한 역할을 하지만, 표준 CNN에는 없다.
-- **역전파의 비생물학성**: CNN 학습에 사용되는 역전파는 생물학적으로 일어나지 않는다. 시각 피질의 학습은 지역적(local) 시냅스 가소성에 기반한다.
-- **텍스처 편향**: Geirhos et al.(2019)은 ImageNet 학습 CNN이 인간과 달리 형태(shape)보다 텍스처(texture)에 의존한다는 것을 보였다. 코끼리 텍스처를 고양이 형태에 입히면 CNN은 코끼리라 답하지만, 인간은 고양이라 답한다.
-- **적대적 예제**: 인간이 전혀 인식하지 못하는 미세한 픽셀 변조로 CNN의 분류를 완전히 바꿀 수 있다. 생물학적 시각 시스템은 이런 공격에 본질적으로 강건하다. 이것은 CNN이 시각 피질과 근본적으로 다른 표현을 학습하고 있음을 시사한다.
+- 피드백 연결의 부재: 생물학적 시각 피질에서 하향 피드백(top-down feedback) 연결은 상향 연결만큼이나 풍부하다. V1으로 가는 입력의 약 80%가 상위 영역에서 온다. 표준 CNN은 순방향(feedforward)만 존재한다. 이 차이는 맥락 의존적 지각(예: 착시 현상에서 기대가 지각을 바꾸는 것)을 CNN이 재현하지 못하는 이유와 관련된다.
+- 측면 연결의 부재: 같은 계층 내 뉴런 간 상호 억제와 흥분(lateral inhibition/excitation)이 시각 피질에서 중요한 역할을 하지만, 표준 CNN에는 없다.
+- 역전파의 비생물학성: CNN 학습에 사용되는 역전파는 생물학적으로 일어나지 않는다. 시각 피질의 학습은 지역적(local) 시냅스 가소성에 기반한다.
+- 텍스처 편향: Geirhos et al.(2019)은 ImageNet 학습 CNN이 인간과 달리 형태(shape)보다 텍스처(texture)에 의존한다는 것을 보였다. 코끼리 텍스처를 고양이 형태에 입히면 CNN은 코끼리라 답하지만, 인간은 고양이라 답한다.
+- 적대적 예제: 인간이 전혀 인식하지 못하는 미세한 픽셀 변조로 CNN의 분류를 완전히 바꿀 수 있다. 생물학적 시각 시스템은 이런 공격에 본질적으로 강건하다. 이것은 CNN이 시각 피질과 근본적으로 다른 표현을 학습하고 있음을 시사한다.
 
 ## 용어 정리
 
@@ -119,19 +119,19 @@ In their 1962 follow-up, the pair showed that the visual cortex is organized as 
 
 The key to understanding the visual cortex is the **receptive field** -- the region of the visual field to which a single neuron responds. Neurons closer to the retina have smaller receptive fields (processing fine local information), while higher areas have progressively larger receptive fields (integrating broader context).
 
-This is not merely a change in size -- it involves a **qualitative transformation**. V1 neurons detect edges and orientations in small receptive fields. V2 processes contours and texture patterns. V4 recognizes curves and color combinations. Neurons in the inferotemporal cortex (IT) respond to high-level concepts like faces, hands, and specific objects. The pattern of representations becoming more abstract and invariant as one ascends this hierarchy became the direct blueprint for CNN design.
+This is not merely a change in size -- it involves a qualitative transformation. V1 neurons detect edges and orientations in small receptive fields. V2 processes contours and texture patterns. V4 recognizes curves and color combinations. Neurons in the inferotemporal cortex (IT) respond to high-level concepts like faces, hands, and specific objects. The pattern of representations becoming more abstract and invariant as one ascends this hierarchy became the direct blueprint for CNN design.
 
-The visual cortex also maintains **retinotopic mapping** -- adjacent points on the retina are represented adjacently in the cortex. This preservation of spatial neighbor relationships is the biological basis for CNNs' design of preserving spatial structure during processing.
+The visual cortex also maintains retinotopic mapping -- adjacent points on the retina are represented adjacently in the cortex. This preservation of spatial neighbor relationships is the biological basis for CNNs' design of preserving spatial structure during processing.
 
 ## From Neocognitron to CNN
 
 Two decisive leaps were required to translate Hubel and Wiesel's discoveries into AI.
 
-**First leap -- Neocognitron (1980)**: Japan's Kunihiko Fukushima directly referenced the Hubel-Wiesel model to design the Neocognitron. S-cells (corresponding to simple cells) detected specific patterns, and C-cells (corresponding to complex cells) absorbed positional variation. Conceptually, this was the prototype of CNNs. However, its unsupervised learning rule limited its ability to recognize complex patterns.
+First leap -- Neocognitron (1980): Japan's Kunihiko Fukushima directly referenced the Hubel-Wiesel model to design the Neocognitron. S-cells (corresponding to simple cells) detected specific patterns, and C-cells (corresponding to complex cells) absorbed positional variation. Conceptually, this was the prototype of CNNs. However, its unsupervised learning rule limited its ability to recognize complex patterns.
 
-**Second leap -- LeNet (1989, 1998)**: Yann LeCun et al. combined Fukushima's architecture with backpropagation. LeNet-5 (1998) proved CNN's practical viability by successfully recognizing handwritten zip codes. The key innovation was making convolutional filter weights learnable through gradient descent.
+Second leap -- LeNet (1989, 1998): Yann LeCun et al. combined Fukushima's architecture with backpropagation. LeNet-5 (1998) proved CNN's practical viability by successfully recognizing handwritten zip codes. The key innovation was making convolutional filter weights learnable through gradient descent.
 
-**AlexNet breakthrough (2012)**: Krizhevsky, Sutskever, and Hinton reduced error rates by over 10% compared to previous methods on ImageNet, ushering in the era of deep CNNs. The combination of GPU parallelism, ReLU activation, and dropout made training deep CNNs feasible.
+AlexNet breakthrough (2012): Krizhevsky, Sutskever, and Hinton reduced error rates by over 10% compared to previous methods on ImageNet, ushering in the era of deep CNNs. The combination of GPU parallelism, ReLU activation, and dropout made training deep CNNs feasible.
 
 ## Biology to Algorithm: The Correspondences
 
@@ -163,19 +163,19 @@ Zeiler & Fergus's (2014) visualization study supports this further. A CNN's firs
 
 CNNs that originated from visual cortex inspiration have since diverged significantly from biology, evolving independently.
 
-- **ResNet (He et al., 2015)**: Residual connections enabled training networks with over 100 layers. The biological visual cortex is not nearly this deep.
-- **EfficientNet (Tan & Le, 2019)**: Introduced compound scaling laws that systematically scale depth, width, and resolution.
-- **Vision Transformer (Dosovitskiy et al., 2020)**: Splits images into patches and processes them with Transformers. It surpassed CNNs on large-scale data even after removing convolution's inductive bias -- a departure from the direct lineage of visual cortex inspiration.
+- ResNet (He et al., 2015): Residual connections enabled training networks with over 100 layers. The biological visual cortex is not nearly this deep.
+- EfficientNet (Tan & Le, 2019): Introduced compound scaling laws that systematically scale depth, width, and resolution.
+- **Vision Transformer** (Dosovitskiy et al., 2020): Splits images into patches and processes them with Transformers. It surpassed CNNs on large-scale data even after removing convolution's inductive bias -- a departure from the direct lineage of visual cortex inspiration.
 
 ## Limitations and Weaknesses
 
 The analogy between visual cortex and CNNs is powerful, but essentially different aspects must not be overlooked.
 
-- **Absence of feedback connections**: In the biological visual cortex, top-down feedback connections are as abundant as feedforward connections. Approximately 80% of input to V1 comes from higher areas. Standard CNNs are purely feedforward. This difference relates to why CNNs cannot reproduce context-dependent perception (e.g., expectations altering perception in optical illusions).
-- **Absence of lateral connections**: Mutual inhibition and excitation between neurons within the same layer (lateral inhibition/excitation) play important roles in the visual cortex but are absent in standard CNNs.
-- **Biological implausibility of backpropagation**: Backpropagation used for CNN training does not occur biologically. Visual cortex learning relies on local synaptic plasticity.
-- **Texture bias**: Geirhos et al. (2019) showed that ImageNet-trained CNNs rely on texture rather than shape, unlike humans. When elephant texture is applied to a cat shape, CNNs answer "elephant" while humans answer "cat."
-- **Adversarial examples**: Imperceptible pixel perturbations can completely change CNN classifications. The biological visual system is inherently robust to such attacks. This suggests CNNs learn fundamentally different representations from the visual cortex.
+- Absence of feedback connections: In the biological visual cortex, top-down feedback connections are as abundant as feedforward connections. Approximately 80% of input to V1 comes from higher areas. Standard CNNs are purely feedforward. This difference relates to why CNNs cannot reproduce context-dependent perception (e.g., expectations altering perception in optical illusions).
+- Absence of lateral connections: Mutual inhibition and excitation between neurons within the same layer (lateral inhibition/excitation) play important roles in the visual cortex but are absent in standard CNNs.
+- Biological implausibility of backpropagation: Backpropagation used for CNN training does not occur biologically. Visual cortex learning relies on local synaptic plasticity.
+- Texture bias: Geirhos et al. (2019) showed that ImageNet-trained CNNs rely on texture rather than shape, unlike humans. When elephant texture is applied to a cat shape, CNNs answer "elephant" while humans answer "cat."
+- Adversarial examples: Imperceptible pixel perturbations can completely change CNN classifications. The biological visual system is inherently robust to such attacks. This suggests CNNs learn fundamentally different representations from the visual cortex.
 
 ## Glossary
 

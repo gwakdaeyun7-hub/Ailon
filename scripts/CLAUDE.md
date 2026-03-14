@@ -176,5 +176,6 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 - **날짜 추정 (`date_estimated`)**: RSS 날짜 미추출 시 스크래핑 복원 시도, 실패 시 UI에 `~` 접두사 표시
 - **VentureBeat/paywall**: trafilatura Chrome UA 설정 필요 (`_get_traf_config`)
 - **key_points 2개**: 프롬프트 허용 범위, 0-1개는 문제
-- **Pipeline QA**: print + GitHub Actions 어노테이션 + Job Summary, `/pipeline-qa` 스킬로 8개 영역 심층 분석 가능
+- **Pipeline QA**: print + GitHub Actions 어노테이션 + Job Summary, `/pipeline-qa` 스킬로 8개 영역 심층 분석 가능. `pipeline-post-check.sh` hook이 파이프라인 실행 후 7개 패턴(JSON 잘림, 0건 수집, 스크래핑 실패, 분류 편향, AI 필터, curated 풀 고갈, API 쿼터) 자동 감지
+- **Python 구문 검증**: .py 파일 수정 시 `python-syntax-check.sh` hook이 `py_compile` 자동 실행, 구문 오류 즉시 차단
 - **EN 번역 실패 폴백**: 4-phase retry (배치 → 개별 → 영어 원본 유지 → 간이 번역), 실패 시 영어 제목 유지

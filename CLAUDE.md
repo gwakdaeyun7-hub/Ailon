@@ -110,6 +110,17 @@ cd ../functions && firebase deploy --only functions
 
 > 각 하위 CLAUDE.md 참조: [`scripts/CLAUDE.md`](scripts/CLAUDE.md) (Pipeline), [`mobile/CLAUDE.md`](mobile/CLAUDE.md) (Mobile)
 
+## Hooks (`.claude/hooks/`)
+
+| Hook | Trigger | Mode | Scope |
+|------|---------|------|-------|
+| `guard-index-bloat.sh` | PreToolUse (Edit\|Write) | Block | index.tsx에 inline 컴포넌트 추가 차단 |
+| `pipeline-post-check.sh` | PostToolUse (Bash) | Info | 파이프라인 실행 후 7개 QA 패턴 자동 감지 |
+| `python-syntax-check.sh` | PostToolUse (Edit\|Write) | Block | .py 파일 구문 오류 즉시 차단 |
+| `mobile-typecheck.sh` | PostToolUse (Edit\|Write) | Info | .ts/.tsx 수정 후 tsc 타입 체크 |
+
+설정: `.claude/settings.local.json` (gitignore 대상). 훅 스크립트 자체는 커밋 대상.
+
 ## Behavioral Guidelines
 
 - **Think before coding**: State assumptions, surface tradeoffs, ask if unclear
