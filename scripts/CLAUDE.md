@@ -52,8 +52,8 @@ AI타임스, GeekNews, ZDNet AI 에디터 (HTML scrape), 요즘IT AI
 | AI 필터 | Tier 1+2 중 Tom's Hardware만 AI 필터 적용 (NEEDS_AI_FILTER={"toms_hardware"}, 범용 RSS 피드), 나머지 17개는 전체 통과, Tier 3: "의심 시 제거" (AI+개발/IT 기술 포함). 모든 카테고리에 AI 필터 동일 적용 (research 면제 없음). KO 필터 INCLUDE 목록에 "AI 기업과 정부/국방부 관계 기사" 포함 | Tom's Hardware는 범용 하드웨어 피드로 비AI 기사 혼재, 나머지 Tier 1+2는 AI 전문 피드로 필터 불필요, Tier 3는 비AI 9%+완전 무관 기사 혼재 |
 
 ### Classification Categories
-- `models_products` — NEW model/product/tool/feature release, first wide rollout (NOT: events/meetups, non-AI products)
-- `research` — Paper, algorithm, benchmark, tutorial/how-to (includes paper-based tools). NOT: corporate tech/data licensing deals, concept comparison/explainer articles without novel method
+- `models_products` — NEW model/product/tool/feature release, first wide rollout (NOT: events/meetups, non-AI products). 상용 기업의 제품 출시만 해당
+- `research` — Paper, algorithm, benchmark, tutorial/how-to (includes paper-based tools). 학술/연구 기관(Stanford, MIT, Google AI/DeepMind, MSR, FAIR, IBM Research 등) 출처의 프레임워크/모델 공개 포함. 경량화/최적화/에지 연구도 가중치 공개 여부와 무관하게 research. NOT: corporate tech/data licensing deals, concept comparison/explainer articles without novel method
 - `industry_business` — Everything else (catch-all: funding, regulation, trends, strategy, events, concept explainers, corporate tech deals)
 - industry_business가 50-65%인 것은 정상 (catch-all 설계). 60% 초과 시 경고만 출력. 메가 이벤트(예: Anthropic-Pentagon 갈등 등 다소스 대형 사건) 발생 시 70%+도 자연 편향으로 허용 — 연속 3회 70%+ 시에만 프롬프트 조정 검토
 - 미분류 기사 → industry_business 기본값 적용 (로그로 개수 추적)
