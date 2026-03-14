@@ -60,7 +60,7 @@ AI타임스, GeekNews, ZDNet AI 에디터 (HTML scrape), 요즘IT AI
 
 ### Article Summary Structure (per article)
 ```
-display_title / display_title_en  — 뉴스 헤드라인 스타일 제목 (여운·궁금증 어울리면 '...'로 끝내기 허용)
+display_title / display_title_en  — 뉴스 헤드라인 스타일 제목 ('...' 20-30%만: 여운·궁금증 소수만, 확정 사실·구분자 금지)
 one_line / one_line_en            — 사건 1문장 요약 (누가+무엇을)
 key_points / key_points_en        — 구체적 세부정보 3개 (2개도 허용)
 why_important / why_important_en  — 업계 영향 1-2문장
@@ -91,6 +91,15 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
   - 괄호 안에 AI 대응 개념 병기 (온도(탐색 범위))
   - 인라인 용어 정의 (Annealing(담금질) - 설명)
   - readTime: 코드에서 content_ko 글자 수 기반 계산 (`_calc_read_time`, 500자/분 기준)
+  - **난이도 관리 원칙** (대상: AI 관심 일반인~초중급):
+    - 구체적 적용 사례 포함 (예: TSP 외판원 문제) — "조합 최적화" 같은 추상어에 정박점 제공
+    - 공간적 비유 활용 (예: 에너지 경관 = 산악 지형에서 가장 깊은 골짜기 찾기)
+    - 수식 설명 시 중간 단계 추가 ("T가 매우 크면 dE/T가 거의 0이 되어 수용 확률이 거의 100%")
+    - 물리 상수 생략 이유 설명 (예: "SA에서는 에너지가 수학적 목적 함수이므로 k를 생략하고 T만 남겼다")
+    - 이론 vs 실무 문단은 핵심만 압축 (Geman 수치 비교 불필요, 트레이드오프 한 문장으로)
+    - 전문 용어는 풀어쓴 설명 먼저, 용어명 나중에 ("이 성질을 에르고딕성이라 부른다")
+    - 복합 개념(Boltzmann Machine 등)은 문장 분리 — 한 문장에 3개념 이상 과밀 금지
+    - 용어 정리에는 본문에서 실제 사용된 용어만 포함 (미사용 용어 제외)
 - Verifier: 4-section evaluation (A. 사실정확성/principleAccuracy, B. 매핑정확성/mappingAccuracy, C. 텍스트품질/contentQuality, D. 한영일관성/bilingualConsistency)
   - Output: verified, confidence, principleAccuracy, mappingAccuracy, contentQuality, bilingualConsistency (0.0~1.0) + factCheck + issues[]
   - Retry if confidence < 0.7 OR any sub-score < 0.5
