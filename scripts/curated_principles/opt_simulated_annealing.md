@@ -29,11 +29,12 @@ SA의 각 반복은 Metropolis 알고리즘의 한 스텝과 동일하다.
 1. 현재 해 x에서 이웃 해 x'를 랜덤으로 생성한다
 2. 에너지 차이를 계산한다: dE = E(x') - E(x)
 3. dE <= 0이면 (더 좋은 해) 무조건 수용한다
-4. dE > 0이면 (더 나쁜 해) 확률 P = e^(-dE/T)로 확률적 수용한다
-5. 균일 난수 U를 생성하여 U < P이면 수용, 아니면 현재 해를 유지한다
-6. 온도 T를 냉각 스케줄에 따라 낮추고 반복한다
+4. dE > 0이면 (더 나쁜 해) 확률 P = e^(-dE/T)로 수용 여부를 결정한다 (0~1 사이의 난수를 뽑아 P보다 작으면 수용)
+5. 온도 T를 냉각 스케줄에 따라 낮추고 반복한다
 
 4단계가 SA를 탐욕 알고리즘과 구분하는 결정적 차이다. 나쁜 해를 받아들일 확률이 있기 때문에 지역 최적해의 "골짜기"를 빠져나올 수 있다. 이를 공간적으로 상상하면 이렇다. 목적 함수의 값을 높이로 표현한 울퉁불퉁한 산악 지형에서, 가장 깊은 골짜기를 찾는 것이 목표다. 탐욕 알고리즘은 현재 위치에서 내리막만 따라가므로 가장 가까운 웅덩이에 갇히지만, SA는 높은 온도일 때 능선을 넘어 더 깊은 골짜기로 이동할 수 있다.
+
+이 수용 확률 P = e^(-dE/T)는 통계역학의 **볼츠만 분포**에서 직접 유래한 것으로, 핵심 수학적 형태가 높은 충실도로 알고리즘에 보존된 사례다. T가 높을수록, dE가 작을수록 수용 확률이 올라간다. 물리학에서는 온도에 볼츠만 상수(k)를 곱해 에너지 단위를 맞추지만, SA에서는 에너지가 수학적 목적 함수이므로 물리적 단위가 필요 없어 k를 생략하고 T만 남겼다. Metropolis(1953)가 분자 시뮬레이션을 위해 만든 이 수용 규칙이, 원래 맥락을 벗어나 범용 최적화 도구가 된 것이다.
 
 ## 탐색과 활용의 균형
 
@@ -43,21 +44,6 @@ SA는 **탐색(exploration)과 활용(exploitation)의 균형** 문제를 온도
 - **낮은 온도**: 나쁜 이동의 수용 확률이 급격히 떨어져, 현재 좋은 영역을 집중적으로 **활용**한다. T가 0에 가까우면 탐욕 알고리즘과 동일해진다.
 - **냉각 과정 전체**: 초반의 넓은 탐색에서 후반의 깊은 활용으로 자연스럽게 전환된다.
 
-이 "처음엔 넓게, 나중엔 깊게" 패턴은 AI 전반에서 반복적으로 나타나는 근본 원리다.
-
-## 수용 확률의 핵심 수식
-
-dE = E(new) - E(old)
-
-dE <= 0이면 새로운 해가 더 좋으므로 **무조건 수용**한다.
-dE > 0이면 새로운 해가 더 나쁘지만, 다음 조건으로 확률적 수용이 가능하다.
-
-P(accept) = e^(-dE/T)
-
-이 확률이 균일 난수 U보다 크면 수용한다. T가 높을수록, dE가 작을수록 수용 확률이 올라간다.
-
-이 수식은 통계역학의 **볼츠만 분포**에서 직접 유래한 것으로, 핵심 수학적 형태가 높은 충실도로 알고리즘에 보존된 사례다. 물리학에서는 온도에 볼츠만 상수(k)를 곱해 에너지 단위를 맞추지만, SA에서는 에너지가 수학적 목적 함수이므로 물리적 단위가 필요 없어 k를 생략하고 T만 남겼다. Metropolis(1953)가 분자 시뮬레이션을 위해 만든 이 수용 규칙이, 원래 맥락을 벗어나 범용 최적화 도구가 된 것이다.
-
 ## 냉각 스케줄과 수렴
 
 가장 널리 쓰이는 기하 냉각 스케줄에서 alpha의 역할은 다음과 같다.
@@ -66,18 +52,23 @@ T(t+1) = alpha * T(t)
 
 alpha는 보통 0.95~0.99로 설정한다. alpha가 1에 가까울수록 천천히 식어서 탐색이 충분하고, 0에 가까울수록 빨리 식어 지역 최적에 갇힐 위험이 커진다.
 
-충분히 높은 온도에서 시작하고, 충분히 느리게 냉각하면, 알고리즘이 해 공간의 모든 상태를 방문할 확률이 0이 아니게 된다. 이 성질을 **에르고딕성**(ergodicity)이라 부른다. 이 조건이 만족되면 전역 최적해를 찾을 수 있다는 것이 보장된다.
+충분히 높은 온도에서 시작하고, 충분히 느리게 냉각하면, 알고리즘이 해 공간의 모든 상태를 방문할 확률이 0이 아니게 된다. 이 성질을 **에르고딕성**(ergodicity)이라 부른다. 모든 곳을 방문할 수 있다면, 그중 가장 좋은 곳도 반드시 한 번은 지나간다는 뜻이다. 이 조건이 만족되면 전역 최적해를 찾을 수 있다는 것이 보장된다.
 
 이론적으로는 극히 느린 냉각(Geman & Geman, 1984)이 전역 수렴을 보장하지만, 실무에서는 기하 냉각이 훨씬 빠르고 실용적이어서 표준으로 쓰인다. 이론적 보장과 실용적 속도 사이의 트레이드오프는 SA 연구의 핵심 주제다.
 
 ## 현대 AI 기법과의 연결
 
-SA의 핵심 아이디어인 "초반 탐색, 후반 활용"은 현대 AI 곳곳에 변형되어 살아 있다.
+SA의 "초반 탐색, 후반 활용" 아이디어는 현대 AI 곳곳에 변형되어 살아 있다. 다만 각 연결의 성격은 다르다.
 
-- **강화학습의 epsilon-greedy**: 학습 초기에 epsilon(무작위 행동 확률)을 높게 시작해서 점차 줄이는 전략은 SA의 냉각 스케줄과 유사한 전략이다. 온도 대신 epsilon이 탐색-활용 균형을 조절한다.
-- **학습률 스케줄링**: 신경망 학습에서 학습률을 초기에 크게 잡고 점차 줄이는 것(cosine annealing, warmup-decay 등)은 이름에서부터 annealing을 차용했다. 큰 학습률은 높은 온도에, 작은 학습률은 낮은 온도에 대응하는 같은 직관을 공유한다.
-- **소프트맥스 온도**: LLM의 텍스트 생성에서 temperature 파라미터가 높으면 다양한 토큰을, 낮으면 확률 높은 토큰을 선택하는 것은 같은 수학적 원리에 기반한 유사한 역할이다.
-- **Boltzmann Machine**: Ackley, Hinton & Sejnowski(1985)는 같은 물리적 원리를 신경망 학습에 적용했다. 네트워크의 가중치 조합을 에너지로 해석하고, 높은 에너지(나쁜 가중치)보다 낮은 에너지(좋은 가중치)를 선호하도록 학습한다. 이때 뉴런의 활성화 여부를 볼츠만 분포에 따라 확률적으로 결정하는데, 이것이 SA의 수용-거부 메커니즘과 같은 뿌리다.
+**같은 물리적 원리의 직접 적용:**
+
+- **Boltzmann Machine**: Ackley, Hinton & Sejnowski(1985)는 SA와 같은 통계역학적 원리를 신경망 학습에 적용했다. 네트워크의 가중치 조합을 에너지로 해석하고, 높은 에너지(나쁜 가중치)보다 낮은 에너지(좋은 가중치)를 선호하도록 학습한다. 이때 뉴런의 활성화 여부를 볼츠만 분포에 따라 확률적으로 결정하는데, 이것이 SA의 수용-거부 메커니즘과 같은 뿌리다.
+- **소프트맥스 온도**: LLM의 텍스트 생성에서 temperature 파라미터가 높으면 다양한 토큰을, 낮으면 확률 높은 토큰을 선택한다. 수식의 형태(e^(z/T))가 볼츠만 분포와 동일하며, 온도의 역할도 정확히 같다.
+
+**동일한 직관을 독립적으로 공유하는 구조적 유사성:**
+
+- **강화학습의 epsilon-greedy**: 학습 초기에 epsilon(무작위 행동 확률)을 높게 시작해서 점차 줄이는 전략이다. SA의 냉각 스케줄과 같은 "탐색에서 활용으로"의 전환을 구현하지만, 역사적으로 SA에서 영감을 받은 것이 아니라 multi-armed bandit 문제에서 독립적으로 발전했다.
+- **학습률 스케줄링**: 신경망 학습에서 학습률을 초기에 크게 잡고 점차 줄이는 것(cosine annealing, warmup-decay 등)은 이름에 annealing이라는 용어가 들어가 있을 만큼, 동일한 직관 -- 초반에 넓게 탐색하고 후반에 정밀 수렴한다 -- 을 공유한다.
 
 ## 한계와 약점
 
@@ -131,11 +122,12 @@ Each iteration of SA follows exactly one step of the Metropolis algorithm:
 1. From the current solution x, randomly generate a neighbor x'
 2. Compute the energy difference: dE = E(x') - E(x)
 3. If dE <= 0 (better solution), always accept
-4. If dE > 0 (worse solution), accept with probability P = e^(-dE/T)
-5. Generate a uniform random number U; accept if U < P, otherwise keep the current solution
-6. Lower T according to the cooling schedule and repeat
+4. If dE > 0 (worse solution), determine acceptance with probability P = e^(-dE/T) (draw a random number between 0 and 1; accept if it falls below P)
+5. Lower T according to the cooling schedule and repeat
 
 Step 4 is what decisively separates SA from greedy algorithms. The probability of accepting worse solutions allows the algorithm to escape the "valleys" of local optima. To visualize this spatially: imagine a rugged mountain landscape where the objective function's value is represented as elevation, and the goal is to find the deepest valley. A greedy algorithm only follows downhill slopes from its current position and gets trapped in the nearest depression, but SA at high temperatures can cross ridges to reach deeper valleys.
+
+This acceptance probability P = e^(-dE/T) derives directly from the **Boltzmann distribution** in statistical mechanics -- a rare case where the core mathematical form of a physical principle was preserved with high fidelity in an algorithm. Higher T and smaller dE both increase acceptance probability. In physics, temperature is multiplied by the Boltzmann constant (k) to match energy units, but in SA the energy is a mathematical objective function with no physical units, so k is dropped and only T remains. The acceptance rule Metropolis (1953) created for molecular simulation transcended its original context to become a general-purpose optimization tool.
 
 ## Balancing Exploration and Exploitation
 
@@ -145,21 +137,6 @@ SA elegantly solves the **exploration vs. exploitation** tradeoff through a sing
 - **Low temperature**: Acceptance probability for worse moves drops sharply, so the algorithm **exploits** the current promising region. As T approaches 0, it becomes identical to a greedy algorithm.
 - **The cooling process overall**: A natural transition from broad exploration early on to deep exploitation later.
 
-This "explore broadly first, exploit deeply later" pattern is a fundamental principle that recurs throughout AI.
-
-## The Core Acceptance Formula
-
-dE = E(new) - E(old)
-
-When dE <= 0, the new solution is better, so it is **always accepted**.
-When dE > 0, the new solution is worse, but probabilistic acceptance is possible:
-
-P(accept) = e^(-dE/T)
-
-If this probability exceeds a uniform random number U, the move is accepted. Higher T and smaller dE both increase acceptance probability.
-
-This formula derives directly from the **Boltzmann distribution** in statistical mechanics -- a rare case where the core mathematical form of a physical principle was preserved with high fidelity in an algorithm. In physics, temperature is multiplied by the Boltzmann constant (k) to match energy units, but in SA the energy is a mathematical objective function with no physical units, so k is dropped and only T remains. The acceptance rule Metropolis (1953) created for molecular simulation transcended its original context to become a general-purpose optimization tool.
-
 ## Cooling Schedule and Convergence
 
 In the most widely used geometric cooling schedule, alpha works as follows:
@@ -168,18 +145,23 @@ T(t+1) = alpha * T(t)
 
 Alpha is typically set between 0.95 and 0.99. Closer to 1 means slower cooling with more thorough exploration; closer to 0 means faster cooling with higher risk of getting trapped in local optima.
 
-Starting at a sufficiently high temperature and cooling sufficiently slowly ensures that the algorithm has a nonzero probability of visiting every state in the solution space. This property is called **ergodicity**. When this condition is met, reaching the global optimum is guaranteed.
+Starting at a sufficiently high temperature and cooling sufficiently slowly ensures that the algorithm has a nonzero probability of visiting every state in the solution space. This property is called **ergodicity**. If the algorithm can visit everywhere, it must pass through the best spot at least once. When this condition is met, reaching the global optimum is guaranteed.
 
 Theoretically, extremely slow cooling (Geman & Geman, 1984) guarantees global convergence, but in practice geometric cooling is far faster and more practical, making it the standard. The tradeoff between theoretical guarantees and practical speed is a core theme of SA research.
 
 ## Connections to Modern AI
 
-SA's core idea of "explore early, exploit late" lives on in transformed forms throughout modern AI:
+SA's "explore early, exploit late" idea lives on in transformed forms throughout modern AI. However, the nature of each connection differs.
 
-- **Epsilon-greedy in reinforcement learning**: Starting with a high epsilon (random action probability) and gradually reducing it follows a similar strategy to SA's cooling schedule. Instead of temperature, epsilon controls the exploration-exploitation balance.
-- **Learning rate scheduling**: Starting with a large learning rate and gradually reducing it in neural network training (cosine annealing, warmup-decay, etc.) borrows even its name from annealing. A large learning rate and high temperature share the same intuition of broad exploration.
-- **Softmax temperature**: In LLM text generation, a high temperature parameter selects diverse tokens while a low one favors high-probability tokens -- a similar role grounded in the same mathematical principle as SA's temperature.
-- **Boltzmann Machine**: Ackley, Hinton & Sejnowski (1985) applied the same physical principle to neural network learning. Network weight combinations are interpreted as energy, and the network learns to favor low energy (good weights) over high energy (bad weights). Neuron activation is determined probabilistically according to the Boltzmann distribution -- the same root as SA's accept-reject mechanism.
+**Direct application of the same physical principle:**
+
+- **Boltzmann Machine**: Ackley, Hinton & Sejnowski (1985) applied the same statistical mechanical principle as SA to neural network learning. Network weight combinations are interpreted as energy, and the network learns to favor low energy (good weights) over high energy (bad weights). Neuron activation is determined probabilistically according to the Boltzmann distribution -- the same root as SA's accept-reject mechanism.
+- **Softmax temperature**: In LLM text generation, a high temperature parameter selects diverse tokens while a low one favors high-probability tokens. The mathematical form (e^(z/T)) is identical to the Boltzmann distribution, and temperature plays exactly the same role.
+
+**Structural similarities sharing the same intuition independently:**
+
+- **Epsilon-greedy in reinforcement learning**: Starting with a high epsilon (random action probability) and gradually reducing it implements the same "exploration to exploitation" transition as SA's cooling schedule. However, it was not historically inspired by SA but developed independently from the multi-armed bandit problem.
+- **Learning rate scheduling**: Starting with a large learning rate and gradually reducing it in neural network training (cosine annealing, warmup-decay, etc.) shares the same intuition -- explore broadly early, converge precisely later -- so closely that the term "annealing" appears in the name itself.
 
 ## Limitations and Weaknesses
 

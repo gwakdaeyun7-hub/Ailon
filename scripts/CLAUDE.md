@@ -87,7 +87,7 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
   - **connectionType 유형**: direct_inspiration (직접 영감), structural_analogy (구조적 유사성), mathematical_foundation (수학적 토대), conceptual_borrowing (개념적 차용), reverse_inspiration (역방향 영감 — 다른 학문의 비판이 AI 발전 촉발)
   - **분야별 시드**: 제어공학 4, 전기/전자 3, 정보/통신 4, 최적화 5(SA 포함), 로보틱스 1, 물리학 4, 생물학 3, 화학 1, 신경과학 4, 수학 4, 통계학 4, 의학 2
 - Content prompt: 자유 형식 마크다운으로 한줄 정의 → 원리 해설 → AI 연결 → 수식과 직관 → 실제 임팩트 순 서사
-  - 수식은 LaTeX가 아닌 평문 표기 (dE = E(new) - E(old) 형태)
+  - 수식은 LaTeX가 아닌 평문 표기 (dE = E(x') - E(x) 형태), ≤/≥ 등 유니코드 수학 기호 사용
   - 괄호 안에 AI 대응 개념 병기 (온도(탐색 범위))
   - 인라인 용어 정의 (Annealing(담금질) - 설명)
   - readTime: 코드에서 content_ko 글자 수 기반 계산 (`_calc_read_time`, 500자/분 기준)
@@ -99,6 +99,10 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
     - 이론 vs 실무 문단은 핵심만 압축 (Geman 수치 비교 불필요, 트레이드오프 한 문장으로)
     - 전문 용어는 풀어쓴 설명 먼저, 용어명 나중에 ("이 성질을 에르고딕성이라 부른다")
     - 복합 개념(Boltzmann Machine 등)은 문장 분리 — 한 문장에 3개념 이상 과밀 금지
+    - AI 연결 시 직접 적용(direct application)과 구조적 유사성(structural analogy, 독립적 기원)을 명시적으로 구분
+    - 인과 계보 과장 금지 — 독립적 기원인 기법을 "영감을 받았다"/"차용했다"로 서술하지 않음 (예: epsilon-greedy는 SA가 아닌 multi-armed bandit에서 발전)
+    - 추상 개념(에르고딕성 등) 도입 시 직관적 한 문장 보충 — "이 성질을 X라 부른다" 직후에 "쉽게 말하면 Y라는 뜻이다" 패턴
+    - 동일 수식이 여러 섹션에 등장하면 한 곳에 통합, 이후 섹션에서는 참조만
     - 용어 정리에는 본문에서 실제 사용된 용어만 포함 (미사용 용어 제외)
 - Verifier: 4-section evaluation (A. 사실정확성/principleAccuracy, B. 매핑정확성/mappingAccuracy, C. 텍스트품질/contentQuality, D. 한영일관성/bilingualConsistency)
   - Output: verified, confidence, principleAccuracy, mappingAccuracy, contentQuality, bilingualConsistency (0.0~1.0) + factCheck + issues[]
