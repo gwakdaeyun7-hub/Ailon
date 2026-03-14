@@ -83,7 +83,7 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 - seed_selector가 `scripts/curated_principles/` 폴더에 .md 파일이 있는 시드만 선택 → 30일 중복 회피 + 3일 분야(super_category) 로테이션
 - content_generator가 curated 파일을 로드 (`_load_curated_content()`), LLM 호출 없음, `content_source='curated'`
 - Curated 콘텐츠는 사전 검수 완료 → verifier 건너뜀
-- assembler가 Firestore `daily_principles/{date}`에 저장
+- assembler가 seed의 takeaway/takeaway_en을 Firestore 문서에 포함하여 `daily_principles/{date}`에 저장
 
 **Curated 콘텐츠 사양 (39개 시드, 12분야):**
 - **분야별 시드**: 제어공학 4, 전기/전자 3, 정보/통신 4, 최적화 5(SA 포함), 로보틱스 1, 물리학 4, 생물학 3, 화학 1, 신경과학 4, 수학 4, 통계학 4, 의학 2
@@ -121,7 +121,7 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 | Collection | Format | Content |
 |-----------|--------|---------|
 | `daily_news/{date}` | 1 doc/day | highlights[], categorized_articles{}, source_articles{}, archived_articles{} (이전 실행 고유 기사 보존) |
-| `daily_principles/{date}` | 1 doc/day | curated 자유 형식 마크다운 (content_ko/en, principle_name, discipline, connectionType, difficulty, keywords, readTime, content_source='curated') |
+| `daily_principles/{date}` | 1 doc/day | curated 자유 형식 마크다운 (content_ko/en, principle_name, discipline, connectionType, difficulty, keywords, readTime, takeaway/takeaway_en, content_source='curated') |
 | `articles/{article_id}` | 1 doc/article | Full article + entities, related_ids, timeline_ids |
 | `daily_briefings/{date}` | 1 doc/day | briefing_ko, briefing_en, story_count, category_stats, domain_stats, hot_topics, trend_history |
 | `glossary_terms/{term}` | 1 doc/term | term/desc (KO+EN), article_ids |

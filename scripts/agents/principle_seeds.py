@@ -144,6 +144,8 @@ PRINCIPLE_SEEDS = [
         "ai_connection": "금속 냉각 과정에서 영감받은 확률적 전역 최적화",
         "ai_connection_en": "Probabilistic global optimization inspired by metallurgical annealing",
         "problem_solved": "지역 최적에 갇히지 않는 전역 최적화",
+        "takeaway": "금속을 천천히 식히면 가장 안정적인 구조에 도달한다는 물리 원리가, AI가 지역 최적에 빠지지 않고 더 나은 답을 찾아가는 확률적 최적화의 토대가 되었다.",
+        "takeaway_en": "The physical principle that slowly cooling metal yields its most stable structure became the foundation for probabilistic optimization in AI -- enabling it to escape local optima and find better solutions.",
     },
     {
         "id": "opt_gradient_descent",

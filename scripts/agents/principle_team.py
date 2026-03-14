@@ -940,6 +940,8 @@ def assembler(state: PrincipleGraphState) -> dict:
             "connectionType": content.get("connectionType", "structural_analogy"),
             "readTime": _calc_read_time(content),
             "content_source": content.get("content_source", "generated"),
+            "takeaway": seed.get("takeaway", ""),
+            "takeaway_en": seed.get("takeaway_en", ""),
             "category": seed["discipline"],
             "superCategory": seed["super_category"],
         },

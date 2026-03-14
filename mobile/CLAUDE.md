@@ -25,14 +25,17 @@
   - 인라인 서식: `**텍스트**` → fontWeight 700 굵은 글씨 (renderBoldText 헬퍼)
   - 배경색 3-규칙: Teal(primaryLight)=수식, Beige(surface)=용어 정의+알고리즘 스텝, 없음=그 외
   - 수식 감지: LaTeX 명령, 그리스 문자, 수학 기호 패턴 (한글 25% 미만, 80자 이하), `latexToDisplay` 변환
-  - 용어 정의: "term - description" 패턴 (용어 1~40자) → beige 배경 + 볼드 용어명
+  - 용어 정의: "term - description" 패턴 (용어 1~40자) → beige 배경 + 볼드 용어명. 첫 번째 비공백 줄은 definition 매칭 스킵 (리드/서브타이틀 오인 방지)
+  - 볼드 서브헤딩: 줄 전체가 `**텍스트:**` 또는 `**텍스트**` 패턴이면 heading 블록으로 처리
   - 알고리즘 스텝: 연속 번호 리스트(1. 2. 3.)를 그룹화 → beige 배경 컨테이너
   - 강조 문장: ! 느낌표 종료 → 배경 없이 굵은 텍스트
+  - 후처리: definition-spacer-definition 패턴의 spacer 제거 (연속 정의 블록 그룹감 강화)
 - **buildFreeformContent**: 구조화된 Principle + DeepDive 데이터를 자유 텍스트로 조합 (curated 전용 모드에서는 content_ko/en이 이미 자유 형식 마크다운이므로 bypass됨)
 - **Header**: 제목(serif 26pt), 분야 배지(superCategory 아이콘), connectionType, difficulty, readTime, keywords
 - **connectionType**: 탭 시 educational Alert popup (direct_inspiration/structural_analogy/mathematical_foundation 설명)
 - **4 Super Categories**: 공학(5), 자연과학(4), 형식과학(2), 응용과학(1) — 12 disciplines total
 - Date navigation, AsyncStorage offline caching
+- **Takeaway**: seed에서 전달된 핵심 인사이트 1문장, teal(primaryLight) 배경 + serif italic 스타일
 - **normalizePrinciple**: snake_case 필드 폴백 (deepDiveHook, takeaway 등 신규 필드 포함)
 
 ### Tab 3: AI Tools & Tips (tools.tsx) — 준비 중

@@ -121,6 +121,8 @@ export function parseContent(content: string): ContentBlock[] {
   const blocks: ContentBlock[] = [];
   let inCodeBlock = false;
   let codeBuffer: string[] = [];
+  // 이슈 1: 첫 번째 비공백 줄은 definition 매칭 건너뛰기 (리드/서브타이틀)
+  let firstContentLineSeen = false;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
@@ -159,6 +161,9 @@ export function parseContent(content: string): ContentBlock[] {
       continue;
     }
 
+    const isFirstContentLine = !firstContentLineSeen;
+    firstContentLineSeen = true;
+
     // ## 섹션 제목
     if (trimmed.startsWith('## ')) {
       blocks.push({ type: 'heading', text: trimmed.slice(3).trim() });
@@ -167,6 +172,13 @@ export function parseContent(content: string): ContentBlock[] {
     // # 대제목도 heading으로 처리 (본문 내에서는 ##과 동일 취급)
     if (trimmed.startsWith('# ') && !trimmed.startsWith('## ')) {
       blocks.push({ type: 'heading', text: trimmed.slice(2).trim() });
+      continue;
+    }
+
+    // 이슈 2: 줄 전체가 **텍스트:** 또는 **텍스트** 패턴이면 heading으로 처리
+    if (/^\*\*.+\*\*:?$/.test(trimmed) || /^\*\*.+:\*\*$/.test(trimmed)) {
+      const headingText = trimmed.replace(/^\*\*/, '').replace(/:\*\*$/, '').replace(/\*\*:?$/, '');
+      blocks.push({ type: 'heading', text: headingText });
       continue;
     }
 
@@ -198,11 +210,13 @@ export function parseContent(content: string): ContentBlock[] {
       continue;
     }
 
-    // 용어 정의 패턴
-    const def = parseDefinition(trimmed);
-    if (def) {
-      blocks.push({ type: 'definition', text: trimmed, term: def.term, desc: def.desc });
-      continue;
+    // 용어 정의 패턴 — 첫 줄은 건너뛰기 (리드/서브타이틀)
+    if (!isFirstContentLine) {
+      const def = parseDefinition(trimmed);
+      if (def) {
+        blocks.push({ type: 'definition', text: trimmed, term: def.term, desc: def.desc });
+        continue;
+      }
     }
 
     // 강조 문장
@@ -225,7 +239,20 @@ export function parseContent(content: string): ContentBlock[] {
     blocks.push({ type: 'formula', text: codeBuffer.join('\n') });
   }
 
-  return blocks;
+  // 이슈 3: definition 사이의 spacer 제거 (연속 정의 블록 그룹감 강화)
+  const filtered: ContentBlock[] = [];
+  for (let i = 0; i < blocks.length; i++) {
+    if (
+      blocks[i].type === 'spacer' &&
+      i > 0 && blocks[i - 1].type === 'definition' &&
+      i + 1 < blocks.length && blocks[i + 1].type === 'definition'
+    ) {
+      continue; // spacer 제거
+    }
+    filtered.push(blocks[i]);
+  }
+
+  return filtered;
 }
 
 // ---------------------------------------------------------------------------

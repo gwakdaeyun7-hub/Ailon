@@ -713,8 +713,8 @@ export default function SnapsScreen() {
             {/* Takeaway */}
             {principle.takeaway && (
               <View style={{
-                backgroundColor: colors.surface, borderRadius: 12, padding: 14,
-                marginTop: 16, borderLeftWidth: 3, borderLeftColor: colors.primary,
+                backgroundColor: colors.primaryLight, borderRadius: 12, padding: 14,
+                marginTop: 16,
               }}>
                 <Text style={{
                   fontSize: 10, fontWeight: '700', color: colors.textDim,
@@ -780,8 +780,8 @@ export default function SnapsScreen() {
 
                 {principle.takeaway && (
                   <View style={{
-                    backgroundColor: colors.surface, borderRadius: 12, padding: 14,
-                    marginBottom: 16, borderLeftWidth: 3, borderLeftColor: colors.primary,
+                    backgroundColor: colors.primaryLight, borderRadius: 12, padding: 14,
+                    marginBottom: 16,
                   }}>
                     <Text style={{
                       fontSize: 10, fontWeight: '700', color: colors.textDim,
