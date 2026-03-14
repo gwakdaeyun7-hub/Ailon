@@ -97,49 +97,18 @@ cd ../functions && firebase deploy --only functions
 - Any new LangGraph pipeline nodes
 
 ### Build & Release
-- **IMPORTANT**: OneDrive 폴더에서 직접 `eas build` 하면 tar Permission denied 에러 발생. 반드시 OneDrive 밖으로 복사 후 빌드:
-  ```bash
-  xcopy "C:\Users\82105\OneDrive\바탕 화면\머릿속\Think AI\Ailon\ailon" "C:\dev\ailon" /E /I /H
-  cd C:\dev\ailon\mobile
-  npm install   # 최초 또는 dependencies 변경 시
-  eas build --platform android --profile production
-  ```
-- **Development (hot reload)**: Dev client APK 1회 빌드 → 이후 `npx expo start`로 실시간 코드 반영 (같은 WiFi 필요)
-  ```bash
-  eas build --platform android --profile development   # 1회만 (네이티브 코드 변경 시 재빌드)
-  npx expo start                                       # 매일 개발 시
-  ```
-- Preview APK: `eas build --platform android --profile preview`
-- Production AAB: `eas build --platform android --profile production`
-- Submit: `eas submit --platform android`
-- Bundle ID: `com.ailon.app` (dev/preview/production 동일 — 동시 설치 불가, 하나만 유지)
-- EAS Project ID: `bffbb3e7-cf38-4b39-ada3-e8fb04b51349`
-- `.easignore`: node_modules, .expo, .jks, .env, .claude 제외
+- **OneDrive 외부에서 빌드 필수** — OneDrive 폴더에서 `eas build` 시 tar Permission denied 에러 발생. `C:\dev\ailon`으로 복사 후 빌드
+- Bundle ID: `com.ailon.app` / EAS Project ID: `bffbb3e7-cf38-4b39-ada3-e8fb04b51349`
+- 빌드 명령어 및 상세는 `mobile/CLAUDE.md` 참조
 
 ### Pre-Launch Checklist
-- [x] Firestore security rules reviewed + deployed (reports 컬렉션, article_views 비로그인 쓰기 허용)
-- [x] Environment variables set in EAS secrets (8개)
-- [ ] Pipeline running stable on GitHub Actions (check last 3 days)
-- [x] Google Sign-In configured for production SHA-256 (Firebase Console에 등록 완료)
-- [x] Splash screen / app icon assets finalized (character.png 픽셀아트)
-- [x] Privacy Policy + Terms of Service (docs/, GitHub Pages: gwakdaeyun7-hub.github.io/Ailon/) — 영문 버전 포함 (CCPA, DMCA, Publisher Opt-Out)
-- [x] Production AAB 빌드 성공 (C:\dev\ailon에서 빌드)
-- [x] 댓글 신고/삭제 기능 (useReportComment, 3건 자동 숨김)
-- [x] app.json: versionCode 1, android permissions, expo-dev-client 제거
-- [x] Play Store listing 콘텐츠 준비 (play-store-listing.md: 설명, Data Safety, 콘텐츠 등급, 카테고리)
-- [x] AI Summary 뱃지 + Read Original 버튼 (요약 모달)
-- [x] 기본 언어 시스템 감지 (expo-localization, 영어 기본값)
-- [ ] Play Store 스크린샷 촬영 (영문 UI)
-- [ ] Play Store Console 등록 + 심사 제출
+> [`docs/launch-checklist.md`](docs/launch-checklist.md) 참조
 
 ---
 
 ## Known Recurring Issues
 
-> **파이프라인 관련 이슈는 [`scripts/CLAUDE.md`](scripts/CLAUDE.md)의 Known Recurring Issues (Pipeline) 참조** — Gemini JSON/markdown 버그, Pipeline 0 articles, 분류 편향, Tom's Hardware 필터, 날짜 추정, VentureBeat paywall, key_points, Pipeline QA, EN 번역 폴백
-
-- **index.tsx ~1500 lines**: 더 이상 inline 컴포넌트 추가 금지, components/feed/로 추출할 것 (상세: `mobile/CLAUDE.md`)
-- **EAS Build OneDrive 문제**: OneDrive 동기화 폴더에서 `eas build` 실행 시 빌드 서버 tar 해제 Permission denied. 반드시 `C:\dev\ailon` 등 로컬 폴더로 복사 후 빌드 (상세: `mobile/CLAUDE.md`)
+> 각 하위 CLAUDE.md 참조: [`scripts/CLAUDE.md`](scripts/CLAUDE.md) (Pipeline), [`mobile/CLAUDE.md`](mobile/CLAUDE.md) (Mobile)
 
 ## Behavioral Guidelines
 

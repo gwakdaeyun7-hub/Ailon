@@ -149,21 +149,8 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 
 ### Push Notification System
 
-3-레이어 알림 시스템: 파이프라인(뉴스) + Cloud Functions(소셜) + 모바일 클라이언트
-
-| 레이어 | 발송 방식 | 채널 | 내용 |
-|--------|----------|------|------|
-| 뉴스 알림 (`notifications.py`) | FCM (`firebase_admin.messaging`) + Expo 폴백 | `news` | title=하이라이트 기사 제목, body=one_line 한줄요약 (2줄 표시) |
-| 댓글 답글 (`functions/index.js`) | Expo Push API | `social` | "{이름}님이 댓글에 답글을 남겼습니다" |
-| 좋아요 (`functions/index.js`) | Expo Push API | `social` | "N명이 회원님의 글을 좋아합니다" (5분 디바운싱) |
-
-- **이중언어**: `users/{uid}.language` 필드로 KO/EN 자동 전환 (LanguageContext 변경 시 + 로그인 시 Firestore 동기화)
-- **FCM 알림**: `fcmToken` 저장된 사용자에게 `messaging.Notification(title=기사제목)`
-- **Expo 폴백**: `fcmToken` 없는 사용자 → Expo Push API
-- **Android 채널**: `news` (HIGH, 뉴스 알림), `social` (DEFAULT, 댓글/좋아요)
-- **좋아요 디바운싱**: `users/{uid}.lastLikeNotifiedAt` 타임스탬프, 5분 내 중복 알림 억제
-- **Cloud Functions**: v2 (`firebase-functions/v2/firestore`) — `onDocumentCreated`, `onDocumentUpdated`
-- **딥링크 데이터**: `{ type, tab, articleId }` — 추후 기사 상세 딥링크 확장 가능
+- **3-레이어**: 파이프라인 뉴스(`notifications.py`, FCM+Expo 폴백) + Cloud Functions v2 소셜(댓글/좋아요, Expo Push API) + 모바일 클라이언트
+- **KO/EN 자동전환** (`users/{uid}.language`), Android 채널 `news`(HIGH) / `social`(DEFAULT), 좋아요 5분 디바운싱
 
 ### CI Logging (`scripts/agents/ci_utils.py`)
 - `ci_warning(msg)` / `ci_error(msg)` — `::warning::` / `::error::` 어노테이션 (CI에서만) + 항상 print + 내부 리스트에 수집
@@ -189,15 +176,13 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 
 ## Known Recurring Issues (Pipeline)
 
-- **Gemini JSON 잘림**: max_tokens 부족 시 JSON 배열이 잘림. `_parse_llm_json`에 6단계 복구 로직 있음 (1차 직접파싱 → 2차 앞뒤 텍스트 제거 → 3차 단일 객체 추출 → 4차 잘린 배열 복구 → 4-1차 잘린 객체 depth 기반 복구 → 5차 depth 기반 추출). 복구가 발동되면 ranker token_budget 확인 필요
-- **Gemini markdown artifacts**: ```json 래퍼가 JSON 파싱을 깨뜨림 — strip before parse
-- **Gemini `***` markdown wrapping**: json_mode에서도 `***\n"key": value\n***` 형태로 응답하는 버그. `_safe_json_parse`에 4단계 복구: 1) 원본 파싱 시도 2) `_fix_invalid_escapes` (LaTeX `\sigma`, `\LaTeX` 등 비표준 이스케이프 → `\\` 변환) + 파싱 3) JSON 영역 추출 (`{`...`}`) 4) 잘린 객체 depth 기반 복구. `***` 전용 방어: Phase 1) 시작/끝 `***` strip + trailing comma 제거 + `{}` 감싸기 + **즉시 json.loads 시도**, Phase 2) 컨텍스트 기반 `***` → `{`/`}` 치환 폴백. `phase1_applied` 플래그로 Phase 1 발동 시 Phase 2 완전 스킵 (문자열 값 오염 방지). 추가 방어: `_fix_unescaped_quotes()` — json.loads 에러 위치 기반 반복 quote escape 수정 (max 20 iterations), `_regex_extract_verification()` — JSON 파싱 완전 실패 시 regex로 verifier 필드 (verified, confidence, principleAccuracy, mappingAccuracy, insightClarity, deepDiveDepth, factCheck) + issues 배열 직접 추출하는 최종 폴백
+- **Gemini JSON 잘림**: max_tokens 부족 시 발생, `_parse_llm_json`에 6단계 복구 로직 존재. 발동 시 ranker token_budget 확인
+- **Gemini markdown artifacts**: ` ```json ` 래퍼 및 `***` wrapping 버그, `_safe_json_parse`에 다단계 복구 존재
 - **Pipeline 0 articles**: API quota 초과 시 silent failure — 로그에서 확인
-- **분류 편향 경고**: industry_business 60% 초과는 catch-all 설계상 정상일 수 있음. 미분류 기사 개수 로그로 확인
-- **Tom's Hardware 범용 피드**: RSS가 AI 전용이 아니라 하드웨어 전반을 포함. NEEDS_AI_FILTER에 추가하여 비AI 기사 필터링 (tools.py line 222). 다른 Tier 1 소스와 달리 범용 피드이므로 필터 제거 시 비AI 기사 유입 주의. 필터율 30-80%가 정상 범위 (RSS 콘텐츠 비중에 따라 변동)
-- **날짜 추정 기사 (`date_estimated`)**: RSS에 published 필드가 없는 기사는 `date_estimated=True`로 마킹되고 수집 시점이 대입됨. 스크래핑 단계에서 HTML meta/JSON-LD/time 태그로 복원 시도. 복원 실패 시 UI에 `~2026/03/10` 형식으로 표시. 소스별 날짜 누락률이 높으면 RSS 피드 구조 변경 확인 필요
-- **VentureBeat/paywall 사이트**: trafilatura에 Chrome UA 설정 필요 (tools.py `_get_traf_config`)
-- **key_points 2개**: 프롬프트에서 허용 범위 (팩트 부족 시). 0-1개는 문제
-- **Pipeline QA logs**: print + GitHub Actions 어노테이션 (`::warning::`, `::error::`, `::group::`) + Job Summary. Firestore에는 저장 안 됨
-- **Pipeline QA 스킬**: `/pipeline-qa`에 로그를 붙여넣으면 AI 필터/분류/중복감지/랭킹/제목 품질/브리핑/용어·태그/학문스낵 8개 영역 심층 분석 + 코드 자동 수정. 랭킹 검사는 **전체 기사**를 대상으로 카테고리별 순위 테이블 출력 + 미스랭킹 식별. 제목 품질 검사는 말줄임표('...') 적절성을 기사 단위로 판정 (적절/부자연스러움/놓친 기회). 상세 기준은 `.claude/skills/pipeline-qa/SKILL.md` 참조
-- **EN 기사 번역 실패 폴백**: 배치+개별 재시도 모두 실패 시 Phase 3에서 `display_title = title` (영어 원본). Phase 4 간이 번역이 제목+one_line만 LLM으로 최소 복구 시도. Phase 4마저 실패 시 `ci_warning` 경고 + 영어 제목 유지 (제거하지 않음 — 상위 기사일 수 있으므로). 로그 패턴: `미번역 EN 기사 N개 감지`, `[간이 번역 복구]`, `미번역 EN 기사 N개 잔존`
+- **분류 편향 경고**: industry_business 60% 초과는 catch-all 설계상 정상, 연속 3회 70%+에서만 프롬프트 조정 검토
+- **Tom's Hardware 범용 피드**: NEEDS_AI_FILTER로 비AI 기사 필터링 중, 필터율 30-80% 정상
+- **날짜 추정 (`date_estimated`)**: RSS 날짜 미추출 시 스크래핑 복원 시도, 실패 시 UI에 `~` 접두사 표시
+- **VentureBeat/paywall**: trafilatura Chrome UA 설정 필요 (`_get_traf_config`)
+- **key_points 2개**: 프롬프트 허용 범위, 0-1개는 문제
+- **Pipeline QA**: print + GitHub Actions 어노테이션 + Job Summary, `/pipeline-qa` 스킬로 8개 영역 심층 분석 가능
+- **EN 번역 실패 폴백**: 4-phase retry (배치 → 개별 → 영어 원본 유지 → 간이 번역), 실패 시 영어 제목 유지
