@@ -363,8 +363,9 @@ def _summarize_batch(batch: list[dict], batch_idx: int, translate: bool = True) 
             "  - 글자 수 제한 없음. 축약하지 말 것\n"
             "  - ★ '...' 제한: 전체의 20-30%만. 나머지 70%+ 제목은 '...' 없이 마침\n"
             "  - '...' 적절: 힌트/루머, 반전/충격, 불확실성/논쟁 → 'OpenAI, 차세대 모델 힌트...출시 임박?'\n"
-            "  - '...' 금지: 확정 사실(공개·출시·발표·인수), 숫자 보고 → 'Meta, MTIA 칩 4종 공개'처럼 마침\n"
-            "  - '주제...부가정보' 구분자 금지 → 쉼표 활용: 'NVIDIA, 모델 공개, 성능 5배 향상'"
+            "  - '...' 금지: '공개', '출시', '발표', '인수', '도입' 뒤에 '...'로 부가정보 연결 절대 금지. 쉼표(,)로 연결:\n"
+            "    ❌ 'NVIDIA, 모델 공개... 처리량 5배' → ✅ 'NVIDIA, 모델 공개, 처리량 5배 향상'\n"
+            "    ❌ 'Microsoft, Copilot 출시... 건강 관리' → ✅ 'Microsoft, Copilot Health 출시'"
         )
         en_fields_rule = (
             "\nAlso produce these English fields:\n"
