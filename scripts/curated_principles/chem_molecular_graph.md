@@ -4,7 +4,7 @@ connectionType: direct_inspiration
 keywords: 분자 그래프, 그래프 신경망, 메시지 전달, 분자 지문, 신경 지문, 화학 정보학, 과잉 스무딩, 등변 신경망
 keywords_en: molecular graph, graph neural network, message passing, molecular fingerprint, neural fingerprint, cheminformatics, oversmoothing, equivariant neural network
 ---
-Molecular Graph Representation - 화학의 분자 그래프 표현 전통에서 그래프 신경망(GNN)이 직접 탄생한 사례
+Molecular Graph Representation - 화학의 분자 그래프 표현 전통이 GNN의 핵심 응용이자 메시지 전달 프레임워크 발전에 기여한 사례
 
 ## 화학의 분자 그래프 전통
 
@@ -13,6 +13,8 @@ Molecular Graph Representation - 화학의 분자 그래프 표현 전통에서 
 이 표현이 단순한 그림이 아닌 이유는, 분자 그래프에 화학적 성질을 결정하는 핵심 정보가 담겨 있기 때문이다. 원자의 종류(탄소인지 산소인지), 결합의 유형(단일 결합, 이중 결합, 방향족 결합), 연결 패턴(위상, topology) -- 이 세 가지가 분자의 반응성, 독성, 용해도를 좌우한다. 화학의 대원칙인 "구조가 성질을 결정한다"가 그래프 하나에 자연스럽게 인코딩되어 있는 것이다. 이를 공간적으로 비유하면, 분자 그래프는 도시의 지하철 노선도와 비슷하다. 실제 지리적 거리는 표현하지 못하지만, 어떤 역(원자)이 어떤 역과 연결되어 있는지, 환승역(분기점 원자)이 어디인지는 정확히 보여준다.
 
 이 전통은 컴퓨터 시대에 들어 화학 정보학(cheminformatics)으로 발전했다. Harry Morgan(1965)은 분자 그래프에서 각 원자의 연결성(connectivity)을 체계적으로 인코딩하여 분자를 고유하게 식별하는 알고리즘을 만들었다. David Weininger(1988)는 SMILES(Simplified Molecular Input Line Entry System)를 개발해 분자 그래프를 문자열로 변환했다. 그래프의 깊이 우선 탐색(DFS) 경로를 따라 원자와 결합을 순차적으로 기록하는 방식으로, 에탄올은 CCO, 벤젠은 c1ccccc1이 된다.
+
+그런데 SMILES에는 근본적 한계가 있다. 같은 분자를 탐색 시작점에 따라 다른 문자열로 표현할 수 있다 -- 에탄올은 CCO로도, OCC로도 쓸 수 있다. 즉 SMILES는 **순서 의존적**(order-dependent)이다. 반면 분자 그래프는 **순열 불변**(permutation-invariant)하다. 어떤 원자부터 읽기 시작하든 그래프 구조 자체는 동일하다. 이 순열 불변성이 GNN에게 결정적 이점을 제공한다. 그래프를 직접 처리하면 같은 분자에 대해 항상 같은 표현을 얻지만, SMILES 문자열을 RNN이나 Transformer로 처리하면 입력 순서에 따라 표현이 달라질 수 있다.
 
 ## 분자 지문에서 신경 지문으로: 화학에서 AI로의 전환
 
@@ -120,7 +122,7 @@ SMILES(simplified molecular input line entry system) - Weininger(1988)가 개발
 
 화학 정보학(cheminformatics) - 화학 데이터를 컴퓨터로 처리, 분석하는 학제간 분야. 분자 표현, 유사성 검색, 성질 예측 등을 포함
 ---EN---
-Molecular Graph Representation - How chemistry's tradition of representing molecules as graphs directly gave birth to graph neural networks (GNNs)
+Molecular Graph Representation - How chemistry's molecular graph tradition became a core GNN application and contributed to the development of the message passing framework
 
 ## The Molecular Graph Tradition in Chemistry
 
@@ -129,6 +131,8 @@ Chemists draw molecules as graphs. The practice of representing atoms as **nodes
 This representation is far more than a drawing because molecular graphs encode the essential information that determines chemical properties. Atom types (carbon vs. oxygen), bond types (single, double, aromatic), and connectivity patterns (topology) govern a molecule's reactivity, toxicity, and solubility. Chemistry's grand principle -- "structure determines properties" -- is naturally encoded in a single graph. Spatially, a molecular graph resembles a subway map: it cannot show actual geographic distances, but it precisely reveals which stations (atoms) connect to which, and where the transfer hubs (branching atoms) are.
 
 This tradition evolved into cheminformatics in the computer age. Harry Morgan (1965) created an algorithm that systematically encodes each atom's connectivity in a molecular graph, establishing the standard method for uniquely identifying molecules. David Weininger (1988) developed SMILES (Simplified Molecular Input Line Entry System), converting molecular graphs into strings by recording atoms and bonds along a depth-first search (DFS) path. Ethanol becomes CCO; benzene becomes c1ccccc1.
+
+However, SMILES has a fundamental limitation. The same molecule can be represented as different strings depending on where the traversal begins -- ethanol can be written as CCO or OCC. SMILES is **order-dependent**. Molecular graphs, by contrast, are **permutation-invariant** -- the graph structure is identical regardless of which atom you start reading from. This permutation invariance gives GNNs a decisive advantage: processing a graph directly always yields the same representation for the same molecule, whereas processing SMILES strings with an RNN or Transformer can produce different representations depending on input order.
 
 ## From Molecular Fingerprints to Neural Fingerprints: The Transition from Chemistry to AI
 

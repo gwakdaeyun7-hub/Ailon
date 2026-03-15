@@ -51,6 +51,14 @@ n = (z_{alpha/2} + z_beta)^2 * 2 * sigma^2 / delta^2
 
 z_{alpha/2}는 유의수준의 임계값(관례적으로 alpha = 0.05이면 1.96), z_beta는 검정력의 임계값(검정력 0.8이면 0.84), sigma^2는 결과 변수의 분산, delta는 감지하려는 최소 효과 크기다. 이 공식의 극단을 따라가면 직관이 보인다. delta가 작아질수록(미세한 차이를 감지하려 할수록) n은 delta^2에 반비례하여 급격히 커진다. 전환율 1% 차이를 감지하려면 0.1% 차이를 감지할 때보다 표본이 100배 적게 필요하다. sigma^2가 커질수록(결과의 변동이 클수록) n도 커진다. 잡음이 큰 환경에서는 더 많은 데이터가 필요하다는 뜻이다. 이 공식은 A/B 테스트의 표본 크기 계산에서도 그대로 사용된다.
 
+구체적 예를 계산해 보자. 웹사이트의 기존 전환율이 3.0%이고, 새 디자인이 전환율을 3.5%로 올리는지 검증하려 한다. alpha = 0.05, 검정력 = 0.8일 때:
+
+- delta = 0.035 - 0.030 = 0.005
+- sigma^2 ≈ p(1-p) ≈ 0.03 * 0.97 = 0.0291 (이항 분포의 분산)
+- n = (1.96 + 0.84)^2 * 2 * 0.0291 / 0.005^2 = 7.84 * 0.0582 / 0.000025 ≈ 18,253
+
+그룹당 약 18,253명, 총 약 36,506명이 필요하다. 만약 0.1%포인트 차이(3.0% vs 3.1%)를 감지하려면 n이 25배로 증가하여 그룹당 약 456,000명이 필요해진다. 이것이 "미세한 차이를 감지하려면 거대한 표본이 필요하다"는 원리의 수치적 현실이다.
+
 **3. Thompson Sampling의 작동**
 
 1. 각 선택지(arm)의 보상에 대한 사후 분포를 유지한다. 이진 결과(클릭/미클릭)에는 Beta 분포가 자연스러운 선택이다. Beta(alpha, beta)에서 alpha는 성공 횟수, beta는 실패 횟수를 누적한다.
@@ -177,6 +185,14 @@ Y(1) is the outcome under treatment, Y(0) the outcome without. The same individu
 n = (z_{alpha/2} + z_beta)^2 * 2 * sigma^2 / delta^2
 
 z_{alpha/2} is the critical value for significance level (conventionally 1.96 for alpha = 0.05), z_beta is the critical value for power (0.84 for power = 0.8), sigma^2 is the outcome variance, and delta is the minimum detectable effect size. Following this formula to its extremes reveals the intuition. As delta shrinks (detecting finer differences), n grows inversely with delta^2 -- detecting a 1% conversion rate difference requires 100 times fewer samples than detecting a 0.1% difference. As sigma^2 grows (noisier outcomes), n grows proportionally. Noisier environments demand more data. This formula is used identically in A/B test sample size calculations.
+
+Let us work through a concrete example. Suppose a website's current conversion rate is 3.0%, and we want to test whether a new design raises it to 3.5%. With alpha = 0.05 and power = 0.8:
+
+- delta = 0.035 - 0.030 = 0.005
+- sigma^2 ≈ p(1-p) ≈ 0.03 * 0.97 = 0.0291 (binomial variance)
+- n = (1.96 + 0.84)^2 * 2 * 0.0291 / 0.005^2 = 7.84 * 0.0582 / 0.000025 ≈ 18,253
+
+Roughly 18,253 per group, or about 36,506 total. If instead we wanted to detect a 0.1 percentage point difference (3.0% vs 3.1%), n increases 25-fold to approximately 456,000 per group. This is the numerical reality of the principle that detecting finer differences demands vastly larger samples.
 
 **3. How Thompson Sampling Works**
 

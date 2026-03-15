@@ -64,7 +64,7 @@ max_R [V^{pi_E}_R - max_pi V^pi_R]
 
 Ziebart et al.(2008)의 최대 엔트로피 IRL(Maximum Entropy IRL)이 결정적 돌파구였다. 보상과 일관된 정책 중에서 **엔트로피가 최대인 것**을 선택한다. 이것은 정보이론에서 온 원리다. Jaynes의 최대 엔트로피 원칙 -- "관측 데이터와 일치하는 분포 중 가장 덜 편향된 것을 택하라" -- 을 IRL에 적용한 것이다. 결과적으로 경로 확률이 보상의 지수 함수에 비례하게 되어(높은 보상 경로일수록 높은 확률), 확률적 모델링이 자연스럽고 기울기 계산이 용이해졌다.
 
-Ho & Ermon(2016)의 GAIL(Generative Adversarial Imitation Learning)은 IRL의 2단계 과정(보상 복원 후 RL로 정책 학습)을 하나로 통합했다. 판별자가 "이 행동이 전문가인가 학습자인가"를 구분하고, 정책이 판별자를 속이도록 학습한다. 보상 함수를 명시적으로 복원하지 않으면서도 전문가 수준의 정책을 얻는다.
+Ho & Ermon(2016)의 GAIL(Generative Adversarial Imitation Learning)은 IRL의 2단계 과정(보상 복원 후 RL로 정책 학습)을 하나로 통합했다. 판별자가 "이 행동이 전문가인가 학습자인가"를 구분하고, 정책이 판별자를 속이도록 학습한다. 구체적으로, GAN의 구조를 빌려와서 정책 네트워크가 생성자(generator) 역할을, 판별자 네트워크가 감별 역할을 맡는다. 정책이 상태-행동 쌍을 생성하면, 판별자는 이것이 전문가 시연에서 온 것인지 학습자 정책에서 온 것인지 분류한다. 판별자의 분류 오차가 곧 정책에 대한 암묵적 보상 신호가 되어, 보상 함수를 명시적으로 복원하는 중간 단계를 건너뛸 수 있다. 이를 통해 전문가 수준의 정책을 얻는다.
 
 ## 현대 AI와의 연결
 
@@ -168,7 +168,7 @@ Find a reward function R making the expert policy pi_E's expected return higher 
 
 Ziebart et al.'s (2008) Maximum Entropy IRL was the decisive breakthrough. Among policies consistent with the reward, select the one with **maximum entropy**. This applies an information-theoretic principle -- Jaynes' maximum entropy principle: "among distributions consistent with observations, choose the least biased one" -- to IRL. The result is that path probabilities become proportional to the exponential of rewards (higher-reward paths get higher probability), enabling natural probabilistic modeling and tractable gradient computation.
 
-Ho & Ermon's (2016) GAIL (Generative Adversarial Imitation Learning) unified IRL's two-stage process (recover reward then learn policy via RL) into one. A discriminator distinguishes "is this behavior from the expert or the learner," and the policy learns to fool the discriminator. It achieves expert-level policy without explicitly recovering the reward function.
+Ho & Ermon's (2016) GAIL (Generative Adversarial Imitation Learning) unified IRL's two-stage process (recover reward then learn policy via RL) into one. A discriminator distinguishes "is this behavior from the expert or the learner," and the policy learns to fool the discriminator. Specifically, GAIL borrows GAN's architecture: the policy network serves as the generator, and a discriminator network classifies whether each state-action pair originated from expert demonstrations or the learner's policy. The discriminator's classification error becomes an implicit reward signal for the policy, bypassing the intermediate step of explicitly recovering the reward function. This achieves expert-level policy without explicit reward recovery.
 
 ## Connections to Modern AI
 

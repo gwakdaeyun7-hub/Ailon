@@ -52,7 +52,7 @@ x(t) = sum_{n} x(nT) * sinc((t - nT) / T)
 - 에일리어싱 --> 이동에 따른 출력 불안정성
 - 나이퀴스트 율 위반 --> stride가 특징 맵의 공간 주파수에 비해 너무 큼
 
-Zhang의 해법은 ADC 설계와 동일한 원리를 따른다. 맥스 풀링이나 스트라이드 합성곱 전에 **블러 필터**(가우시안 커널)를 삽입한다. ImageNet 실험에서 이 한 줄의 수정으로 이동 일관성이 크게 개선되었고, 분류 정확도도 소폭 향상되었다.
+Zhang의 해법은 ADC 설계와 동일한 원리를 따른다. 맥스 풀링이나 스트라이드 합성곱 전에 **블러 필터**(가우시안 커널)를 삽입한다. ImageNet 실험에서 이 한 줄의 수정으로 이동 일관성이 크게 개선되었고, 분류 정확도도 소폭 향상되었다. 구체적으로, ResNet-50에서 stride-2 맥스 풀링에 3x3 블러 필터를 삽입하자, 1픽셀 이동에 대한 출력 일관성(shift consistency)이 약 85%에서 95%로 향상되었고, ImageNet top-1 분류 정확도도 약 0.5~1.0% 개선되었다. 에일리어싱이 분류 성능뿐 아니라 모델의 안정성과 신뢰성에 직접적 영향을 미친다는 정량적 증거다.
 
 ## 핵심 트레이드오프: 정보 보존 대 계산 비용
 
@@ -169,7 +169,7 @@ The correspondences are:
 - Aliasing --> output instability under translation
 - Nyquist rate violation --> stride too large relative to feature map spatial frequency
 
-Zhang's solution follows the same principle as ADC design: insert a **blur filter** (Gaussian kernel) before max pooling or strided convolution. On ImageNet, this single modification substantially improved shift consistency and modestly improved classification accuracy.
+Zhang's solution follows the same principle as ADC design: insert a **blur filter** (Gaussian kernel) before max pooling or strided convolution. On ImageNet, this single modification substantially improved shift consistency and modestly improved classification accuracy. Specifically, inserting a 3x3 blur filter before stride-2 max pooling in ResNet-50 improved shift consistency (agreement between predictions on shifted inputs) from approximately 85% to 95%, while ImageNet top-1 classification accuracy improved by roughly 0.5-1.0%. This provides quantitative evidence that aliasing directly impacts not only classification performance but also model stability and reliability.
 
 ## The Core Tradeoff: Information Preservation vs. Computational Cost
 
