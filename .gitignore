@@ -6,14 +6,9 @@ node_modules/
 # Testing
 coverage/
 
-# Next.js
-.next/
-out/
+# Build output
 build/
 dist/
-
-# Production
-/build
 
 # Misc
 .DS_Store
@@ -29,12 +24,6 @@ yarn-error.log*
 .env
 .env.local
 .env*.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# Vercel
-.vercel
 
 # Python
 __pycache__/
@@ -62,6 +51,7 @@ serviceAccountKey.json
 
 # OS
 Thumbs.db
+*.stackdump
 
 # Expo
 .expo/
@@ -81,9 +71,13 @@ GEMINI_MODELS_REFERENCE.md
 
 # Local preview / design files (root only)
 /*.html
-/_ul
+docs/snack-redesign-concepts.html
 
 # Local image assets (root only — not in mobile/assets/)
 /ailon_logo*.png
 /character.png
 /KakaoTalk_*.jpg
+
+# Pipeline working files
+scripts/principle_contents_draft.md
+scripts/test_paper_sources.py
