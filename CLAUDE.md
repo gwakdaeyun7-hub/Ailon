@@ -118,6 +118,7 @@ cd ../functions && firebase deploy --only functions
 | `pipeline-post-check.sh` | PostToolUse (Bash) | Info | 파이프라인 실행 후 7개 QA 패턴 자동 감지 |
 | `python-syntax-check.sh` | PostToolUse (Edit\|Write) | Block | .py 파일 구문 오류 즉시 차단 |
 | `mobile-typecheck.sh` | PostToolUse (Edit\|Write) | Info | .ts/.tsx 수정 후 tsc 타입 체크 |
+| *(inline)* | Notification | Info | 작업 완료 비프음 알림 (800Hz, 0.3s) |
 
 설정: `.claude/settings.local.json` (gitignore 대상). 훅 스크립트 자체는 커밋 대상.
 
