@@ -85,7 +85,7 @@ cd ../functions && firebase deploy --only functions
 - 5-tab mobile app (news feed, snaps, AI tools [준비 중], saved, profile)
 - All interactions: likes, comments, bookmarks (news/principle), share, TTS, glossary highlight
 - LangGraph news pipeline (8 nodes, 22 sources, EN/KO parallel)
-- Principle pipeline (curated 전용 — 12 disciplines, 4 super categories, 37개 사전 작성 콘텐츠, LLM 생성 비활성화)
+- Principle pipeline (curated 전용 — 11 disciplines, 4 super categories, 37개 사전 작성 콘텐츠, LLM 생성 비활성화)
 - Post-pipeline: briefing, glossary, timeline, related articles
 - Auth (Google), dark mode, bilingual (KO/EN), push notifications
 

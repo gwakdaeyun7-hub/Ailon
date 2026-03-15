@@ -56,7 +56,7 @@ KEY FEATURES
 - 22 curated sources from leading AI and technology publications
 - AI-generated summaries with key points, context, and background
 - Daily briefing with text-to-speech playback
-- Daily academic insights spanning 12 scientific disciplines
+- Daily academic insights spanning 11 scientific disciplines
 - Bilingual support: English and Korean
 - Highlights section featuring the top story from each category
 - Related articles and timeline showing past coverage of the same topic

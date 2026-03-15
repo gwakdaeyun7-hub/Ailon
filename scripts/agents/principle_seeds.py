@@ -14,6 +14,8 @@ PRINCIPLE_SEEDS = [
         "ai_connection": "강화학습 가치 함수의 직접적 수학적 토대",
         "ai_connection_en": "Direct mathematical foundation of reinforcement learning value functions",
         "problem_solved": "순차적 의사결정에서 최적 정책의 수학적 도출",
+        "takeaway": "복잡한 여정의 최적 경로는 어디서든 남은 구간만으로 다시 최적이어야 한다는 벨만의 통찰이, 강화학습 에이전트가 매 순간 미래 보상을 계산하며 최적 행동을 선택하는 가치 함수의 수학적 토대가 되었다.",
+        "takeaway_en": "Bellman's insight that the optimal path from any point onward must itself be optimal gave reinforcement learning its mathematical backbone -- the value function that lets agents evaluate future rewards at every decision step.",
     },
     {
         "id": "ctrl_kalman_filter",
@@ -25,6 +27,8 @@ PRINCIPLE_SEEDS = [
         "ai_connection": "은닉 상태 추정, 센서 퓨전, 베이지안 필터링의 원류",
         "ai_connection_en": "Origin of hidden state estimation, sensor fusion, and Bayesian filtering in AI",
         "problem_solved": "잡음이 있는 관측에서 시스템의 실제 상태를 최적 추정",
+        "takeaway": "레이더 잡음 속에서 미사일의 실제 위치를 추정하기 위해 예측과 관측을 확률적으로 결합한 칼만 필터가, AI가 불완전한 데이터로부터 숨겨진 상태를 추론하는 베이지안 필터링의 원류가 되었다.",
+        "takeaway_en": "The Kalman filter, which fused noisy radar measurements with predicted trajectories to estimate a missile's true position, became the wellspring of Bayesian filtering -- enabling AI to infer hidden states from incomplete observations.",
     },
     {
         "id": "ctrl_pid_control",
@@ -36,6 +40,8 @@ PRINCIPLE_SEEDS = [
         "ai_connection": "피드백 기반 학습 시스템, 학습률 조절, 모멘텀의 제어이론적 기원",
         "ai_connection_en": "Control-theoretic origin of feedback-based learning, learning rate adjustment, and momentum",
         "problem_solved": "오차를 실시간으로 감지하고 자동 보정하는 피드백 제어",
+        "takeaway": "오차를 감지하고, 그 누적과 변화 속도까지 반영하여 자동 보정하는 PID 제어의 3중 피드백 구조가, 딥러닝에서 학습률 조절과 모멘텀 최적화가 오차 신호로부터 가중치를 갱신하는 방식의 제어이론적 기원이다.",
+        "takeaway_en": "PID control's triple feedback structure -- correcting for error magnitude, its accumulation, and its rate of change -- is the control-theoretic ancestor of how deep learning optimizers use error signals, learning rate schedules, and momentum to update weights.",
     },
     {
         "id": "ctrl_model_predictive_control",
@@ -47,6 +53,8 @@ PRINCIPLE_SEEDS = [
         "ai_connection": "계획 기반 강화학습(MuZero, Dreamer)의 직접적 원류",
         "ai_connection_en": "Direct origin of planning-based reinforcement learning (MuZero, Dreamer)",
         "problem_solved": "미래를 예측하고 최적 행동 시퀀스를 실시간 계획",
+        "takeaway": "내부 모델로 미래를 시뮬레이션하고 최적 행동을 계획하되, 매 순간 새 관측으로 계획을 수정하는 MPC의 원리가, MuZero와 Dreamer처럼 세계 모델을 학습하여 행동을 계획하는 모델 기반 강화학습의 직접적 원류이다.",
+        "takeaway_en": "Model Predictive Control's principle of simulating the future with an internal model, planning optimal actions, then replanning as new observations arrive, is the direct ancestor of model-based RL agents like MuZero and Dreamer.",
     },
     # =========================================================================
     # 공학 > 전기/전자공학 (electrical_engineering)  [3 seeds]
@@ -61,6 +69,8 @@ PRINCIPLE_SEEDS = [
         "ai_connection": "CNN의 주파수 도메인 해석, FFT 기반 효율적 합성곱, 위치 인코딩",
         "ai_connection_en": "Frequency domain analysis of CNNs, FFT-based efficient convolution, positional encoding",
         "problem_solved": "신호를 주파수 성분으로 분해하여 분석하는 수학적 도구",
+        "takeaway": "복잡한 신호를 순수한 주파수 성분들의 합으로 분해하는 푸리에 변환이, CNN이 이미지의 저주파 윤곽과 고주파 질감을 분리하여 인식하고 FFT로 합성곱을 가속하는 수학적 도구가 되었다.",
+        "takeaway_en": "The Fourier transform, which decomposes complex signals into pure frequency components, became the mathematical tool enabling CNNs to separate low-frequency contours from high-frequency textures and accelerate convolutions via FFT.",
     },
     {
         "id": "ee_nyquist_sampling",
@@ -72,6 +82,8 @@ PRINCIPLE_SEEDS = [
         "ai_connection": "데이터 이산화의 이론적 기초, 앨리어싱과 다운샘플링",
         "ai_connection_en": "Theoretical basis for data discretization, aliasing and downsampling in neural networks",
         "problem_solved": "연속 신호를 정보 손실 없이 이산 데이터로 변환하는 조건",
+        "takeaway": "원래 신호의 최고 주파수보다 두 배 빠르게 샘플링해야 정보가 보존된다는 나이퀴스트 정리가, AI 모델에 입력되는 데이터의 이산화와 다운샘플링에서 정보 손실을 방지하는 이론적 기초가 되었다.",
+        "takeaway_en": "The Nyquist-Shannon theorem -- that sampling must be twice the highest frequency to preserve information -- provides the theoretical foundation for preventing information loss when AI models discretize and downsample continuous data.",
     },
     {
         "id": "ee_quantization",
@@ -83,6 +95,8 @@ PRINCIPLE_SEEDS = [
         "ai_connection": "모델 양자화(INT8/INT4), 이진 신경망, 양자화 인식 학습의 직접적 이론 기반",
         "ai_connection_en": "Direct theoretical basis for model quantization (INT8/INT4), binary neural networks, quantization-aware training",
         "problem_solved": "연속 값을 유한한 이산 레벨로 표현할 때의 최적 전략",
+        "takeaway": "연속 전압을 유한한 디지털 레벨로 변환할 때 왜곡을 최소화하는 신호 양자화 이론이, 거대 신경망의 가중치를 INT8이나 INT4로 압축하면서도 정확도를 유지하는 모델 양자화 기법의 직접적 이론 기반이다.",
+        "takeaway_en": "Signal quantization theory, which minimizes distortion when converting continuous voltages to finite digital levels, directly underpins model quantization techniques that compress neural network weights to INT8 or INT4 while preserving accuracy.",
     },
     # =========================================================================
     # 공학 > 정보/통신공학 (information_theory)  [4 seeds]
@@ -97,6 +111,8 @@ PRINCIPLE_SEEDS = [
         "ai_connection": "크로스 엔트로피 손실함수, 정보 이득, 의사결정 트리의 수학적 토대",
         "ai_connection_en": "Mathematical foundation of cross-entropy loss, information gain, and decision trees",
         "problem_solved": "정보의 양을 정량적으로 측정하는 수학적 프레임워크",
+        "takeaway": "동전 던지기의 불확실성을 비트로 정량화한 섀넌의 엔트로피가, 신경망이 예측 확률과 정답 사이의 크로스 엔트로피를 최소화하며 학습하고 의사결정 트리가 정보 이득으로 분기하는 수학적 토대가 되었다.",
+        "takeaway_en": "Shannon's entropy, which quantified the uncertainty of a coin flip in bits, became the mathematical foundation for neural networks minimizing cross-entropy between predictions and targets and for decision trees splitting on information gain.",
     },
     {
         "id": "info_kl_divergence",
@@ -108,6 +124,8 @@ PRINCIPLE_SEEDS = [
         "ai_connection": "VAE의 ELBO, 정책 경사법의 제약, 지식 증류의 핵심 측도",
         "ai_connection_en": "Core measure in VAE's ELBO, policy gradient constraints, and knowledge distillation",
         "problem_solved": "두 확률 분포 사이의 차이를 측정하는 비대칭 거리",
+        "takeaway": "두 확률 분포가 얼마나 다른지를 비대칭적으로 측정하는 KL 발산이, VAE가 잠재 공간을 정규화하고, 지식 증류에서 학생 모델이 교사를 모방하며, 정책 경사법이 갱신 폭을 제한하는 핵심 측도가 되었다.",
+        "takeaway_en": "KL divergence, the asymmetric measure of how one probability distribution differs from another, became the key metric by which VAEs regularize latent spaces, knowledge distillation aligns student to teacher, and policy gradients constrain update steps.",
     },
     {
         "id": "info_channel_capacity",
@@ -119,6 +137,8 @@ PRINCIPLE_SEEDS = [
         "ai_connection": "정보 병목 이론, 오토인코더의 정보 압축, 노이즈 주입 정규화",
         "ai_connection_en": "Information bottleneck theory, autoencoder compression, noise injection regularization",
         "problem_solved": "잡음이 있는 채널에서 신뢰할 수 있는 통신의 이론적 한계",
+        "takeaway": "잡음 있는 통신 채널에도 오류 없이 전송 가능한 최대 정보율이 존재한다는 섀넌의 채널 용량 정리가, 오토인코더의 정보 병목과 노이즈 주입 정규화가 핵심만 압축하여 전달하는 원리의 정보이론적 기원이다.",
+        "takeaway_en": "Shannon's channel capacity theorem -- that even noisy channels have a maximum error-free transmission rate -- is the information-theoretic origin of the information bottleneck in autoencoders and noise-injection regularization that compresses data to its essence.",
     },
     {
         "id": "info_mutual_information",
@@ -130,15 +150,17 @@ PRINCIPLE_SEEDS = [
         "ai_connection": "자기지도 학습(contrastive learning)의 목적 함수, 특징 선택",
         "ai_connection_en": "Objective function of self-supervised contrastive learning, feature selection",
         "problem_solved": "두 확률 변수 사이의 상호 의존성 측정",
+        "takeaway": "하나의 변수를 알면 다른 변수의 불확실성이 얼마나 줄어드는지를 측정하는 상호 정보량이, 대조 학습에서 같은 이미지의 서로 다른 뷰 사이의 공유 정보를 극대화하는 자기지도 학습의 목적 함수가 되었다.",
+        "takeaway_en": "Mutual information, which measures how much knowing one variable reduces uncertainty about another, became the objective function for self-supervised contrastive learning -- maximizing shared information between different views of the same image.",
     },
     # =========================================================================
-    # 공학 > 최적화공학 (optimization)  [4 seeds]
+    # [재분류됨] 원래 최적화공학 → 원래 학문 기준: 물리학(SA), 수학(GD·Convex), 통계학(BayesOpt)
     # =========================================================================
     {
         "id": "opt_simulated_annealing",
-        "discipline": "optimization",
-        "discipline_name": "최적화공학",
-        "super_category": "공학",
+        "discipline": "physics",
+        "discipline_name": "물리학",
+        "super_category": "자연과학",
         "principle_name": "Simulated Annealing",
         "principle_name_en": "Simulated Annealing",
         "ai_connection": "금속 냉각 과정에서 영감받은 확률적 전역 최적화",
@@ -149,36 +171,42 @@ PRINCIPLE_SEEDS = [
     },
     {
         "id": "opt_gradient_descent",
-        "discipline": "optimization",
-        "discipline_name": "최적화공학",
-        "super_category": "공학",
+        "discipline": "mathematics",
+        "discipline_name": "수학",
+        "super_category": "형식과학",
         "principle_name": "Gradient Descent and Stochastic Gradient Descent",
         "principle_name_en": "Gradient Descent and Stochastic Gradient Descent",
         "ai_connection": "딥러닝 학습의 핵심 알고리즘",
         "ai_connection_en": "Core algorithm of deep learning training",
         "problem_solved": "미분 가능한 함수의 최솟값을 반복적으로 찾는 방법",
+        "takeaway": "가장 가파른 내리막 방향으로 한 걸음씩 내딛으면 골짜기에 도달한다는 미적분학의 원리가, 수십억 개 파라미터의 손실 지형을 한 배치씩 내려가며 최적화하는 딥러닝 학습의 핵심 알고리즘이 되었다.",
+        "takeaway_en": "The calculus principle of stepping in the steepest downhill direction to reach a valley became deep learning's core algorithm -- descending the loss landscape of billions of parameters one mini-batch at a time.",
     },
     {
         "id": "opt_convex_optimization",
-        "discipline": "optimization",
-        "discipline_name": "최적화공학",
-        "super_category": "공학",
+        "discipline": "mathematics",
+        "discipline_name": "수학",
+        "super_category": "형식과학",
         "principle_name": "Convex Optimization and Duality",
         "principle_name_en": "Convex Optimization and Duality",
         "ai_connection": "SVM의 수학적 토대, 라그랑주 쌍대성, 제약 조건 학습",
         "ai_connection_en": "Mathematical foundation of SVM, Lagrangian duality, constrained learning",
         "problem_solved": "전역 최적해가 보장되는 최적화 문제의 체계적 풀이",
+        "takeaway": "볼록 함수에서는 모든 지역 최솟값이 곧 전역 최솟값이라는 수학적 보장과 라그랑주 쌍대성이, SVM이 최대 마진 초평면을 찾고 제약 조건 하에서 학습하는 수학적 토대가 되었다.",
+        "takeaway_en": "The mathematical guarantee that every local minimum of a convex function is the global minimum, together with Lagrangian duality, gave SVMs their rigorous foundation for finding maximum-margin hyperplanes under constraints.",
     },
     {
         "id": "opt_bayesian_optimization",
-        "discipline": "optimization",
-        "discipline_name": "최적화공학",
-        "super_category": "공학",
+        "discipline": "statistics",
+        "discipline_name": "통계학",
+        "super_category": "형식과학",
         "principle_name": "Bayesian Optimization",
         "principle_name_en": "Bayesian Optimization",
         "ai_connection": "하이퍼파라미터 튜닝, 신경 구조 탐색(NAS)의 핵심 기법",
         "ai_connection_en": "Core technique for hyperparameter tuning and neural architecture search (NAS)",
         "problem_solved": "평가 비용이 높은 블랙박스 함수의 효율적 최적화",
+        "takeaway": "한 번 실험하는 데 비용이 큰 미지의 함수를 최소 횟수로 최적화하기 위해 대리 모델과 획득 함수를 결합한 베이지안 최적화가, 딥러닝 하이퍼파라미터 튜닝과 신경 구조 탐색의 핵심 기법이 되었다.",
+        "takeaway_en": "Bayesian optimization, which pairs a surrogate model with an acquisition function to optimize expensive-to-evaluate black-box functions in minimal trials, became the core technique for deep learning hyperparameter tuning and neural architecture search.",
     },
     # =========================================================================
     # 공학 > 로보틱스 (robotics)  [1 seed]
@@ -193,6 +221,8 @@ PRINCIPLE_SEEDS = [
         "ai_connection": "Bandura 관찰학습 → 행동 복제(BC) → IRL → GAIL → RLHF의 인지과학-AI 계보",
         "ai_connection_en": "Cognitive science lineage from Bandura's observational learning → BC → IRL → GAIL → RLHF",
         "problem_solved": "인지심리학의 관찰학습 원리를 계산적으로 구현하여 시연으로부터 정책 학습",
+        "takeaway": "반두라가 발견한 '관찰만으로 행동을 습득하는' 인간의 능력을 계산적으로 구현한 모방학습이, 행동 복제에서 역강화학습, GAIL을 거쳐 인간 피드백 기반 강화학습(RLHF)으로 이어지는 계보의 출발점이 되었다.",
+        "takeaway_en": "Imitation learning, the computational realization of Bandura's discovery that humans acquire behavior through observation alone, launched the lineage from behavioral cloning through inverse RL and GAIL to RLHF.",
     },
     # =========================================================================
     # 자연과학 > 물리학 (physics)  [4 seeds]
@@ -207,6 +237,8 @@ PRINCIPLE_SEEDS = [
         "ai_connection": "볼츠만 머신, 에너지 기반 모델, 소프트맥스 함수의 직접적 기원",
         "ai_connection_en": "Direct origin of Boltzmann machines, energy-based models, and softmax function",
         "problem_solved": "열평형 상태의 입자 에너지 분포를 확률적으로 기술",
+        "takeaway": "온도가 높으면 입자가 고에너지 상태도 탐색하고 낮으면 저에너지에 집중한다는 볼츠만 분포가, 볼츠만 머신의 확률적 샘플링과 소프트맥스 함수에서 온도 파라미터가 탐색과 집중을 조절하는 메커니즘의 직접적 기원이다.",
+        "takeaway_en": "The Boltzmann distribution, where higher temperature lets particles explore high-energy states while lower temperature concentrates them at low energy, is the direct origin of the temperature parameter that governs exploration versus exploitation in Boltzmann machines and the softmax function.",
     },
     {
         "id": "phys_diffusion_process",
@@ -218,6 +250,8 @@ PRINCIPLE_SEEDS = [
         "ai_connection": "확산 모델(DDPM, Stable Diffusion)의 직접적 물리학적 기원",
         "ai_connection_en": "Direct physical origin of diffusion models (DDPM, Stable Diffusion)",
         "problem_solved": "입자의 무작위 확산 운동을 수학적으로 기술",
+        "takeaway": "잉크 한 방울이 물속에서 서서히 퍼져 균일해지는 확산 과정을 역으로 되돌리는 수학이, 순수한 노이즈에서 출발하여 단계적으로 이미지를 복원하는 확산 생성 모델(DDPM, Stable Diffusion)의 물리학적 기원이다.",
+        "takeaway_en": "The mathematics of reversing diffusion -- ink spreading uniformly through water until disorder is total -- is the physics behind diffusion generative models like DDPM and Stable Diffusion, which start from pure noise and progressively restore structure.",
     },
     {
         "id": "phys_hopfield_network",
@@ -229,6 +263,8 @@ PRINCIPLE_SEEDS = [
         "ai_connection": "연상 기억 네트워크, 에너지 기반 학습, 현대 Transformer와의 재해석",
         "ai_connection_en": "Associative memory networks, energy-based learning, modern reinterpretation with Transformers",
         "problem_solved": "스핀 유리 모델로 연상 기억과 패턴 복원을 구현",
+        "takeaway": "자성체의 스핀들이 에너지를 최소화하며 안정 패턴에 수렴하는 스핀 유리 물리학이, 손상된 패턴을 복원하는 연상 기억 네트워크를 탄생시켰고 이 에너지 관점은 현대 Transformer의 재해석으로까지 이어졌다.",
+        "takeaway_en": "Spin glass physics, where magnetic spins minimize energy to converge on stable patterns, gave birth to associative memory networks that restore corrupted patterns -- an energy perspective recently extended to reinterpret modern Transformers.",
     },
     {
         "id": "phys_renormalization_group",
@@ -240,6 +276,8 @@ PRINCIPLE_SEEDS = [
         "ai_connection": "심층 신경망의 다중 스케일 특징 추출과의 구조적 유사성",
         "ai_connection_en": "Structural analogy with multi-scale feature extraction in deep neural networks",
         "problem_solved": "물리 시스템의 다중 스케일 구조를 체계적으로 분석",
+        "takeaway": "미시적 세부를 거칠게 평균내어도 핵심 물리가 보존되는 재규격화 군의 다중 스케일 분석이, 심층 신경망이 층을 거치며 픽셀에서 질감, 물체로 점점 추상적 특징을 추출하는 구조와 깊은 유사성을 지닌다.",
+        "takeaway_en": "The renormalization group's multi-scale analysis, which coarse-grains microscopic details while preserving essential physics, shares deep structural parallels with how deep neural networks extract progressively abstract features -- from pixels to textures to objects -- layer by layer.",
     },
     # =========================================================================
     # 자연과학 > 생물학 (biology)  [3 seeds]
@@ -254,6 +292,8 @@ PRINCIPLE_SEEDS = [
         "ai_connection": "유전 알고리즘, 진화 전략, 신경진화(NEAT)의 직접적 영감",
         "ai_connection_en": "Direct inspiration for genetic algorithms, evolution strategies, and neuroevolution (NEAT)",
         "problem_solved": "자연선택의 메커니즘이 계산적 최적화에 영감을 제공",
+        "takeaway": "무작위 변이 중 적합한 개체만 살아남아 다음 세대를 이룬다는 다윈의 자연선택이, 해 후보 집단을 교차·돌연변이시키며 적합도로 선별하는 유전 알고리즘과 신경진화(NEAT)의 직접적 영감이 되었다.",
+        "takeaway_en": "Darwin's natural selection -- where random variations are filtered by fitness across generations -- directly inspired genetic algorithms and neuroevolution (NEAT), which crossover and mutate candidate solutions, selecting the fittest to reproduce.",
     },
     {
         "id": "bio_hebbian_learning",
@@ -265,6 +305,8 @@ PRINCIPLE_SEEDS = [
         "ai_connection": "연결주의 학습 규칙, 비지도 학습, 자기 조직화의 생물학적 기원",
         "ai_connection_en": "Biological origin of connectionist learning rules, unsupervised learning, and self-organization",
         "problem_solved": "시냅스 수준의 학습 메커니즘에서 계산적 학습 규칙 도출",
+        "takeaway": "함께 발화하는 뉴런 사이의 시냅스가 강화된다는 헤브의 법칙이, 입력 패턴의 상관관계에 따라 연결 가중치를 갱신하는 비지도 학습 규칙과 자기 조직화 맵의 생물학적 기원이 되었다.",
+        "takeaway_en": "Hebb's law -- that synapses between neurons that fire together grow stronger -- became the biological origin of unsupervised learning rules and self-organizing maps that update connection weights based on input pattern correlations.",
     },
     {
         "id": "bio_swarm_intelligence",
@@ -276,6 +318,8 @@ PRINCIPLE_SEEDS = [
         "ai_connection": "입자 군집 최적화(PSO), 개미 군집 최적화(ACO), 분산 AI 시스템",
         "ai_connection_en": "Particle swarm optimization (PSO), ant colony optimization (ACO), distributed AI systems",
         "problem_solved": "단순한 개체들의 집단 행동에서 복잡한 문제 해결 능력 출현",
+        "takeaway": "개미 한 마리는 단순하지만 페로몬 흔적을 따르는 군집은 최단 경로를 찾아내는 집단 지능이, 개체 간 국소 상호작용만으로 복잡한 최적화를 푸는 PSO와 ACO 알고리즘의 영감이 되었다.",
+        "takeaway_en": "A single ant is simple, yet a colony following pheromone trails discovers the shortest path -- this collective intelligence inspired PSO and ACO algorithms that solve complex optimization through local interactions alone.",
     },
     # =========================================================================
     # 자연과학 > 화학 (chemistry)  [1 seed]
@@ -290,6 +334,8 @@ PRINCIPLE_SEEDS = [
         "ai_connection": "그래프 신경망(GNN)의 핵심 응용, 분자 속성 예측",
         "ai_connection_en": "Core application of graph neural networks (GNN), molecular property prediction",
         "problem_solved": "분자 구조를 그래프로 표현하여 화학적 성질을 예측",
+        "takeaway": "원자를 노드로, 화학 결합을 엣지로 표현하는 분자 그래프가, 그래프 신경망이 분자의 위상 구조를 직접 학습하여 약물 후보의 성질을 예측하는 핵심 응용의 출발점이 되었다.",
+        "takeaway_en": "Molecular graphs, which represent atoms as nodes and chemical bonds as edges, became the starting point for graph neural networks that learn molecular topology directly to predict drug candidate properties.",
     },
     # =========================================================================
     # 자연과학 > 신경과학 (neuroscience)  [3 seeds]
@@ -304,6 +350,8 @@ PRINCIPLE_SEEDS = [
         "ai_connection": "CNN의 직접적 생물학적 영감 — AI 역사상 가장 성공적인 학제간 영감",
         "ai_connection_en": "Direct biological inspiration for CNNs — the most successful interdisciplinary inspiration in AI history",
         "problem_solved": "시각 피질의 계층적 특징 추출 구조에서 CNN 아키텍처 도출",
+        "takeaway": "고양이 시각 피질에서 단순 세포가 방향별 선분에, 복합 세포가 위치 불변적 패턴에 반응한다는 휴벨과 비셀의 발견이, 합성곱과 풀링을 층층이 쌓는 CNN 아키텍처의 직접적 생물학적 영감이 되었다.",
+        "takeaway_en": "Hubel and Wiesel's discovery that simple cells in the cat's visual cortex respond to oriented edges while complex cells respond to position-invariant patterns directly inspired the CNN architecture of stacked convolution and pooling layers.",
     },
     {
         "id": "neuro_dopamine_td",
@@ -315,6 +363,8 @@ PRINCIPLE_SEEDS = [
         "ai_connection": "시간차 학습(TD learning)과 도파민 신호의 놀라운 수렴",
         "ai_connection_en": "Remarkable convergence between TD learning and dopamine signaling",
         "problem_solved": "보상 예측 오차 신호가 학습을 이끄는 메커니즘",
+        "takeaway": "예상보다 좋은 보상이 올 때 도파민이 분출되고 예상대로면 침묵한다는 뇌의 보상 예측 오차 신호가, 강화학습의 시간차 학습(TD learning)과 놀라울 정도로 동일한 수학적 구조를 가진다는 것이 밝혀졌다.",
+        "takeaway_en": "The brain's dopamine signal -- firing when rewards exceed expectations, falling silent when they match -- was found to share a remarkably identical mathematical structure with temporal-difference learning in reinforcement learning.",
     },
     {
         "id": "neuro_attention_mechanism",
@@ -326,6 +376,8 @@ PRINCIPLE_SEEDS = [
         "ai_connection": "인지심리학의 선택적 주의 개념이 이름과 직관을 제공했으나 수학적 구현은 독립적으로 발전",
         "ai_connection_en": "Cognitive psychology's selective attention concept provided name and intuition, but mathematical implementation evolved independently",
         "problem_solved": "방대한 감각 입력 중 관련 정보를 선택적으로 처리",
+        "takeaway": "인간이 붐비는 방에서도 한 목소리에 집중할 수 있다는 선택적 주의 개념이, Transformer의 어텐션 메커니즘에 이름과 핵심 직관을 제공했으나 그 수학적 구현은 독립적으로 발전한 흥미로운 수렴이다.",
+        "takeaway_en": "The cognitive concept of selective attention -- focusing on one voice in a crowded room -- gave the Transformer's attention mechanism its name and core intuition, though its mathematical implementation evolved independently, an intriguing convergence.",
     },
     # =========================================================================
     # 형식과학 > 수학 (mathematics)  [4 seeds]
@@ -340,6 +392,8 @@ PRINCIPLE_SEEDS = [
         "ai_connection": "신경망의 모든 연산이 행렬 곱으로 표현되는 수학적 토대",
         "ai_connection_en": "Mathematical foundation where all neural network operations are expressed as matrix multiplications",
         "problem_solved": "신경망 연산을 행렬 연산으로 체계화하여 효율적 계산 가능",
+        "takeaway": "벡터와 행렬의 곱으로 공간을 변환하는 선형대수가, 신경망의 모든 층이 입력 벡터를 가중치 행렬로 변환하고 GPU가 이를 대규모 병렬 처리하는 계산 체계의 수학적 토대가 되었다.",
+        "takeaway_en": "Linear algebra's framework of transforming spaces through vector-matrix multiplication became the mathematical foundation of every neural network layer -- and the reason GPU parallelism makes deep learning computationally feasible.",
     },
     {
         "id": "math_universal_approximation",
@@ -351,6 +405,8 @@ PRINCIPLE_SEEDS = [
         "ai_connection": "신경망이 임의의 함수를 근사할 수 있다는 이론적 보장",
         "ai_connection_en": "Theoretical guarantee that neural networks can approximate arbitrary functions",
         "problem_solved": "신경망의 표현력에 대한 근본적 이론적 보장",
+        "takeaway": "충분히 넓은 은닉층 하나면 어떤 연속 함수든 원하는 정밀도로 근사할 수 있다는 보편 근사 정리가, 신경망이 원리적으로 어떤 패턴이든 학습할 수 있다는 이론적 정당성을 제공했다.",
+        "takeaway_en": "The universal approximation theorem -- that a single hidden layer of sufficient width can approximate any continuous function to arbitrary precision -- provided the theoretical justification that neural networks can, in principle, learn any pattern.",
     },
     {
         "id": "math_information_geometry",
@@ -362,6 +418,8 @@ PRINCIPLE_SEEDS = [
         "ai_connection": "Fisher 정보 행렬 기반 자연 경사법의 수학적 토대",
         "ai_connection_en": "Mathematical foundation of natural gradient descent based on the Fisher information matrix",
         "problem_solved": "확률 분포 공간의 기하학적 구조를 활용한 최적화",
+        "takeaway": "확률 분포들이 이루는 공간에 곡률과 거리를 부여하는 정보 기하학이, 파라미터의 유클리드 거리가 아닌 분포 변화의 실질적 크기를 반영하는 자연 경사법(Natural Gradient)의 수학적 토대가 되었다.",
+        "takeaway_en": "Information geometry, which endows the space of probability distributions with curvature and distance, became the mathematical foundation of the natural gradient -- an optimizer that measures update size by actual distributional change, not Euclidean parameter distance.",
     },
     {
         "id": "math_graph_theory_gnn",
@@ -373,6 +431,8 @@ PRINCIPLE_SEEDS = [
         "ai_connection": "GNN, 지식 그래프, 소셜 네트워크 분석의 수학적 기반",
         "ai_connection_en": "Mathematical foundation of GNNs, knowledge graphs, and social network analysis",
         "problem_solved": "비정형 관계 데이터를 그래프로 모델링하고 학습",
+        "takeaway": "쾨니히스베르크 다리 문제에서 탄생한 그래프 이론의 노드와 엣지 형식론이, 소셜 네트워크·지식 그래프·단백질 구조 등 비정형 관계 데이터를 학습하는 그래프 신경망의 수학적 기반이 되었다.",
+        "takeaway_en": "Graph theory's node-and-edge formalism, born from the Konigsberg bridge problem, became the mathematical foundation for graph neural networks that learn from irregular relational data -- social networks, knowledge graphs, and protein structures alike.",
     },
     # =========================================================================
     # 형식과학 > 통계학 (statistics)  [4 seeds]
@@ -387,6 +447,8 @@ PRINCIPLE_SEEDS = [
         "ai_connection": "사전/사후 분포, 베이지안 신경망, 불확실성 정량화의 수학적 토대",
         "ai_connection_en": "Mathematical foundation of prior/posterior distributions, Bayesian neural networks, and uncertainty quantification",
         "problem_solved": "데이터 관측을 통해 믿음을 체계적으로 갱신하는 방법",
+        "takeaway": "새로운 증거가 관찰될 때마다 기존 믿음을 체계적으로 갱신하는 베이즈 정리가, 베이지안 신경망이 가중치의 사후 분포를 학습하여 '모른다'를 정량적으로 표현하는 불확실성 추정의 수학적 토대가 되었다.",
+        "takeaway_en": "Bayes' theorem, which systematically updates prior beliefs with each new piece of evidence, became the mathematical foundation for Bayesian neural networks that learn posterior distributions over weights -- quantifying not just predictions but uncertainty itself.",
     },
     {
         "id": "stat_maximum_likelihood",
@@ -398,6 +460,8 @@ PRINCIPLE_SEEDS = [
         "ai_connection": "크로스 엔트로피 손실, 로지스틱 회귀, 생성 모델 학습의 통계학적 기원",
         "ai_connection_en": "Statistical origin of cross-entropy loss, logistic regression, and generative model training",
         "problem_solved": "관측 데이터를 가장 잘 설명하는 파라미터 추정",
+        "takeaway": "관측 데이터가 나올 확률을 가장 크게 만드는 파라미터를 선택한다는 최대 우도 추정이, 크로스 엔트로피 손실 최소화와 생성 모델의 로그 우도 최대화로 이어지는 딥러닝 학습의 통계학적 기원이다.",
+        "takeaway_en": "Maximum likelihood estimation -- choosing parameters that make observed data most probable -- is the statistical origin of deep learning's cross-entropy loss minimization and generative models' log-likelihood maximization.",
     },
     {
         "id": "stat_bias_variance_tradeoff",
@@ -409,6 +473,8 @@ PRINCIPLE_SEEDS = [
         "ai_connection": "과적합/과소적합, 모델 복잡도 선택, 정규화의 이론적 토대",
         "ai_connection_en": "Theoretical foundation of overfitting/underfitting, model complexity selection, and regularization",
         "problem_solved": "모델 복잡도와 일반화 성능 사이의 근본적 균형",
+        "takeaway": "모델을 복잡하게 하면 편향은 줄지만 분산이 커지고 단순하게 하면 그 반대라는 통계학의 근본 딜레마가, 과적합과 과소적합 사이에서 정규화와 모델 선택을 안내하는 머신러닝의 이론적 나침반이 되었다.",
+        "takeaway_en": "Statistics' fundamental dilemma -- increasing model complexity reduces bias but inflates variance, and vice versa -- became machine learning's theoretical compass for navigating overfitting and underfitting through regularization and model selection.",
     },
     {
         "id": "stat_markov_chain_monte_carlo",
@@ -420,6 +486,8 @@ PRINCIPLE_SEEDS = [
         "ai_connection": "베이지안 추론의 실용적 도구, 에너지 기반 모델 학습, MCMC 기반 생성",
         "ai_connection_en": "Practical tool for Bayesian inference, energy-based model training, and MCMC-based generation",
         "problem_solved": "복잡한 확률 분포에서의 효율적 샘플링",
+        "takeaway": "직접 계산이 불가능한 복잡한 확률 분포에서 무작위 걸음으로 대표 표본을 추출하는 MCMC가, 베이지안 딥러닝의 사후 분포 근사와 에너지 기반 모델 학습을 가능하게 한 실용적 도구가 되었다.",
+        "takeaway_en": "MCMC, which draws representative samples from intractable probability distributions via random walks, became the practical tool enabling posterior approximation in Bayesian deep learning and training of energy-based models.",
     },
     # =========================================================================
     # 응용과학 > 의학/생명과학 (medicine)  [2 seeds]
@@ -434,6 +502,8 @@ PRINCIPLE_SEEDS = [
         "ai_connection": "A/B 테스팅, 다중 무장 밴딧(MAB), 적응적 실험 설계의 의학적 기원",
         "ai_connection_en": "Medical origin of A/B testing, multi-armed bandits (MAB), and adaptive experimental design",
         "problem_solved": "인과관계를 검증하기 위한 실험 설계의 황금 표준",
+        "takeaway": "신약의 효과를 검증하기 위해 환자를 무작위 배정하고 대조군과 비교하는 임상시험 설계가, 기능 변경의 인과적 효과를 측정하는 A/B 테스팅과 탐색-활용을 최적화하는 다중 무장 밴딧의 의학적 기원이다.",
+        "takeaway_en": "Clinical trial design -- randomizing patients into treatment and control groups to verify drug efficacy -- is the medical origin of A/B testing for causal measurement of feature changes and multi-armed bandits that optimize the exploration-exploitation tradeoff.",
     },
     {
         "id": "med_epidemiology_network",
@@ -445,5 +515,7 @@ PRINCIPLE_SEEDS = [
         "ai_connection": "정보 전파 모델, 바이럴 마케팅 알고리즘, GNN 기반 전파 예측",
         "ai_connection_en": "Information diffusion models, viral marketing algorithms, GNN-based propagation prediction",
         "problem_solved": "전염병 확산의 수학적 모델링과 네트워크 상 전파 분석",
+        "takeaway": "한 명의 감염자로부터 접촉 네트워크를 따라 전염병이 확산되는 역학 모델이, 소셜 네트워크에서 정보가 바이럴하게 퍼지는 과정을 모델링하고 GNN으로 전파를 예측하는 알고리즘의 기원이 되었다.",
+        "takeaway_en": "Epidemiological models of disease spreading from a single infected individual through contact networks became the origin of algorithms that model viral information diffusion in social networks and predict propagation using GNNs.",
     },
 ]
