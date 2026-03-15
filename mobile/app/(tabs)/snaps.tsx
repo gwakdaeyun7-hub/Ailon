@@ -122,10 +122,6 @@ const CONNECTION_TYPE_DESC: Record<string, { ko: string; en: string }> = {
     ko: '이 학문의 개념과 용어가 AI에 차용되었으나 수학적 구현은 독립적으로 발전했습니다',
     en: 'Concepts and terminology borrowed from this field, but mathematical implementation evolved independently',
   },
-  reverse_inspiration: {
-    ko: 'AI의 한계가 이 학문의 비판을 촉발하여 새로운 연구 방향을 만들었습니다',
-    en: 'Limitations of AI sparked critique from this field, creating new research directions',
-  },
 };
 
 function ConnectionTypeBadge({ type, colors, lang }: { type: string; colors: Record<string, string>; lang: string }) {
@@ -134,7 +130,6 @@ function ConnectionTypeBadge({ type, colors, lang }: { type: string; colors: Rec
     structural_analogy: { bg: colors.indigoBg, color: colors.indigo, ko: '구조적 유사', en: 'Structural' },
     mathematical_foundation: { bg: colors.glossaryBg, color: colors.glossaryTerm, ko: '수학적 기반', en: 'Mathematical' },
     conceptual_borrowing: { bg: colors.coreTechBg, color: colors.coreTech, ko: '개념 차용', en: 'Conceptual' },
-    reverse_inspiration: { bg: colors.indigoBg, color: colors.indigo, ko: '역방향 영감', en: 'Reverse' },
   };
   const c = config[type];
   if (!c) return null;

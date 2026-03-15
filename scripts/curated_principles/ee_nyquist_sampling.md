@@ -40,7 +40,7 @@ x(t) = sum_{n} x(nT) * sinc((t - nT) / T)
 
 ## 전기공학에서 딥러닝으로
 
-나이퀴스트 정리가 AI에 직접 연결된 계기는 Richard Zhang(2019)의 "Making Convolutional Networks Shift-Invariant Again"이다. 이 논문은 CNN의 고질적 문제였던 이동 불변성(shift invariance) 위반이 에일리어싱에서 비롯된다는 것을 신호 처리의 언어로 진단했다.
+나이퀴스트 정리가 다루는 에일리어싱 문제는 아날로그 신호에만 국한되지 않는다. CNN에서 스트라이드 합성곱이나 풀링으로 특징 맵의 해상도를 줄일 때도 동일한 원리가 작동한다. 이 연결을 명확히 드러낸 것이 Richard Zhang(2019)의 "Making Convolutional Networks Shift-Invariant Again"이다. 이 논문은 CNN의 고질적 문제였던 이동 불변성(shift invariance) 위반이 에일리어싱에서 비롯된다는 것을 신호 처리의 언어로 진단했다.
 
 핵심 관찰은 이것이다. CNN에서 stride-2 합성곱이나 맥스 풀링은 특징 맵(feature map)의 공간 해상도를 절반으로 줄인다. 이것은 신호 처리에서 다운샘플링과 정확히 같은 연산이다. 그런데 이 다운샘플링이 안티에일리어싱 없이 수행된다. 특징 맵에 높은 공간 주파수 성분이 있으면, 정리가 위반되어 에일리어싱이 발생한다. 그 결과 입력 이미지를 1픽셀만 이동해도 출력이 크게 달라진다.
 
@@ -157,7 +157,7 @@ Practical systems therefore apply an **anti-aliasing filter** before sampling to
 
 ## From Electrical Engineering to Deep Learning
 
-The Nyquist theorem's direct connection to AI was established by Richard Zhang's (2019) "Making Convolutional Networks Shift-Invariant Again." This paper diagnosed a chronic CNN problem -- violation of shift invariance -- as stemming from aliasing, using the language of signal processing.
+The aliasing problem addressed by the Nyquist theorem is not confined to analog signals. The same principle operates when CNNs reduce feature map resolution through strided convolutions or pooling. The work that made this connection explicit was Richard Zhang's (2019) "Making Convolutional Networks Shift-Invariant Again." This paper diagnosed a chronic CNN problem -- violation of shift invariance -- as stemming from aliasing, using the language of signal processing.
 
 The key observation: in CNNs, stride-2 convolutions and max pooling halve the spatial resolution of feature maps. This is exactly a downsampling operation in signal processing terms. The problem is that this downsampling is performed without anti-aliasing. When feature maps contain high spatial frequency components, the theorem is violated and aliasing occurs. The result: shifting an input image by just one pixel can dramatically change the output.
 

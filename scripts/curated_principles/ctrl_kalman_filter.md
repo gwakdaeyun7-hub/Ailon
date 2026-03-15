@@ -60,7 +60,7 @@ z(k) = H * x(k) + v(k)
    x(k+1) = x_pred + K * (z - H * x_pred)
    P(k+1) = (I - K * H) * P_pred
 
-칼만 이득 K가 필터의 심장이다. 이 행렬이 "예측과 관측 중 어느 쪽을 더 믿을 것인가"를 수학적으로 결정한다. 극단값을 추적하면 그 역할이 선명해진다.
+칼만 이득 K가 필터의 심장이다. 이 행렬이 "예측과 관측 중 어느 쪽을 더 믿을 것인가"를 수학적으로 결정한다. 1차원의 단순한 경우로 숫자를 넣어보면 직관이 잡힌다. 예측 불확실성 P_pred = 100, 측정 불확실성 R = 25이면, 칼만 이득 K = 100/(100+25) = 0.8이 된다. 측정값을 80% 신뢰한다는 뜻이다. R이 매우 크면(센서가 부정확하면) K는 0에 가까워지고, 예측만 믿게 된다. 극단값을 추적하면 그 역할이 더 선명해진다.
 
 - P_pred가 매우 크면(예측 불확실성이 극히 높으면), K가 커져서 관측을 거의 전적으로 신뢰한다. 예측이 사실상 쓸모없을 때, 센서가 하는 말을 그대로 따르는 것이다.
 - R이 매우 크면(센서 잡음이 극히 높으면), K가 0에 가까워져서 관측을 무시하고 예측을 고수한다. 센서를 믿을 수 없을 때, 물리 모델의 예측에 의존하는 것이다.
@@ -86,7 +86,7 @@ SA가 온도라는 단일 파라미터로 탐색-활용 균형을 조절하듯, 
 
 확장 칼만 필터(Extended Kalman Filter, EKF): 비선형 함수를 현재 추정치 주변에서 1차 테일러 급수로 선형화한다. 야코비안(Jacobian, 다변수 함수의 1차 편미분 행렬)을 계산하여 F와 H를 대체한다. 간단하지만 강한 비선형성에서 근사 오차가 누적되어 발산할 수 있다.
 
-무향 칼만 필터(Unscented Kalman Filter, UKF, Julier & Uhlmann 1997): 야코비안 대신 **시그마 포인트**라는 대표 샘플들을 비선형 함수에 통과시켜 분포를 근사한다. 분포의 평균 주위에 대칭적으로 배치한 2n+1개(n은 상태 차원)의 점을 비선형 변환한 뒤 가중 평균으로 통계량을 복원한다. EKF보다 2차 이상의 비선형성을 더 잘 포착한다.
+무향 칼만 필터(Unscented Kalman Filter, UKF, Julier & Uhlmann 1997): 야코비안을 직접 계산하는 대신, 분포의 평균 주위에 배치한 소수의 대표 샘플(시그마 포인트)을 비선형 함수에 통과시켜 변환된 분포를 근사한다. EKF보다 2차 이상의 비선형성을 더 잘 포착한다.
 
 파티클 필터(Particle Filter, Gordon et al. 1993): 가우시안 가정을 완전히 버리고, 수백~수천 개의 가중 샘플(파티클)로 임의의 분포를 표현한다. 가장 유연하지만 고차원에서 필요한 파티클 수가 지수적으로 증가하는 **차원의 저주**에 취약하다.
 
@@ -193,7 +193,7 @@ The filter operates by repeating a **predict-update cycle**.
    x(k+1) = x_pred + K * (z - H * x_pred)
    P(k+1) = (I - K * H) * P_pred
 
-The Kalman gain K is the heart of the filter. This matrix mathematically determines "how much to trust prediction versus observation." Tracking its extreme values makes its role clear:
+The Kalman gain K is the heart of the filter. This matrix mathematically determines "how much to trust prediction versus observation." A simple one-dimensional numerical example builds intuition. If prediction uncertainty P_pred = 100 and measurement uncertainty R = 25, then Kalman gain K = 100/(100+25) = 0.8. This means 80% trust in the measurement. If R is very large (inaccurate sensor), K approaches zero, and only the prediction is trusted. Tracking its extreme values makes the role even clearer:
 
 - When P_pred is very large (extremely high prediction uncertainty), K grows large and the filter trusts the observation almost entirely. When prediction is essentially useless, it follows whatever the sensor says.
 - When R is very large (extremely high sensor noise), K approaches zero and the filter ignores the observation, relying on prediction. When sensors can't be trusted, it depends on the physics model.
@@ -219,7 +219,7 @@ However, most real-world systems are nonlinear. Robot rotation, GPS coordinate c
 
 Extended Kalman Filter (EKF): Linearizes nonlinear functions via first-order Taylor expansion around the current estimate. Jacobian matrices (matrices of first-order partial derivatives) replace F and H. Simple but can diverge when nonlinearity is strong, as approximation errors accumulate.
 
-Unscented Kalman Filter (UKF, Julier & Uhlmann 1997): Instead of Jacobians, passes **sigma points** -- representative samples placed symmetrically around the mean -- through the nonlinear function. With 2n+1 points (n being the state dimension), it recovers statistics via weighted averaging after nonlinear transformation. Captures higher-order nonlinearities better than EKF.
+Unscented Kalman Filter (UKF, Julier & Uhlmann 1997): Instead of computing Jacobians directly, passes a small set of representative samples (sigma points) placed around the mean through the nonlinear function to approximate the transformed distribution. Captures higher-order nonlinearities better than EKF.
 
 Particle Filter (Gordon et al. 1993): Completely abandons the Gaussian assumption, representing arbitrary distributions with hundreds to thousands of weighted samples (particles). Most flexible but vulnerable to the **curse of dimensionality** -- the required number of particles grows exponentially in high dimensions.
 

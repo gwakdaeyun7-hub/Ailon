@@ -32,6 +32,8 @@ SQNR = 6.02 * N + 1.76 (dB)
 
 한편 Lloyd(1957/1982)는 입력 분포가 균일하지 않을 때의 최적 양자화를 연구했다. 핵심 아이디어는 단순하다. 값이 밀집된 영역에 양자화 레벨을 더 많이 배정하고, 드문 영역에는 적게 배정하면 같은 비트 수로도 전체 오차를 줄일 수 있다. 인구 밀도가 높은 도심에 우체국을 촘촘히 배치하고, 인구가 적은 외곽에는 듬성듬성 배치하는 것과 같다. 이 비균일 양자화(non-uniform quantization)의 원리가 후에 AI 양자화에서 핵심 역할을 한다.
 
+Lloyd의 핵심 통찰 -- "자주 나오는 값에 더 많은 레벨을 배정한다"는 원리는 현대 AI 모델 압축에도 그대로 이어진다. GPTQ와 AWQ는 이 아이디어를 신경망 가중치에 적용한 것이다. 가중치 분포에서 중요한 영역에 높은 해상도를 배정하고, 덜 중요한 영역은 거칠게 양자화하여 같은 비트 수로도 성능 저하를 최소화한다.
+
 ## 전기공학에서 신경망으로
 
 신호 양자화 이론이 신경망에 직접 도입된 경로는 명확하다. 신경망 가중치도 결국 실수 값의 집합이고, 이 값을 적은 비트로 표현하면 모델이 작아지고 빨라진다는 착안이 출발점이다. 핵심 대응 관계는 다음과 같다.
@@ -153,6 +155,8 @@ SQNR = 6.02 * N + 1.76 (dB)
 Each bit yields approximately 6 dB of SQNR improvement. Going from 8 to 16 bits adds about 48 dB; going from 32 down to 8 bits loses about 144 dB. This relationship is a textbook fundamental of electrical engineering and later becomes the theoretical starting point for judging how many bits neural network weights can be reduced to.
 
 Meanwhile, Lloyd (1957/1982) studied optimal quantization for non-uniform input distributions. The core idea is simple: assign more quantization levels to densely populated regions and fewer to sparse regions, and the same number of bits yields lower total error. Like placing post offices densely in high-population urban areas and sparsely in low-population outskirts. This non-uniform quantization principle later plays a key role in AI quantization.
+
+Lloyd's core insight -- "allocate more levels to frequently occurring values" -- carries directly into modern AI model compression. GPTQ and AWQ apply this idea to neural network weights. They assign high resolution to important regions of the weight distribution and quantize less important regions coarsely, minimizing performance loss with the same number of bits.
 
 ## From Electrical Engineering to Neural Networks
 

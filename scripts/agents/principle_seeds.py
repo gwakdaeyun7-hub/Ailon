@@ -132,7 +132,7 @@ PRINCIPLE_SEEDS = [
         "problem_solved": "두 확률 변수 사이의 상호 의존성 측정",
     },
     # =========================================================================
-    # 공학 > 최적화공학 (optimization)  [5 seeds]
+    # 공학 > 최적화공학 (optimization)  [4 seeds]
     # =========================================================================
     {
         "id": "opt_simulated_annealing",
@@ -179,17 +179,6 @@ PRINCIPLE_SEEDS = [
         "ai_connection": "하이퍼파라미터 튜닝, 신경 구조 탐색(NAS)의 핵심 기법",
         "ai_connection_en": "Core technique for hyperparameter tuning and neural architecture search (NAS)",
         "problem_solved": "평가 비용이 높은 블랙박스 함수의 효율적 최적화",
-    },
-    {
-        "id": "opt_evolutionary_algorithm",
-        "discipline": "optimization",
-        "discipline_name": "최적화공학",
-        "super_category": "공학",
-        "principle_name": "Evolutionary Algorithms and Genetic Programming",
-        "principle_name_en": "Evolutionary Algorithms and Genetic Programming",
-        "ai_connection": "진화 전략(OpenAI ES), 신경진화(NEAT), AutoML의 탐색 기법",
-        "ai_connection_en": "Evolution strategies (OpenAI ES), neuroevolution (NEAT), AutoML search methods",
-        "problem_solved": "그래디언트 없이 복잡한 탐색 공간에서 해를 진화시키는 방법",
     },
     # =========================================================================
     # 공학 > 로보틱스 (robotics)  [1 seed]
@@ -303,7 +292,7 @@ PRINCIPLE_SEEDS = [
         "problem_solved": "분자 구조를 그래프로 표현하여 화학적 성질을 예측",
     },
     # =========================================================================
-    # 자연과학 > 신경과학 (neuroscience)  [4 seeds]
+    # 자연과학 > 신경과학 (neuroscience)  [3 seeds]
     # =========================================================================
     {
         "id": "neuro_visual_cortex_cnn",
@@ -337,17 +326,6 @@ PRINCIPLE_SEEDS = [
         "ai_connection": "인지심리학의 선택적 주의 개념이 이름과 직관을 제공했으나 수학적 구현은 독립적으로 발전",
         "ai_connection_en": "Cognitive psychology's selective attention concept provided name and intuition, but mathematical implementation evolved independently",
         "problem_solved": "방대한 감각 입력 중 관련 정보를 선택적으로 처리",
-    },
-    {
-        "id": "neuro_synaptic_plasticity_backprop",
-        "discipline": "neuroscience",
-        "discipline_name": "신경과학",
-        "super_category": "자연과학",
-        "principle_name": "Synaptic Plasticity and the Backpropagation Debate",
-        "principle_name_en": "Synaptic Plasticity and the Backpropagation Debate",
-        "ai_connection": "신경과학의 비판이 피드백 정렬, 예측 부호화, Forward-Forward 등 새로운 AI 학습 알고리즘을 촉발",
-        "ai_connection_en": "Neuroscience critique driving new AI learning algorithms: feedback alignment, predictive coding, Forward-Forward",
-        "problem_solved": "역전파의 생물학적 불가능성이 만든 긴장이 대안적 학습 규칙 연구를 추동",
     },
     # =========================================================================
     # 형식과학 > 수학 (mathematics)  [4 seeds]

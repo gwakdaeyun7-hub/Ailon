@@ -31,6 +31,8 @@ RCT의 구조가 AI와 테크 산업으로 이식된 경로는 두 갈래다.
 
 이 대응에서 통계적 검정 도구(t-검정, 유의수준, 검정력 계산)까지 그대로 이식되었다. Google, Meta, Netflix, Microsoft가 연간 수만 건의 A/B 테스트를 실행한다.
 
+구체적 사례를 보면 감이 온다. 2009년, 구글은 검색 결과 링크의 파란색을 41가지 미세한 차이로 A/B 테스트했다. 수억 명의 사용자를 변형별로 무작위 배정하고 클릭률을 비교한 결과, 최적의 파란색 하나가 연간 2억 달러의 추가 수익을 만들어냈다. 색상 하나의 차이를 감지하려면 거대한 표본이 필요하고, 그 표본을 RCT 구조로 통제해야만 "이 파란색이 진짜 더 나은가"라는 인과적 질문에 답할 수 있다.
+
 **경로 2: Thompson Sampling -- 임상시험의 윤리적 딜레마에서 태어난 알고리즘**
 
 William R. Thompson(1933)은 두 가지 치료법 중 어느 것이 효과적인지 모르는 상황에서, 시험 기간 동안 열등한 치료에 환자를 계속 배정하는 것이 윤리적으로 문제라고 보았다. 그의 해법은 각 치료법의 효과에 대한 **사후 확률**(posterior)에 비례하여 환자를 배정하는 것이었다. 이 아이디어가 80년 뒤에 **다중 슬롯머신 문제**(Multi-Armed Bandit, MAB)의 핵심 알고리즘으로 부활하여, 추천 시스템과 광고 최적화의 기반이 되었다.
@@ -58,6 +60,14 @@ z_{alpha/2}는 유의수준의 임계값(관례적으로 alpha = 0.05이면 1.96
 
 이것을 공간적으로 상상하면 이렇다. 각 선택지는 종 모양의 확률 분포를 가지고 있다. 데이터가 적은 선택지는 종이 넓고 납작해서(불확실성이 크므로) 가끔 아주 높은 값이 뽑힐 수 있다 -- 이것이 **탐색**이다. 데이터가 충분히 쌓인 좋은 선택지는 종이 좁고 높아서 안정적으로 높은 값이 뽑힌다 -- 이것이 **활용**이다. 분포의 모양 자체가 탐색과 활용의 균형을 자동으로 결정한다.
 
+구체적 숫자로 추적해 보자. 팔이 3개인 슬롯머신이 있고, 실제 당첨률은 A=0.3, B=0.5, C=0.7이다. 우리는 이 값을 모른다.
+
+- **시작**: 세 팔 모두 Beta(1,1) = 균등 분포에서 출발한다. 어떤 값이든 뽑힐 수 있다.
+- **5라운드 후**: 팔 A를 3번 당기고 1번 성공 --> Beta(2,3), 평균 0.40. 팔 B를 1번 당기고 1번 성공 --> Beta(2,1), 평균 0.67. 팔 C를 1번 당기고 0번 성공 --> Beta(1,2), 평균 0.33.
+- 이 시점에서 팔 B의 분포가 가장 높아 보이지만, 데이터가 1개뿐이라 분포가 넓다. 팔 C는 운 나쁘게 첫 시도에서 실패해서 낮아 보이지만, 역시 분포가 넓어서 높은 값이 뽑힐 여지가 있다.
+- **20라운드 후**: 팔 C가 반복적으로 선택되면서 Beta(8,4)가 된다. 평균 0.67, 분포가 좁아져 안정적으로 높은 값이 뽑힌다. 팔 A는 Beta(3,5)로 평균 0.38, 자연스럽게 덜 선택된다.
+- 핵심: 아무도 "C가 최선이다"라고 명시적으로 판단하지 않는다. 분포가 데이터에 맞춰 스스로 좁아지면서, 좋은 팔이 자연스럽게 더 많이 선택되는 구조다.
+
 ## 고정 설계 vs 적응적 설계: 핵심 트레이드오프
 
 RCT의 가장 근본적인 트레이드오프는 **내적 타당성과 효율성** 사이에 있다.
@@ -74,7 +84,7 @@ RCT의 가장 근본적인 트레이드오프는 **내적 타당성과 효율성
 
 의학은 이 문제를 수십 년간 다뤄왔다. Bonferroni 보정(유의수준을 검정 횟수로 나눔), Holm-Bonferroni(순위 기반 단계적 보정), Benjamini-Hochberg의 FDR(False Discovery Rate) 제어가 표준 방법이다.
 
-AI에서 이 문제는 **하이퍼파라미터 탐색에서 직접** 나타난다. 200가지 하이퍼파라미터 조합을 시도하고 "가장 좋은" 검증 성능을 선택하면, 이는 200번의 검정에서 우연히 좋은 결과를 고르는 것과 구조적으로 동일하다. 모델 벤치마크에서 수십 개 태스크를 보고하면서 가장 좋은 결과만 강조하는 것도 같은 함정이다. 엄밀한 AI 연구는 임상시험의 이 교훈을 수용하여 보정을 적용하지만, 아직 많은 연구가 이를 간과한다.
+AI에서 이 문제는 **하이퍼파라미터 탐색에서 직접** 나타난다. 예를 들어 학습률, 배치 크기, 드롭아웃 비율 등 200가지 하이퍼파라미터 조합을 시도하고 "가장 좋은" 검증 정확도를 선택한다고 하자. 검증 세트 정확도가 200개 조합에서 각각 72%에서 79% 사이에 분포한다면, 최고값 79%가 진짜 그 조합이 뛰어나서인지, 200번 시도 중 우연히 검증 세트에 잘 맞았을 뿐인지 구분할 수 없다. 이것은 200번의 검정에서 우연히 좋은 결과를 고르는 것과 구조적으로 동일하다. 실제로 그 "최고" 조합을 새로운 테스트 세트에 적용하면 성능이 2-3% 하락하는 경우가 흔하다. 모델 벤치마크에서 수십 개 태스크를 보고하면서 가장 좋은 결과만 강조하는 것도 같은 함정이다. 엄밀한 AI 연구는 임상시험의 이 교훈을 수용하여 보정을 적용하지만, 아직 많은 연구가 이를 간과한다.
 
 ## 현대 AI 기법과의 연결
 
@@ -148,6 +158,8 @@ In the early 2000s, Google engineers directly borrowed RCT structure to measure 
 
 Even the statistical testing tools (t-tests, significance levels, power calculations) were transplanted identically. Google, Meta, Netflix, and Microsoft run tens of thousands of A/B tests annually.
 
+A concrete example illustrates this. In 2009, Google A/B tested 41 subtle variations of the blue color used for search result links. By randomly assigning hundreds of millions of users to each variant and comparing click-through rates, they found that a single optimal shade of blue generated an additional $200 million in annual revenue. Detecting the difference a single color makes requires enormous sample sizes, and only the RCT structure of controlled randomization can answer the causal question: "Is this blue actually better?"
+
 **Path 2: Thompson Sampling -- An Algorithm Born from the Ethical Dilemma of Clinical Trials**
 
 William R. Thompson (1933) saw an ethical problem in continuing to assign patients to an inferior treatment when it was unknown which of two treatments was more effective. His solution was to assign patients in proportion to each treatment's **posterior probability** of being effective. This idea was resurrected 80 years later as a core algorithm for the **Multi-Armed Bandit** (MAB) problem, becoming foundational for recommendation systems and ad optimization.
@@ -175,6 +187,14 @@ z_{alpha/2} is the critical value for significance level (conventionally 1.96 fo
 
 To visualize this spatially: each arm has a bell-shaped probability distribution. An arm with little data has a wide, flat bell (high uncertainty), so occasionally a very high value can be drawn -- this is **exploration**. An arm with abundant data and good results has a narrow, tall bell that consistently produces high values -- this is **exploitation**. The shape of the distribution itself automatically determines the exploration-exploitation balance.
 
+Let us trace this with concrete numbers. Consider a 3-armed slot machine with true win rates A=0.3, B=0.5, C=0.7. We do not know these values.
+
+- **Start**: all three arms begin with Beta(1,1) = uniform distribution. Any value can be drawn.
+- **After 5 rounds**: arm A pulled 3 times, 1 success --> Beta(2,3), mean 0.40. Arm B pulled once, 1 success --> Beta(2,1), mean 0.67. Arm C pulled once, 0 successes --> Beta(1,2), mean 0.33.
+- At this point arm B looks best, but with only 1 data point its distribution is wide. Arm C unluckily failed on its first try and looks worst, yet its wide distribution still allows high samples to be drawn.
+- **After 20 rounds**: arm C has been repeatedly selected and reaches Beta(8,4). Mean 0.67, distribution narrow, consistently producing high samples. Arm A sits at Beta(3,5) with mean 0.38, naturally selected less often.
+- The key: nobody explicitly decides "C is best." The distributions narrow themselves as data accumulates, and good arms are naturally selected more often -- a self-correcting structure.
+
 ## Fixed vs. Adaptive Design: The Core Tradeoff
 
 The most fundamental tradeoff in RCTs lies between **internal validity and efficiency**.
@@ -191,7 +211,7 @@ Simultaneously testing multiple outcome variables or subgroups in clinical trial
 
 Medicine has grappled with this for decades. Bonferroni correction (dividing significance level by number of tests), Holm-Bonferroni (rank-based stepwise correction), and Benjamini-Hochberg's FDR (False Discovery Rate) control are standard solutions.
 
-In AI, this problem **directly appears in hyperparameter search**. Trying 200 hyperparameter combinations and selecting the "best" validation performance is structurally identical to picking a coincidentally good result from 200 tests. Reporting dozens of benchmark tasks and highlighting only the best results is the same trap. Rigorous AI research accepts this lesson from clinical trials and applies corrections, but many studies still overlook it.
+In AI, this problem **directly appears in hyperparameter search**. Suppose you try 200 combinations of learning rate, batch size, and dropout rate, then select the "best" validation accuracy. If validation accuracy across the 200 combinations ranges from 72% to 79%, there is no way to tell whether the top-scoring 79% reflects genuine superiority of that combination or simply a lucky fit to the validation set out of 200 attempts. This is structurally identical to picking a coincidentally good result from 200 tests. In practice, applying that "best" combination to a fresh test set commonly drops performance by 2-3%. Reporting dozens of benchmark tasks and highlighting only the best results is the same trap. Rigorous AI research accepts this lesson from clinical trials and applies corrections, but many studies still overlook it.
 
 ## Connections to Modern AI
 

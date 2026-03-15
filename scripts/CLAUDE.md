@@ -75,7 +75,7 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 ### Principle Pipeline (scripts/agents/principle_team.py) — Curated 전용 모드
 
 5-node pipeline: `seed_selector → content_generator → verifier → [retry_reseed (conditional)] → assembler`
-- **현재: curated 전용 모드** — LLM 생성 비활성화, 사전 작성된 39개 .md 파일만 사용
+- **현재: curated 전용 모드** — LLM 생성 비활성화, 사전 작성된 37개 .md 파일만 사용
 - 실제 실행 흐름: `seed_selector → content_generator(curated 파일 로드) → verifier(skip) → assembler(Firestore 저장)`
 - Conditional retry, verifier, defense-in-depth는 코드에 존재하나 curated 모드에서 비활성화
 
@@ -85,13 +85,13 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 - Curated 콘텐츠는 사전 검수 완료 → verifier 건너뜀
 - assembler가 seed의 takeaway/takeaway_en을 Firestore 문서에 포함하여 `daily_principles/{date}`에 저장
 
-**Curated 콘텐츠 사양 (39개 시드, 12분야):**
-- **분야별 시드**: 제어공학 4, 전기/전자 3, 정보/통신 4, 최적화 5(SA 포함), 로보틱스 1, 물리학 4, 생물학 3, 화학 1, 신경과학 4, 수학 4, 통계학 4, 의학 2
+**Curated 콘텐츠 사양 (37개 시드, 12분야):**
+- **분야별 시드**: 제어공학 4, 전기/전자 3, 정보/통신 4, 최적화 4(SA 포함), 로보틱스 1, 물리학 4, 생물학 3, 화학 1, 신경과학 3, 수학 4, 통계학 4, 의학 2
 - **4 Super Categories**: 공학(5분야), 자연과학(4분야), 형식과학(2분야), 응용과학(1분야)
 - **파일 형식**: front-matter(difficulty, connectionType, keywords) + 자유 형식 마크다운 KO 본문 + `---EN---` 구분자 + EN 본문
 - content_ko (2000~5000자) + content_en (영어 동일 내용) 쌍
 - **제목 규칙**: principle_name에 영어 알고리즘/원리 이름 사용, 콘텐츠 첫 줄 "English Name - 한줄 정의" 형태
-- **connectionType 유형**: direct_inspiration, structural_analogy, mathematical_foundation, conceptual_borrowing, reverse_inspiration
+- **connectionType 유형**: direct_inspiration, structural_analogy, mathematical_foundation, conceptual_borrowing
 - 수식은 LaTeX가 아닌 평문 표기 (dE = E(x') - E(x) 형태), ≤/≥ 등 유니코드 수학 기호 사용
 - readTime: 코드에서 content_ko 글자 수 기반 자동 계산 (`_calc_read_time`, 500자/분 기준)
 - **난이도 관리 원칙** (대상: AI 관심 일반인~초중급) — curated 콘텐츠 작성 시 적용:
@@ -100,7 +100,7 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
   - 상세 기준은 curated 콘텐츠 작성 시 참조 (골드 스탠다드: `opt_simulated_annealing.md`)
 
 **LLM 생성 폴백 (비상 시만, 현재 비활성):**
-- curated 풀 고갈(39개 모두 30일 내 사용) 시에만 LLM 폴백 발동
+- curated 풀 고갈(37개 모두 30일 내 사용) 시에만 LLM 폴백 발동
 - Verifier: 4-section evaluation, confidence < 0.7 OR sub-score < 0.5 시 retry
 - Defense-in-depth: content=None → should_retry → retry_reseed flow
 - 정상 운영에서는 발생하지 않아야 함 — 발생 시 시드 추가 필요

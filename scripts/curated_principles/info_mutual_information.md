@@ -48,7 +48,7 @@ X --> Y --> Z 이면 I(X; Z) <= I(X; Y)
 
 ## 정보 이론에서 머신러닝으로
 
-MI가 머신러닝에 들어온 경로는 세 갈래다.
+MI가 머신러닝에 들어온 경로는 세 갈래다. 특히 대조 학습 경로에서는 구체적 숫자가 중요하다. InfoNCE 손실에서 음성 샘플 K개를 사용하면 추정 가능한 MI의 상한이 log(K+1)로 제한된다. K = 1000이면 상한은 약 6.9비트다. 이 제약 아래에서도 Chen et al.(2020)의 SimCLR은 배치 크기 8192(한 배치 내 다른 이미지들이 음성 샘플 역할)로 ImageNet top-1 정확도 76.5%를 달성하여, 레이블 없이도 지도 학습에 근접한 표현을 학습할 수 있음을 보였다.
 
 - **정보 병목 이론**: Tishby, Pereira & Bialek(2000)이 MI를 학습 목표로 직접 사용했다. "좋은 표현 Z란, 입력 X에 대한 정보 I(X;Z)를 **최소화**하면서 목표 Y에 대한 정보 I(Z;Y)를 **최대화**하는 것"이라는 프레임워크를 제안했다. 압축과 예측의 균형을 MI로 정량화한 것이다.
 - **특징 선택(feature selection)**: Battiti(1994), Peng et al.(2005)의 mRMR(minimum Redundancy Maximum Relevance)은 특징과 목표 변수 사이의 MI를 최대화하면서 특징 간 MI(중복)를 최소화하는 기준을 제안했다. MI가 비선형 의존성까지 포착하므로, 상관계수 기반 선택이 놓치는 유용한 특징을 찾을 수 있다.
@@ -182,7 +182,7 @@ This inequality matters because each layer of a neural network can be viewed as 
 
 ## From Information Theory to Machine Learning
 
-MI entered machine learning through three paths:
+MI entered machine learning through three paths. The contrastive learning path is where concrete numbers matter most. In the InfoNCE loss, using K negative samples caps the estimable MI at log(K+1). With K = 1000, the ceiling is approximately 6.9 bits. Even under this constraint, Chen et al.'s (2020) SimCLR used batch size 8192 (other images in the batch serve as negative samples) to achieve 76.5% ImageNet top-1 accuracy, demonstrating that label-free learning can approach supervised performance.
 
 - **Information Bottleneck theory**: Tishby, Pereira & Bialek (2000) used MI directly as a learning objective. They proposed that "a good representation Z minimizes information about input X (I(X;Z)) while maximizing information about target Y (I(Z;Y))" -- quantifying the balance between compression and prediction through MI.
 - **Feature selection**: Battiti (1994) and Peng et al.'s (2005) mRMR (minimum Redundancy Maximum Relevance) proposed maximizing MI between features and the target variable while minimizing MI among features (redundancy). Since MI captures nonlinear dependence, it finds useful features that correlation-based selection misses.

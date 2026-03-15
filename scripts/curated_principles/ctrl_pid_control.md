@@ -30,6 +30,12 @@ u(t) = Kp * e(t) + Ki * integral(e(tau) dtau, 0, t) + Kd * de(t)/dt
 
 3. **D항 -- 미분(Derivative)**: Kd * de(t)/dt. 오차의 변화 속도를 본다. 오차가 빠르게 줄어들고 있으면 교정력을 줄여서 **오버슈트**(overshoot, 목표를 넘어서는 현상)를 방지한다. 반대로 오차가 빠르게 커지면 교정력을 추가한다. 미래를 "예측"하는 효과가 있다. 그러나 D항은 측정 잡음에 극도로 민감하다. 고주파 잡음이 미분에 의해 증폭되기 때문이다. 실무에서는 D항 앞에 저역 통과 필터(low-pass filter)를 두어 잡음을 걸러낸다.
 
+구체적인 숫자로 추적하면 세 항의 역할이 더 분명해진다. 산업용 히터의 수온 제어를 예로 들어 보자. 목표 온도 200도, 현재 180도, 게인값이 Kp = 2.0, Ki = 0.1, Kd = 1.0이라 하자.
+
+- **t = 0초**: 오차 e = 200 - 180 = 20. P항 = 2.0 * 20 = 40. 히터 출력을 40%로 올린다. I항은 아직 누적 없이 0, D항도 이전 변화가 없으므로 0. 총 출력 = 40%.
+- **t = 5초**: 수온이 195도까지 올라갔다. 오차 e = 5. P항 = 2.0 * 5 = 10으로 줄어든다. I항은 그동안 쌓인 오차 면적(대략 5초간 평균 오차 12.5)을 반영하여 0.1 * 62.5 = 6.25. D항은 온도가 5초 동안 15도 올랐으므로 변화율이 -3(오차가 초당 3씩 줄어든다). Kd * (-3) = -3, 교정력을 줄여 오버슈트를 방지한다. 총 출력 = 10 + 6.25 - 3 = 13.25%.
+- **t = 20초**: 수온이 199도에서 머문다. P항 = 2.0 * 1 = 2. 여기서 P항만으로는 출력 2%가 열손실과 균형을 이루어 1도 오차가 남는다(정상 상태 오차). 그러나 I항이 20초간 누적된 오차를 반영하여 추가 출력을 제공하고, 이 오차를 0으로 밀어 넣는다.
+
 ## 세 항의 극단값이 보여주는 직관
 
 각 게인(Kp, Ki, Kd)을 극단으로 밀면 시스템의 성격이 드러난다.
@@ -131,6 +137,12 @@ Here, e(t) = r(t) - y(t), where r(t) is the target value (setpoint) and y(t) is 
 2. **I-term -- Integral**: Ki * integral(e(tau) dtau, 0, t). Accumulates past errors over time. Even small errors, if they persist, cause the integral to grow and increase corrective force. The I-term's role is to eliminate the steady-state error that the P-term leaves behind. But there is a risk: when errors accumulate in one direction for too long, the integral becomes excessively large -- **integral windup**. Even after the situation reverses, the massive integral value remains and causes overcorrection. In practice, engineers apply clamping (capping the integral value) or stop integration when the output is saturated (anti-windup techniques).
 
 3. **D-term -- Derivative**: Kd * de(t)/dt. Monitors the rate of error change. When error is decreasing rapidly, it reduces corrective force to prevent **overshoot** (the output exceeding the target). Conversely, rapidly increasing error triggers additional correction. It effectively "anticipates" the future. However, the D-term is extremely sensitive to measurement noise -- high-frequency noise gets amplified through differentiation. In practice, a low-pass filter is placed before the D-term to filter out noise.
+
+Tracking with concrete numbers makes the three terms' roles clearer. Consider water temperature control in an industrial heater. Suppose the target is 200 degrees, the current temperature is 180 degrees, and the gains are Kp = 2.0, Ki = 0.1, Kd = 1.0.
+
+- **t = 0s**: Error e = 200 - 180 = 20. P-term = 2.0 * 20 = 40. Heater output goes to 40%. The I-term has no accumulation yet (0), and the D-term has no prior change (0). Total output = 40%.
+- **t = 5s**: Temperature has risen to 195 degrees. Error e = 5. P-term = 2.0 * 5 = 10, much reduced. The I-term reflects accumulated error area over 5 seconds (roughly average error 12.5 over 5 seconds): 0.1 * 62.5 = 6.25. The D-term sees temperature rising 15 degrees in 5 seconds, so the error rate of change is -3 (error decreasing by 3 per second). Kd * (-3) = -3, reducing corrective force to prevent overshoot. Total output = 10 + 6.25 - 3 = 13.25%.
+- **t = 20s**: Temperature settles at 199 degrees. P-term = 2.0 * 1 = 2. With P alone, this 2% output balances heat loss, leaving a 1-degree error (steady-state error). But the I-term, reflecting accumulated error over 20 seconds, provides additional output that pushes this error to zero.
 
 ## What Extreme Values Reveal
 

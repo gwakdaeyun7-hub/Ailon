@@ -143,7 +143,7 @@ export interface Principle {
   content_ko?: string;
   content_en?: string;
   content_source?: 'curated' | 'generated';
-  connectionType?: 'direct_inspiration' | 'structural_analogy' | 'mathematical_foundation' | 'conceptual_borrowing' | 'reverse_inspiration';
+  connectionType?: 'direct_inspiration' | 'structural_analogy' | 'mathematical_foundation' | 'conceptual_borrowing';
   difficulty?: 'beginner' | 'intermediate' | 'advanced';
   keywords?: string[];
   keywords_en?: string[];

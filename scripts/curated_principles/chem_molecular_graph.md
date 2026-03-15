@@ -47,7 +47,7 @@ MPNN의 한 스텝은 두 단계로 이루어진다.
    h_v^(t+1) = U(h_v^(t), m_v^(t))
    업데이트 함수 U는 이전 상태와 메시지를 결합하는 학습 가능한 함수다.
 
-이 과정을 T번 반복하면, 각 노드는 T-홉(hop) 이내의 모든 이웃 정보를 자신의 상태 벡터에 집약한다. T=0이면 각 원자는 자기 자신만 알고, T=1이면 직접 결합된 이웃을, T=2면 이웃의 이웃까지 안다. 이것은 Morgan 알고리즘의 반복적 이웃 확장과 정확히 동일한 논리다. 차이는 고정된 해싱 대신 학습 가능한 M과 U를 사용한다는 점뿐이다.
+이 과정을 T번 반복하면, 각 노드는 T-홉(hop) 이내의 모든 이웃 정보를 자신의 상태 벡터에 집약한다. T=0이면 각 원자는 자기 자신만 알고, T=1이면 직접 결합된 이웃을, T=2면 이웃의 이웃까지 안다. 구체적 분자로 보면, 에탄올(CH3CH2OH)에서 메틸기(CH3-)의 탄소를 기준으로 할 때, 1-hop에는 인접한 탄소와 수소가, 2-hop에는 히드록시기(-OH)의 산소가 들어온다. 3층 GNN이면 이 탄소가 히드록시기의 영향까지 "알게" 된다. 이것은 Morgan 알고리즘의 반복적 이웃 확장과 정확히 동일한 논리다. 차이는 고정된 해싱 대신 학습 가능한 M과 U를 사용한다는 점뿐이다.
 
 최종적으로 분자 전체의 표현을 얻으려면, 모든 노드의 최종 상태를 하나로 합치는 **읽기 함수(readout function)** R이 필요하다.
 
@@ -69,7 +69,7 @@ MPNN에서 레이어 수 T는 핵심 트레이드오프를 만든다.
 
 분자 그래프의 근본적 한계는 3차원 공간 정보를 버린다는 것이다. 같은 분자식, 같은 연결 구조를 가져도 3D 배치가 다른 배좌 이성질체(conformer)는 완전히 다른 화학적 성질을 보인다. 효소의 활성 부위에 약물이 결합하려면 3D 형태가 정확히 맞아야 한다 -- 열쇠와 자물쇠처럼.
 
-이 문제를 해결하기 위한 발전이 세 단계로 일어났다.
+이 문제를 해결하기 위한 발전이 세 단계로 일어났다. 3D 기하 GNN은 세 세대에 걸쳐 점점 더 풍부한 기하 정보를 활용하게 되었다.
 
 첫째, Kristof Schutt et al.(2017)의 **SchNet**은 원자 간 거리를 연속 필터(continuous filter)로 처리하여 3D 정보를 포함한 최초의 주요 모델이다. 간선 특성 e_vw에 결합 유형 대신 원자 간 유클리드 거리를 넣은 것이다.
 
@@ -163,7 +163,7 @@ One MPNN step consists of two stages:
    h_v^(t+1) = U(h_v^(t), m_v^(t))
    The update function U is a learnable function that merges the previous state with incoming messages.
 
-Repeating T times, each node aggregates information from all neighbors within T hops into its state vector. At T=0, each atom knows only itself. At T=1, it knows directly bonded neighbors. At T=2, neighbors of neighbors. This follows exactly the same logic as the Morgan algorithm's iterative neighborhood expansion. The only difference is using learnable M and U instead of fixed hashing.
+Repeating T times, each node aggregates information from all neighbors within T hops into its state vector. At T=0, each atom knows only itself. At T=1, it knows directly bonded neighbors. At T=2, neighbors of neighbors. To illustrate with a concrete molecule: in ethanol (CH3CH2OH), taking the carbon of the methyl group (CH3-) as the reference, 1-hop reaches the adjacent carbon and hydrogens, while 2-hop reaches the oxygen of the hydroxyl group (-OH). With a 3-layer GNN, this carbon "learns" the influence of the hydroxyl group. This follows exactly the same logic as the Morgan algorithm's iterative neighborhood expansion. The only difference is using learnable M and U instead of fixed hashing.
 
 To obtain a representation of the entire molecule, a **readout function** R combines all nodes' final states into one:
 
@@ -185,7 +185,7 @@ In practice, T is typically set to 3-5. For most molecular sizes, this allows mo
 
 The fundamental limitation of molecular graphs is discarding three-dimensional spatial information. Conformers -- molecules with identical formula and connectivity but different 3D arrangements -- can exhibit completely different chemical properties. For a drug to bind to an enzyme's active site, the 3D shape must fit precisely -- like a key in a lock.
 
-Addressing this limitation unfolded in three stages.
+Addressing this limitation unfolded in three stages. 3D geometric GNNs evolved across three generations to leverage increasingly rich geometric information.
 
 First, Kristof Schutt et al.'s (2017) **SchNet** was the first major model incorporating 3D information by processing interatomic distances through continuous filters. Instead of bond type, the edge feature e_vw encodes the Euclidean distance between atoms.
 

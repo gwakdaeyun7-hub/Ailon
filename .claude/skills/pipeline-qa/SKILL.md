@@ -278,7 +278,7 @@ qa-pipeline-tester 에이전트를 사용하여 로그를 분석합니다.
 
 ### 1.6 학문스낵(Principle) 검사
 
-**현재 모드: curated 전용** — LLM 생성 비활성화. `scripts/curated_principles/` 폴더의 39개 사전 검수 콘텐츠만 사용. 파이프라인은 시드 선택 → curated 파일 로드 → verifier skip → Firestore 저장만 수행.
+**현재 모드: curated 전용** — LLM 생성 비활성화. `scripts/curated_principles/` 폴더의 37개 사전 검수 콘텐츠만 사용. 파이프라인은 시드 선택 → curated 파일 로드 → verifier skip → Firestore 저장만 수행.
 
 로그 패턴:
 - `[seed_selector] curated 시드: {n}개 ({id1}, {id2}, ...)` — curated 파일이 있는 시드만 후보
@@ -291,7 +291,7 @@ qa-pipeline-tester 에이전트를 사용하여 로그를 분석합니다.
 
 | 검사 항목 | 정상 | 이상 징후 | 심각도 |
 |-----------|------|-----------|--------|
-| curated 시드 후보 수 | 39개 중 30일 미사용 시드 존재 | 0개 → 39개 모두 30일 내 사용됨, curated 풀 고갈 | Critical |
+| curated 시드 후보 수 | 37개 중 30일 미사용 시드 존재 | 0개 → 37개 모두 30일 내 사용됨, curated 풀 고갈 | Critical |
 | 3일 분야 로테이션 | 최근 3일과 다른 분야(super_category) 선택 | 같은 분야 연속 → `seed_selector()` 로테이션 로직 점검 | Major |
 | 30일 시드 중복 회피 | 최근 30일 내 미사용 시드 선택 | 같은 시드 반복 → Firestore 이력 조회 로직 점검 | Major |
 | curated 파일 로드 | `curated 콘텐츠 사용` 로그 정상 출력 | 파일 로드 실패 / 파일 파싱 에러 | Critical |
@@ -307,12 +307,12 @@ qa-pipeline-tester 에이전트를 사용하여 로그를 분석합니다.
 | _en 필드 쌍 | content_en + title_en + keywords_en 존재 | _en 필드 누락 → 바이링구얼 표시 불가 | Major |
 | content_en 비율 | content_ko의 70~130% | 극단적 비율 차이 → curated 파일 내 번역 불균형 | Minor |
 | readTime | 코드에서 `_calc_read_time`으로 자동 계산 (500자/분) | LLM 출력값 그대로 사용 → 코드 레그레션 | Minor |
-| connectionType | direct_inspiration / structural_analogy / mathematical_foundation / conceptual_borrowing / reverse_inspiration 중 하나 | 유형 불일치 → curated 파일 메타데이터 수정 필요 | Minor |
+| connectionType | direct_inspiration / structural_analogy / mathematical_foundation / conceptual_borrowing 중 하나 | 유형 불일치 → curated 파일 메타데이터 수정 필요 | Minor |
 | keywords | 원리+AI 양쪽 키워드 (KO + EN 쌍) | 관련 없는 키워드, 또는 너무 일반적("AI", "기술") | Minor |
 
 #### 1.6.3 LLM 폴백 검사 (비상 시만)
 
-curated 풀 고갈(39개 모두 30일 내 사용) 시 LLM 생성 폴백이 발동됨. 정상 운영에서는 발생하지 않아야 함.
+curated 풀 고갈(37개 모두 30일 내 사용) 시 LLM 생성 폴백이 발동됨. 정상 운영에서는 발생하지 않아야 함.
 
 | 검사 항목 | 정상 | 이상 징후 | 심각도 |
 |-----------|------|-----------|--------|

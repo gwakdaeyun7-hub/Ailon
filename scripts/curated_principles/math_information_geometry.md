@@ -1,5 +1,5 @@
 ---
-difficulty: advanced
+difficulty: intermediate
 connectionType: direct_inspiration
 keywords: 정보 기하학, 자연 경사, 피셔 정보 행렬, KL 발산, 리만 계량, 통계적 다양체, TRPO, K-FAC
 keywords_en: information geometry, natural gradient, Fisher information matrix, KL divergence, Riemannian metric, statistical manifold, TRPO, K-FAC
@@ -36,7 +36,7 @@ D_KL(p(theta) || p(theta + d_theta)) ≈ 1/2 * d_theta^T * F * d_theta
 
 KL 발산은 두 분포가 "얼마나 다른지"를 비대칭적으로 측정하는 양이다. p에서 q를 바라보는 거리와 q에서 p를 바라보는 거리가 다르다. 그 국소적(무한소) 버전이 피셔 정보 계량이다. 유클리드 평면에서 짧은 거리의 제곱이 d^T * I * d (I는 단위 행렬)인 것처럼, 분포 공간에서는 d^T * F * d가 자연스러운 거리의 제곱이다. I 대신 F가 들어가면서 공간이 "휘어진다".
 
-Amari는 여기서 더 나아가 이중 아핀 접속(dual affine connections)이라는 기하학적 구조를 도입했다. 지수족(exponential family) 분포와 혼합족(mixture family) 분포에 대해 각각 자연스러운 좌표계가 존재하며, 이 둘 사이의 쌍대성(duality)이 정보 기하학의 심층 구조를 형성한다. 이 쌍대성 덕분에 지수족에서의 KL 발산 최소화가 볼록(convex) 최적화 문제가 되는 성질이 나온다.
+Amari는 여기서 더 나아가, 같은 분포 공간을 바라보는 두 가지 자연스러운 좌표계가 존재함을 보였다. 하나는 지수족(exponential family) 분포에 자연스러운 좌표이고, 다른 하나는 혼합족(mixture family) 분포에 자연스러운 좌표다. 직관적으로 비유하면, 같은 지형을 "등고선 지도"로 볼 수도 있고 "경사도 지도"로 볼 수도 있는데, 두 관점이 서로 보완적인 정보를 제공하는 것과 비슷하다. 이 쌍대성(duality) 덕분에 지수족에서의 KL 발산 최소화가 볼록(convex) 최적화 문제가 되는 성질이 나온다.
 
 ## 수학에서 AI 최적화로: 자연 경사법
 
@@ -55,6 +55,8 @@ theta(t+1) = theta(t) - eta * F^(-1) * gradient(L)
 일반 경사하강법이 "유클리드 공간에서 가장 가파른 내리막"으로 걷는다면, 자연 경사법은 "분포 공간에서 가장 가파른 내리막"으로 걷는다. F^(-1)이 유클리드 좌표계의 그래디언트를 분포 공간의 자연 좌표계로 변환하는 역할을 한다.
 
 이것이 왜 중요한가? 자연 경사법은 파라미터화 방식에 무관(reparameterization-invariant)하다. 같은 분포를 theta로 표현하든 phi = f(theta)로 표현하든, 자연 경사가 분포 공간에서 가리키는 방향은 동일하다. 일반 경사하강법은 좌표를 바꾸면 수렴 경로가 완전히 달라진다. 앞서 정규 분포 예시에서 본 sigma의 크기에 따른 비균일성이 자연 경사에서는 자동으로 보정된다.
+
+AI 실무에서 이 차이가 드러나는 예를 보자. 신경망의 학습률(learning rate)을 0.01에서 0.001로 줄이는 것과, 0.001에서 0.0001로 줄이는 것은 유클리드 공간에서 같은 크기(0.009)의 변화다. 그러나 확률 분포 공간에서 보면 이야기가 다르다. 학습률이 0.01일 때 0.001을 줄이면 출력 분포가 미세하게 바뀌지만, 학습률이 0.0001 근처에서 같은 크기를 바꾸면 학습 동태가 극적으로 변할 수 있다. 일반 SGD는 이 비균일성을 무시하고 같은 스텝을 밟지만, 자연 경사법은 분포 변화의 실제 크기에 맞추어 스텝을 조정한다.
 
 ## 핵심 트레이드오프: 기하학적 정확성 vs 계산 비용
 
@@ -142,7 +144,7 @@ D_KL(p(theta) || p(theta + d_theta)) ≈ 1/2 * d_theta^T * F * d_theta
 
 KL divergence asymmetrically measures how different two distributions are -- the distance from p looking at q differs from q looking at p. Its local (infinitesimal) version is the Fisher information metric. Just as the squared distance over a short interval in Euclidean space is d^T * I * d (where I is the identity matrix), in distribution space d^T * F * d is the natural squared distance. Replacing I with F is what makes the space "curved."
 
-Amari went further, introducing dual affine connections as a geometric structure on this manifold. Exponential family and mixture family distributions each have natural coordinate systems, and the duality between them forms the deep structure of information geometry. This duality is what makes KL divergence minimization a convex optimization problem in exponential family natural parameter coordinates.
+Amari went further, showing that two natural coordinate systems exist for viewing the same distribution space. One is natural for exponential family distributions, the other for mixture family distributions. Intuitively, this is like viewing the same terrain through a "contour map" versus a "gradient map" -- each perspective provides complementary information. This duality is what makes KL divergence minimization a convex optimization problem in exponential family natural parameter coordinates.
 
 ## From Mathematics to AI Optimization: The Natural Gradient
 
@@ -161,6 +163,8 @@ theta(t+1) = theta(t) - eta * F^(-1) * gradient(L)
 Where ordinary gradient descent walks "downhill in the steepest direction in Euclidean space," the natural gradient walks "downhill in the steepest direction in distribution space." F^(-1) transforms the gradient from Euclidean coordinates to the natural coordinates of distribution space.
 
 Why does this matter? The natural gradient is reparameterization-invariant. Whether you express the same distribution using theta or phi = f(theta), the direction the natural gradient points in distribution space is identical. Ordinary gradient descent changes its convergence path entirely when you change coordinates. The non-uniformity from the normal distribution example earlier -- where the same-sized sigma change has dramatically different effects depending on sigma's magnitude -- is automatically corrected by the natural gradient.
+
+A practical AI example illustrates this difference. Reducing a neural network's learning rate from 0.01 to 0.001 and from 0.001 to 0.0001 are changes of the same Euclidean magnitude (0.009). But in distribution space, the story differs. At a learning rate of 0.01, subtracting 0.001 barely changes the output distribution; near 0.0001, the same-sized change can dramatically alter training dynamics. Ordinary SGD ignores this non-uniformity and takes the same step, while the natural gradient adjusts its step to match the actual magnitude of distributional change.
 
 ## The Core Tradeoff: Geometric Accuracy vs. Computational Cost
 
