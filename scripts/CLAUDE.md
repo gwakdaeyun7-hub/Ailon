@@ -60,7 +60,7 @@ AI타임스, GeekNews, ZDNet AI 에디터 (HTML scrape), 요즘IT AI
 
 ### Article Summary Structure (per article)
 ```
-display_title / display_title_en  — 뉴스 헤드라인 스타일 제목 ('...' 20-30%만: 여운·궁금증 소수만, 확정 사실·구분자 금지)
+display_title / display_title_en  — 뉴스 헤드라인 스타일 제목 ('...'·'?' 비율 제한 없이 자유 사용, 확정 사실 서술어 뒤 구분자 금지)
 one_line / one_line_en            — 사건 1문장 요약 (누가+무엇을)
 key_points / key_points_en        — 구체적 세부정보 3개 (2개도 허용)
 why_important / why_important_en  — 업계 영향 1-2문장
