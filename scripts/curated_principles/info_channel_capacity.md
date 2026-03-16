@@ -40,8 +40,6 @@ Shannon의 잡음 채널 부호화 정리에는 근본적 트레이드오프가 
 
 Tishby, Pereira & Bialek(2000)의 정보 병목(Information Bottleneck, IB) 방법은 Shannon의 채널 부호화를 학습 이론의 언어로 재해석한 것이다. 핵심 목적 함수는 min_{p(t|x)} I(X; T) - beta * I(T; Y)이다. X는 입력 데이터, Y는 레이블, T는 네트워크의 중간 표현이다. I(X;T)를 최소화하여 불필요한 세부 정보를 버리게 하고(압축), I(T;Y)를 최대화하여 예측에 필요한 정보를 보존하게 한다(예측). beta가 무한대로 가면 압축 없이 모든 정보를 보존하고, beta가 0이면 예측과 무관하게 정보를 최대한 버린다.
 
-Shwartz-Ziv & Tishby(2017)는 심층 네트워크의 학습을 초기 피팅 단계와 이후 압축 단계로 나누어 분석했지만, 이 가설에는 Saxe et al.(2018)의 중요한 반론이 있으며 "한계와 약점" 섹션에서 다룬다.
-
 ## 현대 AI 기법과의 연결
 
 채널 용량의 핵심 원리 -- "잡음 속에서 본질을 보존하는 부호화" -- 는 현대 AI의 여러 기법에서 변형되어 살아 있다.
@@ -53,9 +51,6 @@ Shwartz-Ziv & Tishby(2017)는 심층 네트워크의 학습을 초기 피팅 단
 - **교차 엔트로피 손실 함수**: 분류 문제의 표준 손실 함수인 교차 엔트로피는 Shannon 엔트로피의 직접적 확장이다. 이 손실을 최소화하는 것은 모델 출력과 실제 분포 사이의 KL 발산을 최소화하는 것과 동치다.
 
 **동일한 직관을 독립적으로 공유하는 구조적 유사성:**
-
-- **드롭아웃의 정보 병목 해석**: Srivastava et al.(2014)의 드롭아웃은 정보 이론적으로 재해석하면 레이어 내부에 잡음 채널을 삽입하여 전달 가능한 정보량에 상한을 두는 것과 구조적으로 유사하다. 이 유사성은 사후적 해석이며, 드롭아웃이 정보 이론에서 직접 영감을 받은 것은 아니다.
-- **네트워크 아키텍처와 용량 배분**: ResNet의 스킵 연결은 우회 채널을 추가하여 총 정보 전달 용량을 늘리는 것으로, Transformer의 어텐션 메커니즘은 정보 전달 경로를 동적으로 선택하는 것으로 해석할 수 있다. 이들은 사후적으로 채널 용량 프레임워크로 분석 가능한 사례다.
 
 ## 한계와 약점
 
@@ -118,8 +113,6 @@ This tradeoff recurs in richer forms in machine learning. A network's intermedia
 
 Tishby, Pereira & Bialek's (2000) Information Bottleneck (IB) reinterpreted Shannon's channel coding in learning theory language. The core objective is min_{p(t|x)} I(X; T) - beta * I(T; Y). X is input, Y is labels, T is the intermediate representation. Minimize I(X;T) to discard unnecessary details (compression) and maximize I(T;Y) to preserve predictive information (prediction). As beta approaches infinity, all information is preserved; when beta is 0, information is maximally discarded.
 
-Shwartz-Ziv & Tishby (2017) analyzed deep network learning in two phases -- fitting then compression -- but this hypothesis faces important counterarguments from Saxe et al. (2018), discussed in "Limitations."
-
 ## Connections to Modern AI
 
 The core principle -- "coding that preserves essence amid noise" -- lives on across modern AI.
@@ -131,9 +124,6 @@ The core principle -- "coding that preserves essence amid noise" -- lives on acr
 - **Cross-entropy loss**: The standard classification loss is a direct extension of Shannon entropy. Minimizing it equals minimizing KL divergence between model output and true distribution.
 
 **Structural similarities sharing the same intuition independently:**
-
-- **Dropout as information bottleneck**: Srivastava et al.'s (2014) dropout, reinterpreted information-theoretically, resembles inserting noisy channels within layers. This is a post-hoc interpretation, not the original design motivation.
-- **Network architecture and capacity**: ResNet skip connections add bypass channels increasing information capacity; Transformer attention dynamically selects information paths. These can be analyzed through the channel capacity framework post-hoc.
 
 ## Limitations and Weaknesses
 

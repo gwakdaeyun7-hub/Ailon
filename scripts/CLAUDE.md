@@ -90,7 +90,7 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 - **4 Super Categories**: 공학(4분야, 12시드), 자연과학(4분야, 12시드), 형식과학(2분야, 11시드), 응용과학(1분야, 2시드)
 - **재분류**: 기존 최적화공학(4시드)은 원래 학문 기준으로 재분류됨 — 담금질 기법→물리학, 경사하강법·볼록최적화→수학, 베이지안 최적화→통계학
 - **파일 형식**: front-matter(difficulty, connectionType, keywords) + 자유 형식 마크다운 KO 본문 + `---EN---` 구분자 + EN 본문
-- content_ko (2000~5000자) + content_en (영어 동일 내용) 쌍
+- content_ko (4,242~4,842자, Gold Standard +-300자 범위) + content_en (영어 동일 내용) 쌍
 - **제목 규칙**: principle_name에 영어 알고리즘/원리 이름 사용, 콘텐츠 첫 줄 "English Name - 한줄 정의" 형태
 - **connectionType 유형**: direct_inspiration, structural_analogy, mathematical_foundation, conceptual_borrowing
 - 수식은 LaTeX가 아닌 평문 표기 (dE = E(x') - E(x) 형태), ≤/≥ 등 유니코드 수학 기호 사용
@@ -98,7 +98,7 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 - **난이도 관리 원칙** (대상: AI 관심 일반인~초중급) — curated 콘텐츠 작성 시 적용:
   - 구체적 적용 사례 포함, 공간적 비유 활용, 수식 중간 단계 추가
   - 전문 용어는 풀어쓴 설명 먼저, 인과 계보 과장 금지, 복합 개념 문장 분리
-  - 상세 기준은 curated 콘텐츠 작성 시 참조 (골드 스탠다드: `opt_simulated_annealing.md`)
+  - 상세 기준은 curated 콘텐츠 작성 시 참조 (골드 스탠다드: `opt_simulated_annealing.md`, 4,542자/~9분)
 
 **LLM 생성 폴백 (비상 시만, 현재 비활성):**
 - curated 풀 고갈(37개 모두 30일 내 사용) 시에만 LLM 폴백 발동

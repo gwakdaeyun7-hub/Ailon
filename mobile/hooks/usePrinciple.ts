@@ -239,7 +239,7 @@ Exploration vs. exploitation - the balance between broadly surveying new regions
     difficulty: 'intermediate',
     keywords: ['담금질 기법', '메타휴리스틱', '전역 최적화', '냉각 스케줄', '볼츠만 분포', 'Metropolis 알고리즘', '탐색과 활용'],
     keywords_en: ['simulated annealing', 'metaheuristic', 'global optimization', 'cooling schedule', 'Boltzmann distribution', 'Metropolis algorithm', 'exploration vs exploitation'],
-    readTime: '7분',
+    readTime: '9분',
     takeaway: '금속을 천천히 식히면 가장 안정적인 구조에 도달한다는 물리 원리가, AI가 지역 최적에 빠지지 않고 더 나은 답을 찾아가는 확률적 최적화의 토대가 되었다.',
     takeaway_en: 'The physical principle that slowly cooling metal yields its most stable structure became the foundation for probabilistic optimization in AI -- enabling it to escape local optima and find better solutions.',
   },

@@ -12,10 +12,6 @@ Molecular Graph Representation - 화학의 분자 그래프 표현 전통이 GNN
 
 이 표현이 단순한 그림이 아닌 이유는, 분자 그래프에 화학적 성질을 결정하는 핵심 정보가 담겨 있기 때문이다. 원자의 종류(탄소인지 산소인지), 결합의 유형(단일 결합, 이중 결합, 방향족 결합), 연결 패턴(위상, topology) -- 이 세 가지가 분자의 반응성, 독성, 용해도를 좌우한다. 화학의 대원칙인 "구조가 성질을 결정한다"가 그래프 하나에 자연스럽게 인코딩되어 있는 것이다. 이를 공간적으로 비유하면, 분자 그래프는 도시의 지하철 노선도와 비슷하다. 실제 지리적 거리는 표현하지 못하지만, 어떤 역(원자)이 어떤 역과 연결되어 있는지, 환승역(분기점 원자)이 어디인지는 정확히 보여준다.
 
-이 전통은 컴퓨터 시대에 들어 화학 정보학(cheminformatics)으로 발전했다. Harry Morgan(1965)은 분자 그래프에서 각 원자의 연결성(connectivity)을 체계적으로 인코딩하여 분자를 고유하게 식별하는 알고리즘을 만들었다. David Weininger(1988)는 SMILES(Simplified Molecular Input Line Entry System)를 개발해 분자 그래프를 문자열로 변환했다. 그래프의 깊이 우선 탐색(DFS) 경로를 따라 원자와 결합을 순차적으로 기록하는 방식으로, 에탄올은 CCO, 벤젠은 c1ccccc1이 된다.
-
-그런데 SMILES에는 근본적 한계가 있다. 같은 분자를 탐색 시작점에 따라 다른 문자열로 표현할 수 있다 -- 에탄올은 CCO로도, OCC로도 쓸 수 있다. 즉 SMILES는 **순서 의존적**(order-dependent)이다. 반면 분자 그래프는 **순열 불변**(permutation-invariant)하다. 어떤 원자부터 읽기 시작하든 그래프 구조 자체는 동일하다. 이 순열 불변성이 GNN에게 결정적 이점을 제공한다. 그래프를 직접 처리하면 같은 분자에 대해 항상 같은 표현을 얻지만, SMILES 문자열을 RNN이나 Transformer로 처리하면 입력 순서에 따라 표현이 달라질 수 있다.
-
 ## 분자 지문에서 신경 지문으로: 화학에서 AI로의 전환
 
 1990년대부터 화학 정보학에서는 분자를 고정된 규칙으로 이진 벡터(비트 벡터)로 변환하는 **분자 지문(molecular fingerprint)**을 널리 사용했다. 가장 대표적인 Morgan 지문(ECFP, Extended-Connectivity Fingerprint)의 작동 방식은 Morgan(1965)의 연결성 인코딩을 확장한 것이다.
@@ -26,14 +22,6 @@ Molecular Graph Representation - 화학의 분자 그래프 표현 전통이 GNN
 4. 모든 원자의 최종 식별자를 해시 함수로 고정 길이 비트 벡터(보통 1024~2048비트)에 매핑한다
 
 이 과정에서 결정적 도약이 일어났다. David Duvenaud et al.(2015)이 이 반복적 이웃 정보 집계 과정을 보고 질문을 던진 것이다. "2단계의 해싱을 학습 가능한 신경망 함수로 바꾸면 어떨까?" 이것이 **신경 지문(neural fingerprint)**이며, 분자 그래프에 대한 최초의 그래프 신경망 적용 중 하나다. 핵심 대응 관계는 다음과 같다.
-
-- 원자의 초기 식별자 --> **노드 특성 벡터** (원자 번호, 결합 수 등을 실수 벡터로 인코딩)
-- 이웃 식별자와의 결합 --> **이웃 노드 특성의 집계** (학습 가능한 가중치로 결합)
-- 해시 함수 --> **신경망 층** (데이터에서 최적의 변환을 학습)
-- 반복 횟수 r --> **GNN의 레이어 수** (정보가 전파되는 홉 수)
-- 고정 비트 벡터 --> **학습된 연속 벡터** (미분 가능하여 역전파 학습 가능)
-
-고정 규칙에서 학습 가능한 함수로의 전환이 영감의 핵심이다. 화학자들이 150년간 다듬어 온 "반복적 이웃 정보 집계"라는 알고리즘 골격이, 신경망의 학습 능력을 만나 GNN이라는 새로운 범주의 AI 모델이 된 것이다.
 
 ## 메시지 전달 신경망(MPNN): 핵심 메커니즘
 
@@ -49,14 +37,6 @@ MPNN의 한 스텝은 두 단계로 이루어진다.
    h_v^(t+1) = U(h_v^(t), m_v^(t))
    업데이트 함수 U는 이전 상태와 메시지를 결합하는 학습 가능한 함수다.
 
-이 과정을 T번 반복하면, 각 노드는 T-홉(hop) 이내의 모든 이웃 정보를 자신의 상태 벡터에 집약한다. T=0이면 각 원자는 자기 자신만 알고, T=1이면 직접 결합된 이웃을, T=2면 이웃의 이웃까지 안다. 구체적 분자로 보면, 에탄올(CH3CH2OH)에서 메틸기(CH3-)의 탄소를 기준으로 할 때, 1-hop에는 인접한 탄소와 수소가, 2-hop에는 히드록시기(-OH)의 산소가 들어온다. 3층 GNN이면 이 탄소가 히드록시기의 영향까지 "알게" 된다. 이것은 Morgan 알고리즘의 반복적 이웃 확장과 정확히 동일한 논리다. 차이는 고정된 해싱 대신 학습 가능한 M과 U를 사용한다는 점뿐이다.
-
-최종적으로 분자 전체의 표현을 얻으려면, 모든 노드의 최종 상태를 하나로 합치는 **읽기 함수(readout function)** R이 필요하다.
-
-y = R({h_v^(T) | v in G})
-
-가장 단순한 R은 모든 노드 상태의 합이나 평균이다. 이렇게 얻은 벡터 y가 분자 전체를 대표하며, 여기에 추가 신경망을 연결해 용해도, 독성, 결합 에너지 등을 예측한다.
-
 ## 정보 전파 범위와 표현력의 트레이드오프
 
 MPNN에서 레이어 수 T는 핵심 트레이드오프를 만든다.
@@ -64,20 +44,6 @@ MPNN에서 레이어 수 T는 핵심 트레이드오프를 만든다.
 - **T가 작을 때** (예: T=1~2): 각 원자가 직접 이웃만 참조한다. 국소적 작용기(functional group) -- 히드록시기(-OH), 카르복시기(-COOH) 같은 특정 원자 배열 -- 를 잘 포착하지만, 분자의 먼 부분 사이 상호작용은 놓친다. 약물 분자에서 한쪽 끝의 변형이 반대쪽 결합 친화도에 미치는 영향을 알 수 없다.
 - **T가 클 때** (예: T=6~8): 각 원자가 분자 전체의 정보를 받아들인다. 하지만 **과잉 스무딩(oversmoothing)**이 발생한다. 메시지가 반복 전파되면서 모든 노드의 상태가 평균으로 수렴하여, 서로 다른 원자의 표현이 구별 불가능해진다. 마치 여러 색의 물감을 계속 섞으면 결국 하나의 탁한 색이 되는 것과 같다.
 - **극단**: T를 무한대로 보내면, Weisfeiler-Lehman(WL) 그래프 동형 판별 검사의 한계와 동일해진다. MPNN은 WL 검사보다 강한 구분력을 가질 수 없다는 것이 Xu et al.(2019)의 GIN(Graph Isomorphism Network) 논문에서 증명되었다. 이는 특정 그래프 쌍(예: 정규 그래프)을 MPNN이 원리적으로 구별할 수 없다는 뜻이다.
-
-실무에서 T는 보통 3~5로 설정한다. 분자 크기에 비해 이 정도면 대부분의 원자 쌍이 서로의 정보에 접근할 수 있으면서, 과잉 스무딩이 심각해지기 전이다.
-
-## 2D에서 3D로: 등변 신경망의 이론적 심화
-
-분자 그래프의 근본적 한계는 3차원 공간 정보를 버린다는 것이다. 같은 분자식, 같은 연결 구조를 가져도 3D 배치가 다른 배좌 이성질체(conformer)는 완전히 다른 화학적 성질을 보인다. 효소의 활성 부위에 약물이 결합하려면 3D 형태가 정확히 맞아야 한다 -- 열쇠와 자물쇠처럼.
-
-이 문제를 해결하기 위한 발전이 세 단계로 일어났다. 3D 기하 GNN은 세 세대에 걸쳐 점점 더 풍부한 기하 정보를 활용하게 되었다.
-
-첫째, Kristof Schutt et al.(2017)의 **SchNet**은 원자 간 거리를 연속 필터(continuous filter)로 처리하여 3D 정보를 포함한 최초의 주요 모델이다. 간선 특성 e_vw에 결합 유형 대신 원자 간 유클리드 거리를 넣은 것이다.
-
-둘째, Johannes Klicpera et al.(2020)의 **DimeNet**은 거리뿐 아니라 결합 각도(bond angle)까지 인코딩하여 방향 정보를 포착했다. 세 원자 A-B-C가 이루는 각도가 분자의 3D 형태를 결정하는 핵심 정보이기 때문이다.
-
-셋째, Simon Batzner et al.(2022)의 **NequIP**으로 대표되는 **등변 신경망(equivariant neural network)**이다. 등변성이란, 분자를 회전하거나 이동해도 신경망의 예측이 물리 법칙에 맞게 변환되는 성질이다. 에너지는 분자를 어떻게 돌려도 같아야 하고(불변, invariant), 힘 벡터는 분자와 함께 회전해야 한다(등변, equivariant). 이 물리적 대칭을 신경망 구조 자체에 내장하여, 학습해야 할 것을 줄이고 물리적 일관성을 보장한 것이다.
 
 ## 현대 AI 기법과의 연결
 
@@ -89,9 +55,6 @@ MPNN에서 레이어 수 T는 핵심 트레이드오프를 만든다.
 - **Duvenaud의 신경 지문(2015)**: Morgan 지문의 해싱을 신경망으로 대체한 이 작업이 GNN의 "미분 가능한 그래프 처리"라는 핵심 아이디어를 확립했다. 이후 GCN(Kipf & Welling, 2017), GAT(Velickovic et al., 2018) 등 주요 GNN 변종들이 같은 원리 위에 세워졌다.
 
 **동일한 구조적 직관을 독립적으로 공유하는 사례:**
-
-- **Transformer의 self-attention**: Transformer(Vaswani et al., 2017)에서 각 토큰이 다른 모든 토큰과 상호작용하는 구조는, MPNN에서 각 노드가 이웃 노드와 메시지를 교환하는 구조와 유사하다. 다만 Transformer는 완전 연결 그래프(모든 노드 쌍 사이에 간선)에 해당하고, GNN은 실제 그래프 구조를 따르므로 설계 동기가 다르다. 역사적으로 Transformer는 시퀀스 모델링에서, GNN은 화학에서 독립적으로 발전했다.
-- **WL 그래프 동형 검사와 GNN 표현력**: Xu et al.(2019)은 MPNN의 표현력 상한이 1차 WL 검사와 동일하다는 것을 증명했다. 이는 그래프 이론(수학)의 결과가 GNN(AI)의 근본적 한계를 규명한 사례로, 화학에서의 직접 영감과는 별개의 수학적 분석이다.
 
 ## 한계와 약점
 
@@ -117,10 +80,6 @@ SMILES(simplified molecular input line entry system) - Weininger(1988)가 개발
 과잉 스무딩(oversmoothing) - GNN에서 메시지 전달 반복이 많아지면 모든 노드 표현이 평균으로 수렴하여 구별 불가능해지는 현상
 
 등변 신경망(equivariant neural network) - 입력의 대칭 변환(회전, 이동)에 대해 출력이 물리 법칙에 맞게 변환되는 신경망. 에너지는 불변, 힘은 등변으로 처리
-
-배좌 이성질체(conformer) - 같은 분자식과 연결 구조를 가지지만 3D 공간 배치가 다른 분자 형태. 단백질-약물 결합에서 핵심적 역할
-
-화학 정보학(cheminformatics) - 화학 데이터를 컴퓨터로 처리, 분석하는 학제간 분야. 분자 표현, 유사성 검색, 성질 예측 등을 포함
 ---EN---
 Molecular Graph Representation - How chemistry's molecular graph tradition became a core GNN application and contributed to the development of the message passing framework
 
@@ -129,10 +88,6 @@ Molecular Graph Representation - How chemistry's molecular graph tradition becam
 Chemists draw molecules as graphs. The practice of representing atoms as **nodes** and chemical bonds as **edges** is chemistry's oldest visual language. Mathematician Arthur Cayley (1857) first systematically applied graph theory to chemistry, aiming to exhaustively enumerate isomers -- molecules sharing the same formula but differing in structure. Butane (C4H10) has exactly two isomers: one where four carbon atoms connect in a straight chain, and another where three branch off from a central atom. Cayley recast counting such structures as a tree enumeration problem.
 
 This representation is far more than a drawing because molecular graphs encode the essential information that determines chemical properties. Atom types (carbon vs. oxygen), bond types (single, double, aromatic), and connectivity patterns (topology) govern a molecule's reactivity, toxicity, and solubility. Chemistry's grand principle -- "structure determines properties" -- is naturally encoded in a single graph. Spatially, a molecular graph resembles a subway map: it cannot show actual geographic distances, but it precisely reveals which stations (atoms) connect to which, and where the transfer hubs (branching atoms) are.
-
-This tradition evolved into cheminformatics in the computer age. Harry Morgan (1965) created an algorithm that systematically encodes each atom's connectivity in a molecular graph, establishing the standard method for uniquely identifying molecules. David Weininger (1988) developed SMILES (Simplified Molecular Input Line Entry System), converting molecular graphs into strings by recording atoms and bonds along a depth-first search (DFS) path. Ethanol becomes CCO; benzene becomes c1ccccc1.
-
-However, SMILES has a fundamental limitation. The same molecule can be represented as different strings depending on where the traversal begins -- ethanol can be written as CCO or OCC. SMILES is **order-dependent**. Molecular graphs, by contrast, are **permutation-invariant** -- the graph structure is identical regardless of which atom you start reading from. This permutation invariance gives GNNs a decisive advantage: processing a graph directly always yields the same representation for the same molecule, whereas processing SMILES strings with an RNN or Transformer can produce different representations depending on input order.
 
 ## From Molecular Fingerprints to Neural Fingerprints: The Transition from Chemistry to AI
 
@@ -144,14 +99,6 @@ Starting in the 1990s, cheminformatics widely adopted **molecular fingerprints**
 4. Hash all atoms' final identifiers into a fixed-length bit vector (usually 1024-2048 bits)
 
 The decisive leap happened here. David Duvenaud et al. (2015) examined this iterative neighbor aggregation process and asked: "What if we replace the hashing in step 2 with a learnable neural network function?" This became the **neural fingerprint**, one of the first graph neural network applications to molecular graphs. The key correspondences are:
-
-- Atom initial identifiers --> **node feature vectors** (atomic number, bond count, etc. encoded as real-valued vectors)
-- Combining with neighbor identifiers --> **aggregation of neighbor node features** (combined using learnable weights)
-- Hash function --> **neural network layers** (learning optimal transformations from data)
-- Number of iterations r --> **GNN layer count** (number of hops for information propagation)
-- Fixed bit vector --> **learned continuous vector** (differentiable, enabling backpropagation training)
-
-The transition from fixed rules to learnable functions was the essence of the inspiration. The algorithmic skeleton of "iterative neighbor information aggregation" that chemists refined over 150 years, combined with neural networks' learning capability, gave rise to GNNs as an entirely new category of AI model.
 
 ## Message Passing Neural Networks (MPNN): Core Mechanism
 
@@ -167,14 +114,6 @@ One MPNN step consists of two stages:
    h_v^(t+1) = U(h_v^(t), m_v^(t))
    The update function U is a learnable function that merges the previous state with incoming messages.
 
-Repeating T times, each node aggregates information from all neighbors within T hops into its state vector. At T=0, each atom knows only itself. At T=1, it knows directly bonded neighbors. At T=2, neighbors of neighbors. To illustrate with a concrete molecule: in ethanol (CH3CH2OH), taking the carbon of the methyl group (CH3-) as the reference, 1-hop reaches the adjacent carbon and hydrogens, while 2-hop reaches the oxygen of the hydroxyl group (-OH). With a 3-layer GNN, this carbon "learns" the influence of the hydroxyl group. This follows exactly the same logic as the Morgan algorithm's iterative neighborhood expansion. The only difference is using learnable M and U instead of fixed hashing.
-
-To obtain a representation of the entire molecule, a **readout function** R combines all nodes' final states into one:
-
-y = R({h_v^(T) | v in G})
-
-The simplest R is a sum or average of all node states. The resulting vector y represents the whole molecule and connects to additional neural network layers to predict solubility, toxicity, binding energy, and more.
-
 ## The Tradeoff Between Information Propagation Range and Expressiveness
 
 In MPNNs, the number of layers T creates a core tradeoff:
@@ -182,20 +121,6 @@ In MPNNs, the number of layers T creates a core tradeoff:
 - **Small T** (e.g., T=1-2): Each atom references only immediate neighbors. This captures local functional groups well -- specific atom arrangements like hydroxyl (-OH) or carboxyl (-COOH) groups -- but misses interactions between distant parts of the molecule. A modification at one end of a drug molecule's effect on binding affinity at the other end would be invisible.
 - **Large T** (e.g., T=6-8): Each atom receives information from across the entire molecule. But **oversmoothing** occurs. As messages propagate repeatedly, all node states converge toward the average, making different atoms' representations indistinguishable. Like mixing many paint colors together -- eventually everything becomes a single muddy hue.
 - **Extreme**: As T approaches infinity, MPNN's discriminative power hits the ceiling of the Weisfeiler-Lehman (WL) graph isomorphism test. Xu et al. (2019) proved in their GIN (Graph Isomorphism Network) paper that no MPNN can exceed the WL test's distinguishing power. This means certain graph pairs (e.g., regular graphs) are fundamentally indistinguishable by any MPNN.
-
-In practice, T is typically set to 3-5. For most molecular sizes, this allows most atom pairs to access each other's information while staying below the threshold where oversmoothing becomes severe.
-
-## From 2D to 3D: Theoretical Deepening with Equivariant Networks
-
-The fundamental limitation of molecular graphs is discarding three-dimensional spatial information. Conformers -- molecules with identical formula and connectivity but different 3D arrangements -- can exhibit completely different chemical properties. For a drug to bind to an enzyme's active site, the 3D shape must fit precisely -- like a key in a lock.
-
-Addressing this limitation unfolded in three stages. 3D geometric GNNs evolved across three generations to leverage increasingly rich geometric information.
-
-First, Kristof Schutt et al.'s (2017) **SchNet** was the first major model incorporating 3D information by processing interatomic distances through continuous filters. Instead of bond type, the edge feature e_vw encodes the Euclidean distance between atoms.
-
-Second, Johannes Klicpera et al.'s (2020) **DimeNet** encoded not only distances but bond angles. The angle formed by three atoms A-B-C is critical information determining a molecule's 3D shape.
-
-Third, the **equivariant neural network**, exemplified by Simon Batzner et al.'s (2022) **NequIP**. Equivariance means that when a molecule is rotated or translated, the network's predictions transform consistently with physical laws. Energy must remain the same regardless of rotation (invariant), while force vectors must rotate with the molecule (equivariant). By embedding these physical symmetries directly into the network architecture, the amount that must be learned is reduced while physical consistency is guaranteed.
 
 ## Connections to Modern AI
 
@@ -207,9 +132,6 @@ The GNN idea born from molecular graphs has spread beyond chemistry across AI. H
 - **Duvenaud's neural fingerprint (2015)**: This work replacing Morgan fingerprint hashing with neural networks established the core GNN idea of "differentiable graph processing." Major GNN variants that followed -- GCN (Kipf & Welling, 2017), GAT (Velickovic et al., 2018) -- were built on the same principle.
 
 **Cases sharing the same structural intuition independently:**
-
-- **Transformer self-attention**: In the Transformer (Vaswani et al., 2017), each token interacting with all other tokens structurally resembles MPNN nodes exchanging messages with neighbors. However, the Transformer corresponds to a fully connected graph (edges between all node pairs), while GNNs follow actual graph structure, so the design motivations differ. Historically, Transformers evolved from sequence modeling and GNNs from chemistry, independently.
-- **WL graph isomorphism test and GNN expressiveness**: Xu et al. (2019) proved that MPNN's expressive power is upper-bounded by the first-order WL test. This is a case where graph theory (mathematics) delineated a fundamental limit of GNNs (AI), separate from the direct chemical inspiration.
 
 ## Limitations and Weaknesses
 
@@ -235,7 +157,3 @@ Message passing neural network (MPNN) - a unified graph neural network framework
 Oversmoothing - the phenomenon in GNNs where excessive message passing iterations cause all node representations to converge toward the mean, becoming indistinguishable
 
 Equivariant neural network - a neural network whose outputs transform consistently with physical laws under symmetry transformations (rotation, translation) of the input; processes energy as invariant and forces as equivariant
-
-Conformer - molecular forms sharing the same formula and connectivity but differing in 3D spatial arrangement; plays a critical role in protein-drug binding
-
-Cheminformatics - an interdisciplinary field processing and analyzing chemical data computationally, encompassing molecular representation, similarity searching, and property prediction

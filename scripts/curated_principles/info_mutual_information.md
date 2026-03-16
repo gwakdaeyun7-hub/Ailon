@@ -10,9 +10,9 @@ Mutual Information - 두 확률변수가 공유하는 정보의 양을 측정하
 
 두 변수 사이의 관계를 측정하는 가장 흔한 도구는 Pearson 상관계수다. 그런데 Y = X^2처럼 완벽한 비선형 관계에서 상관계수가 0이 나온다. X를 알면 Y를 정확히 알 수 있는데, "관계 없음"이라는 답이 돌아오는 것이다. 상관계수는 **선형** 관계만 측정하기 때문이다.
 
-Claude Shannon이 1948년 정보 이론을 창시했을 때, "불확실성"을 수학적으로 정량화하는 도구가 필요했고, 그 결과 엔트로피와 상호 정보량(Mutual Information, MI)이 탄생했다. MI는 상관계수와 달리 **모든 형태의 통계적 의존성** -- 선형이든 비선형이든, 연속이든 이산이든 -- 을 포착한다.
+Claude Shannon이 1948년 정보 이론을 창시했을 때, "불확실성"을 수학적으로 정량화하는 도구가 필요했고, 엔트로피와 상호 정보량(Mutual Information, MI)이 탄생했다. MI는 상관계수와 달리 **모든 형태의 통계적 의존성** -- 선형이든 비선형이든 -- 을 포착한다.
 
-MI를 공간적으로 상상하면 이렇다. 두 개의 원이 부분적으로 겹치는 벤 다이어그램에서, 왼쪽 원은 X의 불확실성(H(X)), 오른쪽 원은 Y의 불확실성(H(Y))이다. 겹치는 영역이 MI, 즉 X와 Y가 **공유하는 정보의 양**이다. 겹침이 없으면(독립) MI = 0이고, 한쪽이 다른 쪽을 완전히 포함하면 MI는 최대가 된다.
+벤 다이어그램으로 상상하면, 왼쪽 원은 X의 불확실성(H(X)), 오른쪽 원은 Y의 불확실성(H(Y))이다. 겹치는 영역이 MI, 즉 X와 Y가 **공유하는 정보의 양**이다. 겹침이 없으면(독립) MI = 0이고, 한쪽이 다른 쪽을 완전히 포함하면 MI는 최대가 된다.
 
 ## MI의 수학적 구조
 
@@ -38,7 +38,7 @@ X --> Y --> Z 이면 I(X; Z) <= I(X; Y)
 
 데이터를 변환하면 정보가 **증가하지 않는다**. 원본 사진(X)을 흑백으로 변환(Y)한 뒤 축소(Z)하면, 축소 이미지가 원본에 대해 가진 정보는 흑백 이미지가 가진 정보 이하다. 변환을 아무리 정교하게 해도 잃어버린 정보를 되살릴 수 없다.
 
-신경망의 각 레이어를 하나의 변환으로 보면, 입력 X가 여러 레이어를 거쳐 표현 Z가 될 때, 각 단계에서 정보가 손실될 수 있지만 증가할 수는 없다. 이 관찰이 정보 병목 이론의 수학적 토대가 된다.
+신경망의 각 레이어를 하나의 변환으로 보면, 입력 X가 여러 레이어를 거쳐 표현 Z가 될 때 정보가 손실될 수 있지만 증가할 수는 없다. 이것이 정보 병목 이론의 수학적 토대다.
 
 ## 정보 이론에서 머신러닝으로
 
@@ -111,9 +111,9 @@ Mutual Information - A core information-theoretic measure of the shared informat
 
 The most common tool for measuring relationships between two variables is Pearson correlation. But for a perfect nonlinear relationship like Y = X^2, correlation returns zero. Knowing X tells you Y exactly, yet the measure says "no relationship." Correlation measures only **linear** relationships.
 
-When Claude Shannon founded information theory in 1948, he needed tools to quantify "uncertainty" mathematically, giving rise to entropy and Mutual Information (MI). Unlike correlation, MI captures **all forms of statistical dependence** -- linear or nonlinear, continuous or discrete.
+When Claude Shannon founded information theory in 1948, he needed tools to quantify "uncertainty" mathematically, giving rise to entropy and Mutual Information (MI). Unlike correlation, MI captures **all forms of statistical dependence** -- linear or nonlinear.
 
-To visualize MI: imagine a Venn diagram with two overlapping circles. The left circle is X's uncertainty (H(X)), the right is Y's (H(Y)). The overlap is MI -- the **shared information** between X and Y. No overlap (independence) means MI = 0; complete containment maximizes MI.
+Visualize MI as a Venn diagram: the left circle is X's uncertainty (H(X)), the right is Y's (H(Y)). The overlap is MI -- the **shared information**. No overlap (independence) means MI = 0; complete containment maximizes MI.
 
 ## The Mathematical Structure of MI
 
@@ -137,7 +137,7 @@ If X --> Y --> Z, then I(X; Z) <= I(X; Y)
 
 Transforming data **cannot increase** information. Converting a color photo to grayscale then downscaling it: the downscaled image has at most as much information about the original as the grayscale version. No transformation can recover lost information.
 
-Each neural network layer is a transformation. As input X passes through layers to become representation Z, information may be lost but cannot increase. This observation is the mathematical foundation of Information Bottleneck theory.
+Each neural network layer is a transformation. As input X passes through layers to become representation Z, information may be lost but cannot increase. This is the mathematical foundation of Information Bottleneck theory.
 
 ## From Information Theory to Machine Learning
 

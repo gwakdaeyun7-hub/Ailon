@@ -69,9 +69,6 @@ MPC의 "내부 모델로 미래를 예측하고, 최적 행동을 계획하고, 
 
 **동일한 직관을 독립적으로 공유하는 구조적 유사성:**
 
-- **LLM의 계획과 추론**: Chain-of-Thought 추론이나 Tree-of-Thought 탐색은 "미래 결과를 내부적으로 시뮬레이션하고 가장 좋은 경로를 선택한다"는 점에서 MPC의 구조를 연상시킨다. 그러나 LLM은 MPC에서 직접 영감을 받아 설계된 것이 아니라 별도의 연구 흐름에서 발전했다
-- **예측 부호화(Predictive Coding)와 세계 모델**: 인지과학의 예측 부호화 가설과 Ha & Schmidhuber(2018)의 "World Models", LeCun(2022)의 JEPA는 "좋은 내부 모델이 있으면 효율적으로 행동할 수 있다"는 공통 직관을 MPC와 공유한다
-
 ## 한계와 약점
 
 MPC 패러다임의 강력함에도 근본적 한계가 존재한다.
@@ -98,7 +95,6 @@ MPC 패러다임의 강력함에도 근본적 한계가 존재한다.
 시뮬레이션-현실 간극(sim-to-real gap) - 시뮬레이터에서 학습된 정책이나 모델이 실제 환경에서 성능이 저하되는 현상
 
 도메인 랜덤화(domain randomization) - 시뮬레이션의 물리적 파라미터를 무작위로 변화시켜 현실 환경에 대한 견실성을 높이는 기법
-
 ---EN---
 Model Predictive Control - A control technique that predicts the future using an internal model, plans an optimal action sequence, executes only the first action, and re-plans at every moment
 
@@ -164,9 +160,6 @@ MPC's paradigm of "predict the future with an internal model, plan optimal actio
 - **Dreamer**: Hafner et al. (2020) learned a video-prediction-based world model and optimized policy by simulating future trajectories within the model. This realizes MPC's core advantage -- **sample efficiency**, performing trial-and-error inside the model rather than the real environment -- in the neural network era
 
 **Structural similarities sharing the same intuition independently:**
-
-- **LLM planning and reasoning**: Chain-of-Thought reasoning and Tree-of-Thought search evoke MPC's structure in that they "internally simulate future outcomes and select the best path." However, LLMs developed from a separate research lineage
-- **Predictive coding and world models**: The predictive coding hypothesis in cognitive science, Ha & Schmidhuber's (2018) "World Models," and LeCun's (2022) JEPA share the common intuition with MPC that "a good internal model enables efficient action"
 
 ## Limitations and Weaknesses
 

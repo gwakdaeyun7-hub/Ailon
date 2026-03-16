@@ -8,9 +8,9 @@ Markov Chain Monte Carlo - 직접 샘플링이 불가능한 복잡한 확률 분
 
 ## 통계 물리학이 낳은 샘플링 전략
 
-1953년, 로스알라모스 국립연구소에서 Nicholas Metropolis, Arianna Rosenbluth, Marshall Rosenbluth, Augusta Teller, Edward Teller는 핵무기 설계를 위한 중성자 확산 시뮬레이션에 직면했다. 수백 개의 입자가 상호작용하는 시스템에서 열평형 상태의 에너지 분포를 구해야 했지만, 가능한 배치의 수가 천문학적이라 직접 계산은 불가능했다. 그래서 분포를 직접 계산하는 대신, 그 분포에서 **샘플을 뽑아** 통계적으로 근사하는 전략을 택했다.
+1953년, 로스알라모스 국립연구소에서 Nicholas Metropolis, Arianna Rosenbluth, Marshall Rosenbluth, Augusta Teller, Edward Teller는 핵무기 설계를 위한 중성자 확산 시뮬레이션에 직면했다. 수백 개의 입자가 상호작용하는 시스템에서 열평형 에너지 분포를 구해야 했지만, 가능한 배치 수가 천문학적이라 직접 계산은 불가능했다. 분포를 직접 계산하는 대신, 그 분포에서 **샘플을 뽑아** 통계적으로 근사하는 전략을 택했다.
 
-이 아이디어의 핵심을 비유로 표현하면 이렇다. 울퉁불퉁한 산악 지형의 전체 지도를 그리는 것은 불가능하지만, 한 사람이 오래 걸어다니며 방문한 장소들의 고도를 기록하면 지형의 윤곽을 알 수 있다. 다만 **낮은 곳을 더 자주 방문하고, 높은 곳을 덜 자주 방문하는 특별한 걸음 규칙**이 있어야 한다. 이 걸음 규칙이 마르코프 체인이다.
+비유로 표현하면, 울퉁불퉁한 산악 지형의 전체 지도를 그리는 것은 불가능하지만, 한 사람이 오래 걸어다니며 고도를 기록하면 지형의 윤곽을 알 수 있다. 다만 **낮은 곳을 더 자주 방문하고, 높은 곳을 덜 자주 방문하는 특별한 걸음 규칙**이 있어야 한다. 이 걸음 규칙이 마르코프 체인이다.
 
 이들의 논문 "Equation of State Calculations by Fast Computing Machines"(1953)은 두 가지 AI 기법의 공통 조상이 되었다. Kirkpatrick et al.(1983)의 Simulated Annealing(최적화)과 MCMC(샘플링)다. 같은 수용-거부 메커니즘이 서로 다른 목적으로 갈라진 것이다.
 
@@ -52,7 +52,7 @@ MCMC의 근본적 실무 난제는 **"충분히 오래 실행했는가"**를 알
 
 **혼합(mixing)**: 확률 분포에 봉우리가 여러 개 있고 그 사이가 낮은 확률의 골짜기로 분리되면, 체인이 한 봉우리에 갇혀 다른 봉우리를 방문하지 못한다.
 
-**자기상관(autocorrelation)**: 연속 샘플이 상관되어 있어, 100개의 연속 샘플이 독립적 100개만큼의 정보를 담지 못한다. 유효 표본 크기(ESS)가 실제 샘플 수보다 작아진다.
+**자기상관(autocorrelation)**: 연속 샘플이 상관되어 있어, 유효 표본 크기(ESS)가 실제 샘플 수보다 작아진다.
 
 Gelman-Rubin 진단(R-hat), ESS, 추적 그림 등 진단 도구가 있지만, 모두 수렴의 **필요**조건만 확인할 뿐 **충분**조건을 보장하지 않는다.
 
@@ -104,7 +104,7 @@ Markov Chain Monte Carlo - A computational technique for indirectly drawing samp
 
 ## A Sampling Strategy Born from Statistical Physics
 
-In 1953, at Los Alamos National Laboratory, Nicholas Metropolis, Arianna Rosenbluth, Marshall Rosenbluth, Augusta Teller, and Edward Teller faced neutron diffusion simulation for nuclear weapon design. They needed the energy distribution at thermal equilibrium for hundreds of interacting particles, but the astronomical number of configurations made direct computation impossible. So they adopted a different strategy: instead of computing the distribution directly, **draw samples** from it and approximate statistically.
+In 1953, at Los Alamos National Laboratory, Nicholas Metropolis, Arianna Rosenbluth, Marshall Rosenbluth, Augusta Teller, and Edward Teller faced neutron diffusion simulation for nuclear weapon design. They needed the equilibrium energy distribution for hundreds of interacting particles, but the astronomical number of configurations made direct computation impossible. Instead of computing the distribution directly, they **drew samples** and approximated statistically.
 
 The core idea, as an analogy: drawing a complete map of rugged terrain is impossible, but a person walking long enough and recording elevations reveals the rough contours. The catch: there must be **a special walking rule that visits low areas more frequently and high areas less frequently**. This walking rule is the Markov chain.
 
@@ -148,7 +148,7 @@ MCMC's fundamental practical challenge: knowing **"have we run long enough?"**
 
 **Mixing**: If the distribution has multiple peaks separated by low-probability valleys, the chain gets trapped in one peak.
 
-**Autocorrelation**: Consecutive samples are correlated, so 100 consecutive samples carry less information than 100 independent ones. Effective sample size (ESS) falls below the actual count.
+**Autocorrelation**: Consecutive samples are correlated, so effective sample size (ESS) falls below the actual count.
 
 Diagnostics like Gelman-Rubin (R-hat), ESS, and trace plots check **necessary** conditions only -- none **guarantee** convergence.
 

@@ -14,12 +14,6 @@ Swarm Intelligence - 단순한 개체들의 국소 상호작용에서 집단 수
 
 군집 지능이 작동하는 세 가지 조건이 있다.
 
-1. **단순한 국소 규칙**: 각 개체는 주변 이웃과의 간단한 상호작용 규칙만 따른다. 전체를 내려다보는 조율자가 없다.
-2. **간접 통신(stigmergy)**: 개체들이 직접 대화하는 것이 아니라, 환경에 흔적을 남기고 다른 개체가 그 흔적을 읽는다. 개미의 페로몬(pheromone) -- 길 위에 남기는 화학 물질 -- 이 전형적 예시다.
-3. **양성 피드백과 음성 피드백의 균형**: 좋은 경로에 페로몬이 축적되어 더 많은 개미를 끌어들이는 것이 양성 피드백이다. 동시에 페로몬이 시간에 따라 증발하는 것이 음성 피드백이다. 이 균형이 없으면 시스템은 하나의 경로에 갇히거나 혼란 속에 머문다.
-
-개미만이 아니다. 꿀벌의 waggle dance, 찌르레기 수천 마리의 murmuration(분리-정렬-응집의 세 규칙, Reynolds 1987), 뇌 없는 점균류가 도쿄 철도망과 유사한 네트워크를 형성하는 현상(Nakagaki et al., 2000) 모두 같은 원리다. Beni와 Wang(1989)이 "swarm intelligence"라는 용어를 만들었고, Bonabeau, Dorigo, Theraulaz(1999)가 이 분야를 학문적으로 정립했다.
-
 ## 생물학에서 알고리즘으로
 
 군집 지능의 알고리즘 번역은 두 갈래로 이루어졌다. 하나는 개미의 페로몬 경로를 조합 최적화로 옮긴 것이고, 다른 하나는 새 떼의 군무를 연속 최적화로 옮긴 것이다.
@@ -35,11 +29,6 @@ Marco Dorigo가 박사 논문에서 제안했다. 직접적 영감은 실제 개
 
 **입자 군집 최적화(PSO) -- Kennedy & Eberhart(1995):**
 새 떼와 물고기 떼의 집단 이동에서 영감을 받았다. Reynolds(1987)의 Boids 시뮬레이션 -- 분리, 정렬, 응집의 세 규칙으로 새 떼를 컴퓨터 그래픽에 재현한 것 -- 이 중간 영감이 되었다.
-
-- 새 한 마리의 위치 --> **해 공간의 한 점** (후보 해)
-- 새의 비행 속도와 방향 --> **해 공간에서의 이동 벡터** (속도)
-- 이웃 새들의 방향을 참고하는 행동 --> **전체 군집 최선(g_best) 방향으로의 인력**
-- 개체의 경험 기억 --> **자신의 역대 최선(p_best_i) 방향으로의 인력**
 
 ## ACO의 핵심 메커니즘
 
@@ -77,9 +66,6 @@ PSO에서 각 입자의 속도와 위치는 다음과 같이 갱신된다.
 
 **동일한 구조적 직관을 독립적으로 공유하는 사례:**
 
-- **연합 학습(Federated Learning, McMahan et al., 2017)**: 개별 디바이스에서 국소적으로 학습하고 모델 업데이트만 중앙 서버에 공유하는 구조다. 각 디바이스가 "개미"처럼 국소 정보만 가지고 있지만, 집계된 모델은 전체 데이터를 본 것처럼 동작한다. 이 구조는 stigmergy의 디지털 변형과 닮아 있다. 다만 McMahan et al.이 군집 지능에서 영감을 받았다는 기록은 없으며, 프라이버시 보존과 통신 효율이라는 독립적 동기에서 출발했다.
-- **다중 에이전트 강화학습(MARL)**: 여러 에이전트가 국소 관찰만으로 협력하여 전역 과제를 수행하는 구조는 군집 지능과 구조적으로 닮아 있다. 각 에이전트는 자신의 정책(국소 규칙)만 가지고, 집단 행동이 창발한다. 그러나 MARL은 게임 이론과 강화학습 이론에서 독립적으로 발전한 분야다.
-
 ## 한계와 약점
 
 - **수렴 보장 부재**: ACO도 PSO도 전역 최적해 도달을 이론적으로 보장하지 않는다. 경험적으로 좋은 해를 찾을 뿐이며, 주어진 해가 최적에 얼마나 가까운지 판단할 기준도 부족하다. 이는 적어도 지역 최적 조건을 검증할 수 있는 경사 기반 방법과 대조적이다.
@@ -104,7 +90,6 @@ PSO에서 각 입자의 속도와 위치는 다음과 같이 갱신된다.
 관성 가중치(inertia weight) - PSO에서 입자의 현재 속도를 유지하려는 경향을 조절하는 파라미터. 높으면 넓은 탐색, 낮으면 세밀한 활용을 유도
 
 조기 수렴(premature convergence) - 해 공간이 충분히 탐색되기 전에 모든 개체가 하나의 해로 수렴하는 실패 모드. 선택압이나 사회적 인력이 과도할 때 발생
-
 ---EN---
 Swarm Intelligence - The biological principle by which intelligent collective behavior emerges from local interactions of simple individuals, and its translation into optimization algorithms
 
@@ -115,12 +100,6 @@ A single ant has only about 250,000 brain neurons. Its vision extends just a few
 To picture this spatially: think of a Mexican wave in a stadium of thousands. Each spectator follows one rule only: "stand up when my neighbor stands up." Nobody designed the wave's overall shape, yet a clean wave circles the entire stadium. Swarm intelligence works on exactly this structure. Local rules create global patterns.
 
 Three conditions enable swarm intelligence:
-
-1. **Simple local rules**: Each individual follows only simple interaction rules with nearby neighbors. There is no central coordinator overseeing the whole.
-2. **Indirect communication (stigmergy)**: Individuals do not talk to each other directly; instead they leave traces in the environment and others read those traces. Ant **pheromone** -- a chemical substance deposited on a path -- is the classic example.
-3. **Balance of positive and negative feedback**: Pheromone accumulating on good paths, attracting more ants, is positive feedback. Pheromone evaporating over time is negative feedback. Without this balance, the system either locks onto one path or remains in chaos.
-
-Ants are not alone. Honeybee waggle dances, starling murmurations (three rules: separation, alignment, cohesion -- Reynolds 1987), and brainless slime mold forming networks strikingly similar to Tokyo's rail system (Nakagaki et al., 2000) all follow the same principle. Beni and Wang (1989) coined "swarm intelligence," and Bonabeau, Dorigo, and Theraulaz (1999) established the field academically.
 
 ## From Biology to Algorithm
 
@@ -137,11 +116,6 @@ Marco Dorigo proposed this in his doctoral thesis. The direct inspiration was re
 
 **Particle Swarm Optimization (PSO) -- Kennedy & Eberhart (1995):**
 Inspired by the collective movement of bird flocks and fish schools. Reynolds' (1987) Boids simulation -- reproducing flock behavior with three rules (separation, alignment, cohesion) for computer graphics -- served as an intermediate inspiration.
-
-- A single bird's position --> **a point in solution space** (candidate solution)
-- A bird's flight speed and direction --> **movement vector in solution space** (velocity)
-- Adjusting to neighbors' direction --> **attraction toward the swarm's global best (g_best)**
-- Individual experiential memory --> **attraction toward one's personal best (p_best_i)**
 
 ## Core Mechanism of ACO
 
@@ -179,9 +153,6 @@ Swarm intelligence principles extend beyond simple optimization algorithms, refl
 
 **Structural similarities sharing the same intuition independently:**
 
-- **Federated Learning (McMahan et al., 2017)**: Individual devices learn locally and share only model updates with a central server. Each device, like an "ant," has only local information, yet the aggregated model behaves as if it has seen all data. This structure resembles a digital variant of stigmergy. However, there is no record of McMahan et al. being inspired by swarm intelligence; they started from independent motivations of privacy preservation and communication efficiency.
-- **Multi-Agent Reinforcement Learning (MARL)**: The structure where multiple agents cooperate on global tasks using only local observations resembles swarm intelligence structurally. Each agent has its own policy (local rule), and collective behavior emerges. However, MARL developed independently from game theory and reinforcement learning theory.
-
 ## Limitations and Weaknesses
 
 - **No convergence guarantee**: Neither ACO nor PSO theoretically guarantees reaching the global optimum. They find empirically good solutions, but there is no criterion for measuring how close to optimal a given solution is. This contrasts with gradient-based methods that can at least verify local optimality conditions.
@@ -206,7 +177,3 @@ Particle swarm optimization (PSO) - a continuous optimization algorithm inspired
 Inertia weight - a parameter in PSO controlling the tendency to maintain current velocity; higher values encourage broad exploration, lower values encourage fine exploitation
 
 Positive feedback - a cycle where a system's output amplifies its input in the same direction; pheromone accumulation on good paths attracting more ants is the classic example
-
-Premature convergence - the failure mode where all particles collapse toward a single point before the solution space has been adequately explored, typically caused by excessive social attraction
-
-Self-organization - the spontaneous formation of order from local interactions in an open system without central control; a theoretical framework encompassing swarm intelligence
