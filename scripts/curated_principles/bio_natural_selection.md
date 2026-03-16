@@ -38,14 +38,14 @@ GA의 각 세대는 네 단계를 순서대로 밟는다.
 
 SA가 온도 하나로 탐색-활용 균형을 조절했듯, GA는 **집단 다양성(population diversity)**과 **선택압(selection pressure)** 사이의 균형이 성능을 좌우한다.
 
-Ronald Fisher(1930)의 기본 정리(fundamental theorem)는 "자연선택에 의한 적합도 증가율은 적합도의 유전적 분산에 비례한다"고 진술한다. 즉 집단이 다양할수록 진화가 빨라진다. 이것이 진화 알고리즘에서 다양성 관리의 이론적 근거가 된다.
+Ronald Fisher(1930)의 기본 정리는 "자연선택에 의한 적합도 증가율은 적합도의 유전적 분산에 비례한다"고 진술한다. 즉 집단이 다양할수록 진화가 빨라진다. 이것이 진화 알고리즘에서 다양성 관리의 이론적 근거가 된다.
 
-- **선택압이 너무 강하면**: 적합도 높은 소수의 개체만 살아남아 집단이 균일해진다. 탐색 공간의 한 영역만 파고들어 지역 최적에 빠진다. 이를 **조기 수렴(premature convergence)**이라 부른다
-- **선택압이 너무 약하면**: 적합도와 무관하게 개체가 살아남아 무작위 탐색과 다를 바 없어진다. 세대가 지나도 집단이 좋은 방향으로 수렴하지 않는다
-- **돌연변이가 너무 높으면**: 교차로 만들어진 좋은 조합이 파괴된다. 유전적 기억이 유지되지 않는다
+- **선택압이 너무 강하면**: 적합도 높은 소수의 개체만 살아남아 집단이 균일해지고 지역 최적에 빠진다. 이를 **조기 수렴(premature convergence)**이라 부른다
+- **선택압이 너무 약하면**: 적합도와 무관하게 개체가 살아남아 무작위 탐색과 다를 바 없다
+- **돌연변이가 너무 높으면**: 교차로 만들어진 좋은 조합이 파괴된다
 - **돌연변이가 너무 낮으면**: 새로운 유전자 조합이 등장하지 못해 탐색 범위가 좁아진다
 
-Holland(1975)의 **스키마 정리(Schema Theorem)**는 이 균형의 수학적 근거를 제공한다. "짧고, 낮은 차수의, 적합도 높은 스키마(부분 패턴)는 세대가 지날수록 지수적으로 증가한다." 스키마 1**0*(1과 0 사이에 무엇이든 올 수 있는 패턴)이 높은 적합도를 가지면, 이 패턴을 포함하는 개체 수가 세대마다 늘어난다는 뜻이다. 이것이 GA가 좋은 "부품"을 조합해 점점 더 나은 해를 만들 수 있다는 이론적 설명이다. 다만 스키마 정리는 교차가 좋은 스키마를 파괴하지 않는다는 암묵적 가정에 의존하며, 실제로는 이 가정이 자주 깨진다는 비판이 있다.
+Holland(1975)의 **스키마 정리(Schema Theorem)**는 이 균형의 수학적 근거를 제공한다. "짧고, 낮은 차수의, 적합도 높은 부분 패턴(스키마)은 세대가 지날수록 지수적으로 증가한다." GA가 좋은 "부품"을 조합해 점점 더 나은 해를 만들 수 있다는 이론적 설명이지만, 교차가 좋은 스키마를 파괴하지 않는다는 암묵적 가정에 의존하며 실제로는 이 가정이 자주 깨진다는 비판이 있다.
 
 ## 라마르크주의: 생물학에서는 틀렸지만 AI에서는 작동하는 원리
 
@@ -53,7 +53,7 @@ Holland(1975)의 **스키마 정리(Schema Theorem)**는 이 균형의 수학적
 
 그러나 AI에서는 이것이 **실제로 작동한다**. 신경망의 가중치(학습으로 얻은 지식)를 진화 과정에서 자손에게 직접 전달할 수 있다. NEAT(NeuroEvolution of Augmenting Topologies, Stanley & Miikkulainen, 2002)에서는 네트워크 구조와 가중치가 함께 진화하며, 부모가 학습한 가중치가 자손의 출발점이 된다. 사전 학습된 모델을 미세조정(fine-tuning)하는 것도 넓게 보면 같은 구조다. GPT 계열 모델의 사전 학습 가중치를 "부모 세대의 지식"이라 보면, 이를 물려받아 특정 과제에 적응시키는 것은 획득 형질의 유전과 닮았다.
 
-이 차이가 생기는 근본 원인은 매체의 차이다. 탄소 기반 생명체에서는 유전 정보(DNA)와 발현된 형질(단백질) 사이에 넘을 수 없는 장벽이 있지만, 실리콘 기반 계산에서는 학습된 파라미터를 자유롭게 복사하고 전달할 수 있다. 같은 영감에서 출발했지만, 매체가 열어주는 가능성이 근본적으로 다른 사례다.
+근본 원인은 매체의 차이다. 탄소 기반 생명체에서는 유전 정보(DNA)와 발현된 형질(단백질) 사이에 넘을 수 없는 장벽이 있지만, 실리콘 기반 계산에서는 학습된 파라미터를 자유롭게 복사하고 전달할 수 있다.
 
 ## 현대 AI 기법과의 연결
 
@@ -89,15 +89,11 @@ Holland(1975)의 **스키마 정리(Schema Theorem)**는 이 균형의 수학적
 
 유전 알고리즘(genetic algorithm) - Holland(1975)가 체계화한, 자연선택의 선택-변이-유전 사이클을 모방한 집단 기반 최적화 기법
 
-스키마(schema) - 유전자열에서 특정 위치의 값이 고정되고 나머지는 자유로운 부분 패턴. 1**0*은 첫째 자리가 1, 셋째 자리가 0인 모든 문자열을 포함한다
-
 조기 수렴(premature convergence) - 집단의 다양성이 너무 빨리 소실되어 탐색이 멈추고 지역 최적에 갇히는 현상
 
 라마르크주의(Lamarckism) - 살면서 획득한 형질이 자손에게 유전된다는 이론. 생물학에서는 반증되었으나 AI에서는 학습된 가중치 전달로 유효하게 작동한다
 
 파레토 프론트(Pareto front) - 다목적 최적화에서 어떤 목적도 다른 목적을 희생하지 않고는 더 개선할 수 없는 해들의 집합
-
-선택압(selection pressure) - 적합도가 높은 개체를 얼마나 강하게 선호하는가의 정도. 높으면 수렴이 빠르지만 다양성이 줄고, 낮으면 탐색은 넓지만 수렴이 느리다
 ---EN---
 Natural Selection - A population-based optimization technique directly inspired by Darwin's mechanism of natural selection
 
@@ -140,7 +136,7 @@ Ronald Fisher's (1930) fundamental theorem states that "the rate of increase in 
 - **Mutation rate too high**: Good combinations created by crossover are destroyed. Genetic memory is not maintained
 - **Mutation rate too low**: New gene combinations cannot emerge, narrowing the search range
 
-Holland's (1975) **Schema Theorem** provides mathematical grounding for this balance: "Short, low-order schemata with above-average fitness increase exponentially across generations." If the schema 1**0* (a pattern where position 1 is 1 and position 3 is 0, with anything in between) has high fitness, then the number of individuals containing this pattern grows each generation. This is the theoretical explanation for how GA assembles good "building blocks" into progressively better solutions. However, the Schema Theorem implicitly assumes crossover does not destroy good schemata, and this assumption is frequently violated in practice -- a well-known criticism.
+Holland's (1975) **Schema Theorem** provides mathematical grounding for this balance: "Short, low-order schemata with above-average fitness increase exponentially across generations." This is the theoretical explanation for how GA assembles good "building blocks" into progressively better solutions. However, the Schema Theorem implicitly assumes crossover does not destroy good schemata, and this assumption is frequently violated in practice -- a well-known criticism.
 
 ## Lamarckism: Wrong in Biology, Operational in AI
 
@@ -148,7 +144,7 @@ The most notable divergence between evolutionary computation and biology lies he
 
 Yet in AI, this **actually works**. Neural network weights (knowledge gained through learning) can be directly transmitted to offspring during evolution. In NEAT (NeuroEvolution of Augmenting Topologies, Stanley & Miikkulainen, 2002), network structure and weights evolve together, and a parent's learned weights become the offspring's starting point. Fine-tuning a pretrained model follows the same structure in broad terms. If GPT's pretrained weights are viewed as "ancestral knowledge," inheriting them and adapting to a specific task resembles inheritance of acquired characteristics.
 
-The fundamental cause of this divergence is the difference in medium. In carbon-based life, an impassable barrier exists between genetic information (DNA) and expressed traits (proteins), but in silicon-based computation, learned parameters can be freely copied and transferred. Starting from the same inspiration, the possibilities opened by the medium are fundamentally different.
+The fundamental cause of this divergence is the difference in medium. In carbon-based life, an impassable barrier exists between genetic information (DNA) and expressed traits (proteins), but in silicon-based computation, learned parameters can be freely copied and transferred. Starting from the same inspiration, the medium's possibilities are fundamentally different.
 
 ## Connections to Modern AI
 
@@ -184,12 +180,8 @@ Crossover - an operation combining genetic information from two parents to creat
 
 Genetic algorithm - a population-based optimization technique formalized by Holland (1975), mimicking the selection-variation-heredity cycle of natural selection
 
-Schema - a partial pattern in a gene string where certain positions are fixed and the rest are free. 1**0* includes all strings with 1 in the first position and 0 in the third
-
 Premature convergence - the phenomenon where population diversity is lost too quickly, halting search and trapping it in local optima
 
 Lamarckism - the theory that traits acquired during a lifetime are inherited by offspring. Disproven in biology but effectively operational in AI through learned weight transfer
 
 Pareto front - in multi-objective optimization, the set of solutions where no objective can be improved without sacrificing another
-
-Selection pressure - the degree to which higher-fitness individuals are preferred. Stronger pressure means faster convergence but less diversity; weaker pressure means broader search but slower convergence

@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
 import { FontFamily } from '@/lib/theme';
-import { Zap } from 'lucide-react-native';
+import { Image } from 'expo-image';
 
 export default function AuthScreen() {
   const { user, signInWithGoogle } = useAuth();
@@ -49,19 +49,15 @@ export default function AuthScreen() {
       >
         <View style={{ alignItems: 'center' }}>
           {/* Logo */}
-          <View
+          <Image
+            source={require('@/assets/ailon_logo.png')}
             style={{
               width: 80,
               height: 80,
               borderRadius: 24,
-              backgroundColor: 'rgba(255,255,255,0.2)',
-              alignItems: 'center',
-              justifyContent: 'center',
               marginBottom: 16,
             }}
-          >
-            <Zap size={40} color="#FFFFFF" strokeWidth={2.5} />
-          </View>
+          />
           <Text style={{ fontSize: 32, fontWeight: '800', color: '#FFFFFF', marginBottom: 4, fontFamily: FontFamily.serifItalic }}>
             AILON
           </Text>
