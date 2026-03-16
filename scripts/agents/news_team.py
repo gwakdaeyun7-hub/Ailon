@@ -383,7 +383,7 @@ def _summarize_batch(batch: list[dict], batch_idx: int, translate: bool = True) 
             "\nAlso produce these English fields:\n"
             "- display_title_en: concise English headline (news-style, not a literal back-translation). Use '...' and '?' freely when tone fits (intrigue, suspense, speculation, open questions). Never use '...' as separator after confirmed facts. Good: 'OpenAI Hints at Next-Gen Model...' / 'Can AI Replace Doctors?' Bad: 'Meta Launches New Chip...'\n"
             "- one_line_en: 1-sentence English headline of what happened (WHO did WHAT). No details, no numbers -- just the event.\n"
-            "- key_points_en: EXACTLY 3 key details NOT mentioned in one_line_en (array of exactly 3 strings). Each must contain specific data (numbers, specs, comparisons, prices, dates). No vague statements. No overlap with one_line_en.\n"
+            "- key_points_en: 3-5 key details NOT mentioned in one_line_en (array of 3-5 strings). Each must contain specific data (numbers, specs, comparisons, prices, dates). No vague statements. No overlap with one_line_en.\n"
             "- why_important_en: 1-2 sentences on impact. Name WHO is affected and HOW specifically. No overlap with one_line_en or key_points_en. Never say 'significant impact' without specifics.\n"
             "- background_en: 1-2 sentence English background context\n"
             "- tags_en: 2-4 English keywords (array of strings)\n"
@@ -396,7 +396,7 @@ def _summarize_batch(batch: list[dict], batch_idx: int, translate: bool = True) 
             "\nAlso produce these English fields (translate the Korean summaries to English):\n"
             "- display_title_en: concise English headline for this article. '...' only for 20-30% with genuine intrigue/suspense, never for confirmed facts\n"
             "- one_line_en: 1-sentence English headline of what happened (WHO did WHAT). No details, no numbers -- just the event.\n"
-            "- key_points_en: EXACTLY 3 key details NOT mentioned in one_line_en (array of exactly 3 strings). Each must contain specific data (numbers, specs, comparisons, prices, dates). No vague statements. No overlap with one_line_en.\n"
+            "- key_points_en: 3-5 key details NOT mentioned in one_line_en (array of 3-5 strings). Each must contain specific data (numbers, specs, comparisons, prices, dates). No vague statements. No overlap with one_line_en.\n"
             "- why_important_en: 1-2 sentences on impact. Name WHO is affected and HOW specifically. No overlap with one_line_en or key_points_en. Never say 'significant impact' without specifics.\n"
             "- background_en: 1-2 sentence English background context\n"
             "- tags_en: 2-4 English keywords (array of strings)\n"
@@ -418,7 +418,7 @@ For each article, produce:
   - 좋은 예: "OpenAI가 GPT-5를 공식 출시했다" (O -- 서술체)
   - 좋은 예: "Meta가 Llama 4를 오픈소스로 공개했다" (O -- 서술체)
   - 나쁜 예: "OpenAI가 GPT-5를 공식 출시했어요" (X -- 경어체 금지)
-- key_points: one_line을 읽은 사람이 추가로 알아야 할 구체적 세부 정보 정확히 3개 (개조식)
+- key_points: one_line을 읽은 사람이 추가로 알아야 할 구체적 세부 정보 3~5개 (개조식)
   *** 말투: 반드시 명사/동명사로 종결할 것. 문장형 종결어미 절대 금지 ***
   - 허용 종결: "~임" / "~됨" / "~함" / "~지원" / "~예정" / "~확대" / 명사구 (예: "50% 인하")
   - 금지 종결: "~했다" / "~했어요" / "~됩니다" / "~이에요" 등 문장형 종결어미 전부 금지
@@ -430,13 +430,13 @@ For each article, produce:
   중복 금지 규칙:
     - one_line에 등장한 주어+동사+목적어를 key_point에서 반복 금지 (같은 사실을 다른 표현으로 바꿔 쓰는 것도 반복)
     - 각 key_point끼리도 서로 다른 정보를 전달해야 함
-  본문에 구체적 팩트가 부족하면 2개도 허용하지만 4개 이상은 절대 불가
+  본문에 구체적 팩트가 부족하면 2개도 허용. 팩트가 풍부하면 5개까지 추출
   금지 패턴 (이런 문장은 key_points에 넣지 말 것):
     - "~관심을 받고 있음" / "~주목받고 있음" (관심·주목 표현)
     - "~할 것으로 보임" / "~할 전망" (추측·전망)
     - "업계에서 ~로 평가받고 있음" (막연한 평가)
     - 고유명사·숫자·스펙이 하나도 없는 문장
-  예: one_line="OpenAI가 GPT-5를 공식 출시했다" → key_points=["컨텍스트 윈도우 256K 토큰, GPT-4 대비 2배 확대", "API 가격 입력 $5/출력 $15 per 1M 토큰, GPT-4 대비 50% 인하", "이미지·오디오·비디오 입력 네이티브 지원"]
+  예: one_line="OpenAI가 GPT-5를 공식 출시했다" → key_points=["컨텍스트 윈도우 256K 토큰, GPT-4 대비 2배 확대", "API 가격 입력 $5/출력 $15 per 1M 토큰, GPT-4 대비 50% 인하", "이미지·오디오·비디오 입력 네이티브 지원", "GPT-4 대비 추론 속도 3배 향상, 첫 토큰 응답 0.3초", "개발자 미리보기 3월 출시, 일반 공개 4월 예정"]
 - why_important: 업계/개발자에게 미치는 구체적 영향 -- 1~2문장
   *** 말투: 반드시 "~이에요" / "~해요" / "~있어요" / "~돼요" 부드러운 경어체로 끝낼 것 ***
   - "~했다" 서술체 금지. "~입니다/~합니다" 격식체 금지. 오직 해요체만 사용
@@ -548,7 +548,7 @@ def _apply_batch_results(batch: list[dict], results: list[dict]) -> int:
             why_important = r.get("why_important", "")
             if one_line or key_points:
                 batch[ridx]["one_line"] = one_line
-                kp = (key_points if isinstance(key_points, list) else [])[:3]
+                kp = (key_points if isinstance(key_points, list) else [])[:5]
                 if len(kp) < 3:
                     print(f"    [INFO] key_points {len(kp)} for: {batch[ridx].get('title', '')[:50]}")
                 batch[ridx]["key_points"] = kp
@@ -569,7 +569,7 @@ def _apply_batch_results(batch: list[dict], results: list[dict]) -> int:
                 batch[ridx]["one_line_en"] = r["one_line_en"]
             kp_en = r.get("key_points_en", [])
             if kp_en:
-                batch[ridx]["key_points_en"] = (kp_en if isinstance(kp_en, list) else [])[:3]
+                batch[ridx]["key_points_en"] = (kp_en if isinstance(kp_en, list) else [])[:5]
             if r.get("why_important_en"):
                 batch[ridx]["why_important_en"] = r["why_important_en"]
             # background / tags / glossary 필드

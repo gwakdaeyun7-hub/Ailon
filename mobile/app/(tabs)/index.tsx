@@ -486,29 +486,23 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
             bounces
             contentContainerStyle={{ paddingBottom: 20 }}
           >
-            {/* 썸네일 */}
-            {article.image_url ? (
-              <View style={{ marginHorizontal: 20, borderRadius: 12, overflow: 'hidden', height: 200, backgroundColor: colors.border }}>
-                <Image
-                  source={article.image_url}
-                  style={{ width: '100%', height: 200 }}
-                  contentFit="cover"
-                  transition={200}
-                  recyclingKey={article.link}
-                />
-              </View>
-            ) : null}
-
-            {/* M1: 소스 뱃지 + 날짜 + 조회수 + 읽기 시간 + 북마크 — D4 compact */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', paddingHorizontal: 20, marginTop: article.image_url ? 16 : 0, gap: 6 }}>
-              <Text style={{ fontSize: 12, color: colors.textSecondary }}>{formatDate(article.published, lang, article.date_estimated)}</Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-                <Ionicons name="time-outline" size={13} color={colors.textSecondary} />
-                <Text style={{ fontSize: 12, color: colors.textSecondary }}>
-                  {lang === 'en' ? `${readMin}min` : `${readMin}분`}
-                </Text>
-              </View>
-              {/* H4: Bookmark touch target */}
+            {/* F-Minimal: 소스 뱃지 + 날짜 + 카테고리 + 북마크 */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', paddingHorizontal: 20, paddingTop: 20, gap: 6 }}>
+              {(() => {
+                const sk = article.source_key || article.source;
+                const sc = SOURCE_COLORS[sk] || colors.textSecondary;
+                return (
+                  <View style={{ backgroundColor: `${sc}18`, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 }}>
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: sc }}>{getSourceName(sk, t)}</Text>
+                  </View>
+                );
+              })()}
+              <Text style={{ fontSize: 11, color: colors.textDim }}>{formatDate(article.published, lang, article.date_estimated)}</Text>
+              {article.category ? (
+                <View style={{ backgroundColor: `${CATEGORY_COLORS[article.category] || colors.textDim}18`, borderRadius: 16, paddingHorizontal: 8, paddingVertical: 3 }}>
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: CATEGORY_COLORS[article.category] || colors.textDim }}>{getCategoryName(article.category, t)}</Text>
+                </View>
+              ) : null}
               <View style={{ marginLeft: 'auto' }}>
                 <Pressable
                   onPress={handleToggleBookmark}
@@ -529,95 +523,78 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
               </View>
             </View>
 
-            {/* AI Summary badge */}
-            <View style={{ paddingHorizontal: 20, marginTop: 12 }}>
-              <View style={{ alignSelf: 'flex-start', backgroundColor: colors.surface, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
-                <Text style={{ fontSize: 10, fontWeight: '700', color: colors.textDim, letterSpacing: 0.5 }}>{t('article.ai_summary')}</Text>
-              </View>
-            </View>
-
-            {/* H3: 제목 — D4 compact */}
+            {/* F-Minimal: 제목 — 세리프 22px, weight 900 */}
             <Text
               accessibilityRole="header"
               style={{
-                fontSize: 22, fontWeight: '700', color: colors.textPrimary, lineHeight: 32,
-                letterSpacing: -0.5,
-                marginTop: 10,
+                fontSize: 22, fontWeight: '900', color: colors.textPrimary, lineHeight: 32,
+                letterSpacing: -0.3,
                 paddingHorizontal: 20, fontFamily: FontFamily.serif,
               }}
             >
               {articleTitle}
             </Text>
 
-            {/* D4 Compact Reader: 핵심한줄 → 배경 → 주요포인트 → 왜중요해요 */}
+            {/* F-Minimal: 콘텐츠 영역 */}
             {oneLine ? (
               <View style={{ paddingHorizontal: 20 }}>
-                {/* 1. One Line — D4: no card bg, compact label */}
-                <View style={{ marginTop: 16 }}>
-                  <Text style={{ fontSize: 11, fontWeight: '600', letterSpacing: 1.5, color: colors.textDim, marginBottom: 6 }}>{t('modal.one_line').toUpperCase()}</Text>
-                  <Text style={{ fontSize: 16, fontWeight: '600', lineHeight: 24, color: colors.summaryIndigo }}>
+                {/* 1. One Line — left-border + teal 배경 */}
+                <View style={{ marginTop: 12, padding: 14, borderRadius: 12, backgroundColor: colors.primaryLight }}>
+                  <Text style={{ fontSize: 15, fontWeight: '600', lineHeight: 24, color: colors.summaryIndigo }}>
                     {oneLine}
                   </Text>
                 </View>
 
-                {/* 2. Background — D4: compact */}
+                {/* 2. Background — 본문 스타일 */}
                 {background ? (
-                  <View style={{ marginTop: 16 }}>
-                    <Text style={{ fontSize: 11, fontWeight: '600', letterSpacing: 1.5, color: colors.textDim, marginBottom: 6 }}>
-                      {t('modal.background').toUpperCase()}
-                    </Text>
-                    <Text style={{ fontSize: 14, color: colors.textSecondary, lineHeight: 23 }}>
-                      {background}
-                    </Text>
-                  </View>
+                  <Text style={{ fontSize: 15, lineHeight: 26, letterSpacing: 0.2, color: colors.summaryBody, marginTop: 16 }}>
+                    {background}
+                  </Text>
                 ) : null}
 
-                {/* 3. Key Points — D4: small square bullets */}
+                {/* 3. Key Points — 세리프 소제목 + 번호 스텝 블록 */}
                 {keyPoints.length > 0 && (
-                  <View style={{ marginTop: 16 }}>
-                    <Text style={{ fontSize: 11, fontWeight: '600', letterSpacing: 1.5, color: colors.textDim, marginBottom: 6 }}>{t('modal.key_points').toUpperCase()}</Text>
+                  <View style={{ marginTop: 24 }}>
+                    <Text style={{ fontSize: 17, fontWeight: '700', lineHeight: 26, color: colors.textPrimary, fontFamily: FontFamily.serif, marginBottom: 10 }}>{t('modal.key_points')}</Text>
                     {keyPoints.map((point, idx) => (
-                      <View key={idx} style={{ flexDirection: 'row', marginBottom: 10, alignItems: 'flex-start', gap: 10 }}>
-                        <View style={{
-                          width: 6, height: 6, borderRadius: 2,
-                          backgroundColor: colors.primary,
-                          marginTop: 7, flexShrink: 0,
-                        }} />
-                        <HighlightedText
-                          text={point}
-                          glossaryTerms={glossaryDBTerms}
-                          style={{ fontSize: 14, color: colors.summaryBody, lineHeight: 23, flex: 1 }}
-                          usedTermKeys={usedTermKeys}
-                          onTermsDetected={handleTermsDetected}
-                        />
+                      <View key={idx} style={{ backgroundColor: colors.surface, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10, marginBottom: 8 }}>
+                        <View style={{ flexDirection: 'row', gap: 10 }}>
+                          <Text style={{ fontSize: 14, fontWeight: '600', color: colors.textDim, minWidth: 20 }}>{idx + 1}.</Text>
+                          <HighlightedText
+                            text={point}
+                            glossaryTerms={glossaryDBTerms}
+                            style={{ fontSize: 14, color: colors.summaryBody, lineHeight: 22, flex: 1 }}
+                            usedTermKeys={usedTermKeys}
+                            onTermsDetected={handleTermsDetected}
+                          />
+                        </View>
                       </View>
                     ))}
                   </View>
                 )}
 
-                {/* 4. Why Important — D4: compact */}
+                {/* 4. Why Important — 세리프 소제목 + 본문 */}
                 {whyImportant ? (
-                  <View style={{ marginTop: 16 }}>
-                    <Text style={{ fontSize: 11, fontWeight: '600', letterSpacing: 1.5, color: colors.textDim, marginBottom: 6 }}>{t('modal.why_important').toUpperCase()}</Text>
+                  <View style={{ marginTop: 24 }}>
+                    <Text style={{ fontSize: 17, fontWeight: '700', lineHeight: 26, color: colors.textPrimary, fontFamily: FontFamily.serif, marginBottom: 10 }}>{t('modal.why_important')}</Text>
                     <HighlightedText
                       text={whyImportant}
                       glossaryTerms={glossaryDBTerms}
-                      style={{ fontSize: 14, color: colors.summaryBody, lineHeight: 23 }}
+                      style={{ fontSize: 15, color: colors.summaryBody, lineHeight: 26, letterSpacing: 0.2 }}
                       usedTermKeys={usedTermKeys}
                       onTermsDetected={handleTermsDetected}
                     />
                   </View>
                 ) : null}
 
-                {/* Tags — D4: inline comma-separated */}
+                {/* Tags — 필 스타일 */}
                 {tags && tags.length > 0 ? (
-                  <View style={{ marginTop: 16 }}>
-                    <Text style={{ fontSize: 11, fontWeight: '600', letterSpacing: 1.5, color: colors.textDim, marginBottom: 6 }}>
-                      {t('modal.tags').toUpperCase()}
-                    </Text>
-                    <Text style={{ fontSize: 12, color: colors.textSecondary, lineHeight: 20 }}>
-                      {tags.join(', ')}
-                    </Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 16 }}>
+                    {tags.map((tag, idx) => (
+                      <View key={idx} style={{ backgroundColor: colors.surface, borderRadius: 14, paddingHorizontal: 8, paddingVertical: 3 }}>
+                        <Text style={{ fontSize: 10, fontWeight: '600', color: colors.textSecondary }}>#{tag}</Text>
+                      </View>
+                    ))}
                   </View>
                 ) : null}
 
