@@ -95,6 +95,8 @@ const translations: Record<string, Record<Language, string>> = {
   'profile.legal': { ko: '법률 정보', en: 'Legal' },
   'profile.privacy_policy': { ko: '개인정보 처리방침', en: 'Privacy Policy' },
   'profile.terms_of_service': { ko: '이용약관', en: 'Terms of Service' },
+  'profile.settings': { ko: '설정', en: 'Settings' },
+  'profile.more': { ko: '기타', en: 'More' },
 
   // ─── 알림 설정 ───
   'notification.title': { ko: '알림', en: 'Notifications' },

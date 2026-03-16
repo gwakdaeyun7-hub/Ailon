@@ -378,6 +378,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
       title: getLocalizedTitle(article, lang),
       link: article.link,
       ...(article.category ? { category: article.category } : {}),
+      ...(article.article_id ? { articleId: article.article_id } : {}),
     });
   }, [toggleBookmark, article, lang]);
 
@@ -1408,12 +1409,10 @@ export default function NewsScreen() {
         flexDirection: 'row', alignItems: 'center',
         paddingHorizontal: 16, paddingTop: 20, paddingBottom: 12, backgroundColor: colors.bg,
       }}>
-        <View style={{
-          width: 36, height: 36, borderRadius: 8,
-          backgroundColor: colors.textPrimary, alignItems: 'center', justifyContent: 'center', marginRight: 10,
-        }}>
-          <Text style={{ color: colors.card, fontSize: 16, fontWeight: '800' }}>A</Text>
-        </View>
+        <Image
+          source={require('@/assets/ailon_logo.png')}
+          style={{ width: 36, height: 36, borderRadius: 8, marginRight: 10 }}
+        />
         <View style={{ flex: 1 }}>
           <Text style={{ fontSize: 24, fontWeight: '800', color: colors.textPrimary, fontFamily: FontFamily.serifItalic }}>{t('news.header')}</Text>
           {totalArticles > 0 && (

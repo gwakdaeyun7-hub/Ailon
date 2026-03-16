@@ -197,6 +197,7 @@ export interface BookmarkMeta {
   subtitle?: string;
   category?: string;
   link?: string;
+  articleId?: string;
 }
 
 export interface Bookmark {

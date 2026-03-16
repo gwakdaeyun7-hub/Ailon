@@ -45,14 +45,26 @@
 
 ### Tab 4: Saved (saved.tsx)
 - Bookmark collection with type filter (News | Principles)
-- Delete with confirmation, "View Original" for news
+- Delete with confirmation (아이콘 18px, textDim 색상)
 - Real-time sync from `users/{uid}/bookmarks` subcollection
+- **AI 요약 모달**: 뉴스 카드 탭 시 ArticleSummaryModal 표시 (saved.tsx 내 인라인 컴포넌트)
+  - `useArticle(articleId)` 훅으로 `articles/{article_id}` 컬렉션에서 fetch
+  - 모달 내용: 제목, 한줄요약(teal 배경), 핵심 포인트, 왜 중요한가, 배경, 태그, 원문 보기 버튼
+  - 다국어(ko/en) 자동 분기
+  - articleId 없는 이전 북마크: 안내 메시지 + 원문 링크 제공
+- **날짜 표시**: 상단 배지 행에 `· 날짜` 형태로 표시 (footer에서 이동)
+- **Empty state**: 비로그인→로그인 버튼, 빈 목록→"뉴스 보러가기" 버튼 (아이콘 48px)
+- footer borderTop 구분선 제거, 뉴스 아닌 타입은 footer 미렌더링
 
 ### Tab 5: Profile (profile.tsx)
-- Google Sign-In authentication
-- Language toggle (KO/EN, system language detection default), dark/light theme switch
-- Notification settings: newsAlerts, commentReplies, likes (per-type toggles)
-- Legal links: Privacy Policy + Terms of Service (bilingual KO/EN via GitHub Pages)
+- **카드 그룹핑 (4+1)**: Avatar / Settings(Language+DarkMode) / Notification / More(Activity+Legal) / SignOut
+- **Avatar**: 64px, 가로 배치 (flexDirection: 'row') — 이름+이메일 우측 배치
+- **Settings 카드**: Language toggle (KO/EN, system language detection default) + dark/light theme switch
+- **Notification 카드**: newsAlerts, commentReplies, likes (per-type toggles)
+- **More 카드**: Activity + Legal links (Privacy Policy + Terms of Service, bilingual KO/EN via GitHub Pages)
+- **Sign Out**: 카드 스타일 제거 → 단순 회색 텍스트 버튼
+- **섹션 라벨**: 13pt, ko→letterSpacing 0, en→uppercase
+- **스타일**: borderRadius 16 통일, fontWeight 제목 800 / 나머지 600
 
 ### Shared Components
 - **CommentSheet**: Full-screen modal, threaded replies, author avatars, report (Flag icon) + delete (Trash icon) per comment, ReportReasonModal (4 reasons), auto-hide at 3+ reports
@@ -74,6 +86,7 @@
 | useBookmarks | `users/{uid}/bookmarks` | Real-time bookmark sync |
 | useReactions | `reactions/{itemId}` | Like/dislike with atomic transactions |
 | useComments | `comments/{docId}/entries` | Threaded comments |
+| useArticle | `articles/{article_id}` | Single article fetch (index.tsx 요약 모달, saved.tsx AI 요약 모달) |
 | useArticleViews | `article_views/{docId}` | View tracking (daily dedup) |
 | useBatchStats | Multiple collections | Batch fetch likes/views/comments for feed cards |
 | useBriefing | `daily_briefings/{date}` | AI briefing text + story count |
