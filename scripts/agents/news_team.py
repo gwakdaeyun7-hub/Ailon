@@ -523,6 +523,19 @@ Articles:
     return None
 
 
+# ─── 제목 구분자 후처리 (EN→KO 번역 전용) ───
+_TITLE_FORBIDDEN_ELLIPSIS = re.compile(
+    r'(공개|출시|발표|인수|도입|개발|선언|철회|체결|중단|제기|투자|가동|확대|보류|강화|적용|탑재|시작|달성)\s*\.{3,}\s*(?=\S)'
+)
+
+
+def _fix_title_separator(title: str) -> str:
+    """'확정 서술어...' 구분자 패턴을 쉼표로 교정."""
+    if not title:
+        return title
+    return _TITLE_FORBIDDEN_ELLIPSIS.sub(r'\1, ', title)
+
+
 def _apply_batch_results(batch: list[dict], results: list[dict]) -> int:
     """배치 결과를 기사에 적용. 성공 건수 반환."""
     done = 0
@@ -705,6 +718,18 @@ JSON 형식으로 응답:
                             print(f"    [간이 번역 복구] {a['display_title'][:60]}")
                 except Exception as e:
                     ci_warning(f"간이 번역 실패: {a.get('title', '')[:50]} — {e}")
+
+    # 5차: EN→KO 번역 제목 구분자 후처리 ('확정 서술어...' → 쉼표 교정)
+    if translate:
+        fixed_count = 0
+        for a in articles:
+            dt = a.get("display_title", "")
+            fixed = _fix_title_separator(dt)
+            if fixed != dt:
+                a["display_title"] = fixed
+                fixed_count += 1
+        if fixed_count:
+            print(f"    [제목 교정] {fixed_count}개 제목 '...' 구분자 → 쉼표 교정")
 
     success = len([a for a in articles if a.get("summary") and len(a["summary"]) > 50])
     still_untranslated = len([a for a in articles if a.get("lang") != "ko" and a.get("display_title") == a.get("title") and a.get("title")]) if translate else 0

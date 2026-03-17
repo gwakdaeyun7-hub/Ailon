@@ -46,6 +46,7 @@ AI타임스, GeekNews, ZDNet AI 에디터 (HTML scrape), 요즘IT AI
 | CLASSIFY_BATCH_SIZE | 5 | LLM 안정성 |
 | EN batch size | 5 | 번역+요약 |
 | KO batch size | 2 | 한국어 본문이 길어서 |
+| `_TITLE_FORBIDDEN_ELLIPSIS` | 정규식 — 20개 금지 서술어 + `...` + 후속 텍스트 | EN→KO 번역 제목에서 구분자 '...' → ',' 자동 교정 (`_fix_title_separator()`). KO 소스 원본 제목은 미적용. 제목 끝 여운 '...'는 `(?=\S)` lookahead로 보존 |
 | DEDUP layers | 7 (L1 URL→L2 orig_title≥0.65→L3 disp_title≥0.65→L4 one_line≥0.65 + 고유명사 가드→L5 key_tokens(고유명사3+숫자1 겹침)→L6 embedding→L7 title_entity) | L4 가드: 양쪽 기사에 식별 가능한 고유명사(영어)가 있으면 최소 1개 공유 필요 — 문장 구조만 유사한 오탐 방지 (e.g., "Anthropic lawsuit" vs "Nintendo lawsuit") |
 | Embedding threshold | 0.92 cosine | L6 |
 | L7 title_entity | 제품+버전 일치 + one_line 토큰 Jaccard ≥ 0.30 | GPT-5.4 등 동일 이벤트 다소스 중복 감지. 버전 없는 제품명(예: "Code Review")은 L7 매칭 약화 — L5 nums_overlap도 0이면 전 레이어 통과 가능 (구조적 한계) |
@@ -60,7 +61,7 @@ AI타임스, GeekNews, ZDNet AI 에디터 (HTML scrape), 요즘IT AI
 
 ### Article Summary Structure (per article)
 ```
-display_title / display_title_en  — 뉴스 헤드라인 스타일 제목 ('...'·'?' 비율 제한 없이 자유 사용, 확정 사실 서술어 뒤 구분자 금지)
+display_title / display_title_en  — 뉴스 헤드라인 스타일 제목 ('...'·'?' 비율 제한 없이 자유 사용, 확정 사실 서술어 뒤 구분자 금지). EN→KO 번역 제목은 `_fix_title_separator()` 후처리로 구분자 '...' → ',' 자동 교정
 one_line / one_line_en            — 사건 1문장 요약 (누가+무엇을)
 key_points / key_points_en        — 구체적 세부정보 3~5개 (2개도 허용)
 why_important / why_important_en  — 업계 영향 1-2문장
@@ -180,3 +181,4 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 - **Pipeline QA**: print + GitHub Actions 어노테이션 + Job Summary, `/pipeline-qa` 스킬로 8개 영역 심층 분석 가능. `pipeline-post-check.sh` hook이 파이프라인 실행 후 7개 패턴(JSON 잘림, 0건 수집, 스크래핑 실패, 분류 편향, AI 필터, curated 풀 고갈, API 쿼터) 자동 감지
 - **Python 구문 검증**: .py 파일 수정 시 `python-syntax-check.sh` hook이 `py_compile` 자동 실행, 구문 오류 즉시 차단
 - **EN 번역 실패 폴백**: 4-phase retry (배치 → 개별 → 영어 원본 유지 → 간이 번역), 실패 시 영어 제목 유지
+- **제목 구분자 후처리 (2중 방어)**: (1) 프롬프트 금지 서술어 20개 규칙 + (2) `_fix_title_separator()` 코드 후처리 (EN→KO 번역 제목만). 프롬프트가 못 잡은 구분자 패턴을 정규식이 교정. 후처리에도 부자연스러운 패턴이 잔존하면 `_TITLE_FORBIDDEN_ELLIPSIS` 정규식 미커버 → 정규식 업데이트 필요
