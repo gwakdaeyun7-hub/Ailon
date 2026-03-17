@@ -21,6 +21,7 @@ qa-pipeline-tester 에이전트를 사용하여 로그를 분석합니다.
 5. **소요 시간**: 노드별 소요 시간 이상 여부 (전체 10분 초과 시 경고)
 6. **요약 품질**: key_points 0-1개 기사, one_line 누락 기사
 7. **EN 번역 실패**: `미번역 EN 기사 N개 감지` 로그 확인. Phase 4 간이 번역으로 복구되었는지 (`[간이 번역 복구]`), 잔존 여부 (`미번역 EN 기사 N개 잔존`) 확인. 잔존 시 해당 기사가 카테고리 Top 20에 영어 제목으로 포함됨 → Minor (제거되지 않고 영어 유지)
+8. **EN 번역+요약 배치 실패율**: `LLM 결과에 dict 없음 (type=str)` 로그 빈도 확인. 1차 실패율 30%+ → 재시도로 복구되지만 시간/비용 비효율. 50%+ 시 배치 크기 5→3 축소 또는 프롬프트 간소화 검토. 재시도 후에도 미복구 기사가 있으면 `[간이 번역 복구]` 로그 확인
 
 ### 1.2 AI 필터 검사 (Tier 3 + NEEDS_AI_FILTER)
 
@@ -71,6 +72,8 @@ qa-pipeline-tester 에이전트를 사용하여 로그를 분석합니다.
   - **정탐**: 기사가 실제로 AI와 무관 (요리, 스포츠, 정치 등)
   - **오탐**: AI 관련 기사인데 비AI로 마킹 → 프롬프트 수정 필요
   - **경계**: AI와 간접 관련 (IT 인프라, 반도체 등)
+
+**AI 기능 관련 법적 분쟁 오탐 패턴**: AI 기능 자체가 소송/규제의 핵심 쟁점인 기사(e.g., "AI 기능으로 소송", "AI 생성물 저작권")는 법률 프레이밍이더라도 AI 관련 → 비AI 마킹 시 오탐. KO 프롬프트의 INCLUDE 항목에 "AI 기능이 쟁점인 법적 분쟁" 추가 여부 검토
 
 **수정 대상 파일:** `scripts/agents/news_team.py` — `_llm_ai_filter_batch()` 함수
 - Tier 3 프롬프트의 INCLUDE/EXCLUDE 규칙 조정
@@ -144,6 +147,8 @@ qa-pipeline-tester 에이전트를 사용하여 로그를 분석합니다.
 - 미감지: 같은 기사가 다른 소스에서 나왔는데 중복 안 걸림 → 해당 layer 임계값 낮춰야
 - **L5 유사 제품명 오탐**: 같은 카테고리의 다른 제품이 유사한 naming convention을 공유할 때 (e.g., "Arrow Lake" vs "Nova Lake" — 다른 Intel CPU이지만 key_tokens "lake"가 겹침), L5 `names_overlap ≥ 3`을 충족하여 오탐 발생 가능. 비AI 기사 간 오탐이면 user-facing 영향 없음 (이미 AI 필터에서 제외). AI 기사 간 오탐이면 _DEDUP_STOPWORDS에 공통 토큰 추가 검토
 - **버전 없는 제품명 미감지 (구조적 한계)**: 동일 제품 발표(예: "Code Review 출시")가 3개+ 소스에서 다른 각도로 보도될 때, 제목 프레이밍 상이(L2/L3 miss) + 복합 기사 혼재(L4/L6 miss) + 버전 번호 없음(L5 `nums_overlap` 불충족) + one_line 초점 분산(L7 miss)으로 전 레이어 통과 가능. 반복 발생 시 L5 `nums_overlap` 조건 완화 또는 L7 `overlap_ratio` 하향(0.30→0.25) 검토
+- **동일사건 다프레이밍 미감지**: 같은 사건(e.g., OpenAI 성인 모드 연기)이 소스별로 다른 관점에서 보도될 때 — 제목 프레이밍 상이(L2/L3 miss) + one_line 초점 상이(L4 miss) + 제품 버전 없음(L5 miss) + 임베딩 차이(L6 miss)로 전 레이어 통과 가능. 같은 사건의 **다른 관점** 제공이므로 양쪽 보존도 합리적 → Minor. 반복 시 L7 `overlap_ratio` 하향(0.30→0.25) 검토
+- **L4 동일기업 다제품 오탐 (메가 이벤트)**: 같은 기업이 같은 날 여러 제품을 발표하면(e.g., NVIDIA GTC에서 Vera CPU, Dynamo 1.0, Agent Toolkit, NemoClaw 동시 발표), L4 one_line 유사도≥0.65 + 고유명사 가드가 기업명 공유로 통과 → 서로 다른 제품이 중복 처리. 검증법: 중복 쌍의 제목에 **다른 제품명**이 있으면 오탐. 메가 이벤트(GTC, I/O, WWDC 등) 당일에만 발생하므로 단일 발생 시 Minor. 반복 시 L4 고유명사 가드에 "같은 기업이라도 제품명(대문자 시작 고유명사)이 다르면 별도" 규칙 추가 검토
 
 **수정 대상 파일:** `scripts/agents/news_team.py`
 - `DEDUP_THRESHOLD`: 제목 유사도 임계값 (현재 0.65)
@@ -152,7 +157,7 @@ qa-pipeline-tester 에이전트를 사용하여 로그를 분석합니다.
 - `_DEDUP_STOPWORDS`: 변별력 없는 토큰 set
 - `_extract_key_tokens()`: text=None 방어 포함
 - `_extract_product_versions()`: title=None 방어 포함
-- L4 고유명사 가드: `_deduplicate_candidates()` 내 one_line≥0.65 + 양쪽 제목에 고유명사(영어)가 있으면 1개+ 공유 필수
+- L4 고유명사 가드: `_deduplicate_candidates()` 내 one_line≥0.65 + 양쪽 제목에 고유명사(영어)가 있으면 1개+ 공유 필수. 한계: 동일 기업 다제품 발표 시 기업명 공유만으로 통과 → 메가 이벤트 시 오탐 가능
 - L5 조건: `names_overlap >= 3 and nums_overlap >= 1` (`_deduplicate_candidates()` 내)
 - L7 `overlap_ratio >= 0.30` (`_deduplicate_candidates()` 내)
 
@@ -180,6 +185,13 @@ qa-pipeline-tester 에이전트를 사용하여 로그를 분석합니다.
 
 **데이터 소스**: `카테고리별 랭킹 결과 상세` CI 접기 섹션 또는 `[최종 선정]` 섹션에서 **모든** 기사의 순위, 점수, 소스를 확인.
 
+**최종 선정 목록 정렬 규칙 (의도된 설계):**
+- `_select_category_top_n`은 `(_day_key, _total_score, _time_key)` 순으로 정렬 (reverse=True)
+- 1순위: KST 날짜 최신순, 2순위: 같은 날짜 내 점수 높은 순, 3순위: 시각 최신순
+- 모바일 앱 `sortByDateThenScore()`도 동일 로직 적용
+- 따라서 **다른 KST 날짜 간** score 순서 위반은 정상 동작 (비당일 고점수 기사가 당일 저점수 기사 뒤에 오는 것은 의도된 설계)
+- 같은 KST 날짜 내에서 score 순서가 안 맞으면 → 그때만 버그
+
 **전체 기사 순위 검증 절차:**
 1. 각 카테고리별 **전체 기사 목록**을 순위순으로 나열
 2. 기사 제목을 하나씩 읽고, 해당 순위가 납득 가능한지 판단
@@ -190,7 +202,7 @@ qa-pipeline-tester 에이전트를 사용하여 로그를 분석합니다.
 | **과대 랭킹** | 니치/마이너 뉴스가 상위 20%에 위치 | 튜토리얼 기사가 research Top 3, MWC 부스 소개가 models_products Top 5 | Major |
 | **과소 랭킹** | 대형 뉴스가 하위 50%에 위치 | 주요 모델 출시가 models_products 15위, 대규모 투자가 industry_business 20위 | Major |
 | **카테고리 오배치** | 기사가 잘못된 카테고리에 있어서 해당 카테고리 내 순위가 왜곡됨 | 연구 논문이 industry_business에 들어가서 industry_business 랭킹에 노이즈 추가 | Major |
-| **비당일 과대평가** | 며칠 전 기사가 당일 중요 기사보다 높은 순위 | 3일 전 뉴스가 오늘 대형 뉴스보다 상위 (하이라이트에는 영향 없지만 카테고리 피드에 영향) | Minor |
+| **비당일 과대평가** | 며칠 전 기사가 당일 중요 기사보다 높은 순위 | 3일 전 뉴스가 오늘 대형 뉴스보다 상위. 비당일 기사는 최종 목록에서 당일 기사 뒤에 배치됨 (의도된 동작). 랭커 점수 자체가 부적절한 경우에만 이슈 | Minor |
 
 **기사 중요도 판단 기준 (순위 적절성 평가 시 사용):**
 
