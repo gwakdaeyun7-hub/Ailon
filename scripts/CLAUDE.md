@@ -76,7 +76,7 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 ### Principle Pipeline (scripts/agents/principle_team.py) — Curated 전용 모드
 
 5-node pipeline: `seed_selector → content_generator → verifier → [retry_reseed (conditional)] → assembler`
-- **현재: curated 전용 모드** — LLM 생성 비활성화, 사전 작성된 37개 .md 파일만 사용
+- **현재: curated 전용 모드** — LLM 생성 비활성화, 사전 작성된 45개 .md 파일만 사용
 - 실제 실행 흐름: `seed_selector → content_generator(curated 파일 로드) → verifier(skip) → assembler(Firestore 저장)`
 - Conditional retry, verifier, defense-in-depth는 코드에 존재하나 curated 모드에서 비활성화
 
@@ -86,9 +86,9 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 - Curated 콘텐츠는 사전 검수 완료 → verifier 건너뜀
 - assembler가 seed의 takeaway/takeaway_en을 Firestore 문서에 포함하여 `daily_principles/{date}`에 저장
 
-**Curated 콘텐츠 사양 (37개 시드, 11분야):**
-- **분야별 시드**: 제어공학 4, 전기/전자 3, 정보/통신 4, 로보틱스 1, 물리학 5, 생물학 3, 화학 1, 신경과학 3, 수학 6, 통계학 5, 의학 2
-- **4 Super Categories**: 공학(4분야, 12시드), 자연과학(4분야, 12시드), 형식과학(2분야, 11시드), 응용과학(1분야, 2시드)
+**Curated 콘텐츠 사양 (45개 시드, 11분야):**
+- **분야별 시드**: 제어공학 6, 전기/전자 3, 정보/통신 4, 로보틱스 2, 물리학 5, 생물학 3, 화학 1, 신경과학 5, 수학 8, 통계학 6, 의학 2
+- **4 Super Categories**: 공학(4분야, 15시드), 자연과학(4분야, 14시드), 형식과학(2분야, 14시드), 응용과학(1분야, 2시드)
 - **재분류**: 기존 최적화공학(4시드)은 원래 학문 기준으로 재분류됨 — 담금질 기법→물리학, 경사하강법·볼록최적화→수학, 베이지안 최적화→통계학
 - **파일 형식**: front-matter(difficulty, connectionType, keywords) + 자유 형식 마크다운 KO 본문 + `---EN---` 구분자 + EN 본문
 - content_ko (4,242~4,842자, Gold Standard +-300자 범위) + content_en (영어 동일 내용) 쌍
@@ -102,7 +102,7 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
   - 상세 기준은 curated 콘텐츠 작성 시 참조 (골드 스탠다드: `opt_simulated_annealing.md`, 4,542자/~9분)
 
 **LLM 생성 폴백 (비상 시만, 현재 비활성):**
-- curated 풀 고갈(37개 모두 30일 내 사용) 시에만 LLM 폴백 발동
+- curated 풀 고갈(45개 모두 30일 내 사용) 시에만 LLM 폴백 발동
 - Verifier: 4-section evaluation, confidence < 0.7 OR sub-score < 0.5 시 retry
 - Defense-in-depth: content=None → should_retry → retry_reseed flow
 - 정상 운영에서는 발생하지 않아야 함 — 발생 시 시드 추가 필요

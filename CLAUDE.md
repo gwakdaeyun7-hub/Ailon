@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**AILON** (AI Insight Linked On Network) is a bilingual (Korean/English) AI news curation and interdisciplinary learning mobile app developed by 정다윗 (David Jung). It collects AI news from 22 sources, processes them through a LangGraph pipeline (translate, summarize, categorize, rank, extract entities), and delivers curated content via a React Native mobile app. A secondary pipeline delivers daily "principle" content (curated 전용 — 37개 사전 작성 콘텐츠) linking academic disciplines to AI concepts.
+**AILON** (AI Insight Linked On Network) is a bilingual (Korean/English) AI news curation and interdisciplinary learning mobile app developed by 정다윗 (David Jung). It collects AI news from 22 sources, processes them through a LangGraph pipeline (translate, summarize, categorize, rank, extract entities), and delivers curated content via a React Native mobile app. A secondary pipeline delivers daily "principle" content (curated 전용 — 45개 사전 작성 콘텐츠) linking academic disciplines to AI concepts.
 
 ## Architecture
 
@@ -85,7 +85,7 @@ cd ../functions && firebase deploy --only functions
 - 5-tab mobile app (news feed, snaps, AI tools [준비 중], saved, profile)
 - All interactions: likes, comments, bookmarks (news/principle), share, TTS, glossary highlight, saved tab AI 요약 모달
 - LangGraph news pipeline (8 nodes, 22 sources, EN/KO parallel)
-- Principle pipeline (curated 전용 — 11 disciplines, 4 super categories, 37개 사전 작성 콘텐츠, LLM 생성 비활성화)
+- Principle pipeline (curated 전용 — 11 disciplines, 4 super categories, 45개 사전 작성 콘텐츠, LLM 생성 비활성화)
 - Post-pipeline: briefing, glossary, timeline, related articles
 - Auth (Google), dark mode, bilingual (KO/EN), push notifications
 

@@ -2,7 +2,7 @@
 
 PRINCIPLE_SEEDS = [
     # =========================================================================
-    # 공학 > 제어공학 (control_engineering)  [4 seeds]
+    # 공학 > 제어공학 (control_engineering)  [6 seeds]
     # =========================================================================
     {
         "id": "ctrl_optimal_control",
@@ -55,6 +55,32 @@ PRINCIPLE_SEEDS = [
         "problem_solved": "미래를 예측하고 최적 행동 시퀀스를 실시간 계획",
         "takeaway": "내부 모델로 미래를 시뮬레이션하고 최적 행동을 계획하되, 매 순간 새 관측으로 계획을 수정하는 MPC의 원리가, MuZero와 Dreamer처럼 세계 모델을 학습하여 행동을 계획하는 모델 기반 강화학습의 직접적 원류이다.",
         "takeaway_en": "Model Predictive Control's principle of simulating the future with an internal model, planning optimal actions, then replanning as new observations arrive, is the direct ancestor of model-based RL agents like MuZero and Dreamer.",
+    },
+    {
+        "id": "ctrl_cybernetics",
+        "discipline": "control_engineering",
+        "discipline_name": "제어공학",
+        "super_category": "공학",
+        "principle_name": "Cybernetics (Wiener 1948)",
+        "principle_name_en": "Cybernetics (Wiener 1948)",
+        "ai_connection": "피드백 기반 자기조절 시스템, 인공지능이라는 분야 자체의 사상적 기원",
+        "ai_connection_en": "Feedback-based self-regulating systems — the intellectual origin of AI as a field",
+        "problem_solved": "기계와 생물에 공통하는 통신·제어·피드백의 통합 이론",
+        "takeaway": "기계와 동물 모두에서 피드백 루프를 통한 목표 추구 행동이 가능하다는 위너의 사이버네틱스가, 인공지능이라는 분야 자체의 사상적 기원이 되었고 피드백 기반 자기조절 시스템의 설계 원리를 확립했다.",
+        "takeaway_en": "Wiener's cybernetics, showing that goal-directed behavior through feedback loops is common to both machines and animals, became the intellectual origin of AI itself and established the design principles of feedback-based self-regulating systems.",
+    },
+    {
+        "id": "ctrl_lyapunov_stability",
+        "discipline": "control_engineering",
+        "discipline_name": "제어공학",
+        "super_category": "공학",
+        "principle_name": "Lyapunov Stability Theory",
+        "principle_name_en": "Lyapunov Stability Theory",
+        "ai_connection": "신경망 학습 수렴 분석, 강화학습 안정성 보장, 안전 제약 학습의 수학적 도구",
+        "ai_connection_en": "Mathematical tool for neural network convergence analysis, RL stability guarantees, and safe constrained learning",
+        "problem_solved": "미분방정식을 풀지 않고 시스템의 안정성을 판별하는 방법",
+        "takeaway": "시스템의 에너지가 시간에 따라 감소하면 안정적이라는 리아푸노프의 직접 방법이, 신경망 학습의 수렴을 보장하고 강화학습 에이전트의 안전 제약을 설계하는 수학적 도구가 되었다.",
+        "takeaway_en": "Lyapunov's direct method -- if a system's energy-like function decreases over time, the system is stable -- became the mathematical tool for guaranteeing neural network training convergence and designing safety constraints for reinforcement learning agents.",
     },
     # =========================================================================
     # 공학 > 전기/전자공학 (electrical_engineering)  [3 seeds]
@@ -209,7 +235,7 @@ PRINCIPLE_SEEDS = [
         "takeaway_en": "Bayesian optimization, which pairs a surrogate model with an acquisition function to optimize expensive-to-evaluate black-box functions in minimal trials, became the core technique for deep learning hyperparameter tuning and neural architecture search.",
     },
     # =========================================================================
-    # 공학 > 로보틱스 (robotics)  [1 seed]
+    # 공학 > 로보틱스 (robotics)  [2 seeds]
     # =========================================================================
     {
         "id": "robo_imitation_learning",
@@ -223,6 +249,19 @@ PRINCIPLE_SEEDS = [
         "problem_solved": "인지심리학의 관찰학습 원리를 계산적으로 구현하여 시연으로부터 정책 학습",
         "takeaway": "반두라가 발견한 '관찰만으로 행동을 습득하는' 인간의 능력을 계산적으로 구현한 모방학습이, 행동 복제에서 역강화학습, GAIL을 거쳐 인간 피드백 기반 강화학습(RLHF)으로 이어지는 계보의 출발점이 되었다.",
         "takeaway_en": "Imitation learning, the computational realization of Bandura's discovery that humans acquire behavior through observation alone, launched the lineage from behavioral cloning through inverse RL and GAIL to RLHF.",
+    },
+    {
+        "id": "robo_subsumption",
+        "discipline": "robotics",
+        "discipline_name": "로보틱스",
+        "super_category": "공학",
+        "principle_name": "Subsumption Architecture (Brooks 1986)",
+        "principle_name_en": "Subsumption Architecture (Brooks 1986)",
+        "ai_connection": "행동 기반 AI, 체화된 인지, 반응형 에이전트 아키텍처의 직접적 영감",
+        "ai_connection_en": "Direct inspiration for behavior-based AI, embodied cognition, and reactive agent architectures",
+        "problem_solved": "중앙 표상 없이 계층적 행동 레이어만으로 지능적 행동 구현",
+        "takeaway": "세상의 내부 모델을 구축하지 않고도 단순한 행동 레이어들의 계층적 조합만으로 복잡한 로봇 행동이 창발한다는 브룩스의 포섭 아키텍처가, 체화된 인지와 반응형 AI 에이전트 설계의 직접적 영감이 되었다.",
+        "takeaway_en": "Brooks' subsumption architecture, demonstrating that complex robot behavior emerges from hierarchical layers of simple behaviors without building internal world models, directly inspired embodied cognition and reactive AI agent design.",
     },
     # =========================================================================
     # 자연과학 > 물리학 (physics)  [4 seeds]
@@ -338,7 +377,7 @@ PRINCIPLE_SEEDS = [
         "takeaway_en": "Molecular graphs, which represent atoms as nodes and chemical bonds as edges, became the starting point for graph neural networks that learn molecular topology directly to predict drug candidate properties.",
     },
     # =========================================================================
-    # 자연과학 > 신경과학 (neuroscience)  [3 seeds]
+    # 자연과학 > 신경과학 (neuroscience)  [5 seeds]
     # =========================================================================
     {
         "id": "neuro_visual_cortex_cnn",
@@ -379,8 +418,34 @@ PRINCIPLE_SEEDS = [
         "takeaway": "인간이 붐비는 방에서도 한 목소리에 집중할 수 있다는 선택적 주의 개념이, Transformer의 어텐션 메커니즘에 이름과 핵심 직관을 제공했으나 그 수학적 구현은 독립적으로 발전한 흥미로운 수렴이다.",
         "takeaway_en": "The cognitive concept of selective attention -- focusing on one voice in a crowded room -- gave the Transformer's attention mechanism its name and core intuition, though its mathematical implementation evolved independently, an intriguing convergence.",
     },
+    {
+        "id": "neuro_predictive_coding",
+        "discipline": "neuroscience",
+        "discipline_name": "신경과학",
+        "super_category": "자연과학",
+        "principle_name": "Predictive Coding (Rao & Ballard 1999)",
+        "principle_name_en": "Predictive Coding (Rao & Ballard 1999)",
+        "ai_connection": "VAE의 계층적 잠재 변수 모델, 자기지도 학습의 예측 오차 최소화 원리의 신경과학적 기원",
+        "ai_connection_en": "Neuroscientific origin of hierarchical latent variable models in VAEs and prediction error minimization in self-supervised learning",
+        "problem_solved": "뇌가 하향식 예측과 상향식 오차의 상호작용으로 감각을 처리하는 메커니즘",
+        "takeaway": "뇌가 끊임없이 감각 입력을 예측하고 예측 오차만을 상위 계층으로 전달한다는 예측 코딩 이론이, VAE의 계층적 잠재 변수 모델과 자기지도 학습에서 예측 오차를 최소화하는 원리의 신경과학적 기원이 되었다.",
+        "takeaway_en": "Predictive coding theory, where the brain constantly predicts sensory input and propagates only prediction errors upward, became the neuroscientific origin of hierarchical latent variable models in VAEs and the prediction error minimization principle in self-supervised learning.",
+    },
+    {
+        "id": "neuro_experience_replay",
+        "discipline": "neuroscience",
+        "discipline_name": "신경과학",
+        "super_category": "자연과학",
+        "principle_name": "Experience Replay (Hippocampal)",
+        "principle_name_en": "Experience Replay (Hippocampal)",
+        "ai_connection": "DQN의 경험 재생 버퍼, 우선순위 경험 재생의 직접적 신경과학적 영감",
+        "ai_connection_en": "Direct neuroscientific inspiration for DQN's experience replay buffer and prioritized experience replay",
+        "problem_solved": "해마의 수면 중 경험 재생이 기억 강화와 학습에 기여하는 메커니즘",
+        "takeaway": "수면 중 해마가 깨어 있을 때의 경험을 빠르게 재생하여 기억을 강화한다는 신경과학적 발견이, DQN이 과거 경험을 버퍼에 저장하고 무작위로 재생하며 학습하는 경험 재생 기법의 직접적 영감이 되었다.",
+        "takeaway_en": "The neuroscientific discovery that the hippocampus rapidly replays waking experiences during sleep to consolidate memories directly inspired DQN's experience replay technique -- storing past experiences in a buffer and randomly replaying them for learning.",
+    },
     # =========================================================================
-    # 형식과학 > 수학 (mathematics)  [4 seeds]
+    # 형식과학 > 수학 (mathematics)  [6 seeds]
     # =========================================================================
     {
         "id": "math_linear_algebra_nn",
@@ -434,8 +499,34 @@ PRINCIPLE_SEEDS = [
         "takeaway": "쾨니히스베르크 다리 문제에서 탄생한 그래프 이론의 노드와 엣지 형식론이, 소셜 네트워크·지식 그래프·단백질 구조 등 비정형 관계 데이터를 학습하는 그래프 신경망의 수학적 기반이 되었다.",
         "takeaway_en": "Graph theory's node-and-edge formalism, born from the Konigsberg bridge problem, became the mathematical foundation for graph neural networks that learn from irregular relational data -- social networks, knowledge graphs, and protein structures alike.",
     },
+    {
+        "id": "math_curse_dimensionality",
+        "discipline": "mathematics",
+        "discipline_name": "수학",
+        "super_category": "형식과학",
+        "principle_name": "Curse of Dimensionality (Bellman 1961)",
+        "principle_name_en": "Curse of Dimensionality (Bellman 1961)",
+        "ai_connection": "차원 축소, 특징 선택, 정규화의 수학적 동기이자 딥러닝 성공의 핵심 역설",
+        "ai_connection_en": "Mathematical motivation for dimensionality reduction, feature selection, regularization, and a key paradox behind deep learning's success",
+        "problem_solved": "차원이 증가할수록 데이터가 기하급수적으로 희소해지는 근본 문제",
+        "takeaway": "차원이 늘어날수록 데이터가 기하급수적으로 희소해져 어떤 알고리즘도 학습이 어려워진다는 벨만의 차원의 저주가, 차원 축소와 특징 선택 기법의 수학적 동기이자 이를 극복한 딥러닝 성공의 핵심 역설을 구성한다.",
+        "takeaway_en": "Bellman's curse of dimensionality -- that data becomes exponentially sparse as dimensions increase, defeating any algorithm -- motivated dimensionality reduction and feature selection techniques, while forming the key paradox behind deep learning's success in overcoming it.",
+    },
+    {
+        "id": "math_manifold_hypothesis",
+        "discipline": "mathematics",
+        "discipline_name": "수학",
+        "super_category": "형식과학",
+        "principle_name": "Manifold Hypothesis",
+        "principle_name_en": "Manifold Hypothesis",
+        "ai_connection": "오토인코더, t-SNE/UMAP, 딥러닝의 표현 학습이 작동하는 이유의 수학적 설명",
+        "ai_connection_en": "Mathematical explanation for why autoencoders, t-SNE/UMAP, and deep representation learning work",
+        "problem_solved": "고차원 데이터가 실제로는 저차원 다양체 위에 존재한다는 가설",
+        "takeaway": "현실의 고차원 데이터가 사실은 저차원 다양체 위에 집중되어 있다는 다양체 가설이, 오토인코더가 의미 있는 저차원 표현을 학습하고 딥러닝이 고차원 공간에서도 작동하는 이유를 설명하는 수학적 토대가 되었다.",
+        "takeaway_en": "The manifold hypothesis -- that real-world high-dimensional data concentrates on low-dimensional manifolds -- explains why autoencoders learn meaningful low-dimensional representations and why deep learning works despite the curse of dimensionality.",
+    },
     # =========================================================================
-    # 형식과학 > 통계학 (statistics)  [4 seeds]
+    # 형식과학 > 통계학 (statistics)  [5 seeds]
     # =========================================================================
     {
         "id": "stat_bayesian_inference",
@@ -488,6 +579,19 @@ PRINCIPLE_SEEDS = [
         "problem_solved": "복잡한 확률 분포에서의 효율적 샘플링",
         "takeaway": "직접 계산이 불가능한 복잡한 확률 분포에서 무작위 걸음으로 대표 표본을 추출하는 MCMC가, 베이지안 딥러닝의 사후 분포 근사와 에너지 기반 모델 학습을 가능하게 한 실용적 도구가 되었다.",
         "takeaway_en": "MCMC, which draws representative samples from intractable probability distributions via random walks, became the practical tool enabling posterior approximation in Bayesian deep learning and training of energy-based models.",
+    },
+    {
+        "id": "stat_bootstrapping",
+        "discipline": "statistics",
+        "discipline_name": "통계학",
+        "super_category": "형식과학",
+        "principle_name": "Bootstrapping (Efron 1979)",
+        "principle_name_en": "Bootstrapping (Efron 1979)",
+        "ai_connection": "배깅(Random Forest), 불확실성 추정, 모델 앙상블의 통계학적 기원",
+        "ai_connection_en": "Statistical origin of bagging (Random Forest), uncertainty estimation, and model ensembles",
+        "problem_solved": "관측 데이터만으로 추정량의 분포를 근사하는 재표본 기법",
+        "takeaway": "하나의 표본에서 복원 추출로 수천 개의 가상 표본을 만들어 통계량의 분포를 추정하는 부트스트래핑이, 랜덤 포레스트의 배깅과 모델 앙상블에서 복원 추출한 데이터로 다양한 모델을 학습하는 기법의 통계학적 기원이다.",
+        "takeaway_en": "Bootstrapping, which creates thousands of virtual samples via sampling with replacement from a single sample to estimate statistic distributions, is the statistical origin of bagging in Random Forests and model ensembles that train diverse models on resampled data.",
     },
     # =========================================================================
     # 응용과학 > 의학/생명과학 (medicine)  [2 seeds]
