@@ -32,6 +32,8 @@ type BlockType =
   | 'heading'
   | 'formula'
   | 'definition'
+  | 'definition_group'
+  | 'lead'
   | 'emphasis'
   | 'list_item'
   | 'steps'
@@ -49,6 +51,8 @@ interface ContentBlock {
   prefix?: string;
   /** For steps: grouped numbered items */
   items?: string[];
+  /** For definition_group: grouped definitions */
+  definitions?: { term: string; desc: string }[];
 }
 
 // ---------------------------------------------------------------------------
@@ -226,8 +230,11 @@ export function parseContent(content: string): ContentBlock[] {
     }
 
     // 기본: 본문 텍스트
-    // 연속 본문 라인은 하나로 합침 (단, 줄바꿈 유지)
-    if (blocks.length > 0 && blocks[blocks.length - 1].type === 'body') {
+    if (isFirstContentLine) {
+      // 첫째 줄은 lead 블록으로 (서브타이틀 스타일링)
+      blocks.push({ type: 'lead', text: trimmed });
+    } else if (blocks.length > 0 && blocks[blocks.length - 1].type === 'body') {
+      // 연속 본문 라인은 하나로 합침 (단, 줄바꿈 유지)
       blocks[blocks.length - 1].text += '\n' + trimmed;
     } else {
       blocks.push({ type: 'body', text: trimmed });
@@ -239,17 +246,34 @@ export function parseContent(content: string): ContentBlock[] {
     blocks.push({ type: 'formula', text: codeBuffer.join('\n') });
   }
 
-  // 이슈 3: definition 사이의 spacer 제거 (연속 정의 블록 그룹감 강화)
+  // 후처리: 연속 definition을 definition_group으로 병합 (사이 spacer 흡수)
   const filtered: ContentBlock[] = [];
-  for (let i = 0; i < blocks.length; i++) {
-    if (
-      blocks[i].type === 'spacer' &&
-      i > 0 && blocks[i - 1].type === 'definition' &&
-      i + 1 < blocks.length && blocks[i + 1].type === 'definition'
-    ) {
-      continue; // spacer 제거
+  let j = 0;
+  while (j < blocks.length) {
+    if (blocks[j].type === 'definition') {
+      const defs: { term: string; desc: string }[] = [];
+      while (j < blocks.length) {
+        if (blocks[j].type === 'definition') {
+          defs.push({ term: blocks[j].term || '', desc: blocks[j].desc || '' });
+          j++;
+        } else if (
+          blocks[j].type === 'spacer' &&
+          j + 1 < blocks.length && blocks[j + 1].type === 'definition'
+        ) {
+          j++; // spacer 건너뜀
+        } else {
+          break;
+        }
+      }
+      if (defs.length > 1) {
+        filtered.push({ type: 'definition_group', text: '', definitions: defs });
+      } else {
+        filtered.push({ type: 'definition', text: '', term: defs[0].term, desc: defs[0].desc });
+      }
+    } else {
+      filtered.push(blocks[j]);
+      j++;
     }
-    filtered.push(blocks[i]);
   }
 
   return filtered;
@@ -332,14 +356,37 @@ function DefinitionBlock({ term, desc }: { term: string; desc: string }) {
       backgroundColor: colors.surface,
       borderRadius: 8,
       paddingHorizontal: 14,
-      paddingVertical: 8,
-      marginVertical: 3,
+      paddingVertical: 10,
+      marginVertical: 4,
     }}>
       <Text style={{ fontSize: 14, lineHeight: 22 }}>
         <Text style={{ fontWeight: '700', color: colors.textPrimary }}>{term}</Text>
         <Text style={{ color: colors.textDim }}> — </Text>
         <Text style={{ color: colors.textSecondary }}>{desc}</Text>
       </Text>
+    </View>
+  );
+}
+
+function DefinitionGroupBlock({ definitions }: { definitions: { term: string; desc: string }[] }) {
+  const { colors } = useTheme();
+  return (
+    <View style={{
+      backgroundColor: colors.surface,
+      borderRadius: 8,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      marginVertical: 8,
+    }}>
+      {definitions.map((def, i) => (
+        <View key={i} style={{ paddingVertical: 6 }}>
+          <Text style={{ fontSize: 14, lineHeight: 22 }}>
+            <Text style={{ fontWeight: '700', color: colors.textPrimary }}>{def.term}</Text>
+            <Text style={{ color: colors.textDim }}> — </Text>
+            <Text style={{ color: colors.textSecondary }}>{def.desc}</Text>
+          </Text>
+        </View>
+      ))}
     </View>
   );
 }
@@ -442,6 +489,22 @@ function BodyBlock({ text }: { text: string }) {
   );
 }
 
+function LeadBlock({ text }: { text: string }) {
+  const { colors } = useTheme();
+  return (
+    <Text style={{
+      fontSize: 16,
+      lineHeight: 26,
+      fontWeight: '500',
+      color: colors.textSecondary,
+      marginTop: 12,
+      marginBottom: 20,
+    }}>
+      {renderBoldText(text, colors.textPrimary)}
+    </Text>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Main Renderer
 // ---------------------------------------------------------------------------
@@ -472,6 +535,15 @@ export function SnapsContentRenderer({ content }: SnapsContentRendererProps) {
                 desc={block.desc || ''}
               />
             );
+          case 'definition_group':
+            return (
+              <DefinitionGroupBlock
+                key={idx}
+                definitions={block.definitions || []}
+              />
+            );
+          case 'lead':
+            return <LeadBlock key={idx} text={block.text} />;
           case 'steps':
             return <StepsBlock key={idx} items={block.items || []} />;
           case 'emphasis':

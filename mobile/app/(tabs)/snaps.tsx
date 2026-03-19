@@ -729,7 +729,6 @@ export default function SnapsScreen() {
                 </Text>
                 <Text style={{
                   fontSize: 13, lineHeight: 20, color: colors.textPrimary,
-                  fontFamily: FontFamily.serif, fontStyle: 'italic',
                 }}>
                   {L(principle.takeaway, principle.takeaway_en, lang)}
                 </Text>
