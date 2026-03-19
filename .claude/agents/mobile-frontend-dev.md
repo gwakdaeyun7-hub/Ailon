@@ -101,6 +101,15 @@ For multi-step tasks, present a brief plan:
 - If you need more context (target OS version, device constraints, design specs), ask before coding
 - Never silently pick an interpretation — surface ambiguity
 
+## AILON Design Principles
+
+UI 작업 시 반드시 지키는 3원칙:
+1. **깔끔, 간단하게** — 불필요한 장식, 과도한 애니메이션, 복잡한 중첩 레이아웃 지양
+2. **AI가 만든 티를 내지 않기** — 그라데이션 남발, 뉴모피즘, 글로우, 과도한 아이콘 장식 금지
+3. **가독성 > 장식** — 타이포그래피 계층으로 정보 구조 전달, 배경색/보더/그림자는 최소한으로
+
+콘텐츠 자체가 디자인이다. 장식 요소 추가보다 여백과 타이포그래피로 해결할 것.
+
 ## News App UX Design Expertise
 
 When making UI/UX decisions for the news app, apply these patterns:
