@@ -4,11 +4,11 @@ connectionType: structural_analogy
 keywords: SIR 모델, 기본 재생산수, 네트워크 확산, 영향력 최대화, 독립 확산 모델, 척도 없는 네트워크, 정보 전파
 keywords_en: SIR model, basic reproduction number, network diffusion, influence maximization, independent cascade model, scale-free network, information propagation
 ---
-Epidemiological Modeling and Network Diffusion - 전염병의 구획 모델이 정보 확산 알고리즘과 네트워크 AI에 수학적 골격을 제공하다
+Epidemic Modeling - 전염병의 구획 모델이 정보 확산 알고리즘과 네트워크 AI에 수학적 구조를 빌려주다
 
 ## 전염병 수학: 구획 모델의 탄생
 
-1927년, 스코틀랜드의 생화학자 William Ogilvy Kermack과 군의관 Anderson Gray McKendrick은 전염병 확산을 세 개의 인구 구획(compartment)으로 나누어 기술하는 미분방정식 체계를 발표했다. SIR 모델이라 불리는 이 프레임워크에서 S는 감수성 인구(Susceptible), I는 감염 인구(Infected), R은 회복 인구(Recovered)다.
+1927년, 스코틀랜드의 화학자 William Ogilvy Kermack과 의사 출신 수리역학자 Anderson Gray McKendrick은 전염병 확산을 세 개의 인구 구획(compartment)으로 나누어 기술하는 미분방정식 체계를 발표했다. SIR 모델이라 불리는 이 프레임워크에서 S는 감수성 인구(Susceptible), I는 감염 인구(Infected), R은 회복 인구(Recovered)다.
 
 이들의 핵심 통찰은 전염병 확산이 두 변수의 곱으로 결정된다는 것이었다. 감염자가 아무리 많아도 감수성자가 없으면 전파가 멈추고, 감수성자가 가득해도 감염자가 없으면 전파가 시작되지 않는다. 이 "만남의 확률"을 수학으로 포착한 것이 SIR의 출발점이다.
 
@@ -42,13 +42,13 @@ R_0은 전체 인구가 감수성인 상태에서 한 명의 감염자가 감염
 - R_0 < 1: 한 사람이 평균 1명 미만을 감염시키므로 전염병이 소멸한다
 - R_0 = 1: 확산도 소멸도 아닌 경계 상태다
 
-집단 면역 임계치(herd immunity threshold)는 R_0에서 직접 도출된다. 전파를 차단하려면 인구의 (1 - 1/R_0) 비율이 면역을 가져야 한다. 홍역은 R_0이 약 12~18이므로 92~94%가 면역이어야 하고, COVID-19 초기 변이(R_0이 약 2.5)는 60%가 필요했다. 하나의 수식이 백신 접종률 목표치를 정량적으로 결정하는 것이다.
+집단 면역 임계치(herd immunity threshold)는 R_0에서 직접 도출된다. 전파를 차단하려면 인구의 (1 - 1/R_0) 비율이 면역을 가져야 한다. 홍역은 R_0이 약 12~18이므로 92~94%가 면역이어야 하고, COVID-19 초기 변이(R_0이 약 2.5)는 60%가 필요했다. 하나의 수식이 백신 접종률 목표치를 정량적으로 결정하는 것이다. 실제 전파 중에는 유효 재생산수 R_e = R_0 * S(t)로 시변 전파력을 추적한다.
 
 ## 네트워크 과학과의 합류: 균질 혼합의 한계를 넘다
 
 SIR의 균질 혼합 가정은 현실과 크게 어긋난다. 실제 사회에서 버스 기사는 하루에 수백 명과 접촉하고, 재택근무자는 소수와만 접촉한다. 접촉 패턴은 균일하지 않다.
 
-Barabasi와 Albert(1999)의 척도 없는 네트워크(scale-free network) 이론이 이 간극을 메웠다. 실제 사회 네트워크에서 각 사람의 접촉 수(degree) 분포는 멱법칙(power law)을 따른다. 대부분의 사람은 소수와 연결되지만, 극소수의 허브(hub) 노드가 압도적으로 많은 연결을 가진다. 공항 네트워크를 생각하면 직관적이다. 대부분의 공항은 몇 개의 노선만 가지지만, 인천이나 히드로 같은 허브 공항은 수백 개 노선을 운영한다.
+Barabasi와 Albert(1999)의 척도 없는 네트워크(scale-free network) 이론이 이 간극을 메웠다. 실제 사회 네트워크에서 각 사람의 접촉 수(degree) 분포는 멱법칙(power law)을 따른다. 대부분의 사람은 소수와 연결되지만, 극소수의 허브(hub) 노드가 압도적으로 많은 연결을 가진다. 공항 네트워크를 생각하면 직관적이다. 대부분의 공항은 몇 개의 노선만 가지지만, 인천이나 히드로 같은 허브 공항은 수백 개 노선을 운영한다. Pastor-Satorras와 Vespignani(2001)는 이 네트워크에서 전염병 임계치가 사실상 0임을 보였다. 허브의 존재로 아무리 약한 전파력도 소멸하지 않는 것이다.
 
 ## 역학에서 정보 확산으로: 구조적 유사성의 다리
 
@@ -70,13 +70,12 @@ Daley와 Kendall(1964)은 SIR 구조를 루머 확산에 직접 대입했다.
 - Spreader(퍼뜨리는 사람) = Infected
 - Stifler(더 이상 퍼뜨리지 않는 사람) = Recovered
 
-현대 소셜 미디어에서의 오정보(misinformation) 연구로 이 프레임워크가 확장되었다. Vosoughi, Roy, Aral(2018)은 Twitter 데이터 분석을 통해 오정보가 사실보다 평균 6배 빠르게 퍼지며, 도달 범위도 넓다는 것을 실증했다. 확산 속도가 내용의 신기성과 감정적 강도에 의존한다는 발견은, SIR의 균일한 beta 가정이 정보 확산에서는 수정이 필요함을 보여주었다.
+현대 소셜 미디어에서의 오정보(misinformation) 연구로 이 프레임워크가 확장되었다. Vosoughi, Roy, Aral(2018)은 Twitter 데이터 분석을 통해 오정보가 1,500명 도달 기준 사실보다 약 6배 빠르게 퍼지며, 도달 범위도 넓다는 것을 실증했다. 확산 속도가 내용의 신기성과 감정적 강도에 의존한다는 발견은, SIR의 균일한 beta 가정이 정보 확산에서는 수정이 필요함을 보여주었다.
 
 **현대 AI에서의 구조적 유사성:**
 
-- **영향력 최대화**: Kempe et al.(2003)의 독립 확산 모델에서 "활성화된 노드가 이웃을 한 번만 활성화 시도하고, 실패해도 재시도하지 않는다"는 규칙이 SIR의 "감염 후 면역"과 정확히 대응한다. k명의 시드로 도달 범위를 최대화하는 NP-hard 문제에서 탐욕 알고리즘의 (1-1/e) 근사 보장이 핵심 결과다.
-- **연합 학습의 정보 확산**: McMahan et al.(2017)에서 각 노드가 로컬 학습 후 가중치만 전송하여 전체 모델을 개선하는 과정은, 감염 정보가 노드 간 전파되어 네트워크 상태를 바꾸는 SIR과 유사하다. 다만 프라이버시 보존 목적으로 독립 설계되었다.
-- **GNN의 메시지 전달**: 각 노드가 이웃 특징을 수집하여 표현을 갱신하는 과정이 역학 모델의 확산과 닮았다. k층 GNN이 k-hop 이웃 정보를 집약하는 것은 SIR에서 k 단계 후 감염이 k-hop에 도달하는 것과 같은 확산 반경이다.
+- **영향력 최대화**: Kempe et al.(2003)의 독립 확산 모델에서 "활성화된 노드가 이웃을 한 번만 활성화 시도하고, 실패해도 재시도하지 않는다"는 규칙이 SIR의 "감염 후 면역"과 정확히 대응한다. k명의 시드로 도달 범위를 최대화하는 NP-hard(모든 조합을 시도해야 하는 난제) 문제에서 탐욕 알고리즘의 (1-1/e) 근사 보장이 핵심 결과다.
+- **GNN의 메시지 전달**: 각 노드가 이웃 특징을 수집하여 표현을 갱신하는 과정이 역학 모델의 확산과 닮았다. k층 GNN이 k-hop 이웃 정보를 집약하는 것은 SIR에서 k 단계 후 감염이 k-hop에 도달하는 것과 같은 확산 반경이다. 다만 집약 메커니즘은 확률적 전파와 질적으로 다르다.
 
 ## 한계와 약점
 
@@ -103,11 +102,11 @@ Daley와 Kendall(1964)은 SIR 구조를 루머 확산에 직접 대입했다.
 
 독립 확산 모델(independent cascade model) - 활성화된 노드가 이웃 노드를 독립적 확률로 한 번만 활성화 시도하는 네트워크 확산 모델. SIR의 "감염 후 면역" 구조와 대응
 ---EN---
-Epidemiological Modeling and Network Diffusion - How compartment models of disease spread provided the mathematical skeleton for information diffusion algorithms and network AI
+Epidemic Modeling - How compartment models of disease spread lent mathematical structure to information diffusion algorithms and network AI
 
 ## Epidemic Mathematics: The Birth of Compartment Models
 
-In 1927, Scottish biochemist William Ogilvy Kermack and military physician Anderson Gray McKendrick published a system of differential equations that described epidemic spread by dividing a population into three compartments. In the framework known as the SIR model, S stands for Susceptible, I for Infected, and R for Recovered.
+In 1927, Scottish chemist William Ogilvy Kermack and physician-turned-mathematical-biologist Anderson Gray McKendrick published a system of differential equations that described epidemic spread by dividing a population into three compartments. In the framework known as the SIR model, S stands for Susceptible, I for Infected, and R for Recovered.
 
 Their key insight was that epidemic spread is determined by the product of two variables. No matter how many infected people exist, transmission stops if there are no susceptible individuals; no matter how many susceptible people there are, transmission cannot start without infected individuals. Capturing this "probability of encounter" in mathematics was SIR's starting point.
 
@@ -141,13 +140,13 @@ R_0 is the average number of people one infected individual infects during their
 - R_0 < 1: each person infects fewer than one on average, so the epidemic dies out
 - R_0 = 1: the boundary between growth and decline
 
-The herd immunity threshold is derived directly from R_0. To block transmission, a fraction (1 - 1/R_0) of the population must be immune. Measles has an R_0 of roughly 12 to 18, requiring 92-94% immunity; early COVID-19 variants (R_0 around 2.5) required about 60%. A single formula quantitatively determines vaccination coverage targets.
+The herd immunity threshold is derived directly from R_0. To block transmission, a fraction (1 - 1/R_0) of the population must be immune. Measles has an R_0 of roughly 12 to 18, requiring 92-94% immunity; early COVID-19 variants (R_0 around 2.5) required about 60%. A single formula quantitatively determines vaccination coverage targets. During an actual epidemic, the effective reproduction number R_e = R_0 * S(t) tracks transmissibility in real time.
 
 ## Confluence with Network Science: Beyond Homogeneous Mixing
 
 SIR's homogeneous mixing assumption departs sharply from reality. In actual societies, a bus driver contacts hundreds daily while a remote worker contacts only a few. Contact patterns are far from uniform.
 
-Barabasi and Albert's (1999) scale-free network theory bridged this gap. In real social networks, the distribution of each person's contact count (degree) follows a power law. Most people have few connections, but a tiny number of hub nodes hold an overwhelming number of links. Think of airport networks: most airports operate only a handful of routes, but hub airports like Incheon or Heathrow serve hundreds.
+Barabasi and Albert's (1999) scale-free network theory bridged this gap. In real social networks, the distribution of each person's contact count (degree) follows a power law. Most people have few connections, but a tiny number of hub nodes hold an overwhelming number of links. Think of airport networks: most airports operate only a handful of routes, but hub airports like Incheon or Heathrow serve hundreds. Pastor-Satorras and Vespignani (2001) showed that in such networks the epidemic threshold effectively vanishes to zero -- hubs ensure that even the weakest pathogen never fully dies out.
 
 ## From Epidemiology to Information Diffusion: A Bridge of Structural Analogy
 
@@ -169,13 +168,12 @@ Daley and Kendall (1964) directly mapped the SIR structure onto rumor propagatio
 - Spreader (people actively spreading) = Infected
 - Stifler (people who stopped spreading) = Recovered
 
-This framework was extended to modern misinformation research on social media. Vosoughi, Roy, and Aral (2018) analyzed Twitter data to empirically show that misinformation spreads on average six times faster than factual information and reaches a wider audience. Their finding that spread velocity depends on content novelty and emotional intensity demonstrated that SIR's uniform beta assumption needs modification for information diffusion.
+This framework was extended to modern misinformation research on social media. Vosoughi, Roy, and Aral (2018) analyzed Twitter data to empirically show that misinformation reaches 1,500 people roughly six times faster than factual information and reaches a wider audience. Their finding that spread velocity depends on content novelty and emotional intensity demonstrated that SIR's uniform beta assumption needs modification for information diffusion.
 
 **Structural similarities in modern AI:**
 
-- **Influence maximization**: In Kempe et al.'s (2003) Independent Cascade Model, the rule "an activated node attempts to activate each neighbor exactly once, with no retries" corresponds precisely to SIR's "infection then immunity." Selecting k seeds to maximize reach is NP-hard; the greedy algorithm's (1-1/e) approximation guarantee is the key result.
-- **Federated learning's information diffusion**: In McMahan et al. (2017), each node trains locally then transmits weight updates to improve the global model -- resembling SIR's diffusion where infection propagates between nodes to change network-wide state. However, it was independently designed for privacy preservation.
-- **GNN message passing**: Each node gathering neighbor features to update its representation resembles epidemiological diffusion. A k-layer GNN aggregating k-hop neighbor information mirrors SIR infection reaching k-hop nodes after k steps -- the same diffusion radius.
+- **Influence maximization**: In Kempe et al.'s (2003) Independent Cascade Model, the rule "an activated node attempts to activate each neighbor exactly once, with no retries" corresponds precisely to SIR's "infection then immunity." Selecting k seeds to maximize reach is NP-hard (no efficient algorithm can guarantee the optimal solution); the greedy algorithm's (1-1/e) approximation guarantee is the key result.
+- **GNN message passing**: Each node gathering neighbor features to update its representation resembles epidemiological diffusion. A k-layer GNN aggregating k-hop neighbor information mirrors SIR infection reaching k-hop nodes after k steps -- the same diffusion radius. However, the aggregation mechanism is qualitatively different from probabilistic transmission.
 
 ## Limitations and Weaknesses
 
