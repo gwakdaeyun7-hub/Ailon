@@ -60,6 +60,7 @@ nativewind-env.d.ts
 # Local Claude Code settings
 .claude/settings.local.json
 .claude/agent-memory/
+.claude/worktrees/
 
 # Keystore files
 *.jks
