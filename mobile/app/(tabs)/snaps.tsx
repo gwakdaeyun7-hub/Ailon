@@ -202,7 +202,6 @@ function NotebookCard({
           <View style={{
             width: 28, height: 28, borderRadius: 14,
             backgroundColor: accentBg,
-            borderWidth: 2, borderColor: accentColor + '30',
             alignItems: 'center', justifyContent: 'center',
           }}>
             <IconComponent size={14} color={accentColor} />
@@ -267,20 +266,7 @@ function NotebookCard({
         </View>
       )}
 
-      <View style={{
-        borderTopWidth: 1, borderTopColor: colors.border,
-        paddingHorizontal: 20, paddingVertical: 12,
-        flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
-      }}>
-        <View style={{ flexDirection: 'row', gap: 5 }}>
-          {[1, 2, 3].map(s => (
-            <View key={s} style={{
-              width: 6, height: 6, borderRadius: 3,
-              backgroundColor: s <= step ? accentColor : colors.border,
-            }} />
-          ))}
-        </View>
-      </View>
+      <View style={{ height: 14 }} />
     </View>
   );
 }
@@ -610,10 +596,8 @@ export default function SnapsScreen() {
                   {/* Read time badge */}
                   {principle.readTime && (
                     <View style={{
-                      flexDirection: 'row', alignItems: 'center', gap: 4,
                       backgroundColor: colors.surface, borderRadius: 16, paddingHorizontal: 8, paddingVertical: 3,
                     }}>
-                      <Clock size={10} color={colors.textDim} />
                       <Text style={{ fontSize: 10, fontWeight: '600', color: colors.textDim }}>
                         {lang === 'en' ? (principle.readTime || '').replace('분', ' min') : principle.readTime}
                       </Text>

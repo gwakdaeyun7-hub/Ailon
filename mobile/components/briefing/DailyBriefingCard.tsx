@@ -1,6 +1,6 @@
 /**
- * Daily Briefing Card — Design 10 "Morphing Blob"
- * Collapsed: Blob glow + TTS + label + mini sparkline bars
+ * Daily Briefing Card
+ * Collapsed: TTS + label + article count + chevron
  * Expanded: Header + Donut + Hot Topics + Sparkline + Briefing Text + Collapse
  */
 
@@ -19,8 +19,6 @@ import {
   Pause,
   ChevronDown,
   ChevronUp,
-  Newspaper,
-  Flame,
 } from 'lucide-react-native';
 import Svg, { Circle, G, Path, Defs, LinearGradient, Stop, Text as SvgText } from 'react-native-svg';
 import Speech from '@/lib/speech';
@@ -306,7 +304,6 @@ const SparklineChart = React.memo(function SparklineChart({
       <Path d={linePath} stroke={primaryColor} strokeWidth={2.5} fill="none" strokeLinejoin="round" strokeLinecap="round" />
       {/* End dot */}
       <Circle cx={lastPoint.x} cy={lastPoint.y} r={4} fill={primaryColor} />
-      <Circle cx={lastPoint.x} cy={lastPoint.y} r={6} fill={primaryColor} opacity={0.25} />
       {/* Date labels */}
       {labelIndices.map((idx) => {
         const isLast = idx === data.length - 1;
@@ -328,87 +325,6 @@ const SparklineChart = React.memo(function SparklineChart({
   );
 });
 
-// ── Mini Donut Ring (collapsed state preview, domain-based) ──
-const MiniDonut = React.memo(function MiniDonut({
-  domainStats,
-  colorMap,
-}: {
-  domainStats: { items: DomainStat[]; total: number };
-  colorMap: Record<string, string>;
-}) {
-  const size = 20;
-  const strokeWidth = 3;
-  const radius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const center = size / 2;
-
-  let cumulativeOffset = 0;
-
-  return (
-    <Svg width={size} height={size}>
-      <G rotation={-90} origin={`${center}, ${center}`}>
-        {domainStats.items.map((item) => {
-          if (item.count <= 0) return null;
-          const ratio = item.count / domainStats.total;
-          const dashLength = ratio * circumference;
-          const gapLength = circumference - dashLength;
-          const offset = cumulativeOffset;
-          cumulativeOffset += dashLength;
-          return (
-            <Circle
-              key={item.domain}
-              cx={center}
-              cy={center}
-              r={radius}
-              stroke={colorMap[item.domain] ?? colorMap['Others']}
-              strokeWidth={strokeWidth}
-              strokeDasharray={`${dashLength} ${gapLength}`}
-              strokeDashoffset={-offset}
-              fill="none"
-            />
-          );
-        })}
-      </G>
-    </Svg>
-  );
-});
-
-// ── Mini Sparkline Bars (collapsed state) ──
-const MiniSparkBars = React.memo(function MiniSparkBars({
-  data,
-  primaryColor,
-  dimColor,
-}: {
-  data: { date: string; count: number }[];
-  primaryColor: string;
-  dimColor: string;
-}) {
-  // Show last 7 entries (or fill with dummy)
-  const bars = data.length >= 7 ? data.slice(-7) : data;
-  if (bars.length === 0) return null;
-  const maxVal = Math.max(...bars.map((d) => d.count), 1);
-  const barHeight = 20;
-
-  return (
-    <View style={{ flexDirection: 'row', alignItems: 'flex-end', height: barHeight, width: 38, gap: 2 }}>
-      {bars.map((d, i) => {
-        const h = Math.max(4, (d.count / maxVal) * barHeight);
-        const isLast = i === bars.length - 1;
-        return (
-          <View
-            key={i}
-            style={{
-              width: 3.5,
-              height: h,
-              borderRadius: 1.5,
-              backgroundColor: isLast ? primaryColor : dimColor,
-            }}
-          />
-        );
-      })}
-    </View>
-  );
-});
 
 // ── Main Component ──
 export const DailyBriefingCard = React.memo(function DailyBriefingCard({
@@ -573,9 +489,11 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
               </View>
             </View>
 
-            {/* Mini donut ring */}
+            {/* Article count */}
             {domainStats ? (
-              <MiniDonut domainStats={domainStats} colorMap={domainColorMap} />
+              <Text style={{ fontSize: 13, fontWeight: '700', color: colors.primary }}>
+                {domainStats.total}
+              </Text>
             ) : null}
 
             <ChevronDown size={16} color={colors.textSecondary} style={{ marginLeft: 8 }} />
@@ -613,19 +531,6 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
             }}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-              <View
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 10,
-                  backgroundColor: colors.primary + '25',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginRight: 10,
-                }}
-              >
-                <Newspaper size={18} color={colors.primary} />
-              </View>
               <View>
                 <Text
                   style={{
@@ -785,7 +690,7 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
           {/* 2. Hot Topics */}
           {hotTopics.length > 0 && (
             <View style={{ marginBottom: 20 }}>
-              <SectionTitle icon={Flame} title={t('briefing.hotTopics')} color={colors.textSecondary} />
+              <SectionTitle title={t('briefing.hotTopics')} color={colors.textSecondary} />
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
                 {hotTopics.map(({ tag, count }, idx) => {
                   const isHot = idx < 3;
