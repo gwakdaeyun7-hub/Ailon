@@ -332,8 +332,7 @@ def seed_selector(state: PrincipleGraphState) -> dict:
     """curated 콘텐츠가 있는 시드만 선택 (LLM 생성 비활성화).
 
     curated_principles/ 폴더의 .md 파일이 있는 시드만 후보로 사용.
-    curated 시드가 1개면 항상 해당 시드 선택 (현재: SA 고정 효과).
-    curated 시드가 여러 개면 30일 중복 회피 + 3일 분야 로테이션 적용.
+    45개 curated 시드에서 30일 중복 회피 + 3일 분야 로테이션 적용.
     """
     db = get_firestore_client()
     now_kst = datetime.now(_KST)
