@@ -23,6 +23,12 @@ Molecular Graph Representation - 화학의 분자 그래프 표현 전통이 GNN
 
 이 과정에서 결정적 도약이 일어났다. David Duvenaud et al.(2015)이 이 반복적 이웃 정보 집계 과정을 보고 질문을 던진 것이다. "2단계의 해싱을 학습 가능한 신경망 함수로 바꾸면 어떨까?" 이것이 **신경 지문(neural fingerprint)**이며, 분자 그래프에 대한 최초의 그래프 신경망 적용 중 하나다. 핵심 대응 관계는 다음과 같다.
 
+- Morgan 지문의 **해시 함수** --> 신경 지문의 **학습 가능한 신경망 함수** (고정 규칙이 데이터에서 학습된 함수로 대체)
+- 원자의 **초기 식별자**(원자 번호, 전하 등) --> GNN의 **초기 노드 특성 벡터** (원-핫 인코딩 또는 학습된 임베딩)
+- **이웃 정보 집계 반복 횟수 r** --> GNN의 **메시지 전달 레이어 수 T** (정보 전파 반경)
+- 최종 **고정 길이 비트 벡터** --> **학습된 분자 임베딩** (연속 실수 벡터)
+- 해시의 **비가역성**(충돌 발생, 역추적 불가) --> 신경망의 **미분 가능성** (경사 역전파로 학습 가능)
+
 ## 메시지 전달 신경망(MPNN): 핵심 메커니즘
 
 Justin Gilmer et al.(2017)은 Google Brain에서 분자 성질 예측을 연구하면서, 이미 나와 있던 다양한 분자 그래프 신경망들이 하나의 공통 골격을 공유한다는 것을 발견했다. 이를 **메시지 전달 신경망(Message Passing Neural Network, MPNN)**이라는 통합 프레임워크로 정리했다.
@@ -55,6 +61,9 @@ MPNN에서 레이어 수 T는 핵심 트레이드오프를 만든다.
 - **Duvenaud의 신경 지문(2015)**: Morgan 지문의 해싱을 신경망으로 대체한 이 작업이 GNN의 "미분 가능한 그래프 처리"라는 핵심 아이디어를 확립했다. 이후 GCN(Kipf & Welling, 2017), GAT(Velickovic et al., 2018) 등 주요 GNN 변종들이 같은 원리 위에 세워졌다.
 
 **동일한 구조적 직관을 독립적으로 공유하는 사례:**
+
+- **Transformer의 자기 주의(self-attention)**: 시퀀스의 모든 토큰이 다른 모든 토큰과 관계를 계산하는 것은, MPNN에서 이웃 노드의 메시지를 수집하는 것과 "국소 문맥 정보를 집계하여 표현을 풍부하게 한다"는 직관을 공유한다. 그러나 자기 주의는 NLP의 seq2seq 문제에서 독립적으로 발전했으며, 분자 그래프의 영향은 없었다.
+- **포인트 클라우드 처리(PointNet++, Qi et al. 2017)**: 3D 점 집합에서 가까운 점들의 특성을 집계하여 국소 구조를 포착하는 것은, MPNN의 이웃 노드 메시지 수집과 기하학적으로 동일한 연산이다. PointNet++는 컴퓨터 비전의 3D 인식 문제에서 출발했으며, 분자 그래프나 GNN과 독립적으로 발전했다.
 
 ## 한계와 약점
 
@@ -100,6 +109,12 @@ Starting in the 1990s, cheminformatics widely adopted **molecular fingerprints**
 
 The decisive leap happened here. David Duvenaud et al. (2015) examined this iterative neighbor aggregation process and asked: "What if we replace the hashing in step 2 with a learnable neural network function?" This became the **neural fingerprint**, one of the first graph neural network applications to molecular graphs. The key correspondences are:
 
+- Morgan fingerprint's **hash function** --> neural fingerprint's **learnable neural network function** (fixed rules replaced by data-learned functions)
+- Atom's **initial identifier** (atomic number, charge, etc.) --> GNN's **initial node feature vector** (one-hot encoding or learned embedding)
+- **Neighbor aggregation iteration count r** --> GNN's **number of message passing layers T** (information propagation radius)
+- Final **fixed-length bit vector** --> **learned molecular embedding** (continuous real-valued vector)
+- Hash's **irreversibility** (collisions occur, no backtracking) --> neural network's **differentiability** (learnable via gradient backpropagation)
+
 ## Message Passing Neural Networks (MPNN): Core Mechanism
 
 Justin Gilmer et al. (2017) at Google Brain, while researching molecular property prediction, discovered that various existing molecular graph neural networks shared a common backbone. They formalized this as the **Message Passing Neural Network (MPNN)** framework.
@@ -132,6 +147,9 @@ The GNN idea born from molecular graphs has spread beyond chemistry across AI. H
 - **Duvenaud's neural fingerprint (2015)**: This work replacing Morgan fingerprint hashing with neural networks established the core GNN idea of "differentiable graph processing." Major GNN variants that followed -- GCN (Kipf & Welling, 2017), GAT (Velickovic et al., 2018) -- were built on the same principle.
 
 **Cases sharing the same structural intuition independently:**
+
+- **Transformer self-attention**: Computing relationships between all tokens in a sequence shares the intuition of "aggregating local context information to enrich representations" with MPNN's neighbor message collection. However, self-attention developed independently from the seq2seq problem in NLP, with no influence from molecular graphs.
+- **Point cloud processing (PointNet++, Qi et al., 2017)**: Aggregating features of nearby points in a 3D point set to capture local structure is geometrically the same operation as MPNN's neighbor message collection. PointNet++ originated from 3D recognition in computer vision and developed independently from molecular graphs and GNNs.
 
 ## Limitations and Weaknesses
 

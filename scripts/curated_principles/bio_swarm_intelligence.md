@@ -12,7 +12,7 @@ Swarm Intelligence - 단순한 개체들의 국소 상호작용에서 집단 수
 
 이를 공간적으로 상상하면 이렇다. 수천 명이 참여하는 멕시코 웨이브를 떠올려보자. 각 관중은 "옆 사람이 일어나면 나도 일어난다"는 단 하나의 규칙만 따른다. 아무도 파도의 전체 모양을 설계하지 않았지만, 경기장을 한 바퀴 도는 깔끔한 파도가 나타난다. 군집 지능도 정확히 이 구조다. 국소 규칙이 전역 패턴을 만든다.
 
-군집 지능이 작동하는 세 가지 조건이 있다.
+군집 지능이 작동하는 세 가지 조건이 있다. 첫째, **개체의 다양성** -- 각 개체가 서로 다른 경로를 탐색해야 한다. 모든 개미가 같은 길만 따라가면 새로운 먹이원을 발견할 수 없다. 둘째, **양성 피드백** -- 좋은 해에 대한 신호가 증폭되어야 한다. 짧은 경로에 페로몬이 축적되는 것이 대표적이다. 셋째, **음성 피드백** -- 과도한 수렴을 방지하는 메커니즘이 있어야 한다. 페로몬 증발이 이 역할을 하여, 초기의 차선 경로가 영원히 지배하지 못하게 한다. 이 세 조건의 균형이 깨지면 군집은 무작위 방황(양성 피드백 부족)이나 조기 수렴(음성 피드백 부족)에 빠진다.
 
 ## 생물학에서 알고리즘으로
 
@@ -66,6 +66,9 @@ PSO에서 각 입자의 속도와 위치는 다음과 같이 갱신된다.
 
 **동일한 구조적 직관을 독립적으로 공유하는 사례:**
 
+- **연합 학습(Federated Learning, McMahan et al. 2017)**: 수백~수천 대의 디바이스가 중앙 서버의 직접 지시 없이 각자 데이터로 학습하고, 가중치 업데이트만 공유하여 전체 모델을 개선한다. 개별 디바이스는 전체 데이터를 보지 못하지만 집합적으로 좋은 모델에 수렴하는 것은 개미 군집의 간접 통신(stigmergy)과 같은 "중앙 조율 없는 분산 학습"이다. 그러나 McMahan은 프라이버시 보존이라는 공학적 동기에서 출발했으며, 군집 지능을 참조하지 않았다.
+- **앙상블 학습(Ensemble Learning)**: 랜덤 포레스트나 부스팅에서 다수의 약한 학습기가 독립적으로 판단하고 이를 집계하여 단일 학습기보다 더 정확한 예측을 만드는 것은, 개체의 제한된 지식이 집단 수준에서 상쇄되어 더 나은 결과를 만드는 "집단 지혜(wisdom of crowds)"와 동일한 직관이다. 그러나 앙상블 이론은 통계학의 편향-분산 분해에서 독립적으로 발전했다.
+
 ## 한계와 약점
 
 - **수렴 보장 부재**: ACO도 PSO도 전역 최적해 도달을 이론적으로 보장하지 않는다. 경험적으로 좋은 해를 찾을 뿐이며, 주어진 해가 최적에 얼마나 가까운지 판단할 기준도 부족하다. 이는 적어도 지역 최적 조건을 검증할 수 있는 경사 기반 방법과 대조적이다.
@@ -99,7 +102,7 @@ A single ant has only about 250,000 brain neurons. Its vision extends just a few
 
 To picture this spatially: think of a Mexican wave in a stadium of thousands. Each spectator follows one rule only: "stand up when my neighbor stands up." Nobody designed the wave's overall shape, yet a clean wave circles the entire stadium. Swarm intelligence works on exactly this structure. Local rules create global patterns.
 
-Three conditions enable swarm intelligence:
+Three conditions enable swarm intelligence. First, **individual diversity** -- each individual must explore different paths. If every ant follows the same trail, no new food sources are discovered. Second, **positive feedback** -- signals for good solutions must be amplified. Pheromone accumulation on shorter paths is the classic example. Third, **negative feedback** -- mechanisms must prevent excessive convergence. Pheromone evaporation serves this role, ensuring that early suboptimal paths do not dominate forever. When the balance among these three conditions breaks, the swarm falls into either random wandering (insufficient positive feedback) or premature convergence (insufficient negative feedback).
 
 ## From Biology to Algorithm
 
@@ -152,6 +155,9 @@ Swarm intelligence principles extend beyond simple optimization algorithms, refl
 - **ACO-based network routing**: AntNet (Di Caro & Dorigo, 1998) applied ACO to telecommunications routing. Artificial ants traverse the network collecting latency information and update routing tables at each node like pheromone. In dynamically changing network loads, this shows greater adaptability than static algorithms.
 
 **Structural similarities sharing the same intuition independently:**
+
+- **Federated Learning (McMahan et al., 2017)**: Hundreds to thousands of devices learn independently on their own data and share only weight updates to improve the global model. Each device sees only a fraction of the data, yet collectively they converge to a good model -- the same "decentralized learning without central coordination" as ant colonies' indirect communication (stigmergy). However, McMahan's motivation was privacy preservation, an engineering concern, not swarm intelligence.
+- **Ensemble learning**: In random forests and boosting, multiple weak learners judge independently and their outputs are aggregated to produce predictions more accurate than any single learner. This is the same "wisdom of crowds" intuition where individual limitations cancel out at the collective level. But ensemble theory developed independently from the bias-variance decomposition in statistics.
 
 ## Limitations and Weaknesses
 

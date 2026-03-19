@@ -59,6 +59,12 @@ Attention(Q, K, V) = softmax(Q * K^T / sqrt(d_k)) * V
 
 **변형되거나 사라진 것 (메커니즘 수준):**
 
+- 직렬 vs 병렬: 뇌의 주의는 한 번에 하나의 초점만 가질 수 있는 직렬 과정이다(Posner의 스포트라이트 모델). Transformer의 주의는 모든 위치를 동시에 계산하는 완전 병렬 연산이다
+- 억제의 역할: 뇌에서 주의는 선택된 정보를 강화하는 만큼 비선택 정보를 적극적으로 억제한다(경쟁적 억제). Transformer의 softmax는 가중치를 낮출 뿐 적극적 억제 메커니즘이 없다
+- 자기 주의의 부재: 뇌에서 "자기 자신에 대한 주의"에 대응하는 명확한 메커니즘이 알려져 있지 않다. Self-attention은 시퀀스가 자기 자신의 문맥을 참조하는 순수한 계산적 발명이다
+- QKV 분해: 쿼리-키-값이라는 세 역할 분리는 데이터베이스 검색의 비유에서 온 것이며, 신경과학에 대응하는 구조가 없다
+- 다중 헤드: 여러 관점에서 동시에 주의를 계산하는 다중 헤드 구조는 뇌의 주의에 직접적 대응물이 없다. 뇌가 여러 특징 차원을 병렬 처리하는 것과 표면적으로 유사하지만, 메커니즘은 근본적으로 다르다
+
 ## 현대 AI에서의 확장과 변형
 
 **원래 직관이 남아있는 영역:**
@@ -147,6 +153,12 @@ Attention(Q, K, V) = softmax(Q * K^T / sqrt(d_k)) * V
 - Bottleneck resolution: Brain attention solves processing capacity limits; computational attention solves the fixed-length vector bottleneck
 
 **What was transformed or lost (mechanism level):**
+
+- Serial vs. parallel: Brain attention is a serial process with only one focus at a time (Posner's spotlight model). Transformer attention is a fully parallel operation computing all positions simultaneously
+- The role of suppression: In the brain, attention actively suppresses unselected information as much as it enhances selected information (competitive inhibition). Transformer softmax merely lowers weights without an active suppression mechanism
+- No self-attention analogue: No clear mechanism corresponding to "attending to oneself" is known in the brain. Self-attention -- a sequence referencing its own context -- is a purely computational invention
+- QKV decomposition: The separation into three roles of query, key, and value comes from the database retrieval metaphor and has no corresponding structure in neuroscience
+- Multi-head: The multi-head structure computing attention from multiple perspectives simultaneously has no direct counterpart in brain attention. It superficially resembles the brain's parallel processing across feature dimensions, but the mechanisms are fundamentally different
 
 ## Extensions and Variations in Modern AI
 

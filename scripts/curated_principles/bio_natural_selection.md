@@ -55,6 +55,10 @@ Ronald Fisher(1930)의 기본 정리는 "자연선택에 의한 적합도 증가
 
 **자연선택에서 직접 영감을 받은 기법:**
 
+- **유전 프로그래밍(Genetic Programming, Koza 1992)**: 해를 비트열이 아닌 트리 구조의 실행 가능한 프로그램으로 표현하여, 선택-교차-돌연변이로 프로그램 자체를 진화시킨다. 자연선택의 번역이 데이터 구조에서 프로그램 코드로 확장된 것이다.
+- **NEAT(NeuroEvolution of Augmenting Topologies, Stanley & Miikkulainen 2002)**: 신경망의 구조(토폴로지)와 가중치를 동시에 진화시킨다. 종분화(speciation) 메커니즘으로 구조가 다른 개체들이 같은 적합도 기준으로 경쟁하지 않도록 보호하는데, 이는 자연의 생태적 지위(ecological niche) 분화와 직접 대응한다.
+- **신경 아키텍처 탐색(NAS)**: Real et al.(2019)의 AmoebaNet은 진화 전략을 사용하여 ImageNet에서 인간 설계 아키텍처에 필적하는 성능을 달성했다. 수백 개의 신경망 "종"을 세대별로 진화시켜 최적 구조를 탐색하는 것이다.
+
 ## 한계와 약점
 
 - **적합도 함수 설계 문제**: 자연에는 "목적 함수"가 없다. 환경 자체가 선택압이며 끊임없이 변한다. 알고리즘은 미리 정의된 적합도 함수를 전제하므로, 함수를 잘못 설계하면 원하는 것과 다른 방향으로 진화가 진행된다. 이른바 적합도 해킹(fitness hacking) 문제다
@@ -130,6 +134,10 @@ Yet in AI, this **actually works**. Neural network weights (knowledge gained thr
 Natural selection's "variation-selection-heredity" cycle lives on in transformed forms across modern AI. However, the nature of each connection differs.
 
 **Techniques directly inspired by natural selection:**
+
+- **Genetic Programming (Koza, 1992)**: Represents solutions not as bit strings but as tree-structured executable programs, evolving the programs themselves through selection, crossover, and mutation. The translation of natural selection extended from data structures to program code.
+- **NEAT (NeuroEvolution of Augmenting Topologies, Stanley & Miikkulainen, 2002)**: Simultaneously evolves both neural network topology and weights. A speciation mechanism protects structurally different individuals from competing under the same fitness criteria -- directly corresponding to ecological niche differentiation in nature.
+- **Neural Architecture Search (NAS)**: Real et al.'s (2019) AmoebaNet used evolutionary strategies to achieve performance rivaling human-designed architectures on ImageNet. It evolves hundreds of neural network "species" generation by generation to discover optimal structures.
 
 ## Limitations and Weaknesses
 

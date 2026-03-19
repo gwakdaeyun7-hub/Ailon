@@ -54,6 +54,9 @@ Hebb 학습의 원리는 현대 AI 곳곳에 변형되어 남아 있다. 다만 
 
 **동일한 직관을 독립적으로 공유하는 구조적 유사성:**
 
+- **Word2Vec의 skip-gram(Mikolov et al., 2013)**: 함께 출현하는 단어의 벡터를 가깝게 학습하는 것은 "함께 발화하면 연결을 강화한다"는 Hebb 직관과 동일하다. 그러나 Mikolov는 언어학의 분포 가설(distributional hypothesis, "단어의 의미는 함께 등장하는 문맥이 결정한다")에서 출발했으며, Hebb 학습을 참조하지 않았다.
+- **대조 학습(Contrastive Learning)**: SimCLR(Chen et al., 2020), MoCo(He et al., 2020) 등에서 같은 이미지의 두 증강 뷰가 유사한 표현을 만들도록 학습하는 것은 "함께 발화하면 함께 연결된다"는 직관을 공유한다. 그러나 이론적 토대는 상호 정보 최대화(mutual information maximization)와 노이즈 대조 추정(noise contrastive estimation)이며, 신경 가소성이 아니다.
+
 ## 한계와 약점
 
 - **국소 규칙의 성능 한계**: 순수 Hebb 학습은 연결된 두 뉴런의 정보만 사용하므로, 역전파처럼 전역 오차를 활용하는 알고리즘보다 최적화 성능이 크게 떨어진다. SOM이나 Hebb 기반 규칙은 현대 대규모 데이터에서 딥러닝만큼의 확장성을 보여주지 못했다.
@@ -128,6 +131,9 @@ Hebbian learning principles survive in transformed forms throughout modern AI. H
 - **Restricted Boltzmann Machine (RBM) learning**: Proposed by Smolensky (1986) and made practical by Hinton (2006) with contrastive divergence, RBMs update weights using co-activation statistics -- a probabilistic extension of the Hebbian principle.
 
 **Structural similarities sharing the same intuition independently:**
+
+- **Word2Vec's skip-gram (Mikolov et al., 2013)**: Learning vectors of co-occurring words to be close shares the Hebbian intuition of "co-occurrence strengthens connections." However, Mikolov drew from linguistics' distributional hypothesis ("a word's meaning is determined by its context"), not from Hebbian learning.
+- **Contrastive learning**: In SimCLR (Chen et al., 2020) and MoCo (He et al., 2020), training two augmented views of the same image to produce similar representations shares the "fire together, wire together" intuition. But the theoretical foundation is mutual information maximization and noise contrastive estimation, not neural plasticity.
 
 ## Limitations and Weaknesses
 
