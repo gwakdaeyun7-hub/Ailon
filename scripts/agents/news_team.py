@@ -526,7 +526,7 @@ Articles:
 # ─── 제목 구분자 후처리 (EN→KO 번역 전용) ───
 _TITLE_FORBIDDEN_ELLIPSIS = re.compile(
     r'(공개|출시|발표|인수|도입|개발|선언|철회|체결|중단|제기|투자|가동|확대|보류|강화|적용|탑재|시작|달성'
-    r'|증가|전망|본격화|능가|업그레이드|전환|추진|가속화|착수|재편|통합|확장|부여|업데이트)\s*\.{3,}\s*(?=\S)'
+    r'|증가|전망|본격화|능가|업그레이드|전환|추진|가속화|착수|재편|통합|확장|부여|업데이트)\s*(?:\.{3,}|…)\s*(?=\S)'
 )
 
 
@@ -688,8 +688,9 @@ def _process_articles(articles: list[dict], translate: bool, batch_size: int, ma
             a["why_important_en"] = ""
 
     # 4차: 미번역 EN 기사 간이 번역 (제목 + one_line 최소 복구)
+    # 요약 완료(one_line 있음) 기사만 대상 — 미요약 기사는 최종 선정에서 제외되므로 간이 번역 불필요
     if translate:
-        untranslated = [a for a in articles if a.get("lang") != "ko" and a.get("display_title") == a.get("title") and a.get("title")]
+        untranslated = [a for a in articles if a.get("lang") != "ko" and a.get("one_line") and a.get("display_title") == a.get("title") and a.get("title")]
         if untranslated:
             ci_warning(f"미번역 EN 기사 {len(untranslated)}개 감지 — 간이 번역 시도")
             llm = get_llm(temperature=0.0, max_tokens=2048, thinking=False, json_mode=True)
@@ -732,11 +733,14 @@ JSON 형식으로 응답:
         if fixed_count:
             print(f"    [제목 교정] {fixed_count}개 제목 '...' 구분자 → 쉼표 교정")
 
-    success = len([a for a in articles if a.get("summary") and len(a["summary"]) > 50])
-    still_untranslated = len([a for a in articles if a.get("lang") != "ko" and a.get("display_title") == a.get("title") and a.get("title")]) if translate else 0
+    success = len([a for a in articles if a.get("one_line")])
+    no_summary = len(articles) - success
+    still_untranslated = len([a for a in articles if a.get("lang") != "ko" and a.get("one_line") and a.get("display_title") == a.get("title") and a.get("title")]) if translate else 0
     if still_untranslated:
         ci_warning(f"[{label}] 미번역 EN 기사 {still_untranslated}개 잔존")
-    print(f"  [{label}] 최종 {success}/{len(articles)}개 완료" + (f" (미번역 {still_untranslated}개)" if still_untranslated else ""))
+    if no_summary:
+        ci_warning(f"[{label}] 미요약 기사 {no_summary}개 — 최종 선정에서 제외 예정")
+    print(f"  [{label}] 최종 {success}/{len(articles)}개 요약 완료" + (f" (미요약 {no_summary}개 제외 예정)" if no_summary else ""))
 
 
 # ─── LLM AI 관련성 필터 ───
@@ -1033,8 +1037,7 @@ def en_process_node(state: NewsGraphState) -> dict:
                     body = a.get("body", "")
                     desc = a.get("description", "")
                     a["summary"] = (body[:200] if body else desc[:200]) if (body or desc) else ""
-                if not a.get("one_line"):
-                    a["one_line"] = a.get("title", "")
+                # one_line 미설정 → 미요약 기사로 취급, selector에서 제외됨
                 ko_fallback_count += 1
 
     if en_articles:
@@ -1911,6 +1914,94 @@ def categorizer_node(state: NewsGraphState) -> dict:
         print("    ── [QA] 제목 품질 이슈 없음 ──")
     ci_endgroup()
 
+    # ── QA: 요약 품질 검증 ──
+    ci_group("QA: 요약 품질 검증")
+    print("    ── [QA] 요약 품질 검증 ──")
+    _smr_kp_short = 0
+    _smr_no_why = 0
+    _smr_no_bg = 0
+    _smr_tone_count = 0
+    _smr_tone_list: list[str] = []
+
+    # 말투 간이 검증 패턴
+    _OL_BAD_RE = re.compile(r'(했어요|됐어요|이에요|해요|있어요|돼요|합니다|됩니다|입니다)\s*[.!?]*\s*$')
+    _KP_BAD_RE = re.compile(r'[가-힣](했다|됐다|왔다|났다|했어요|됐어요|이에요|해요|합니다|됩니다|입니다)\s*[.!?]*\s*$')
+    _WI_BAD_RE = re.compile(r'(했다|됐다|밝혔다|있었다|됩니다|입니다|이다)\s*[.!?]*\s*$')
+    _BG_BAD_RE = re.compile(r'(했어요|됐어요|이에요|해요|있어요|돼요)\s*[.!?]*\s*$')
+
+    for a in candidates:
+        if a.get("_deduped") or a.get("_ai_filtered"):
+            continue
+        _smr_t = (a.get("display_title") or a.get("title", ""))[:50]
+        _smr_ol = a.get("one_line", "")
+        _smr_kps = a.get("key_points", [])
+        _smr_why = a.get("why_important", "")
+        _smr_bg = a.get("background", "")
+
+        if isinstance(_smr_kps, list) and len(_smr_kps) <= 1:
+            _smr_kp_short += 1
+        if not _smr_why:
+            _smr_no_why += 1
+        if not _smr_bg:
+            _smr_no_bg += 1
+
+        if _smr_ol and _OL_BAD_RE.search(_smr_ol):
+            _smr_tone_count += 1
+            _smr_tone_list.append(f"one_line 경어체: {_smr_t} → \"{_smr_ol[-15:]}\"")
+        if isinstance(_smr_kps, list):
+            for _smr_kp in _smr_kps:
+                if _smr_kp and _KP_BAD_RE.search(_smr_kp):
+                    _smr_tone_count += 1
+                    _smr_tone_list.append(f"key_points 문장형: {_smr_t} → \"{_smr_kp[-15:]}\"")
+                    break
+        if _smr_why and _WI_BAD_RE.search(_smr_why):
+            _smr_tone_count += 1
+            _smr_tone_list.append(f"why_important 비해요체: {_smr_t} → \"{_smr_why[-15:]}\"")
+        if _smr_bg and _BG_BAD_RE.search(_smr_bg):
+            _smr_tone_count += 1
+            _smr_tone_list.append(f"background 경어체: {_smr_t} → \"{_smr_bg[-15:]}\"")
+
+    print(f"    [요약 통계] key_points 부족(0-1개): {_smr_kp_short}건, why_important 누락: {_smr_no_why}건, background 누락: {_smr_no_bg}건")
+    if _smr_tone_count:
+        ci_warning(f"요약 말투 위반 {_smr_tone_count}건 감지")
+        for _smr_d in _smr_tone_list[:10]:
+            print(f"      ⚠ {_smr_d}")
+        if len(_smr_tone_list) > 10:
+            print(f"      ... 외 {len(_smr_tone_list) - 10}건")
+    else:
+        print("    [요약 말투] 위반 없음")
+
+    if _smr_kp_short > 5:
+        ci_warning(f"key_points 부족(0-1개) {_smr_kp_short}건 — 요약 프롬프트 점검 필요")
+    _smr_issues = _smr_kp_short + _smr_no_why + _smr_tone_count
+    if _smr_issues:
+        print(f"    ── [QA] 요약 품질 이슈 {_smr_issues}건 감지 ──")
+    else:
+        print("    ── [QA] 요약 품질 이슈 없음 ──")
+    ci_endgroup()
+
+    # 요약 상세 출력 (접기 섹션 — pipeline-qa 심층 분석용)
+    ci_group("요약 상세: 전체 기사 요약")
+    _smr_n = 0
+    for a in candidates:
+        if a.get("_deduped") or a.get("_ai_filtered"):
+            continue
+        _smr_n += 1
+        _c = a.get("_llm_category", "?")
+        _t = a.get("display_title") or a.get("title", "")
+        _o = a.get("one_line", "")
+        _k = a.get("key_points", [])
+        _w = a.get("why_important", "")
+        _b = a.get("background", "")
+        _ks = " | ".join(_k) if isinstance(_k, list) else str(_k)
+        print(f"    [{_c}] {_t}")
+        print(f"      one_line: {_o}")
+        print(f"      key_points: [{_ks}]")
+        print(f"      why_important: {_w}")
+        print(f"      background: {_b}")
+    print(f"    [요약 상세] 전체 {_smr_n}건")
+    ci_endgroup()
+
     return {"scored_candidates": candidates}
 
 
@@ -2211,6 +2302,12 @@ def selector_node(state: NewsGraphState) -> dict:
     candidates = [c for c in all_candidates if _is_recent(c, days=5) and not c.get("_deduped")]
     older = sum(1 for c in all_candidates if not _is_recent(c, days=5))
     deduped_excluded = sum(1 for c in all_candidates if c.get("_deduped"))
+    unsummarized = [c for c in candidates if not c.get("one_line")]
+    if unsummarized:
+        ci_warning(f"미요약 기사 {len(unsummarized)}개 제외 (one_line 없음)")
+        for _u in unsummarized[:5]:
+            print(f"    - {(_u.get('title') or '')[:60]}")
+        candidates = [c for c in candidates if c.get("one_line")]
     if older:
         print(f"  [선정] 5일 이전 기사 {older}개 표시 제외 (수집 보존)")
     if deduped_excluded:
@@ -2348,8 +2445,8 @@ def assembler_node(state: NewsGraphState) -> dict:
         if key in SOURCE_SECTION_SOURCES and sources.get(key):
             source_order.append(key)
             all_articles = sources[key]
-            # AI 필터 통과 + 중복 아닌 기사만
-            filtered = [a for a in all_articles if not a.get("_ai_filtered") and not a.get("_deduped")]
+            # AI 필터 통과 + 중복 아닌 + 요약 완료 기사만
+            filtered = [a for a in all_articles if not a.get("_ai_filtered") and not a.get("_deduped") and a.get("one_line")]
             excluded = len(all_articles) - len(filtered)
             if excluded > 0:
                 print(f"    [{key}] AI/중복 필터: {excluded}개 제외 (전체 {len(all_articles)}개)")

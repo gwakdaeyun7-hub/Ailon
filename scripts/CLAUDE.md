@@ -15,13 +15,13 @@ LangGraph 8-node pipeline with parallel EN/KO branches:
 | Node | Function | Key Config |
 |------|----------|------------|
 | collector | 22 RSS sources + scraping + LLM AI filter + date recovery | trafilatura + Chrome UA, 6 RSS workers + 10 scrape workers + 4 AI filter workers. RSS 날짜 미추출 시 `date_estimated=True` 마킹 → 스크래핑에서 meta 태그(article:published_time 등), `<time>`, JSON-LD, trafilatura bare_extraction으로 날짜 복원 |
-| en_process | EN→KO translation + summarization | batch=5, max_tokens=12288, 5 parallel workers, 4-phase retry (batch→individual→fallback→간이번역) |
-| ko_process | KO summarization | batch=2, max_tokens=12288, 5 parallel workers, 3-phase retry |
-| categorizer | LLM 3-category classification + 7-layer dedup | batch=5, 3 parallel workers |
+| en_process | EN→KO translation + summarization | batch=5, max_tokens=12288, 5 parallel workers, 5-phase (batch→individual→fallback→간이번역→제목교정). 미요약(one_line 없음) 기사는 간이번역 스킵, selector에서 제외 |
+| ko_process | KO summarization | batch=2, max_tokens=12288, 5 parallel workers, 3-phase retry. 미요약 기사는 selector에서 제외 |
+| categorizer | LLM 3-category classification + 7-layer dedup + 요약 품질 QA | batch=5, 3 parallel workers. 요약 말투 위반 자동 감지 + 전체 기사 요약 상세 출력 |
 | ranker | Per-category LLM ranking → score (1st=100, last=30) | token_budget=max(6144, count*150), 3 parallel workers (per-category) |
 | entity_extractor | Entity extraction + topic clustering | batch=5, up to 4 parallel workers, 3-tier retry (batch→sub-batch→individual) |
-| selector | Highlight Top 3 + Category Top 20 | today articles only for highlights |
-| assembler | Final structure + timing report | Korean sources in separate sections |
+| selector | Highlight Top 3 + Category Top 20 + 미요약 제외 | today articles only for highlights. one_line 없는 기사 제외 |
+| assembler | Final structure + timing report | Korean sources in separate sections. one_line 없는 기사 소스 섹션에서도 제외 |
 
 ### News Sources (22 total, 3 tiers)
 
@@ -46,7 +46,7 @@ AI타임스, GeekNews, ZDNet AI 에디터 (HTML scrape), 요즘IT AI
 | CLASSIFY_BATCH_SIZE | 5 | LLM 안정성 |
 | EN batch size | 5 | 번역+요약 |
 | KO batch size | 2 | 한국어 본문이 길어서 |
-| `_TITLE_FORBIDDEN_ELLIPSIS` | 정규식 — 34개 금지 서술어 + `...` + 후속 텍스트 | EN→KO 번역 제목에서 구분자 '...' → ',' 자동 교정 (`_fix_title_separator()`). KO 소스 원본 제목은 미적용. 제목 끝 여운 '...'는 `(?=\S)` lookahead로 보존 |
+| `_TITLE_FORBIDDEN_ELLIPSIS` | 정규식 — 34개 금지 서술어 + `...`/`…` + 후속 텍스트 | EN→KO 번역 제목에서 구분자 '...'/'…' → ',' 자동 교정 (`_fix_title_separator()`). KO 소스 원본 제목은 미적용. 제목 끝 여운 '...'는 `(?=\S)` lookahead로 보존 |
 | DEDUP layers | 7 (L1 URL→L2 orig_title≥0.65→L3 disp_title≥0.65→L4 one_line≥0.65 + 고유명사 가드→L5 key_tokens(고유명사3+숫자1 겹침)→L6 embedding→L7 title_entity) | L4 가드: 양쪽 기사에 식별 가능한 고유명사(영어)가 있으면 최소 1개 공유 필요 — 문장 구조만 유사한 오탐 방지 (e.g., "Anthropic lawsuit" vs "Nintendo lawsuit") |
 | Embedding threshold | 0.92 cosine | L6 |
 | L7 title_entity | 제품+버전 일치 + one_line 토큰 Jaccard ≥ 0.30 | GPT-5.4 등 동일 이벤트 다소스 중복 감지. 버전 없는 제품명(예: "Code Review")은 L7 매칭 약화 — L5 nums_overlap도 0이면 전 레이어 통과 가능 (구조적 한계) |
@@ -179,7 +179,7 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 - **날짜 추정 (`date_estimated`)**: RSS 날짜 미추출 시 스크래핑 복원 시도, 실패 시 UI에 `~` 접두사 표시
 - **VentureBeat/paywall**: trafilatura Chrome UA 설정 필요 (`_get_traf_config`)
 - **key_points 2개**: 프롬프트 허용 범위 (목표 3~5개), 0-1개는 문제
-- **Pipeline QA**: print + GitHub Actions 어노테이션 + Job Summary, `/pipeline-qa` 스킬로 8개 영역 심층 분석 가능. `pipeline-post-check.sh` hook이 파이프라인 실행 후 7개 패턴(JSON 잘림, 0건 수집, 스크래핑 실패, 분류 편향, AI 필터, curated 풀 고갈, API 쿼터) 자동 감지
+- **Pipeline QA**: print + GitHub Actions 어노테이션 + Job Summary, `/pipeline-qa` 스킬로 9개 영역(AI 필터/분류/중복/랭킹/제목 품질/요약 품질/브리핑/용어·태그/학문스낵) 심층 분석 가능. `pipeline-post-check.sh` hook이 파이프라인 실행 후 7개 패턴(JSON 잘림, 0건 수집, 스크래핑 실패, 분류 편향, AI 필터, curated 풀 고갈, API 쿼터) 자동 감지
 - **Python 구문 검증**: .py 파일 수정 시 `python-syntax-check.sh` hook이 `py_compile` 자동 실행, 구문 오류 즉시 차단
-- **EN 번역 실패 폴백**: 4-phase retry (배치 → 개별 → 영어 원본 유지 → 간이 번역), 실패 시 영어 제목 유지
+- **EN 번역 실패 → 미요약 제외**: 배치 → 개별 재시도 후에도 요약 실패(one_line 없음) 시 최종 뉴스에서 제외. 요약 성공한 미번역 기사만 간이 번역 대상
 - **제목 구분자 후처리 (2중 방어)**: (1) 프롬프트 금지 서술어 31개 규칙 + (2) `_fix_title_separator()` 코드 후처리 (EN→KO 번역 제목만). 프롬프트가 못 잡은 구분자 패턴을 정규식이 교정. 후처리에도 부자연스러운 패턴이 잔존하면 `_TITLE_FORBIDDEN_ELLIPSIS` 정규식 미커버 → 정규식 업데이트 필요
