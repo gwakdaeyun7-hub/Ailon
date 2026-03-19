@@ -71,6 +71,10 @@ CD 오디오가 이 트레이드오프의 대표적 사례다. 인간의 청각 
 
 **동일한 직관을 독립적으로 공유하는 구조적 유사성:**
 
+- **스트라이드 합성곱과 다운샘플링**: CNN에서 stride-2 합성곱은 특징 맵의 공간 해상도를 절반으로 줄이는데, 이는 신호 처리에서 2배 다운샘플링과 수학적으로 동일한 연산이다. 스트라이드가 특징 맵의 공간 주파수에 비해 클수록, 나이퀴스트 율 위반에 해당하는 에일리어싱이 발생한다. 다만 CNN 설계자들이 나이퀴스트 정리를 의식하고 스트라이드를 정한 것은 아니며, Zhang(2019) 이전까지 이 연결은 명시적으로 인식되지 않았다
+- **토큰화와 이산화**: 텍스트를 토큰으로 분할하는 과정은 연속적인 언어를 이산 단위로 변환한다는 점에서 샘플링과 구조적으로 유사하다. 토큰 단위가 너무 크면(과소 샘플링) 의미의 미세한 차이가 손실되고, 너무 작으면(과다 샘플링) 시퀀스가 불필요하게 길어져 계산 비용이 증가한다
+- **신경망의 스펙트럼 편향과 주파수 학습**: 신경망이 저주파 패턴을 먼저 학습하고 고주파 디테일은 나중에 포착하는 스펙트럼 편향(spectral bias)은, 나이퀴스트 정리의 "주파수에 따른 정보 보존 한계"라는 사고방식과 간접적으로 맞닿아 있다
+
 ## 한계와 약점
 
 - **대역 제한 가정의 비현실성**: 정리는 신호가 특정 주파수 이상의 성분을 전혀 포함하지 않는다고 가정한다. 그러나 자연 이미지의 날카로운 경계 등은 이론적으로 무한대 주파수 성분을 포함한다. 실무에서는 에너지가 무시할 수준으로 감쇠하는 주파수를 실질적 상한으로 사용한다
@@ -162,6 +166,10 @@ CD audio exemplifies this tradeoff. To reproduce 20 kHz (human hearing limit), 4
 - **Image downsampling**: Every resolution-reduction algorithm (bilinear, bicubic, Lanczos) performs internal anti-aliasing. Image resizing in AI data preprocessing is a routine application
 
 **Structural similarities sharing the same intuition independently:**
+
+- **Strided convolutions and downsampling**: Stride-2 convolutions in CNNs halve feature map spatial resolution -- mathematically the same operation as 2x downsampling in signal processing. The larger the stride relative to the feature map's spatial frequency, the more aliasing occurs -- analogous to violating the Nyquist rate. However, CNN designers did not consciously set strides based on the Nyquist theorem; this connection was not explicitly recognized until Zhang (2019)
+- **Tokenization and discretization**: Splitting text into tokens is structurally similar to sampling, in that continuous language is converted to discrete units. Tokens that are too large (undersampling) lose subtle semantic differences; tokens that are too small (oversampling) create unnecessarily long sequences and increased computation
+- **Spectral bias and frequency learning in neural networks**: The spectral bias phenomenon -- where networks learn low-frequency patterns first and capture high-frequency detail later -- indirectly connects to the Nyquist theorem's framing of "frequency-dependent limits on information preservation"
 
 ## Limitations and Weaknesses
 

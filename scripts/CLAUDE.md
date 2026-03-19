@@ -100,6 +100,7 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
   - 구체적 적용 사례 포함, 공간적 비유 활용, 수식 중간 단계 추가
   - 전문 용어는 풀어쓴 설명 먼저, 인과 계보 과장 금지, 복합 개념 문장 분리
   - 상세 기준은 curated 콘텐츠 작성 시 참조 (골드 스탠다드: `opt_simulated_annealing.md`, 4,542자/~9분)
+- **Principle QA**: `/principle-qa` 스킬로 curated 원리 품질을 SA Gold Standard 기준 8개 차원(학문적 정확성, 콘텐츠 깊이, 명확성, 구조, 길이/밸런스, 원리 간 중복, 바이링구얼, 렌더러 호환) 검토 + 자동 수정. `ai-interdisciplinary-scholar` 에이전트로 학문적 정확성 검증
 
 **LLM 생성 폴백 (비상 시만, 현재 비활성):**
 - curated 풀 고갈(45개 모두 30일 내 사용) 시에만 LLM 폴백 발동

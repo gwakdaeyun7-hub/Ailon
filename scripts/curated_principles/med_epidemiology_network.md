@@ -74,6 +74,10 @@ Daley와 Kendall(1964)은 SIR 구조를 루머 확산에 직접 대입했다.
 
 **현대 AI에서의 구조적 유사성:**
 
+- **영향력 최대화**: Kempe et al.(2003)의 독립 확산 모델에서 "활성화된 노드가 이웃을 한 번만 활성화 시도하고, 실패해도 재시도하지 않는다"는 규칙이 SIR의 "감염 후 면역"과 정확히 대응한다. k명의 시드로 도달 범위를 최대화하는 NP-hard 문제에서 탐욕 알고리즘의 (1-1/e) 근사 보장이 핵심 결과다.
+- **연합 학습의 정보 확산**: McMahan et al.(2017)에서 각 노드가 로컬 학습 후 가중치만 전송하여 전체 모델을 개선하는 과정은, 감염 정보가 노드 간 전파되어 네트워크 상태를 바꾸는 SIR과 유사하다. 다만 프라이버시 보존 목적으로 독립 설계되었다.
+- **GNN의 메시지 전달**: 각 노드가 이웃 특징을 수집하여 표현을 갱신하는 과정이 역학 모델의 확산과 닮았다. k층 GNN이 k-hop 이웃 정보를 집약하는 것은 SIR에서 k 단계 후 감염이 k-hop에 도달하는 것과 같은 확산 반경이다.
+
 ## 한계와 약점
 
 - **균질 혼합 가정의 비현실성**: 기본 SIR은 모든 개체가 동등한 확률로 접촉한다고 가정한다. 현실의 이질적 접촉 패턴을 반영하려면 네트워크 기반 모델이나 에이전트 기반 모델(ABM)이 필요하며, 이는 계산 복잡도를 크게 높인다. COVID-19 팬데믹에서 R_0 추정치가 연구마다 1.5에서 6.5까지 크게 달랐던 것은 이 가정의 한계를 드러낸다.
@@ -168,6 +172,10 @@ Daley and Kendall (1964) directly mapped the SIR structure onto rumor propagatio
 This framework was extended to modern misinformation research on social media. Vosoughi, Roy, and Aral (2018) analyzed Twitter data to empirically show that misinformation spreads on average six times faster than factual information and reaches a wider audience. Their finding that spread velocity depends on content novelty and emotional intensity demonstrated that SIR's uniform beta assumption needs modification for information diffusion.
 
 **Structural similarities in modern AI:**
+
+- **Influence maximization**: In Kempe et al.'s (2003) Independent Cascade Model, the rule "an activated node attempts to activate each neighbor exactly once, with no retries" corresponds precisely to SIR's "infection then immunity." Selecting k seeds to maximize reach is NP-hard; the greedy algorithm's (1-1/e) approximation guarantee is the key result.
+- **Federated learning's information diffusion**: In McMahan et al. (2017), each node trains locally then transmits weight updates to improve the global model -- resembling SIR's diffusion where infection propagates between nodes to change network-wide state. However, it was independently designed for privacy preservation.
+- **GNN message passing**: Each node gathering neighbor features to update its representation resembles epidemiological diffusion. A k-layer GNN aggregating k-hop neighbor information mirrors SIR infection reaching k-hop nodes after k steps -- the same diffusion radius.
 
 ## Limitations and Weaknesses
 

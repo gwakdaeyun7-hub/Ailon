@@ -69,6 +69,9 @@ MPC의 "내부 모델로 미래를 예측하고, 최적 행동을 계획하고, 
 
 **동일한 직관을 독립적으로 공유하는 구조적 유사성:**
 
+- **LLM 추론 시 트리 탐색**: OpenAI o1 계열 모델이 답변 생성 시 여러 추론 경로를 내부적으로 탐색하고 최선을 선택하는 구조는, MPC가 여러 제어 시퀀스를 시뮬레이션한 뒤 최적 행동을 고르는 것과 동일한 "계획 후 실행" 패턴이다. 다만 이 유사성은 MPC에서 직접 유래한 것이 아니라 탐색 기반 의사결정의 일반적 구조다
+- **자기 회귀 생성과 재계획**: LLM이 토큰을 하나씩 생성하며 매 스텝마다 전체 문맥을 재평가하는 과정은, MPC의 "첫 행동만 실행하고 재계획" 원리와 구조적으로 닮았다. 한 번에 전체 시퀀스를 확정하지 않고, 각 스텝에서 최신 정보를 반영하여 다음을 결정한다
+
 ## 한계와 약점
 
 MPC 패러다임의 강력함에도 근본적 한계가 존재한다.
@@ -160,6 +163,9 @@ MPC's paradigm of "predict the future with an internal model, plan optimal actio
 - **Dreamer**: Hafner et al. (2020) learned a video-prediction-based world model and optimized policy by simulating future trajectories within the model. This realizes MPC's core advantage -- **sample efficiency**, performing trial-and-error inside the model rather than the real environment -- in the neural network era
 
 **Structural similarities sharing the same intuition independently:**
+
+- **Tree search in LLM reasoning**: Models like OpenAI's o1 family internally explore multiple reasoning paths during generation and select the best -- the same "plan then act" pattern as MPC simulating multiple control sequences and choosing the optimal action. However, this resemblance derives from the general structure of search-based decision-making, not directly from MPC
+- **Autoregressive generation and replanning**: The way LLMs generate tokens one at a time, re-evaluating full context at each step, structurally mirrors MPC's "execute only the first action and replan." Rather than committing to an entire sequence at once, each step incorporates the latest information to decide what comes next
 
 ## Limitations and Weaknesses
 

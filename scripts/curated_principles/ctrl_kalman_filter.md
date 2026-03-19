@@ -72,6 +72,11 @@ SA가 온도라는 단일 파라미터로 탐색-활용 균형을 조절하듯, 
 
 **칼만 필터의 직접적 적용 또는 직접적 영감:**
 
+- **센서 퓨전과 자율주행**: 자율주행 차량은 LiDAR, 카메라, GPS, IMU 등을 칼만 필터(또는 EKF/UKF)로 융합하여 위치와 속도를 추정한다. 칼만 이득이 센서별 잡음 특성에 따라 가중 결합을 자동 조절한다
+- **SLAM**: 로봇이 자신의 위치 추정과 환경 지도 구축을 동시에 수행하는 문제에 EKF-SLAM이 사용된다. 상태 벡터에 로봇 자세와 랜드마크 위치를 포함하여 예측-갱신 사이클로 동시 정밀화한다
+- **상태 공간 모델과 시퀀스 모델링**: S4(Gu et al. 2021)와 Mamba(Gu & Dao 2023)는 칼만 필터의 상태 공간 표현을 시퀀스 모델링에 직접 적용했다. 숨겨진 상태의 선형 재귀 갱신이 Transformer의 대안으로 부상했다
+- **RNN의 은닉 상태 갱신**: RNN이 매 시간 단계에서 은닉 상태를 갱신하는 구조는 칼만 필터의 예측-갱신 사이클과 동일하다. 새 입력(관측)으로 이전 은닉 상태(예측)를 교정한다
+
 ## 한계와 약점
 
 - **선형-가우시안 가정의 취약성**: 원래 칼만 필터는 선형 시스템 + 가우시안 잡음에서만 최적이다. 실제 시스템의 비선형성이 강하면 EKF가 발산할 수 있고, 잡음에 이상치가 많거나 분포가 다봉(multimodal, 봉우리가 여러 개인)이면 가우시안 가정이 깨져 최적성 보장이 사라진다.
@@ -164,6 +169,11 @@ Unscented Kalman Filter (UKF, Julier & Uhlmann 1997): Instead of computing Jacob
 The Kalman filter's predict-update structure and state space model concept are deeply embedded across modern AI. However, the nature of each connection differs.
 
 **Direct application or direct inspiration from the Kalman filter:**
+
+- **Sensor fusion and autonomous driving**: Self-driving vehicles fuse LiDAR, cameras, GPS, and IMU using Kalman filters (or EKF/UKF) to estimate position and velocity. The Kalman gain automatically adjusts weighted combination by each sensor's noise characteristics
+- **SLAM**: EKF-SLAM is standard for robots simultaneously estimating position and building environment maps. The state vector includes robot pose and landmark positions, refining both through the predict-update cycle
+- **State space models and sequence modeling**: S4 (Gu et al. 2021) and Mamba (Gu & Dao 2023) directly applied the Kalman filter's state space representation to sequence modeling. Linear recurrent hidden state updates emerged as a Transformer alternative
+- **RNN hidden state updates**: RNNs updating hidden states at each time step mirrors the Kalman filter's predict-update cycle. Each new input (observation) corrects the previous hidden state (prediction)
 
 ## Limitations and Weaknesses
 

@@ -69,6 +69,9 @@ RCT의 가장 근본적인 트레이드오프는 **내적 타당성과 효율성
 
 **구조적 유사성 (독립적으로 같은 문제에 수렴한 경우):**
 
+- **교차 검증과 대조 실험**: k-fold 교차 검증은 데이터를 k개로 나누어 매번 다른 부분을 테스트 세트로 사용한다. RCT와 직접적 역사적 연결은 없지만, "훈련과 평가를 분리한다"는 동일한 직관을 공유한다. 층화 교차 검증이 클래스 비율을 각 폴드에 균등 배분하는 것은 RCT의 층화 무작위 배정과 구조적으로 동일하다.
+- **조기 종료와 적응적 시험**: 검증 손실 악화 시 학습을 멈추는 것은, 적응적 임상시험에서 열등한 처치군을 조기 중단하는 것과 같은 논리다. 둘 다 "축적된 증거에 기반한 최적 중단 시점"이라는 순차적 의사결정 문제를 풀며, Wald(1945)의 순차 분석 이론이 양쪽의 수학적 토대를 제공한다.
+
 ## 한계와 약점
 
 - **윤리적 제약으로 인한 적용 범위 한계**: 모든 인과적 질문을 RCT로 답할 수 있는 것은 아니다. 흡연의 폐암 유발 효과를 RCT로 연구하는 것은 윤리적으로 불가능하다. 테크 A/B 테스트에서도 사용자에게 의도적으로 나쁜 경험을 배정하는 것의 윤리성이 논쟁된다.
@@ -158,6 +161,9 @@ Clinical trial design's influence on AI manifests at multiple levels. However, t
 - **Multiple comparison correction**: Clinical trial methods like Bonferroni and FDR correction are directly used in hyperparameter search, model comparison, and feature selection.
 
 **Structural similarity (independent convergence on the same problem):**
+
+- **Cross-validation and controlled experiments**: k-fold cross-validation splits data into k parts and uses a different part as the test set each time. No direct historical link to RCTs, but it shares the same intuition of "separating training from evaluation." Stratified CV, distributing class proportions evenly across folds, is structurally identical to stratified randomization in RCTs.
+- **Early stopping and adaptive trials**: Halting training when validation loss worsens follows the same logic as terminating inferior arms early in adaptive trials. Both solve the sequential decision problem of "optimal stopping based on accumulated evidence," with Wald's (1945) sequential analysis theory providing the mathematical foundation for both.
 
 ## Limitations and Weaknesses
 

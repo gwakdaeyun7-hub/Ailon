@@ -77,6 +77,10 @@ Q_stoch(x) = floor(x/s)*s  (확률: 1 - f, 여기서 f = x/s - floor(x/s))
 
 **동일한 수학적 구조를 독립적으로 공유하는 구조적 유사성:**
 
+- **드롭아웃과 디더링의 유사성**: 드롭아웃(Srivastava et al. 2014)은 학습 중 뉴런을 무작위로 비활성화하여 과적합을 방지한다. 이는 디더링이 양자화 전에 의도적 노이즈를 추가하여 체계적 왜곡을 줄이는 것과 구조적으로 유사하다. 둘 다 "의도적 무작위성이 체계적 오류를 완화한다"는 원리를 공유하지만, 드롭아웃은 디더링에서 영감을 받은 것이 아니라 앙상블 학습의 근사로 독립적으로 개발되었다
+- **혼합 정밀도 훈련과 적응적 양자화**: Micikevicius et al.(2018)의 혼합 정밀도 훈련은 순전파에서 FP16을, 기울기 누적에서 FP32를 사용하여 속도와 정확도를 동시에 추구한다. 이는 비균일 양자화가 밀집 영역에 더 많은 비트를 할당하는 것과 같은 "중요한 곳에 정밀도를 집중한다"는 직관을 공유하지만, 하드웨어 수준의 부동소수점 설계에서 독립적으로 발전한 기법이다
+- **지식 증류와 손실 압축**: Hinton et al.(2015)의 지식 증류에서 큰 모델의 출력 분포를 작은 모델이 모방하는 과정은, 고비트 신호를 저비트로 압축하면서 핵심 정보를 보존하려는 양자화의 목표와 구조적으로 닮았다
+
 ## 한계와 약점
 
 - **이상치 민감성**: 신경망 가중치/활성화 분포는 종종 긴 꼬리를 가진다. 극단적 이상치가 하나라도 있으면 양자화 범위 전체를 지배하여 나머지 값들의 해상도가 희생된다. LLM에서 특히 심각하여, SmoothQuant(Xiao et al. 2022)처럼 이상치 전용 처리가 필수적이다
@@ -174,6 +178,10 @@ Two main approaches exist. **Post-Training Quantization (PTQ)** directly quantiz
 - **From Lloyd's non-uniform quantization to distribution-aware quantization**: The principle of allocating more levels to dense regions evolved into GPTQ and AWQ
 
 **Structural similarities sharing the same mathematical structure independently:**
+
+- **Dropout and dithering**: Dropout (Srivastava et al. 2014) randomly deactivates neurons during training to prevent overfitting. This is structurally similar to dithering adding intentional noise before quantization to reduce systematic distortion. Both share the principle that "intentional randomness mitigates systematic error," but dropout was developed independently as an approximation of ensemble learning, not inspired by dithering
+- **Mixed-precision training and adaptive quantization**: Micikevicius et al.'s (2018) mixed-precision training uses FP16 for forward passes and FP32 for gradient accumulation, pursuing both speed and accuracy. This shares the intuition of "concentrating precision where it matters most" with non-uniform quantization's allocation of more bits to dense regions, but evolved independently from hardware-level floating-point design
+- **Knowledge distillation and lossy compression**: In Hinton et al.'s (2015) knowledge distillation, a small model mimicking a large model's output distribution structurally resembles quantization's goal of compressing high-bit signals to low-bit while preserving essential information
 
 ## Limitations and Weaknesses
 
