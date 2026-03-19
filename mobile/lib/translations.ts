@@ -211,7 +211,7 @@ const translations: Record<string, Record<Language, string>> = {
   'briefing.articles': { ko: '기사', en: 'Articles' },
   'briefing.hotTopics': { ko: '핫 토픽', en: 'Hot Topics' },
   'briefing.categoryDist': { ko: '카테고리 분포', en: 'Category Distribution' },
-  'briefing.trend': { ko: '7일 추이', en: '7-Day Trend' },
+  'briefing.trend': { ko: '연구 기사 7일 추이', en: '7-Day Research Trend' },
   'briefing.briefingText': { ko: '브리핑', en: 'Briefing' },
   'briefing.infographic': { ko: 'Daily Infographic', en: 'Daily Infographic' },
   'briefing.domainDist': { ko: '토픽 도메인 분포', en: 'Topic Domain Distribution' },

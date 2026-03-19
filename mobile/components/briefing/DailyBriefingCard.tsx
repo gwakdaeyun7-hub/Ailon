@@ -312,7 +312,7 @@ const SparklineChart = React.memo(function SparklineChart({
             key={idx}
             x={points[idx].x}
             y={height - 6}
-            textAnchor="middle"
+            textAnchor={idx === 0 ? 'start' : idx === data.length - 1 ? 'end' : 'middle'}
             fontSize={10}
             fontWeight={isLast ? '700' : '400'}
             fill={isLast ? primaryColor : dimColor}

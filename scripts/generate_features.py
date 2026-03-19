@@ -328,7 +328,7 @@ Articles:
         today = datetime.now(_KST).strftime("%Y-%m-%d")
         story_count = data.get("story_count", 0)
 
-        # 7-day trend: 과거 7일 + 오늘 기사 수 추이
+        # 7-day trend: 과거 7일 + 오늘 research 카테고리 기사 수 추이
         trend_history = []
         try:
             for i in range(7, 0, -1):
@@ -336,10 +336,10 @@ Articles:
                 past_doc = db.collection("daily_briefings").document(d).get()
                 if past_doc.exists:
                     past_data = past_doc.to_dict()
-                    trend_history.append({"date": d, "count": past_data.get("story_count", 0)})
+                    trend_history.append({"date": d, "count": past_data.get("category_stats", {}).get("research", 0)})
                 else:
                     trend_history.append({"date": d, "count": 0})
-            trend_history.append({"date": today, "count": story_count})
+            trend_history.append({"date": today, "count": category_stats.get("research", 0)})
         except Exception as e:
             ci_warning(f"trend_history 조회 실패 (무시): {e}")
             trend_history = [{"date": today, "count": story_count}]

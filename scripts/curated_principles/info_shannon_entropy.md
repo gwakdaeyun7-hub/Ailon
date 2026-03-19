@@ -41,9 +41,8 @@ H(p, q) = -sum_x p(x) log q(x)
 p는 실제 데이터 분포, q는 모델의 예측 분포다. 이 함수가 표준 손실이 된 이유를 추적하면 다음과 같다.
 
 1. H(p, q) = H(p) + D_KL(p || q)
-2. H(p)는 상수이므로, H(p, q) 최소화는 D_KL(p||q) 최소화와 동치다
-3. D_KL(p||q) = 0이 되는 유일한 순간은 q = p일 때다
-4. 원-핫 레이블에서 교차 엔트로피는 -log q(정답)으로 단순화된다
+2. H(p)는 상수이므로, H(p, q) 최소화는 D_KL(p||q) 최소화와 동치이며, D_KL = 0이 되는 유일한 조건은 q = p다
+3. 원-핫 레이블에서 교차 엔트로피는 -log q(정답)으로 단순화된다
 
 모델이 정답에 확률 0.9를 부여하면 손실은 -log2(0.9) = 약 0.15비트. 확률 0.01이면 약 6.64비트로 급증한다. 정답에 대한 확신이 낮을수록 손실이 **비선형적으로** 커져, 학습 초기에 심각하게 틀린 예측을 빠르게 교정한다.
 
@@ -61,14 +60,14 @@ p는 실제 데이터 분포, q는 모델의 예측 분포다. 이 함수가 표
 
 D_KL(p || q) = sum_x p(x) log(p(x) / q(x)) = H(p, q) - H(p)
 
-D_KL(p||q)는 "진짜 분포가 p인데 q의 코드를 써서 부호화할 때 낭비되는 비트 수"다. 핵심 성질은 비대칭성이다. D_KL(p||q)를 최소화하면 모드 커버링(mode-covering) 경향이 있고, D_KL(q||p)를 최소화하면 모드 시킹(mode-seeking) 경향이 있다. VAE의 ELBO에서 KL 발산 항이 잠재 분포를 사전 분포에 가깝게 유지하는 것, GAN 학습에서 역방향 KL이 선명한 이미지를 만드는 것 모두 이 비대칭성의 결과다.
+D_KL(p||q)는 "진짜 분포가 p인데 q의 코드를 써서 부호화할 때 낭비되는 비트 수"다. 핵심 성질은 비대칭성이다. D_KL(p||q)를 최소화하면 모드 커버링(mode-covering) 경향이 있고, D_KL(q||p)를 최소화하면 모드 시킹(mode-seeking) 경향이 있다. GAN 학습에서 역방향 KL이 선명한 이미지를 만드는 것이 이 비대칭성의 대표적 결과다.
 
 ## 현대 AI에서의 Shannon 엔트로피
 
 **Shannon의 수학을 직접 사용하는 경우:**
 
 - **교차 엔트로피 손실**: 분류 신경망의 표준 손실 함수다. Shannon의 최적 부호 길이 -log p(x)가 그대로 손실의 핵심 항이 된다. 비유가 아니라 수학적 동치다.
-- **결정 트리의 정보 이득**: Quinlan(1986)의 ID3 알고리즘에서 IG(S, A) = H(S) - sum_v |S_v|/|S| * H(S_v)로, 불확실성을 가장 많이 줄이는 특징을 먼저 선택한다. 방 안에 빨강, 파랑, 초록 공이 섞여 있을 때, "크기가 5cm 이상인가?"로 나눠서 한쪽이 빨강만 되면 불확실성이 크게 줄고, "무게가 100g 이상인가?"로 나눠도 양쪽에 세 색이 비슷하면 거의 안 줄어든다.
+- **결정 트리의 정보 이득**: Quinlan(1986)의 ID3 알고리즘에서 IG(S, A) = H(S) - sum_v |S_v|/|S| * H(S_v)로, 불확실성을 가장 많이 줄이는 특징을 먼저 선택한다. 세 색 공이 섞인 상자를 나눌 때, 한쪽이 단색이 되는 특징이 양쪽에 여전히 혼합인 특징보다 정보 이득이 크다.
 - **VAE의 ELBO**: KL 발산 항이 잠재 표현의 불필요한 복잡성을 방지하며, Shannon의 "낮은 엔트로피가 더 효율적 부호화"라는 통찰이 정규화로 확장된 것이다.
 
 **동일한 수학적 직관을 독립적으로 공유하는 구조적 유사성:**
@@ -139,9 +138,8 @@ H(p, q) = -sum_x p(x) log q(x)
 Here p is the true distribution and q the model's prediction. Why this became the standard loss:
 
 1. H(p, q) = H(p) + D_KL(p || q)
-2. H(p) is constant, so minimizing H(p, q) equals minimizing D_KL(p||q)
-3. D_KL = 0 exactly when q = p
-4. With one-hot labels, cross-entropy simplifies to -log q(correct)
+2. H(p) is constant, so minimizing H(p, q) equals minimizing D_KL(p||q), which reaches zero only when q = p
+3. With one-hot labels, cross-entropy simplifies to -log q(correct)
 
 At probability 0.9 for the correct class, loss is roughly 0.15 bits. At 0.01, roughly 6.64 bits. Loss grows **nonlinearly** as confidence drops, driving rapid correction of wrong predictions early in training.
 
@@ -159,14 +157,14 @@ KL divergence derives directly from Shannon entropy:
 
 D_KL(p || q) = sum_x p(x) log(p(x) / q(x)) = H(p, q) - H(p)
 
-It measures "wasted bits when encoding data from p using codes for q." The crucial asymmetry: minimizing D_KL(p||q) produces mode-covering; minimizing D_KL(q||p) produces mode-seeking. VAE's ELBO KL term and GAN's reverse KL both stem from this asymmetry.
+It measures "wasted bits when encoding data from p using codes for q." The crucial asymmetry: minimizing D_KL(p||q) produces mode-covering; minimizing D_KL(q||p) produces mode-seeking. GAN's reverse KL producing sharp images is a prime example of this asymmetry.
 
 ## Shannon Entropy in Modern AI
 
 **Directly using Shannon's mathematics:**
 
 - **Cross-entropy loss**: The standard classification loss. Shannon's -log p(x) becomes the core term -- mathematical equivalence, not analogy.
-- **Information gain in decision trees**: Quinlan's (1986) ID3 selects features that reduce uncertainty most. Splitting colored balls by "diameter over 5cm?" may separate reds completely (large uncertainty drop); splitting by "weight over 100g?" may leave colors mixed (minimal drop).
+- **Information gain in decision trees**: Quinlan's (1986) ID3 selects features that reduce uncertainty most. Splitting mixed-color balls so one side becomes single-colored yields far more information gain than a split leaving both sides mixed.
 - **VAE's ELBO**: The KL term prevents unnecessary latent complexity -- Shannon's "lower entropy encodes more efficiently" extended into regularization.
 
 **Structural similarities sharing the same intuition independently:**

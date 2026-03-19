@@ -75,7 +75,7 @@
 - **HighlightedText**: Auto glossary term detection + definition modal
 - **RelatedArticlesSection**: Horizontal card carousel (entity/cluster matching)
 - **TimelineSection**: Vertical timeline with past article links
-- **DailyBriefingCard**: 접힌 상태(TTS + 기사 수 텍스트) / 펼친 상태(도메인 도넛 차트 + 태그 클라우드 + 스파크라인 + 브리핑 전문). 도넛 차트는 topic_cluster_id 기반 도메인 분포(Top 5 + Others) 표시, 7색 도메인 팔레트(NLP/Vision/ML/Robotics/Multimodal/Business/Others)
+- **DailyBriefingCard**: 접힌 상태(TTS + 기사 수 텍스트) / 펼친 상태(도메인 도넛 차트 + 태그 클라우드 + 연구 기사 7일 스파크라인 + 브리핑 전문). 도넛 차트는 topic_cluster_id 기반 도메인 분포(Top 5 + Others) 표시, 7색 도메인 팔레트(NLP/Vision/ML/Robotics/Multimodal/Business/Others)
 - **PersonalizedFeed**: Scoring based on like history (category +3, tag +2)
 - **SideDrawer**: Animated left panel (82% width, max 320px)
 

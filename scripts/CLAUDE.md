@@ -114,7 +114,7 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 |---------|--------|-------------|
 | save_articles | `articles/{id}` | Individual article docs (SHA256 URL hash) |
 | find_related | `related_ids` | Top 3 related by entity+cluster+category matching |
-| daily_briefing | `daily_briefings/{date}` | 2-3 min AI briefing (KO+EN), story_count, hot_topics with subtag merging |
+| daily_briefing | `daily_briefings/{date}` | 2-3 min AI briefing (KO+EN), story_count, hot_topics with subtag merging, trend_history (research 카테고리 기사 수 7일 추이) |
 | glossary | `glossary_terms/{term}` | Accumulated terms across articles |
 | timeline | `timeline_ids` | Links to similar articles from past 90 days |
 | patch_daily_news | `daily_news/{date}` | Reflects related_ids/timeline_ids back |
@@ -126,7 +126,7 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 | `daily_news/{date}` | 1 doc/day | highlights[], categorized_articles{}, source_articles{}, archived_articles{} (이전 실행 고유 기사 보존) |
 | `daily_principles/{date}` | 1 doc/day | curated 자유 형식 마크다운 (content_ko/en, principle_name, discipline, connectionType, difficulty, keywords, readTime, takeaway/takeaway_en, content_source='curated') |
 | `articles/{article_id}` | 1 doc/article | Full article + entities, related_ids, timeline_ids |
-| `daily_briefings/{date}` | 1 doc/day | briefing_ko, briefing_en, story_count, category_stats, domain_stats, hot_topics, trend_history |
+| `daily_briefings/{date}` | 1 doc/day | briefing_ko, briefing_en, story_count, category_stats, domain_stats, hot_topics, trend_history (research 카테고리 기사 수 기준) |
 | `glossary_terms/{term}` | 1 doc/term | term/desc (KO+EN), article_ids |
 | `users/{uid}` | 1 doc/user | profile, expoPushToken, fcmToken, language (ko/en), lastLikeNotifiedAt |
 | `users/{uid}/bookmarks` | subcollection | type, itemId, metadata |
