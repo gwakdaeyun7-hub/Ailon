@@ -15,7 +15,7 @@ LangGraph 8-node pipeline with parallel EN/KO branches:
 | Node | Function | Key Config |
 |------|----------|------------|
 | collector | 22 RSS sources + scraping + LLM AI filter + date recovery | trafilatura + Chrome UA, 6 RSS workers + 10 scrape workers + 4 AI filter workers. RSS 날짜 미추출 시 `date_estimated=True` 마킹 → 스크래핑에서 meta 태그(article:published_time 등), `<time>`, JSON-LD, trafilatura bare_extraction으로 날짜 복원 |
-| en_process | EN→KO translation + summarization | batch=5, max_tokens=12288, 5 parallel workers, 5-phase (batch→individual→fallback→간이번역→제목교정). 미요약(one_line 없음) 기사는 간이번역 스킵, selector에서 제외 |
+| en_process | EN→KO translation + summarization | batch=5, max_tokens=12288, 5 parallel workers, 6-phase (batch→소배치(2)→individual→fallback→간이번역→제목교정). dict 복구 로직(원본 재탐색+string→dict 파싱). 미요약(one_line 없음) 기사는 간이번역 스킵, selector에서 제외 |
 | ko_process | KO summarization | batch=2, max_tokens=12288, 5 parallel workers, 3-phase retry. 미요약 기사는 selector에서 제외 |
 | categorizer | LLM 3-category classification + 7-layer dedup + 요약 품질 QA | batch=5, 3 parallel workers. 요약 말투 위반 자동 감지 + 전체 기사 요약 상세 출력 |
 | ranker | Per-category LLM ranking → score (1st=100, last=30) | token_budget=max(6144, count*150), 3 parallel workers (per-category) |
@@ -181,5 +181,6 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 - **key_points 2개**: 프롬프트 허용 범위 (목표 3~5개), 0-1개는 문제
 - **Pipeline QA**: print + GitHub Actions 어노테이션 + Job Summary, `/pipeline-qa` 스킬로 9개 영역(AI 필터/분류/중복/랭킹/제목 품질/요약 품질/브리핑/용어·태그/학문스낵) 심층 분석 가능. `pipeline-post-check.sh` hook이 파이프라인 실행 후 7개 패턴(JSON 잘림, 0건 수집, 스크래핑 실패, 분류 편향, AI 필터, curated 풀 고갈, API 쿼터) 자동 감지
 - **Python 구문 검증**: .py 파일 수정 시 `python-syntax-check.sh` hook이 `py_compile` 자동 실행, 구문 오류 즉시 차단
-- **EN 번역 실패 → 미요약 제외**: 배치 → 개별 재시도 후에도 요약 실패(one_line 없음) 시 최종 뉴스에서 제외. 요약 성공한 미번역 기사만 간이 번역 대상
+- **EN 번역+요약 dict 복구**: `_summarize_batch()`에서 Gemini가 dict 대신 string 배열 반환 시 2단계 복구 (원본 `[{...}]` 재탐색 + string→dict 파싱). 프롬프트에 한국어 역할 프레이밍 + `***` 마크다운 금지 + JSON 형식 예시 + 닫힘 리마인더 포함
+- **EN 번역 실패 → 6-phase 재시도 → 미요약 제외**: batch(5)→소배치(2)→individual→fallback→간이번역→제목교정 6단계 재시도 후에도 요약 실패(one_line 없음) 시 최종 뉴스에서 제외. 요약 성공한 미번역 기사만 간이 번역 대상
 - **제목 구분자 후처리 (2중 방어)**: (1) 프롬프트 금지 서술어 31개 규칙 + (2) `_fix_title_separator()` 코드 후처리 (EN→KO 번역 제목만). 프롬프트가 못 잡은 구분자 패턴을 정규식이 교정. 후처리에도 부자연스러운 패턴이 잔존하면 `_TITLE_FORBIDDEN_ELLIPSIS` 정규식 미커버 → 정규식 업데이트 필요

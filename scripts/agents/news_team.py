@@ -403,7 +403,12 @@ def _summarize_batch(batch: list[dict], batch_idx: int, translate: bool = True) 
             '- glossary_en: English version of glossary (same structure: {"term": "...", "desc": "..."})'
         )
 
-    prompt = f"""IMPORTANT: Output ONLY a valid JSON array. No thinking, no markdown. Start with '[' and end with ']'.
+    batch_len = len(batch)
+    prompt = f"""당신은 JSON 생성기입니다. 반드시 유효한 JSON 배열만 출력하세요.
+- 응답 전체가 하나의 JSON 배열 `[{{...}}, {{...}}, ...]` 이어야 합니다
+- 마크다운 서식(***bold***, **italic** 등)을 절대 사용하지 마세요
+- ```json 코드블록으로 감싸지 마세요
+- 설명 텍스트 없이 JSON만 출력하세요
 
 RULE: Only use facts stated in the provided article text. Never infer, speculate, or add information not present in the source. (Exception: the "background" field MAY use general knowledge.)
 
@@ -491,11 +496,34 @@ AI 용어 번역 규칙:
 - reasoning → 추론, alignment → 얼라인먼트, multimodal → 멀티모달, open-source → 오픈소스
 - 확실하지 않으면 영어 원문을 그대로 유지할 것
 
-Return exactly {len(batch)} items:
-[{{"index":1,"display_title":"...","one_line":"...","key_points":["..."],"why_important":"...","display_title_en":"...","one_line_en":"...","key_points_en":["..."],"why_important_en":"...","background":"...","background_en":"...","tags":["..."],"tags_en":["..."],"glossary":[{{"term":"...","desc":"..."}}],"glossary_en":[{{"term":"...","desc":"..."}}]}}]
+Return exactly {batch_len} items.
+
+=== 출력 형식 예시 (1개 기사) ===
+[
+  {{
+    "index": 1,
+    "display_title": "OpenAI, 새 모델 GPT-6 공개",
+    "one_line": "OpenAI가 차세대 언어 모델 GPT-6를 공식 출시했다.",
+    "key_points": ["파라미터 2조 개 규모", "멀티모달 지원 확대", "API 가격 50% 인하"],
+    "why_important": "오픈소스 진영과의 성능 격차가 더 벌어질 수 있어요.",
+    "background": "OpenAI는 2025년 GPT-5를 출시하며 시장을 선도해왔다.",
+    "tags": ["OpenAI", "GPT-6", "LLM"],
+    "glossary": [{{"term": "멀티모달", "desc": "텍스트, 이미지, 음성 등 여러 형태의 데이터를 동시에 처리하는 능력이에요."}}],
+    "display_title_en": "OpenAI Launches GPT-6",
+    "one_line_en": "OpenAI officially launched GPT-6.",
+    "key_points_en": ["2T parameters", "expanded multimodal support", "50% API price cut"],
+    "why_important_en": "Could widen the performance gap with open-source models.",
+    "background_en": "OpenAI has led the market since releasing GPT-5 in 2025.",
+    "tags_en": ["OpenAI", "GPT-6", "LLM"],
+    "glossary_en": [{{"term": "multimodal", "desc": "The ability to process multiple data types like text, images, and audio simultaneously."}}]
+  }}
+]
+위 형식을 정확히 따라 {batch_len}개 기사를 배열로 출력하세요.
 
 Articles:
-{batch_text}"""
+{batch_text}
+
+중요: 위 {batch_len}개 기사에 대해 JSON 배열 `[{{...}}, {{...}}, ...]`로만 응답하세요. 마크다운/설명 텍스트 금지."""
 
     try:
         llm = get_llm(temperature=0.0, max_tokens=12288, thinking=False, json_mode=True)
@@ -508,9 +536,36 @@ Articles:
                 label = "번역+요약" if translate else "요약"
                 ci_warning(f"{label} 배치 {batch_idx + 1}: LLM이 빈 결과 반환")
                 return None
-            # dict가 아닌 항목(str 등)이 섞여 있으면 실패 처리
+            # dict가 아닌 항목(str 등)이 섞여 있으면 복구 시도
             dicts_only = [r for r in results if isinstance(r, dict)]
             if not dicts_only:
+                # 복구 1: 원본 content에서 [{...}] 패턴 재탐색
+                # Gemini가 ["str1","str2"] 을 먼저 출력하고 뒤에 [{"index":1,...}] 을 출력하는 케이스
+                alt_match = re.search(r'\[\s*\{', content)
+                if alt_match:
+                    try:
+                        alt_text = content[alt_match.start():]
+                        alt_results = _parse_llm_json(alt_text)
+                        if isinstance(alt_results, list):
+                            alt_dicts = [r for r in alt_results if isinstance(r, dict)]
+                            if alt_dicts:
+                                print(f"    [복구] 배치 {batch_idx + 1}: 원본에서 dict 배열 재탐색 성공 ({len(alt_dicts)}개)")
+                                return alt_dicts
+                    except Exception:
+                        pass
+                # 복구 2: 각 string 요소가 내장 JSON인 경우 파싱 시도
+                recovered = []
+                for s in results:
+                    if isinstance(s, str):
+                        try:
+                            obj = json.loads(s)
+                            if isinstance(obj, dict):
+                                recovered.append(obj)
+                        except Exception:
+                            pass
+                if recovered:
+                    print(f"    [복구] 배치 {batch_idx + 1}: string→dict 파싱 성공 ({len(recovered)}개)")
+                    return recovered
                 label = "번역+요약" if translate else "요약"
                 ci_warning(f"{label} 배치 {batch_idx + 1}: LLM 결과에 dict 없음 (type={type(results[0]).__name__})")
                 return None
@@ -649,10 +704,33 @@ def _process_articles(articles: list[dict], translate: bool, batch_size: int, ma
             if results is not None:
                 print(f"    {label} 배치 {idx + 1}/{len(batches)}: {done}/{len(batch)}개")
 
-    # 2차: 실패 기사 병렬 개별 재시도
+    # 2차: 소배치 재시도 (배치 5 실패 → 배치 2로 분할, 개별 재시도 전 중간 단계)
+    failed = [a for a in articles if not a.get("summary")]
+    if failed and len(failed) > 2:
+        mid_batch_size = 2
+        mid_batches = [failed[i:i + mid_batch_size] for i in range(0, len(failed), mid_batch_size)]
+        print(f"  [재시도] {label} 실패 {len(failed)}개 → {len(mid_batches)}개 소배치(2개씩) 재시도...")
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {
+                executor.submit(_summarize_batch, batch, idx, translate): (batch, idx)
+                for idx, batch in enumerate(mid_batches)
+            }
+            mid_ok = 0
+            for future in as_completed(futures):
+                batch, idx = futures[future]
+                try:
+                    results = future.result()
+                except Exception as e:
+                    ci_warning(f"{label} 소배치 {idx + 1} 재시도 실패: {e}")
+                    continue
+                done = _apply_batch_results(batch, results)
+                mid_ok += done
+        print(f"  [소배치 재시도] {mid_ok}/{len(failed)}개 복구")
+
+    # 3차: 실패 기사 병렬 개별 재시도
     failed = [a for a in articles if not a.get("summary")]
     if failed:
-        print(f"  [재시도] {label} 실패 {len(failed)}개 병렬 재시도...")
+        print(f"  [재시도] {label} 실패 {len(failed)}개 병렬 개별 재시도...")
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             futures = {
                 executor.submit(_summarize_batch, [a], 0, translate): a
@@ -670,7 +748,7 @@ def _process_articles(articles: list[dict], translate: bool, batch_size: int, ma
                     retry_ok += 1
         print(f"  [재시도] {retry_ok}/{len(failed)}개 복구")
 
-    # 3차: 안전망 폴백
+    # 4차: 안전망 폴백
     for a in articles:
         if not a.get("display_title"):
             a["display_title"] = a["title"]
@@ -687,7 +765,7 @@ def _process_articles(articles: list[dict], translate: bool, batch_size: int, ma
         if not a.get("why_important_en"):
             a["why_important_en"] = ""
 
-    # 4차: 미번역 EN 기사 간이 번역 (제목 + one_line 최소 복구)
+    # 5차: 미번역 EN 기사 간이 번역 (제목 + one_line 최소 복구)
     # 요약 완료(one_line 있음) 기사만 대상 — 미요약 기사는 최종 선정에서 제외되므로 간이 번역 불필요
     if translate:
         untranslated = [a for a in articles if a.get("lang") != "ko" and a.get("one_line") and a.get("display_title") == a.get("title") and a.get("title")]
@@ -721,7 +799,7 @@ JSON 형식으로 응답:
                 except Exception as e:
                     ci_warning(f"간이 번역 실패: {a.get('title', '')[:50]} — {e}")
 
-    # 5차: EN→KO 번역 제목 구분자 후처리 ('확정 서술어...' → 쉼표 교정)
+    # 6차: EN→KO 번역 제목 구분자 후처리 ('확정 서술어...' → 쉼표 교정)
     if translate:
         fixed_count = 0
         for a in articles:
