@@ -110,6 +110,14 @@ cd ../functions && firebase deploy --only functions
 
 > 각 하위 CLAUDE.md 참조: [`scripts/CLAUDE.md`](scripts/CLAUDE.md) (Pipeline), [`mobile/CLAUDE.md`](mobile/CLAUDE.md) (Mobile)
 
+## Behavioral Guidelines
+
+- **Think before coding**: State assumptions, surface tradeoffs, ask if unclear
+- **Simplicity first**: Minimum code that solves the problem, no speculative features
+- **Surgical changes**: Touch only what you must, match existing style
+- **Goal-driven execution**: Define verifiable success criteria, loop until verified
+- **Do NOT add inline components to index.tsx** — 이미 ~1560줄, `guard-index-bloat.sh` hook이 자동 차단. `components/feed/`로 추출할 것
+
 ## Hooks (`.claude/hooks/`)
 
 | Hook | Trigger | Mode | Scope |
@@ -118,14 +126,6 @@ cd ../functions && firebase deploy --only functions
 | `pipeline-post-check.sh` | PostToolUse (Bash) | Info | 파이프라인 실행 후 7개 QA 패턴 자동 감지 |
 | `python-syntax-check.sh` | PostToolUse (Edit\|Write) | Block | .py 파일 구문 오류 즉시 차단 |
 | `mobile-typecheck.sh` | PostToolUse (Edit\|Write) | Info | .ts/.tsx 수정 후 tsc 타입 체크 |
-| *(inline)* | Stop | Info | 응답 완료 시 비프음 알림 (800Hz, 0.3s) |
-| *(inline)* | Notification | Info | 권한 승인 등 알림 시 비프음 (800Hz, 0.3s) |
+| *(inline)* | Stop / Notification | Info | 비프음 알림 (800Hz, 0.3s) |
 
 설정: `.claude/settings.local.json` (gitignore 대상). 훅 스크립트 자체는 커밋 대상.
-
-## Behavioral Guidelines
-
-- **Think before coding**: State assumptions, surface tradeoffs, ask if unclear
-- **Simplicity first**: Minimum code that solves the problem, no speculative features
-- **Surgical changes**: Touch only what you must, match existing style
-- **Goal-driven execution**: Define verifiable success criteria, loop until verified
