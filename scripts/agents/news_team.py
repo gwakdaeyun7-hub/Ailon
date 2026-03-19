@@ -3,13 +3,13 @@
 
 collector --> [en_process, ko_process] (병렬 Send) --> categorizer --> ranker --> entity_extractor --> selector --> assembler
 
-1. collector:          16개 소스 수집 + 이미지/본문 통합 스크래핑 + LLM AI 필터
+1. collector:          22개 소스 수집 + 이미지/본문 통합 스크래핑 + LLM AI 필터
 2. en_process:         영어 기사 번역+요약 (thinking 비활성화, 배치 5)  -- 병렬
 3. ko_process:         한국어 기사 요약 (thinking 비활성화, 배치 2)     -- 병렬
 4. categorizer:        LLM 카테고리 분류 (research / models_products / industry_business)
 5. ranker:             카테고리별 직접 순위 매기기 (카테고리당 1회 LLM 호출, 순위→점수 역산: 1위=100, 꼴등=30)
-6. entity_extractor:   엔티티 추출 + topic_cluster_id 부여 (10개 배치 병렬)
-7. selector:           하이라이트 Top 3 + 카테고리별 Top 25 + 품질 검증
+6. entity_extractor:   엔티티 추출 + topic_cluster_id 부여 (5개 배치, 최대 4 workers)
+7. selector:           하이라이트 Top 3 + 카테고리별 Top 20 + 품질 검증
 8. assembler:          한국 소스별 분리 + 최종 결과 + 타이밍 리포트
 
 점수 체계: 카테고리별 전체 기사 순위 → 선형 보간 점수 (1위=100, 꼴등=30)
@@ -526,7 +526,7 @@ Articles:
 # ─── 제목 구분자 후처리 (EN→KO 번역 전용) ───
 _TITLE_FORBIDDEN_ELLIPSIS = re.compile(
     r'(공개|출시|발표|인수|도입|개발|선언|철회|체결|중단|제기|투자|가동|확대|보류|강화|적용|탑재|시작|달성'
-    r'|증가|전망|본격화|능가|업그레이드|전환|추진|가속화|착수|재편|통합)\s*\.{3,}\s*(?=\S)'
+    r'|증가|전망|본격화|능가|업그레이드|전환|추진|가속화|착수|재편|통합|확장|부여|업데이트)\s*\.{3,}\s*(?=\S)'
 )
 
 
@@ -2149,7 +2149,7 @@ def entity_extractor_node(state: NewsGraphState) -> dict:
     return {"scored_candidates": candidates}
 
 
-# ─── Node 6: selector (하이라이트 Top 3 + 카테고리별 Top 25 + 품질 검증) ───
+# ─── Node 6: selector (하이라이트 Top 3 + 카테고리별 Top 20 + 품질 검증) ───
 HIGHLIGHT_COUNT = 3
 CATEGORY_TOP_N = 20
 
@@ -2202,7 +2202,7 @@ def _select_category_top_n(articles: list[dict], n: int = CATEGORY_TOP_N, today_
 
 @_safe_node("selector")
 def selector_node(state: NewsGraphState) -> dict:
-    """하이라이트 Top 3 선정 + 카테고리별 Top 25 + 품질 검증 (기존 ranker+classifier 통합)"""
+    """하이라이트 Top 3 선정 + 카테고리별 Top 20 + 품질 검증 (기존 ranker+classifier 통합)"""
     all_candidates = state.get("scored_candidates", [])
     category_order = ["research", "models_products", "industry_business"]
 
@@ -2290,7 +2290,7 @@ def selector_node(state: NewsGraphState) -> dict:
         else:
             categorized["industry_business"].append(a)
 
-    # ── Step 3: 카테고리별 Top 25 + 당일 3개 보장 ──
+    # ── Step 3: 카테고리별 Top 20 + 당일 3개 보장 ──
     for cat in category_order:
         total = len(categorized[cat])
         today_count = len([a for a in categorized[cat] if a.get("_is_today")])
