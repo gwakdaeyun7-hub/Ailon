@@ -28,7 +28,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Share2,
-  Bookmark,
   Landmark,
   Sigma,
   Dna,
@@ -38,8 +37,6 @@ import {
 import { usePrinciple } from '@/hooks/usePrinciple';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
-import { useAuth } from '@/hooks/useAuth';
-import { useBookmarks } from '@/hooks/useBookmarks';
 import { cardShadow, FontFamily } from '@/lib/theme';
 import { latexToDisplay } from '@/lib/latexToDisplay';
 import { SnapsContentRenderer } from '@/components/snaps/SnapsContentRenderer';
@@ -419,19 +416,6 @@ function DeepDiveContent({ deepDive, lang, principle, catConfig }: {
 
 function ActionBar({ principleData, lang }: { principleData: DailyPrinciples; lang: string }) {
   const { colors } = useTheme();
-  const { user } = useAuth();
-  const { bookmarks, toggleBookmark } = useBookmarks(user?.uid ?? null);
-  const itemId = principleData.date;
-  const isBookmarked = bookmarks.some(b => (b.type === 'snap' || b.type === 'principle') && b.itemId === itemId);
-
-  const handleBookmark = useCallback(() => {
-    if (!user) return;
-    toggleBookmark('snap', itemId, {
-      title: principleData.principle?.title || '',
-      subtitle: principleData.discipline_info?.name || '',
-      category: principleData.discipline_info?.superCategory || '',
-    });
-  }, [user, principleData, itemId, toggleBookmark]);
 
   const handleShare = useCallback(async () => {
     const p = principleData.principle;
@@ -456,17 +440,6 @@ function ActionBar({ principleData, lang }: { principleData: DailyPrinciples; la
       paddingTop: 20,
       borderTopWidth: 1, borderTopColor: colors.border,
     }}>
-      <Pressable onPress={handleBookmark} style={({ pressed }) => ({
-        flexDirection: 'row' as const, alignItems: 'center' as const, gap: 6,
-        backgroundColor: isBookmarked ? colors.bookmarkActiveBg : colors.surface,
-        borderWidth: 1, borderColor: isBookmarked ? colors.bookmarkActiveBorder : colors.border,
-        borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10, opacity: pressed ? 0.7 : 1,
-      })} accessibilityLabel={lang === 'en' ? 'Bookmark' : '북마크'} accessibilityRole="button">
-        <Bookmark size={18} color={isBookmarked ? colors.bookmarkActiveColor : colors.textDim} fill={isBookmarked ? colors.bookmarkActiveColor : 'none'} />
-        <Text style={{ fontSize: 13, fontWeight: '600', color: isBookmarked ? colors.bookmarkActiveColor : colors.textDim }}>
-          {lang === 'en' ? (isBookmarked ? 'Saved' : 'Save') : (isBookmarked ? '저장됨' : '저장')}
-        </Text>
-      </Pressable>
       <Pressable onPress={handleShare} style={({ pressed }) => ({
         flexDirection: 'row' as const, alignItems: 'center' as const, gap: 6,
         backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border,
@@ -593,6 +566,20 @@ export default function SnapsScreen() {
     ? (lang === 'en' && principle?.content_en ? principle.content_en : principle!.content_ko!)
     : '';
 
+  const handleShare = useCallback(async () => {
+    if (!principleData || !principle) return;
+    const title = lang === 'en' && principle.title_en ? principle.title_en : principle.title;
+    let snippet = '';
+    if (principle.content_ko) {
+      snippet = (principle.content_ko.split('\n').find(l => l.trim() !== '') || '').replace(/[#*]/g, '').trim();
+    } else if (principle.foundation) {
+      snippet = L(principle.foundation.headline, principle.foundation.headline_en, lang);
+    }
+    await Share.share({
+      message: `${title} \u2014 ${getDisciplineName(principleData, lang)}\n\n\u201C${snippet}\u201D\n\n\u2014 AILON`,
+    });
+  }, [principleData, principle, lang]);
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top']}>
       <ScrollView
@@ -602,53 +589,43 @@ export default function SnapsScreen() {
       >
         {/* --- Header --- */}
         <View style={{ paddingTop: 20, paddingBottom: 24, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-          {/* Top: tab label + date nav */}
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <Text style={{ fontSize: 15, fontWeight: '600', color: colors.textDim }}>{t('snaps.title')}</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <Pressable onPress={goPrev} disabled={!canGoPrev}
-                style={{ minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center', opacity: canGoPrev ? 1 : 0.3 }}
-                accessibilityLabel={lang === 'en' ? 'Previous day' : '이전 날짜'} accessibilityRole="button">
-                <ChevronLeft size={20} color={colors.textSecondary} />
-              </Pressable>
-              <Text style={{ fontSize: 12, color: colors.textSecondary }}>{formatDate(currentDate, lang)}</Text>
-              <Pressable onPress={goNext} disabled={!canGoNext}
-                style={{ minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center', opacity: canGoNext ? 1 : 0.3 }}
-                accessibilityLabel={lang === 'en' ? 'Next day' : '다음 날짜'} accessibilityRole="button">
-                <ChevronRight size={20} color={colors.textSecondary} />
-              </Pressable>
-            </View>
-          </View>
-
           {/* Badges + hero title + keywords */}
           {principleData && principle && (
             <>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
-                {/* Category badge with icon */}
-                <View style={{
-                  flexDirection: 'row', alignItems: 'center', gap: 5,
-                  backgroundColor: catConfig?.bg || colors.primaryLight,
-                  borderRadius: 16, paddingHorizontal: 8, paddingVertical: 3,
-                }}>
-                  {catConfig && <catConfig.Icon size={12} color={catConfig.color} />}
-                  <Text style={{ fontSize: 10, fontWeight: '700', color: catConfig?.color || colors.primary }}>
-                    {getDisciplineName(principleData, lang)}
-                  </Text>
-                </View>
-                {principle.connectionType && <ConnectionTypeBadge type={principle.connectionType} colors={colors} lang={lang} />}
-                {principle.difficulty && <DifficultyBadge level={principle.difficulty} colors={colors} lang={lang} isDark={isDark} />}
-                {/* Read time badge */}
-                {principle.readTime && (
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 10 }}>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, flex: 1 }}>
+                  {/* Category badge with icon */}
                   <View style={{
-                    flexDirection: 'row', alignItems: 'center', gap: 4,
-                    backgroundColor: colors.surface, borderRadius: 16, paddingHorizontal: 8, paddingVertical: 3,
+                    flexDirection: 'row', alignItems: 'center', gap: 5,
+                    backgroundColor: catConfig?.bg || colors.primaryLight,
+                    borderRadius: 16, paddingHorizontal: 8, paddingVertical: 3,
                   }}>
-                    <Clock size={10} color={colors.textDim} />
-                    <Text style={{ fontSize: 10, fontWeight: '600', color: colors.textDim }}>
-                      {lang === 'en' ? (principle.readTime || '').replace('분', ' min') : principle.readTime}
+                    {catConfig && <catConfig.Icon size={12} color={catConfig.color} />}
+                    <Text style={{ fontSize: 10, fontWeight: '700', color: catConfig?.color || colors.primary }}>
+                      {getDisciplineName(principleData, lang)}
                     </Text>
                   </View>
-                )}
+                  {principle.connectionType && <ConnectionTypeBadge type={principle.connectionType} colors={colors} lang={lang} />}
+                  {principle.difficulty && <DifficultyBadge level={principle.difficulty} colors={colors} lang={lang} isDark={isDark} />}
+                  {/* Read time badge */}
+                  {principle.readTime && (
+                    <View style={{
+                      flexDirection: 'row', alignItems: 'center', gap: 4,
+                      backgroundColor: colors.surface, borderRadius: 16, paddingHorizontal: 8, paddingVertical: 3,
+                    }}>
+                      <Clock size={10} color={colors.textDim} />
+                      <Text style={{ fontSize: 10, fontWeight: '600', color: colors.textDim }}>
+                        {lang === 'en' ? (principle.readTime || '').replace('분', ' min') : principle.readTime}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+                <Pressable onPress={handleShare} style={({ pressed }) => ({
+                  minWidth: 44, minHeight: 44, alignItems: 'center' as const, justifyContent: 'center' as const,
+                  opacity: pressed ? 0.7 : 1,
+                })} accessibilityLabel={lang === 'en' ? 'Share' : '공유'} accessibilityRole="button">
+                  <Share2 size={18} color={colors.textDim} />
+                </Pressable>
               </View>
 
               {/* Principle name (hero) */}
@@ -735,7 +712,6 @@ export default function SnapsScreen() {
               </View>
             )}
 
-            {principleData && <ActionBar principleData={principleData} lang={lang} />}
           </>
         ) : (
           /* ===== 레거시 UI: 카드 3장 + 딥다이브 탭 (content_ko 없음) ===== */
@@ -824,7 +800,6 @@ export default function SnapsScreen() {
               <DeepDiveContent deepDive={deepDive} lang={lang} principle={principle} catConfig={catConfig} />
             )}
 
-            {principleData && <ActionBar principleData={principleData} lang={lang} />}
           </>
         )}
       </ScrollView>

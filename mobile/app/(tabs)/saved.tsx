@@ -211,7 +211,8 @@ function ArticleSummaryModal({
             {/* 한줄 요약 */}
             {oneLine ? (
               <View style={{ backgroundColor: colors.primaryLight, borderRadius: 12, padding: 14, marginBottom: 20 }}>
-                <Text style={{ color: colors.textPrimary, fontSize: 15, lineHeight: 22, fontWeight: '600' }}>
+                <Text style={{ color: colors.textPrimary, fontSize: 16, lineHeight: 26, fontWeight: '600' }}>
+
                   {oneLine}
                 </Text>
               </View>
@@ -220,15 +221,15 @@ function ArticleSummaryModal({
             {/* 핵심 포인트 */}
             {keyPoints.length > 0 && (
               <View style={{ marginBottom: 20 }}>
-                <Text style={{ color: colors.textPrimary, fontSize: 16, fontWeight: '700', marginBottom: 10, fontFamily: FontFamily.serif }}>
+                <Text style={{ color: colors.textPrimary, fontSize: 18, fontWeight: '700', letterSpacing: -0.2, marginBottom: 12, fontFamily: FontFamily.serif }}>
                   {lang === 'en' ? 'Key Points' : '핵심 포인트'}
                 </Text>
                 {keyPoints.map((point, idx) => (
-                  <View key={idx} style={{ flexDirection: 'row', marginBottom: 8, paddingRight: 8 }}>
-                    <Text style={{ color: colors.primary, fontSize: 14, fontWeight: '700', marginRight: 8, minWidth: 20 }}>
+                  <View key={idx} style={{ flexDirection: 'row', marginBottom: 6, paddingRight: 8 }}>
+                    <Text style={{ color: colors.textPrimary, fontSize: 15, fontWeight: '700', lineHeight: 24, marginRight: 8, minWidth: 22 }}>
                       {idx + 1}.
                     </Text>
-                    <Text style={{ color: colors.textSecondary, fontSize: 14, lineHeight: 21, flex: 1 }}>
+                    <Text style={{ color: colors.textSecondary, fontSize: 15, lineHeight: 24, flex: 1 }}>
                       {point}
                     </Text>
                   </View>
@@ -239,7 +240,7 @@ function ArticleSummaryModal({
             {/* 왜 중요한가 */}
             {whyImportant ? (
               <View style={{ marginBottom: 20 }}>
-                <Text style={{ color: colors.textPrimary, fontSize: 16, fontWeight: '700', marginBottom: 8, fontFamily: FontFamily.serif }}>
+                <Text style={{ color: colors.textSecondary, fontSize: 16, fontWeight: '700', marginBottom: 8, fontFamily: FontFamily.serif }}>
                   {lang === 'en' ? 'Why It Matters' : '왜 중요한가'}
                 </Text>
                 <Text style={{ color: colors.textSecondary, fontSize: 14, lineHeight: 22 }}>
@@ -248,10 +249,10 @@ function ArticleSummaryModal({
               </View>
             ) : null}
 
-            {/* 배경 */}
+            {/* 배경 — left border 강조 */}
             {background ? (
               <View style={{ marginBottom: 20 }}>
-                <Text style={{ color: colors.textPrimary, fontSize: 16, fontWeight: '700', marginBottom: 8, fontFamily: FontFamily.serif }}>
+                <Text style={{ color: colors.textSecondary, fontSize: 16, fontWeight: '700', marginBottom: 8, fontFamily: FontFamily.serif }}>
                   {lang === 'en' ? 'Background' : '배경'}
                 </Text>
                 <Text style={{ color: colors.textSecondary, fontSize: 14, lineHeight: 22 }}>
@@ -262,7 +263,7 @@ function ArticleSummaryModal({
 
             {/* 태그 */}
             {tags.length > 0 && (
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 24 }}>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 24, marginBottom: 24 }}>
                 {tags.map((tag, idx) => (
                   <View key={idx} style={{ backgroundColor: colors.surface, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 }}>
                     <Text style={{ color: colors.textDim, fontSize: 12 }}>{tag}</Text>
@@ -279,7 +280,7 @@ function ArticleSummaryModal({
                 accessibilityLabel={lang === 'en' ? 'View Original' : '원문 보기'}
                 style={({ pressed }) => ({
                   flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'center' as const,
-                  backgroundColor: colors.primary, borderRadius: 14,
+                  backgroundColor: colors.textPrimary, borderRadius: 14,
                   paddingVertical: 14, gap: 6,
                   opacity: pressed ? 0.85 : 1,
                 })}

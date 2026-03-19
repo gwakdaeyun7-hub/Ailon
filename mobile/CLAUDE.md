@@ -11,7 +11,7 @@
 - **Daily Briefing**: AI-generated 2-3 min briefing card with TTS playback (expo-speech)
 - **Categories**: Horizontal scroll tabs (research / models_products / industry_business), Top 20 per category
 - **Sources**: 22 source sections, Korean sources (AI타임스, GeekNews, ZDNet AI, 요즘IT) in separate tabs
-- **Article Card**: display_title, one_line, key_points (3-5), why_important, background, tags, glossary, "Read Original" button (Linking.openURL). 요약 모달: F-Minimal 디자인 (소스 뱃지+날짜+카테고리, 세리프 제목, teal 배경 One Line, beige 번호 스텝 key_points, 세리프 소제목, 태그 pill)
+- **Article Card**: display_title, one_line, key_points (3-5), why_important, background, tags, glossary, "Read Original" button (Linking.openURL). 요약 모달: F-Minimal 디자인 (소스 뱃지+날짜+카테고리, 세리프 제목, teal 배경 One Line 16pt, 번호 스텝 key_points 15pt(배경 없음), 세리프 소제목 textSecondary, 태그 pill, 원문 버튼 textPrimary 테두리)
 - **Interactions**: Like/dislike (ReactionBar), comments (CommentSheet modal), share, bookmark
 - **Glossary Highlighting**: Auto-detects terms in text, tap for definition popup (HighlightedText)
 - **Related Articles**: Horizontal carousel in summary modal (RelatedArticlesSection)
@@ -33,10 +33,10 @@
   - 강조 문장: ! 느낌표 종료 → 배경 없이 굵은 텍스트
   - 후처리: 연속 definition 블록을 definition_group으로 그룹화 (사이 spacer 흡수), ContentBlock에 `definitions?: { term: string; desc: string }[]` 필드 추가
 - **buildFreeformContent**: 구조화된 Principle + DeepDive 데이터를 자유 텍스트로 조합 (curated 전용 모드에서는 content_ko/en이 이미 자유 형식 마크다운이므로 bypass됨)
-- **Header**: 제목(serif 26pt), 분야 배지(superCategory 아이콘), connectionType, difficulty, readTime, keywords
+- **Header**: 제목(serif 26pt), 분야 배지(superCategory 아이콘), connectionType, difficulty, readTime, keywords + 공유 아이콘(배지 행 우측). 날짜/제목 라벨/날짜 네비게이션 화살표 없음
 - **connectionType**: 탭 시 educational Alert popup (direct_inspiration/structural_analogy/mathematical_foundation/conceptual_borrowing 4종)
 - **4 Super Categories**: 공학(4), 자연과학(4), 형식과학(2), 응용과학(1) — 11 disciplines total
-- Date navigation, AsyncStorage offline caching
+- AsyncStorage offline caching
 - **Takeaway**: seed에서 전달된 핵심 인사이트 1문장, teal(primaryLight) 배경 + 시스템 기본 폰트 (색상바 없음)
 - **normalizePrinciple**: snake_case 필드 폴백 (deepDiveHook, takeaway 등 신규 필드 포함)
 

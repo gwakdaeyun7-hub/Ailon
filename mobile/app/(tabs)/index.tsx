@@ -540,14 +540,14 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
               <View style={{ paddingHorizontal: 20 }}>
                 {/* 1. One Line — left-border + teal 배경 */}
                 <View style={{ marginTop: 12, padding: 14, borderRadius: 12, backgroundColor: colors.primaryLight }}>
-                  <Text style={{ fontSize: 15, fontWeight: '600', lineHeight: 24, color: colors.summaryIndigo }}>
+                  <Text style={{ fontSize: 16, fontWeight: '600', lineHeight: 26, color: colors.textPrimary }}>
                     {oneLine}
                   </Text>
                 </View>
 
                 {/* 2. Background — 본문 스타일 */}
                 {background ? (
-                  <Text style={{ fontSize: 15, lineHeight: 26, letterSpacing: 0.2, color: colors.summaryBody, marginTop: 16 }}>
+                  <Text style={{ fontSize: 14, lineHeight: 23, letterSpacing: 0.2, color: colors.textSecondary, marginTop: 20 }}>
                     {background}
                   </Text>
                 ) : null}
@@ -555,15 +555,15 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
                 {/* 3. Key Points — 세리프 소제목 + 번호 스텝 블록 */}
                 {keyPoints.length > 0 && (
                   <View style={{ marginTop: 24 }}>
-                    <Text style={{ fontSize: 17, fontWeight: '700', lineHeight: 26, color: colors.textPrimary, fontFamily: FontFamily.serif, marginBottom: 10 }}>{t('modal.key_points')}</Text>
+                    <Text style={{ fontSize: 18, fontWeight: '700', lineHeight: 26, letterSpacing: -0.2, color: colors.textPrimary, fontFamily: FontFamily.serif, marginBottom: 12 }}>{t('modal.key_points')}</Text>
                     {keyPoints.map((point, idx) => (
-                      <View key={idx} style={{ backgroundColor: colors.surface, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10, marginBottom: 8 }}>
+                      <View key={idx} style={{ borderRadius: 8, paddingHorizontal: 0, paddingVertical: 8, marginBottom: 6 }}>
                         <View style={{ flexDirection: 'row', gap: 10 }}>
-                          <Text style={{ fontSize: 14, fontWeight: '600', color: colors.textDim, minWidth: 20 }}>{idx + 1}.</Text>
+                          <Text style={{ fontSize: 15, fontWeight: '700', color: colors.textPrimary, lineHeight: 24, minWidth: 22 }}>{idx + 1}.</Text>
                           <HighlightedText
                             text={point}
                             glossaryTerms={glossaryDBTerms}
-                            style={{ fontSize: 14, color: colors.summaryBody, lineHeight: 22, flex: 1 }}
+                            style={{ fontSize: 15, color: colors.summaryBody, lineHeight: 24, flex: 1 }}
                             usedTermKeys={usedTermKeys}
                             onTermsDetected={handleTermsDetected}
                           />
@@ -576,7 +576,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
                 {/* 4. Why Important — 세리프 소제목 + 본문 */}
                 {whyImportant ? (
                   <View style={{ marginTop: 24 }}>
-                    <Text style={{ fontSize: 17, fontWeight: '700', lineHeight: 26, color: colors.textPrimary, fontFamily: FontFamily.serif, marginBottom: 10 }}>{t('modal.why_important')}</Text>
+                    <Text style={{ fontSize: 16, fontWeight: '700', lineHeight: 26, color: colors.textSecondary, fontFamily: FontFamily.serif, marginBottom: 8 }}>{t('modal.why_important')}</Text>
                     <HighlightedText
                       text={whyImportant}
                       glossaryTerms={glossaryDBTerms}
@@ -589,7 +589,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
 
                 {/* Tags — 필 스타일 */}
                 {tags && tags.length > 0 ? (
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 16 }}>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 24 }}>
                     {tags.map((tag, idx) => (
                       <View key={idx} style={{ backgroundColor: colors.surface, borderRadius: 14, paddingHorizontal: 8, paddingVertical: 3 }}>
                         <Text style={{ fontSize: 10, fontWeight: '600', color: colors.textSecondary }}>#{tag}</Text>
@@ -662,7 +662,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
                     justifyContent: 'center',
                     gap: 8,
                     borderWidth: 1.5,
-                    borderColor: colors.primary,
+                    borderColor: colors.textPrimary,
                     borderRadius: 14,
                     paddingVertical: 13,
                     paddingHorizontal: 20,
@@ -670,8 +670,8 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
                     opacity: pressed ? 0.7 : 1,
                   })}
                 >
-                  <ExternalLink size={16} color={colors.primary} />
-                  <Text style={{ fontSize: 15, fontWeight: '700', color: colors.primary }}>{t('article.read_original')}</Text>
+                  <ExternalLink size={16} color={colors.textPrimary} />
+                  <Text style={{ fontSize: 15, fontWeight: '700', color: colors.textPrimary }}>{t('article.read_original')}</Text>
                 </Pressable>
               </View>
             ) : null}
