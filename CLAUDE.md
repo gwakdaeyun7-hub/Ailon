@@ -116,7 +116,7 @@ cd ../functions && firebase deploy --only functions
 - **Simplicity first**: Minimum code that solves the problem, no speculative features
 - **Surgical changes**: Touch only what you must, match existing style
 - **Goal-driven execution**: Define verifiable success criteria, loop until verified
-- **Do NOT add inline components to index.tsx** — 이미 ~1560줄, `guard-index-bloat.sh` hook이 자동 차단. `components/feed/`로 추출할 것
+- **Do NOT add inline components to index.tsx** — 이미 ~1460줄, `guard-index-bloat.sh` hook이 자동 차단. `components/feed/`로 추출할 것
 - **UI는 깔끔하고 미니멀하게** — 장식보다 콘텐츠, AI 앱 같은 제네릭한 디자인 금지. 상세 원칙은 `mobile/CLAUDE.md` Design Principles 참조
 
 ## Hooks (`.claude/hooks/`)

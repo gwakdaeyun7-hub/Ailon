@@ -6,7 +6,7 @@
 
 ## Mobile App Features
 
-### Tab 1: News Feed (index.tsx ~1560 lines)
+### Tab 1: News Feed (index.tsx ~1460 lines)
 - **Highlights**: Hero card + 2x2 grid, top 1 article per category (3 total)
 - **Daily Briefing**: AI-generated 2-3 min briefing card with TTS playback (expo-speech)
 - **Categories**: Horizontal scroll tabs (research / models_products / industry_business), Top 20 per category
@@ -49,10 +49,10 @@
 - Bookmark collection with type filter (News | Principles)
 - Delete with confirmation (아이콘 18px, textDim 색상)
 - Real-time sync from `users/{uid}/bookmarks` subcollection
-- **AI 요약 모달**: 뉴스 카드 탭 시 ArticleSummaryModal 표시 (saved.tsx 내 인라인 컴포넌트)
+- **AI 요약 모달**: 뉴스 카드 탭 시 ArticleSummaryModal 바텀 시트 표시 (saved.tsx 내 인라인 컴포넌트, index.tsx SummaryModalContent와 동일 디자인)
   - `useArticle(articleId)` 훅으로 `articles/{article_id}` 컬렉션에서 fetch
-  - 모달 내용: 제목, 한줄요약(teal 배경), 핵심 포인트, 왜 중요한가, 배경, 태그, 원문 보기 버튼
-  - 다국어(ko/en) 자동 분기
+  - 바텀 시트 디자인: 썸네일 이미지, 소스 뱃지+날짜+카테고리 행, HighlightedText(용어집 하이라이팅), 용어집 아코디언, Related Articles, 하단 액션 바(좋아요/댓글/공유), Toast, CommentSheet 통합
+  - 다국어(ko/en) 자동 분기 (articleHelpers.ts 공용 헬퍼 사용)
   - articleId 없는 이전 북마크: 안내 메시지 + 원문 링크 제공
 - **날짜 표시**: 상단 배지 행에 `· 날짜` 형태로 표시 (footer에서 이동)
 - **Empty state**: 비로그인→로그인 버튼, 빈 목록→"뉴스 보러가기" 버튼 (아이콘 48px)
@@ -117,6 +117,6 @@
 
 ## Known Recurring Issues (Mobile)
 
-- **index.tsx ~1560 lines**: 더 이상 inline 컴포넌트 추가 금지, components/feed/로 추출할 것 — `guard-index-bloat.sh` hook이 PreToolUse에서 자동 차단
+- **index.tsx ~1460 lines**: 더 이상 inline 컴포넌트 추가 금지, components/feed/로 추출할 것 — `guard-index-bloat.sh` hook이 PreToolUse에서 자동 차단
 - **TypeScript 타입 체크**: .ts/.tsx 수정 시 `mobile-typecheck.sh` hook이 `tsc --noEmit` 자동 실행 (정보 제공, 비차단)
 - **EAS Build OneDrive 문제**: OneDrive 동기화 폴더에서 `eas build` 실행 시 빌드 서버 tar 해제 Permission denied. 반드시 `C:\dev\ailon` 등 로컬 폴더로 복사 후 빌드
