@@ -1423,8 +1423,11 @@ def _deduplicate_candidates(candidates: list[dict], mark_only: bool = False, thr
                 shared_products = c_product_versions & k_product_versions
                 if shared_products:
                     # 같은 제품+버전 — one_line key token overlap으로 동일 이벤트인지 확인
-                    c_ol_tokens = _extract_key_tokens(c.get("one_line", "") + " " + c.get("display_title", ""))
-                    k_ol_tokens = _extract_key_tokens(k.get("one_line", "") + " " + k.get("display_title", ""))
+                    # 단일 숫자(1자리) 제외: 버전 "4.6"→"4","6" 분리 시 무의미한 매칭 방지
+                    c_ol_tokens = {t for t in _extract_key_tokens(c.get("one_line", "") + " " + c.get("display_title", ""))
+                                   if not (t.isdigit() and len(t) == 1)}
+                    k_ol_tokens = {t for t in _extract_key_tokens(k.get("one_line", "") + " " + k.get("display_title", ""))
+                                   if not (t.isdigit() and len(t) == 1)}
                     if c_ol_tokens and k_ol_tokens:
                         union_size = len(c_ol_tokens | k_ol_tokens)
                         overlap_ratio = len(c_ol_tokens & k_ol_tokens) / union_size if union_size else 0

@@ -7,19 +7,32 @@
  * - 삭제: 각 카드 우측 휴지통 버튼
  */
 
-import React, { useMemo, useCallback, useState } from 'react';
-import { View, Text, FlatList, Pressable, Linking, Alert, Modal, ScrollView, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React, { useMemo, useCallback, useState, useEffect, useRef } from 'react';
+import { View, Text, FlatList, Pressable, Linking, Alert, Modal, ScrollView, ActivityIndicator, Animated, Share as RNShare } from 'react-native';
+import { Image } from 'expo-image';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Bookmark, ExternalLink, Trash2, Newspaper, BookOpen, X } from 'lucide-react-native';
+import { Bookmark, ExternalLink, Trash2, Newspaper, BookOpen, X, ChevronDown, Heart, Share2, MessageCircle } from 'lucide-react-native';
 import { useAuth } from '@/hooks/useAuth';
 import { useBookmarks } from '@/hooks/useBookmarks';
 import { useArticle } from '@/hooks/useArticle';
+import { useReactions } from '@/hooks/useReactions';
+import { useArticleViews } from '@/hooks/useArticleViews';
+import { useGlossaryDB } from '@/hooks/useGlossaryDB';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
 import { cardShadow, FontFamily } from '@/lib/theme';
 import type { ThemeColors } from '@/lib/colors';
 import type { Bookmark as BookmarkType, Article } from '@/lib/types';
+import { CommentSheet } from '@/components/shared/CommentSheet';
+import { HighlightedText } from '@/components/shared/HighlightedText';
+import { RelatedArticlesSection } from '@/components/shared/RelatedArticlesSection';
+import {
+  SOURCE_COLORS, CATEGORY_COLORS,
+  getSourceName, getCategoryName, formatDate,
+  getLocalizedTitle, getLocalizedOneLine, getLocalizedKeyPoints,
+  getLocalizedWhyImportant, getLocalizedBackground, getLocalizedGlossary,
+} from '@/lib/articleHelpers';
 
 function useTypeConfig(colors: ThemeColors) {
   const { t } = useLanguage();
@@ -132,59 +145,446 @@ function SavedItemCard({
   return cardContent;
 }
 
+/** 기사 요약 모달 내부 콘텐츠 — index.tsx SummaryModalContent와 동일한 디자인 */
+function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: Article; onClose: () => void; onOpenComments: () => void }) {
+  const { lang, t } = useLanguage();
+  const { colors } = useTheme();
+  const { user } = useAuth();
+  const { isBookmarked, toggleBookmark } = useBookmarks(user?.uid ?? null);
+  const { likes, liked, toggleLike } = useReactions('news', article.link);
+  const { views, trackView } = useArticleViews(article.link);
+  const { allTerms: glossaryDBTerms } = useGlossaryDB();
+  const insets = useSafeAreaInsets();
+
+  const [toastMsg, setToastMsg] = useState('');
+  const [glossaryOpen, setGlossaryOpen] = useState(false);
+  const [usedTermKeys, setUsedTermKeys] = useState<Set<string>>(new Set());
+  const toastOpacity = useRef(new Animated.Value(0)).current;
+  const toastAnimRef = useRef<Animated.CompositeAnimation | null>(null);
+  const viewTrackedLink = useRef('');
+
+  // related_ids 조회
+  const relatedIds = article.related_ids ?? [];
+
+  const showToast = (msg: string) => {
+    setToastMsg(msg);
+    if (toastAnimRef.current) toastAnimRef.current.stop();
+    const anim = Animated.sequence([
+      Animated.timing(toastOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
+      Animated.delay(1500),
+      Animated.timing(toastOpacity, { toValue: 0, duration: 300, useNativeDriver: true }),
+    ]);
+    toastAnimRef.current = anim;
+    anim.start();
+  };
+
+  useEffect(() => {
+    if (article.link !== viewTrackedLink.current) {
+      viewTrackedLink.current = article.link;
+      trackView();
+      setGlossaryOpen(false);
+      setUsedTermKeys(new Set());
+    }
+  }, [article, trackView]);
+
+  const bookmarked = useMemo(() => isBookmarked('news', article.link), [isBookmarked, article]);
+  const handleToggleBookmark = useCallback(() => {
+    toggleBookmark('news', article.link, {
+      title: getLocalizedTitle(article, lang),
+      link: article.link,
+      ...(article.category ? { category: article.category } : {}),
+      ...(article.article_id ? { articleId: article.article_id } : {}),
+    });
+  }, [toggleBookmark, article, lang]);
+
+  const handleLike = async () => {
+    const result = await toggleLike();
+    if (result === 'no_user') {
+      showToast(t('auth.login_required_toast'));
+    }
+  };
+
+  const handleShare = async () => {
+    try {
+      const shareOneLine = getLocalizedOneLine(article, lang);
+      const shareKeyPoints = getLocalizedKeyPoints(article, lang);
+      const shareWhyImportant = getLocalizedWhyImportant(article, lang);
+      let body = '';
+      if (shareOneLine) {
+        body += `${t('share.one_line_label')}\n${shareOneLine}`;
+        if (shareKeyPoints.length > 0) {
+          body += `\n\n${t('share.key_points_label')}\n${shareKeyPoints.map((p, i) => `${i + 1}. ${p}`).join('\n')}`;
+        }
+        if (shareWhyImportant) {
+          body += `\n\n${t('share.why_important_label')}\n${shareWhyImportant}`;
+        }
+      } else if (article.summary) {
+        body = article.summary;
+      }
+      await RNShare.share({
+        message: `${getLocalizedTitle(article, lang)}\n\n${body}\n\n${t('share.footer')}`,
+      });
+    } catch (err) {
+      console.warn('Share failed:', err);
+    }
+  };
+
+  const handleTermsDetected = useCallback((keys: string[]) => {
+    setUsedTermKeys(prev => {
+      const next = new Set(prev);
+      for (const k of keys) next.add(k);
+      return next.size === prev.size ? prev : next;
+    });
+  }, []);
+
+  const { oneLine, keyPoints, whyImportant, background, tags, glossary } = useMemo(() => {
+    const ol = getLocalizedOneLine(article, lang);
+    const kp = getLocalizedKeyPoints(article, lang);
+    const wi = getLocalizedWhyImportant(article, lang);
+    const bg = getLocalizedBackground(article, lang);
+    const tg = (lang === 'en' && article.tags_en && article.tags_en.length > 0) ? article.tags_en : article.tags;
+    const gl = getLocalizedGlossary(article, lang);
+    return { oneLine: ol, keyPoints: kp, whyImportant: wi, background: bg, tags: tg, glossary: gl };
+  }, [article, lang]);
+
+  const articleTitle = getLocalizedTitle(article, lang);
+
+  return (
+    <Modal
+      visible
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+        <Pressable
+          style={{ flex: 1 }}
+          onPress={onClose}
+          accessibilityLabel={t('modal.close')}
+          accessibilityRole="button"
+        />
+
+        <View style={{
+          width: '100%',
+          backgroundColor: colors.card,
+          borderTopLeftRadius: 20,
+          borderTopRightRadius: 20,
+          maxHeight: '85%',
+        }} accessibilityViewIsModal={true} accessibilityLabel={articleTitle}>
+          {/* 드래그 핸들 */}
+          <View style={{ alignItems: 'center', paddingTop: 12 }}>
+            <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: colors.border }} />
+          </View>
+
+          {/* X 닫기 버튼 */}
+          <View style={{ flexDirection: 'row', justifyContent: 'flex-end', paddingTop: 8, paddingBottom: 12, paddingHorizontal: 20 }}>
+            <Pressable
+              onPress={onClose}
+              accessibilityLabel={t('modal.close')}
+              accessibilityRole="button"
+              style={{ width: 44, height: 44, borderRadius: 9999, alignItems: 'center', justifyContent: 'center' }}
+            >
+              <X size={16} color={colors.textSecondary} />
+            </Pressable>
+          </View>
+
+          <ScrollView
+            showsVerticalScrollIndicator
+            bounces
+            contentContainerStyle={{ paddingBottom: 20 }}
+          >
+            {/* 썸네일 이미지 — 풀 너비 */}
+            {article.image_url ? (
+              <Image
+                source={article.image_url}
+                style={{ width: '100%', height: 200 }}
+                contentFit="cover"
+                transition={200}
+                recyclingKey={`saved-modal-${article.link}`}
+              />
+            ) : null}
+
+            {/* 소스 뱃지 + 날짜 + 카테고리 + 북마크 */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', paddingHorizontal: 20, paddingTop: 20, gap: 6 }}>
+              {(() => {
+                const sk = article.source_key || article.source;
+                const sc = SOURCE_COLORS[sk] || colors.textSecondary;
+                return (
+                  <View style={{ backgroundColor: `${sc}18`, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 }}>
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: sc }}>{getSourceName(sk, t)}</Text>
+                  </View>
+                );
+              })()}
+              <Text style={{ fontSize: 11, color: colors.textDim }}>{formatDate(article.published, lang, article.date_estimated)}</Text>
+              {article.category ? (
+                <View style={{ backgroundColor: `${CATEGORY_COLORS[article.category] || colors.textDim}18`, borderRadius: 16, paddingHorizontal: 8, paddingVertical: 3 }}>
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: CATEGORY_COLORS[article.category] || colors.textDim }}>{getCategoryName(article.category, t)}</Text>
+                </View>
+              ) : null}
+              <View style={{ marginLeft: 'auto' }}>
+                <Pressable
+                  onPress={handleToggleBookmark}
+                  accessibilityLabel={bookmarked ? t('bookmark.remove') : t('bookmark.add')}
+                  accessibilityRole="button"
+                  style={({ pressed }) => ({
+                    minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center',
+                    opacity: pressed ? 0.7 : 1,
+                  })}
+                >
+                  <Bookmark
+                    size={18}
+                    color={bookmarked ? colors.bookmarkActiveColor : colors.textSecondary}
+                    fill="none"
+                    strokeWidth={2}
+                  />
+                </Pressable>
+              </View>
+            </View>
+
+            {/* 제목 — 세리프 22px, weight 900 */}
+            <Text
+              accessibilityRole="header"
+              style={{
+                fontSize: 22, fontWeight: '900', color: colors.textPrimary, lineHeight: 32,
+                letterSpacing: -0.3,
+                paddingHorizontal: 20, fontFamily: FontFamily.serif,
+              }}
+            >
+              {articleTitle}
+            </Text>
+
+            {/* 콘텐츠 영역 */}
+            {oneLine ? (
+              <View style={{ paddingHorizontal: 20 }}>
+                {/* 1. One Line — teal 배경 */}
+                <View style={{ marginTop: 12, padding: 14, borderRadius: 12, backgroundColor: colors.primaryLight }}>
+                  <Text style={{ fontSize: 16, fontWeight: '600', lineHeight: 26, color: colors.textPrimary }}>
+                    {oneLine}
+                  </Text>
+                </View>
+
+                {/* 2. Background */}
+                {background ? (
+                  <Text style={{ fontSize: 14, lineHeight: 23, letterSpacing: 0.2, color: colors.textSecondary, marginTop: 20 }}>
+                    {background}
+                  </Text>
+                ) : null}
+
+                {/* 3. Key Points — 세리프 소제목 + 번호 스텝 */}
+                {keyPoints.length > 0 && (
+                  <View style={{ marginTop: 24 }}>
+                    <Text style={{ fontSize: 18, fontWeight: '700', lineHeight: 26, letterSpacing: -0.2, color: colors.textPrimary, fontFamily: FontFamily.serif, marginBottom: 12 }}>{t('modal.key_points')}</Text>
+                    {keyPoints.map((point, idx) => (
+                      <View key={idx} style={{ borderRadius: 8, paddingHorizontal: 0, paddingVertical: 8, marginBottom: 6 }}>
+                        <View style={{ flexDirection: 'row', gap: 10 }}>
+                          <Text style={{ fontSize: 15, fontWeight: '700', color: colors.textPrimary, lineHeight: 24, minWidth: 22 }}>{idx + 1}.</Text>
+                          <HighlightedText
+                            text={point}
+                            glossaryTerms={glossaryDBTerms}
+                            style={{ fontSize: 15, color: colors.summaryBody, lineHeight: 24, flex: 1 }}
+                            usedTermKeys={usedTermKeys}
+                            onTermsDetected={handleTermsDetected}
+                          />
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+                {/* 4. Why Important — 세리프 소제목 */}
+                {whyImportant ? (
+                  <View style={{ marginTop: 24 }}>
+                    <Text style={{ fontSize: 16, fontWeight: '700', lineHeight: 26, color: colors.textSecondary, fontFamily: FontFamily.serif, marginBottom: 8 }}>{t('modal.why_important')}</Text>
+                    <HighlightedText
+                      text={whyImportant}
+                      glossaryTerms={glossaryDBTerms}
+                      style={{ fontSize: 15, color: colors.summaryBody, lineHeight: 26, letterSpacing: 0.2 }}
+                      usedTermKeys={usedTermKeys}
+                      onTermsDetected={handleTermsDetected}
+                    />
+                  </View>
+                ) : null}
+
+                {/* Tags — 필 스타일 */}
+                {tags && tags.length > 0 ? (
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 24 }}>
+                    {tags.map((tag, idx) => (
+                      <View key={idx} style={{ backgroundColor: colors.surface, borderRadius: 14, paddingHorizontal: 8, paddingVertical: 3 }}>
+                        <Text style={{ fontSize: 10, fontWeight: '600', color: colors.textSecondary }}>#{tag}</Text>
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
+
+                {/* Glossary — 아코디언 */}
+                {glossary.length > 0 ? (
+                  <View style={{ marginTop: 16 }}>
+                    <Pressable
+                      onPress={() => setGlossaryOpen(!glossaryOpen)}
+                      accessibilityRole="button"
+                      accessibilityLabel={t('modal.glossary')}
+                      accessibilityState={{ expanded: glossaryOpen }}
+                      style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+                    >
+                      <Text style={{ fontSize: 11, fontWeight: '600', letterSpacing: 1.5, color: colors.textSecondary }}>
+                        {t('modal.glossary').toUpperCase()}
+                      </Text>
+                      <View style={{ transform: [{ rotate: glossaryOpen ? '180deg' : '0deg' }] }}>
+                        <ChevronDown size={12} color={colors.textDim} />
+                      </View>
+                    </Pressable>
+                    {glossaryOpen ? (
+                      <View style={{ paddingTop: 10 }}>
+                        {glossary.map((item, idx) => (
+                          <View key={idx} style={{ marginBottom: idx < glossary.length - 1 ? 10 : 0, paddingLeft: 12 }}>
+                            <Text style={{ fontSize: 12, fontWeight: '600', color: colors.textPrimary, marginBottom: 1 }}>{item.term}</Text>
+                            <Text style={{ fontSize: 11, color: colors.textSecondary, lineHeight: 17 }}>{item.desc}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    ) : null}
+                  </View>
+                ) : null}
+
+                {/* Related Articles */}
+                {relatedIds.length > 0 && (
+                  <RelatedArticlesSection relatedIds={relatedIds} />
+                )}
+
+              </View>
+            ) : article.summary ? (
+              <Text style={{
+                fontSize: 15, color: colors.summaryBody, lineHeight: 24, letterSpacing: 0.2, marginBottom: 16,
+                paddingHorizontal: 20,
+              }}>
+                {article.summary}
+              </Text>
+            ) : (
+              <View style={{ alignItems: 'center', paddingVertical: 24, paddingHorizontal: 20 }}>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: colors.textSecondary, marginBottom: 4 }}>
+                  {t('modal.no_summary')}
+                </Text>
+              </View>
+            )}
+
+            {/* Read Original 버튼 */}
+            {article.link ? (
+              <View style={{ paddingHorizontal: 20, marginTop: 20, marginBottom: 8 }}>
+                <Pressable
+                  onPress={() => Linking.openURL(article.link)}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('article.read_original')}
+                  style={({ pressed }) => ({
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                    borderWidth: 1.5,
+                    borderColor: colors.textPrimary,
+                    borderRadius: 14,
+                    paddingVertical: 13,
+                    paddingHorizontal: 20,
+                    minHeight: 44,
+                    opacity: pressed ? 0.7 : 1,
+                  })}
+                >
+                  <ExternalLink size={16} color={colors.textPrimary} />
+                  <Text style={{ fontSize: 15, fontWeight: '700', color: colors.textPrimary }}>{t('article.read_original')}</Text>
+                </Pressable>
+              </View>
+            ) : null}
+
+          </ScrollView>
+
+          {/* 고정 하단 액션 바 */}
+          <View style={{
+            flexDirection: 'row',
+            borderTopWidth: 0.5,
+            borderTopColor: colors.border,
+            backgroundColor: colors.card,
+            paddingBottom: Math.max(insets.bottom, 10),
+          }}>
+            <Pressable
+              onPress={handleLike}
+              accessibilityLabel={liked ? t('modal.unlike') : t('modal.like')}
+              accessibilityRole="button"
+              style={{ flex: 1, alignItems: 'center', paddingVertical: 14 }}
+            >
+              <Heart size={22} color={liked ? colors.likeActiveColor : colors.textDim} fill={liked ? colors.likeActiveColor : 'none'} />
+            </Pressable>
+            <Pressable
+              onPress={onOpenComments}
+              accessibilityLabel={t('modal.comment')}
+              accessibilityRole="button"
+              style={{ flex: 1, alignItems: 'center', paddingVertical: 14 }}
+            >
+              <MessageCircle size={22} color={colors.textDim} />
+            </Pressable>
+            <Pressable
+              onPress={handleShare}
+              accessibilityLabel={t('modal.share')}
+              accessibilityRole="button"
+              style={{ flex: 1, alignItems: 'center', paddingVertical: 14 }}
+            >
+              <Share2 size={22} color={colors.textDim} />
+            </Pressable>
+          </View>
+
+          {/* 토스트 */}
+          {toastMsg ? (
+            <Animated.View style={{
+              position: 'absolute', top: 20, left: 20, right: 20,
+              backgroundColor: colors.toastBg, borderRadius: 10, paddingVertical: 10, paddingHorizontal: 16,
+              alignItems: 'center', opacity: toastOpacity,
+            }} pointerEvents="none" accessibilityLiveRegion="assertive">
+              <Text style={{ color: '#FFF', fontSize: 13, fontWeight: '600' }}>{toastMsg}</Text>
+            </Animated.View>
+          ) : null}
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 /** 기사 요약 모달 — articleId로 Firestore에서 fetch 후 표시 */
 function ArticleSummaryModal({
   visible,
   onClose,
   articleId,
   fallbackLink,
-  lang,
-  colors,
-}: { visible: boolean; onClose: () => void; articleId: string | null; fallbackLink?: string; lang: string; colors: ThemeColors }) {
+  onOpenComments,
+}: { visible: boolean; onClose: () => void; articleId: string | null; fallbackLink?: string; onOpenComments: (link: string) => void }) {
   const { article, loading } = useArticle(visible ? articleId : null);
+  const { lang, t } = useLanguage();
+  const { colors } = useTheme();
 
-  const getField = useCallback((ko: string | undefined, en: string | undefined) => {
-    return lang === 'en' ? (en || ko || '') : (ko || '');
-  }, [lang]);
+  if (!visible) return null;
 
-  const title = article ? getField(article.display_title, article.display_title_en) || article.title : '';
-  const oneLine = article ? getField(article.one_line, article.one_line_en) : '';
-  const keyPoints = article ? (lang === 'en' ? (article.key_points_en || article.key_points) : article.key_points) || [] : [];
-  const whyImportant = article ? getField(article.why_important, article.why_important_en) : '';
-  const background = article ? getField(article.background, article.background_en) : '';
-  const tags = article?.tags || [];
-  const link = article?.link || fallbackLink;
-
-  return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top', 'bottom']}>
-        {/* Header: 닫기 버튼 */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-          <View style={{ backgroundColor: colors.primaryLight, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 }}>
-            <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>AI Summary</Text>
-          </View>
-          <Pressable
-            onPress={onClose}
-            accessibilityLabel="Close"
-            accessibilityRole="button"
-            style={({ pressed }) => ({
-              minHeight: 44, minWidth: 44,
-              alignItems: 'center' as const, justifyContent: 'center' as const,
-              opacity: pressed ? 0.6 : 1,
-            })}
-          >
-            <X size={22} color={colors.textPrimary} />
-          </Pressable>
-        </View>
-
-        {/* Content */}
-        {loading ? (
-          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+  // 로딩 중
+  if (loading) {
+    return (
+      <Modal visible transparent animationType="slide" onRequestClose={onClose}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+          <Pressable style={{ flex: 1 }} onPress={onClose} />
+          <View style={{ width: '100%', backgroundColor: colors.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingVertical: 80, alignItems: 'center' }}>
             <ActivityIndicator size="large" color={colors.primary} />
           </View>
-        ) : !article ? (
-          /* 기사를 찾을 수 없을 때 */
-          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 }}>
+        </View>
+      </Modal>
+    );
+  }
+
+  // 기사를 찾을 수 없을 때
+  if (!article) {
+    const link = fallbackLink;
+    return (
+      <Modal visible transparent animationType="slide" onRequestClose={onClose}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+          <Pressable style={{ flex: 1 }} onPress={onClose} />
+          <View style={{ width: '100%', backgroundColor: colors.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 32, alignItems: 'center' }}>
+            <View style={{ alignItems: 'center', paddingTop: 12, marginBottom: 20, width: '100%' }}>
+              <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: colors.border }} />
+            </View>
             <Text style={{ color: colors.textDim, fontSize: 15, textAlign: 'center', lineHeight: 22, marginBottom: 20 }}>
               {lang === 'en'
                 ? 'Article summary is not available.\nThis may be an older bookmark.'
@@ -201,100 +601,17 @@ function ArticleSummaryModal({
               </Pressable>
             )}
           </View>
-        ) : (
-          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-            {/* 제목 */}
-            <Text style={{ color: colors.textPrimary, fontSize: 22, fontWeight: '800', lineHeight: 30, fontFamily: FontFamily.serif, marginBottom: 16 }}>
-              {title}
-            </Text>
+        </View>
+      </Modal>
+    );
+  }
 
-            {/* 한줄 요약 */}
-            {oneLine ? (
-              <View style={{ backgroundColor: colors.primaryLight, borderRadius: 12, padding: 14, marginBottom: 20 }}>
-                <Text style={{ color: colors.textPrimary, fontSize: 16, lineHeight: 26, fontWeight: '600' }}>
-
-                  {oneLine}
-                </Text>
-              </View>
-            ) : null}
-
-            {/* 핵심 포인트 */}
-            {keyPoints.length > 0 && (
-              <View style={{ marginBottom: 20 }}>
-                <Text style={{ color: colors.textPrimary, fontSize: 18, fontWeight: '700', letterSpacing: -0.2, marginBottom: 12, fontFamily: FontFamily.serif }}>
-                  {lang === 'en' ? 'Key Points' : '핵심 포인트'}
-                </Text>
-                {keyPoints.map((point, idx) => (
-                  <View key={idx} style={{ flexDirection: 'row', marginBottom: 6, paddingRight: 8 }}>
-                    <Text style={{ color: colors.textPrimary, fontSize: 15, fontWeight: '700', lineHeight: 24, marginRight: 8, minWidth: 22 }}>
-                      {idx + 1}.
-                    </Text>
-                    <Text style={{ color: colors.textSecondary, fontSize: 15, lineHeight: 24, flex: 1 }}>
-                      {point}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            )}
-
-            {/* 왜 중요한가 */}
-            {whyImportant ? (
-              <View style={{ marginBottom: 20 }}>
-                <Text style={{ color: colors.textSecondary, fontSize: 16, fontWeight: '700', marginBottom: 8, fontFamily: FontFamily.serif }}>
-                  {lang === 'en' ? 'Why It Matters' : '왜 중요한가'}
-                </Text>
-                <Text style={{ color: colors.textSecondary, fontSize: 14, lineHeight: 22 }}>
-                  {whyImportant}
-                </Text>
-              </View>
-            ) : null}
-
-            {/* 배경 — left border 강조 */}
-            {background ? (
-              <View style={{ marginBottom: 20 }}>
-                <Text style={{ color: colors.textSecondary, fontSize: 16, fontWeight: '700', marginBottom: 8, fontFamily: FontFamily.serif }}>
-                  {lang === 'en' ? 'Background' : '배경'}
-                </Text>
-                <Text style={{ color: colors.textSecondary, fontSize: 14, lineHeight: 22 }}>
-                  {background}
-                </Text>
-              </View>
-            ) : null}
-
-            {/* 태그 */}
-            {tags.length > 0 && (
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 24, marginBottom: 24 }}>
-                {tags.map((tag, idx) => (
-                  <View key={idx} style={{ backgroundColor: colors.surface, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 }}>
-                    <Text style={{ color: colors.textDim, fontSize: 12 }}>{tag}</Text>
-                  </View>
-                ))}
-              </View>
-            )}
-
-            {/* 원문 보기 버튼 */}
-            {link && (
-              <Pressable
-                onPress={() => Linking.openURL(link)}
-                accessibilityRole="link"
-                accessibilityLabel={lang === 'en' ? 'View Original' : '원문 보기'}
-                style={({ pressed }) => ({
-                  flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'center' as const,
-                  backgroundColor: colors.textPrimary, borderRadius: 14,
-                  paddingVertical: 14, gap: 6,
-                  opacity: pressed ? 0.85 : 1,
-                })}
-              >
-                <Text style={{ color: colors.card, fontSize: 15, fontWeight: '700' }}>
-                  {lang === 'en' ? 'Read Original Article' : '원문 보기'}
-                </Text>
-                <ExternalLink size={16} color={colors.card} />
-              </Pressable>
-            )}
-          </ScrollView>
-        )}
-      </SafeAreaView>
-    </Modal>
+  return (
+    <ArticleSummaryContent
+      article={article}
+      onClose={onClose}
+      onOpenComments={() => onOpenComments(article.link)}
+    />
   );
 }
 
@@ -306,6 +623,7 @@ export default function SavedScreen() {
   const typeConfig = useTypeConfig(colors);
 
   const [selectedBookmark, setSelectedBookmark] = useState<BookmarkType | null>(null);
+  const [commentArticleLink, setCommentArticleLink] = useState<string | null>(null);
 
   // 최신순 정렬
   const sorted = useMemo(() => [...bookmarks].sort((a, b) => {
@@ -336,6 +654,12 @@ export default function SavedScreen() {
   const handleCloseModal = useCallback(() => {
     setSelectedBookmark(null);
   }, []);
+
+  const handleOpenComments = useCallback((link: string) => {
+    setCommentArticleLink(link);
+  }, []);
+
+  const handleCommentClose = useCallback(() => setCommentArticleLink(null), []);
 
   const renderItem = useCallback(({ item }: { item: BookmarkType }) => (
     <SavedItemCard
@@ -418,8 +742,15 @@ export default function SavedScreen() {
         onClose={handleCloseModal}
         articleId={selectedBookmark?.metadata?.articleId ?? null}
         fallbackLink={selectedBookmark?.metadata?.link}
-        lang={lang}
-        colors={colors}
+        onOpenComments={handleOpenComments}
+      />
+
+      {/* 댓글 시트 */}
+      <CommentSheet
+        visible={!!commentArticleLink}
+        onClose={handleCommentClose}
+        itemType="news"
+        itemId={commentArticleLink ?? ''}
       />
     </SafeAreaView>
   );
