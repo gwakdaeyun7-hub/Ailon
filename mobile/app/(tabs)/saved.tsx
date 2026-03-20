@@ -8,7 +8,7 @@
  */
 
 import React, { useMemo, useCallback, useState, useEffect, useRef } from 'react';
-import { View, Text, FlatList, Pressable, Linking, Alert, Modal, ScrollView, ActivityIndicator, Animated, Share as RNShare } from 'react-native';
+import { View, Text, FlatList, Pressable, Linking, Alert, Modal, ScrollView, ActivityIndicator, Animated } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -25,6 +25,8 @@ import { cardShadow, FontFamily } from '@/lib/theme';
 import type { ThemeColors } from '@/lib/colors';
 import type { Bookmark as BookmarkType, Article } from '@/lib/types';
 import { CommentSheet } from '@/components/shared/CommentSheet';
+import { ShareCard } from '@/components/feed/ShareCard';
+import { useShareImage } from '@/hooks/useShareImage';
 import { HighlightedText } from '@/components/shared/HighlightedText';
 import { RelatedArticlesSection } from '@/components/shared/RelatedArticlesSection';
 import {
@@ -151,6 +153,7 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
   const { colors } = useTheme();
   const { user } = useAuth();
   const { isBookmarked, toggleBookmark } = useBookmarks(user?.uid ?? null);
+  const { shareCardRef, shareAsImage, isCapturing } = useShareImage();
   const { likes, liked, toggleLike } = useReactions('news', article.link);
   const { views, trackView } = useArticleViews(article.link);
   const { allTerms: glossaryDBTerms } = useGlossaryDB();
@@ -205,28 +208,23 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
   };
 
   const handleShare = async () => {
-    try {
-      const shareOneLine = getLocalizedOneLine(article, lang);
-      const shareKeyPoints = getLocalizedKeyPoints(article, lang);
-      const shareWhyImportant = getLocalizedWhyImportant(article, lang);
-      let body = '';
-      if (shareOneLine) {
-        body += `${t('share.one_line_label')}\n${shareOneLine}`;
-        if (shareKeyPoints.length > 0) {
-          body += `\n\n${t('share.key_points_label')}\n${shareKeyPoints.map((p, i) => `${i + 1}. ${p}`).join('\n')}`;
-        }
-        if (shareWhyImportant) {
-          body += `\n\n${t('share.why_important_label')}\n${shareWhyImportant}`;
-        }
-      } else if (article.summary) {
-        body = article.summary;
+    const shareOneLine = getLocalizedOneLine(article, lang);
+    const shareKeyPoints = getLocalizedKeyPoints(article, lang);
+    const shareWhyImportant = getLocalizedWhyImportant(article, lang);
+    let body = '';
+    if (shareOneLine) {
+      body += `${t('share.one_line_label')}\n${shareOneLine}`;
+      if (shareKeyPoints.length > 0) {
+        body += `\n\n${t('share.key_points_label')}\n${shareKeyPoints.map((p, i) => `${i + 1}. ${p}`).join('\n')}`;
       }
-      await RNShare.share({
-        message: `${getLocalizedTitle(article, lang)}\n\n${body}\n\n${t('share.footer')}`,
-      });
-    } catch (err) {
-      console.warn('Share failed:', err);
+      if (shareWhyImportant) {
+        body += `\n\n${t('share.why_important_label')}\n${shareWhyImportant}`;
+      }
+    } else if (article.summary) {
+      body = article.summary;
     }
+    const fallbackText = `${getLocalizedTitle(article, lang)}\n\n${body}\n\n${t('share.footer')}`;
+    await shareAsImage(fallbackText);
   };
 
   const handleTermsDetected = useCallback((keys: string[]) => {
@@ -522,9 +520,10 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
             </Pressable>
             <Pressable
               onPress={handleShare}
+              disabled={isCapturing}
               accessibilityLabel={t('modal.share')}
               accessibilityRole="button"
-              style={{ flex: 1, alignItems: 'center', paddingVertical: 14 }}
+              style={{ flex: 1, alignItems: 'center', paddingVertical: 14, opacity: isCapturing ? 0.5 : 1 }}
             >
               <Share2 size={22} color={colors.textDim} />
             </Pressable>
@@ -540,6 +539,11 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
               <Text style={{ color: '#FFF', fontSize: 13, fontWeight: '600' }}>{toastMsg}</Text>
             </Animated.View>
           ) : null}
+
+          {/* 오프스크린 ShareCard — 캡처 전용 */}
+          <View style={{ position: 'absolute', left: -9999 }} pointerEvents="none">
+            <ShareCard ref={shareCardRef} article={article} lang={lang} t={t} />
+          </View>
         </View>
       </View>
     </Modal>

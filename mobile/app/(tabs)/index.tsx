@@ -15,7 +15,6 @@ import {
   Linking,
   StatusBar,
   Modal,
-  Share,
   Animated,
   Dimensions,
 } from 'react-native';
@@ -38,6 +37,8 @@ import { useBookmarks } from '@/hooks/useBookmarks';
 import { useAuth } from '@/hooks/useAuth';
 import { NewsCardSkeleton } from '@/components/shared/LoadingSkeleton';
 import { CommentSheet } from '@/components/shared/CommentSheet';
+import { ShareCard } from '@/components/feed/ShareCard';
+import { useShareImage } from '@/hooks/useShareImage';
 import type { Article } from '@/lib/types';
 import { Colors } from '@/lib/colors';
 import { FontFamily } from '@/lib/theme';
@@ -224,6 +225,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
   const { colors } = useTheme();
   const { user } = useAuth();
   const { isBookmarked, toggleBookmark } = useBookmarks(user?.uid ?? null);
+  const { shareCardRef, shareAsImage, isCapturing } = useShareImage();
   // 이슈 #18: viewTracked 중복 호출 수정 — link 기반 추적
   const viewTrackedLink = useRef('');
   const insets = useSafeAreaInsets();
@@ -280,30 +282,25 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
     }
   };
 
-  // M8: handleShare empty catch → console.warn
+  // M8: handleShare — 이미지 캡처 우선, 텍스트 폴백
   const handleShare = async () => {
-    try {
-      const shareOneLine = getLocalizedOneLine(article, lang);
-      const shareKeyPoints = getLocalizedKeyPoints(article, lang);
-      const shareWhyImportant = getLocalizedWhyImportant(article, lang);
-      let body = '';
-      if (shareOneLine) {
-        body += `${t('share.one_line_label')}\n${shareOneLine}`;
-        if (shareKeyPoints.length > 0) {
-          body += `\n\n${t('share.key_points_label')}\n${shareKeyPoints.map((p, i) => `${i + 1}. ${p}`).join('\n')}`;
-        }
-        if (shareWhyImportant) {
-          body += `\n\n${t('share.why_important_label')}\n${shareWhyImportant}`;
-        }
-      } else if (article.summary) {
-        body = article.summary;
+    const shareOneLine = getLocalizedOneLine(article, lang);
+    const shareKeyPoints = getLocalizedKeyPoints(article, lang);
+    const shareWhyImportant = getLocalizedWhyImportant(article, lang);
+    let body = '';
+    if (shareOneLine) {
+      body += `${t('share.one_line_label')}\n${shareOneLine}`;
+      if (shareKeyPoints.length > 0) {
+        body += `\n\n${t('share.key_points_label')}\n${shareKeyPoints.map((p, i) => `${i + 1}. ${p}`).join('\n')}`;
       }
-      await Share.share({
-        message: `${getLocalizedTitle(article, lang)}\n\n${body}\n\n${t('share.footer')}`,
-      });
-    } catch (err) {
-      console.warn('Share failed:', err);
+      if (shareWhyImportant) {
+        body += `\n\n${t('share.why_important_label')}\n${shareWhyImportant}`;
+      }
+    } else if (article.summary) {
+      body = article.summary;
     }
+    const fallbackText = `${getLocalizedTitle(article, lang)}\n\n${body}\n\n${t('share.footer')}`;
+    await shareAsImage(fallbackText);
   };
 
   const handleTermsDetected = useCallback((keys: string[]) => {
@@ -604,9 +601,10 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
             </Pressable>
             <Pressable
               onPress={handleShare}
+              disabled={isCapturing}
               accessibilityLabel={t('modal.share')}
               accessibilityRole="button"
-              style={{ flex: 1, alignItems: 'center', paddingVertical: 14 }}
+              style={{ flex: 1, alignItems: 'center', paddingVertical: 14, opacity: isCapturing ? 0.5 : 1 }}
             >
               <Share2 size={22} color={colors.textDim} />
             </Pressable>
@@ -622,6 +620,11 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
               <Text style={{ color: '#FFF', fontSize: 13, fontWeight: '600' }}>{toastMsg}</Text>
             </Animated.View>
           ) : null}
+
+          {/* 오프스크린 ShareCard — 캡처 전용 */}
+          <View style={{ position: 'absolute', left: -9999 }} pointerEvents="none">
+            <ShareCard ref={shareCardRef} article={article} lang={lang} t={t} />
+          </View>
         </View>
       </View>
     </Modal>

@@ -55,6 +55,7 @@ const translations: Record<string, Record<Language, string>> = {
   'share.key_points_label': { ko: '📌 주요 포인트', en: '📌 Key Points' },
   'share.why_important_label': { ko: '⚡ 왜 중요해요?', en: '⚡ Why It Matters' },
   'share.footer': { ko: '— AILON AI 뉴스', en: '— AILON AI News' },
+  'share.image_failed_fallback': { ko: '이미지 생성 실패 — 텍스트로 공유합니다', en: 'Image failed — sharing as text' },
 
   // ─── 인증 ───
   'auth.login_required': { ko: '로그인이 필요해요', en: 'Login required' },
