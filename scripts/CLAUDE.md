@@ -49,7 +49,7 @@ AI타임스, GeekNews, ZDNet AI 에디터 (HTML scrape), 요즘IT AI
 | `_TITLE_FORBIDDEN_ELLIPSIS` | 정규식 — 34개 금지 서술어 + `...`/`…` + 후속 텍스트 | EN→KO 번역 제목에서 구분자 '...'/'…' → ',' 자동 교정 (`_fix_title_separator()`). KO 소스 원본 제목은 미적용. 제목 끝 여운 '...'는 `(?=\S)` lookahead로 보존 |
 | DEDUP layers | 7 (L1 URL→L2 orig_title≥0.65→L3 disp_title≥0.65→L4 one_line≥0.65 + 고유명사 가드→L5 key_tokens(고유명사3+숫자1 겹침)→L6 embedding→L7 title_entity) | L4 가드: 양쪽 기사에 식별 가능한 고유명사(영어)가 있으면 최소 1개 공유 필요 — 문장 구조만 유사한 오탐 방지 (e.g., "Anthropic lawsuit" vs "Nintendo lawsuit") |
 | Embedding threshold | 0.92 cosine | L6 |
-| L7 title_entity | 제품+버전 일치 + one_line 토큰 Jaccard ≥ 0.30 | GPT-5.4 등 동일 이벤트 다소스 중복 감지. 버전 없는 제품명(예: "Code Review")은 L7 매칭 약화 — L5 nums_overlap도 0이면 전 레이어 통과 가능 (구조적 한계) |
+| L7 title_entity | 제품+버전 일치 + one_line 토큰 Jaccard ≥ 0.30 (단일 숫자 제외) | GPT-5.4 등 동일 이벤트 다소스 중복 감지. 단일 숫자(1자리) 토큰은 overlap 계산에서 제외 — 버전 "4.6"→"4","6" 분리 시 벤치마크 비교 기사 간 오탐 방지. 버전 없는 제품명(예: "Code Review")은 L7 매칭 약화 — L5 nums_overlap도 0이면 전 레이어 통과 가능 (구조적 한계) |
 | AI 필터 | Tier 1+2 중 Tom's Hardware만 AI 필터 적용 (NEEDS_AI_FILTER={"toms_hardware"}, 범용 RSS 피드), 나머지 17개는 전체 통과, Tier 3: "의심 시 제거" (AI+개발/IT 기술 포함). 모든 카테고리에 AI 필터 동일 적용 (research 면제 없음). KO 필터 INCLUDE 목록에 "AI 기업과 정부/국방부 관계 기사" 포함 | Tom's Hardware는 범용 하드웨어 피드로 비AI 기사 혼재, 나머지 Tier 1+2는 AI 전문 피드로 필터 불필요, Tier 3는 비AI 9%+완전 무관 기사 혼재 |
 
 ### Classification Categories
