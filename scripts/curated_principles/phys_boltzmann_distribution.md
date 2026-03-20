@@ -4,7 +4,7 @@ connectionType: direct_inspiration
 keywords: 볼츠만 분포, 통계역학, 분배함수, 소프트맥스, 에너지 기반 모델, 볼츠만 머신, 자유 에너지, 온도 파라미터
 keywords_en: Boltzmann distribution, statistical mechanics, partition function, softmax, energy-based models, Boltzmann machine, free energy, temperature parameter
 ---
-Boltzmann Distribution and Statistical Mechanics - 열평형 상태의 확률 분포가 AI의 핵심 수학적 구조로 직접 이식된 통계역학의 기초 원리
+Boltzmann Distribution - 열평형 상태의 확률 분포가 AI의 핵심 수학적 구조로 직접 이식된 통계역학의 기초 원리
 
 ## 볼츠만 분포의 물리적 원리
 
@@ -105,7 +105,7 @@ Hinton(2002)의 대비 발산(Contrastive Divergence, CD) 알고리즘이 결정
 
 에너지 기반 모델(energy-based model, EBM) - 입력에 스칼라 에너지를 할당하고 낮은 에너지를 높은 적합도로 해석하는 모델 프레임워크. LeCun(2006) 제안
 ---EN---
-Boltzmann Distribution and Statistical Mechanics - The foundational principle of statistical mechanics whose probability distribution was directly transplanted into AI's core mathematical structures
+Boltzmann Distribution - The foundational principle of statistical mechanics whose probability distribution was directly transplanted into AI's core mathematical structures
 
 ## The Physical Principle of the Boltzmann Distribution
 

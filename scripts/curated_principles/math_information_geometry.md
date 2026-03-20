@@ -4,7 +4,7 @@ connectionType: direct_inspiration
 keywords: 정보 기하학, 자연 경사, 피셔 정보 행렬, KL 발산, 리만 계량, 통계적 다양체, TRPO, K-FAC
 keywords_en: information geometry, natural gradient, Fisher information matrix, KL divergence, Riemannian metric, statistical manifold, TRPO, K-FAC
 ---
-Information Geometry and Natural Gradient - 확률 분포들이 사는 공간에 곡률을 부여하여, 파라미터의 좌표 선택에 흔들리지 않는 최적화를 가능하게 한 미분 기하학 이론
+Information Geometry - 확률 분포들이 사는 공간에 곡률을 부여하여, 파라미터의 좌표 선택에 흔들리지 않는 최적화를 가능하게 한 미분 기하학 이론
 
 ## 확률 분포 사이의 "거리"라는 문제
 
@@ -62,6 +62,12 @@ theta(t+1) = theta(t) - eta * F^(-1) * gradient(L)
 
 - **K-FAC**: Martens & Grosse(2015)는 각 레이어의 피셔 정보 행렬을 입력 활성화의 공분산과 그래디언트의 공분산의 크로네커 곱(Kronecker product)으로 근사했다. 레이어 내 뉴런 간 독립성을 가정하는 근사이지만, 전체 F를 다루는 O(n^3) 대신 레이어 단위로 분해하여 계산 비용을 크게 줄인다. 곡률 정보의 블록 구조를 보존하면서 실행 가능한 수준의 비용을 달성한 절충안이다.
 
+- **TRPO**: Schulman et al.(2015)는 강화학습의 정책 갱신에 정보 기하학을 적용했다. 정책 갱신 폭을 KL 발산으로 제약하면, 그 국소 근사가 피셔 정보 행렬에 의한 2차 형식이 되어 갱신 방향이 자연 경사와 일치한다. Kakade(2001)의 natural policy gradient를 경유하여 Amari(1998)까지 이어지는 직접적 학문 계보에 있다. 후속 PPO(2017)는 KL 제약을 클리핑으로 대체하여, 기하학적 정밀도를 더 포기하고 실용성을 택한 진화다.
+
+**독립 발전이지만 구조가 유사한 기법:**
+
+- **Adam, AdaGrad**: 이 적응적 학습률 알고리즘들은 파라미터별로 과거 그래디언트의 크기를 추적하여 보폭을 조절한다. 결과적으로 피셔 정보 행렬의 대각 성분 근사와 유사한 효과를 내지만, 자연 경사법과는 독립적으로 발전했으며, 파라미터 간 상호작용(비대각 성분)은 반영하지 못한다.
+
 ## 한계와 약점
 
 - **근사의 대가**: K-FAC, 대각 근사 등 모든 실용적 방법은 피셔 정보 행렬의 기하학적 정보를 상당 부분 포기한다. 자연 경사법의 이론적 이점이 실제로 얼마나 전달되는지는 근사 방법마다 다르다.
@@ -87,7 +93,7 @@ K-FAC(Kronecker-Factored Approximate Curvature) - 레이어별 피셔 정보 행
 
 TRPO(Trust Region Policy Optimization) - KL 발산 제약 아래에서 정책을 갱신하는 강화학습 알고리즘. 자연 경사법을 분포 공간의 신뢰 영역 제약으로 구현. Schulman et al.(2015)
 ---EN---
-Information Geometry and Natural Gradient - A differential geometry theory that equips the space of probability distributions with curvature, enabling optimization invariant to the choice of parameterization
+Information Geometry - A differential geometry theory that equips the space of probability distributions with curvature, enabling optimization invariant to the choice of parameterization
 
 ## The Problem of "Distance" Between Probability Distributions
 
@@ -144,6 +150,12 @@ The connections between information geometry and AI differ in character.
 **Techniques directly derived from Amari's natural gradient:**
 
 - **K-FAC**: Martens & Grosse (2015) approximated each layer's Fisher information matrix as the Kronecker product of the input activation covariance and the gradient covariance. This approximation assumes independence between neurons within a layer, but by decomposing at the layer level instead of handling the full O(n^3) F, it dramatically reduces computational cost. A compromise that preserves the block structure of curvature information while achieving tractable cost.
+
+- **TRPO**: Schulman et al. (2015) applied information geometry to policy updates in reinforcement learning. Constraining the update step by KL divergence produces a local approximation that becomes a quadratic form under the Fisher information matrix, making the update direction coincide with the natural gradient. It sits in a direct academic lineage from Amari (1998) via Kakade's (2001) natural policy gradient. The successor PPO (2017) replaced the KL constraint with clipping, trading more geometric precision for practicality.
+
+**Techniques that arrived at similar structure independently:**
+
+- **Adam, AdaGrad**: These adaptive learning rate algorithms track the magnitude of past gradients per parameter to adjust step sizes. The effect resembles a diagonal approximation of the Fisher information matrix, but they were developed independently of the natural gradient and cannot capture inter-parameter interactions (off-diagonal elements).
 
 ## Limitations and Weaknesses
 

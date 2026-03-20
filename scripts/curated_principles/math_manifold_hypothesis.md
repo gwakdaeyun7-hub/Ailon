@@ -26,9 +26,9 @@ MNIST 이미지의 주변 차원은 784지만, 손글씨 숫자가 실제로 변
 
 ## 역사적 맥락 — 미분기하학에서 데이터 과학까지
 
-다양체 개념은 수학자 Bernhard Riemann이 1854년 취임 강연 "기하학의 기초를 이루는 가설에 대하여"에서 기초를 놓았다. 유클리드 기하학을 넘어 곡률이 있는 일반적 공간을 다루는 미분기하학의 핵심 대상이며, 이후 아인슈타인의 일반상대성이론에서도 시공간을 기술하는 수학적 틀로 쓰였다. 이 추상적 수학 개념이 데이터 분석에 적용되기까지는 약 150년이 걸렸다.
+다양체 개념은 수학자 Bernhard Riemann이 1854년 교수자격 강연(Habilitationsvortrag) "기하학의 기초를 이루는 가설에 대하여"에서 기초를 놓았다. 유클리드 기하학을 넘어 곡률이 있는 일반적 공간을 다루는 미분기하학의 핵심 대상이며, 이후 아인슈타인의 일반상대성이론에서도 시공간을 기술하는 수학적 틀로 쓰였다. 이 추상적 수학 개념이 데이터 분석에 적용되기까지는 약 150년이 걸렸다.
 
-2000년, 두 편의 논문이 같은 호의 Science지에 나란히 발표되었다. Roweis & Saul의 **LLE**(Locally Linear Embedding)와 Tenenbaum, de Silva & Langford의 **Isomap**이다. 둘 다 고차원 데이터에 숨겨진 저차원 다양체 구조를 복원하는 비선형 차원 축소 기법이었다. 기존의 PCA가 데이터의 선형적 변화만 포착했다면, LLE와 Isomap은 데이터의 국소적 이웃 관계를 보존하면서 비선형 구조까지 저차원 좌표로 풀어냈다. 이후 Bengio et al.(2004)이 딥러닝의 맥락에서 다양체 가설을 명시적으로 논의하며, 신경망이 데이터 다양체의 구조를 학습한다는 관점을 제시했다.
+2000년, 두 편의 논문이 같은 호의 Science지에 나란히 발표되었다. Roweis & Saul의 **LLE**(Locally Linear Embedding)와 Tenenbaum, de Silva & Langford의 **Isomap**이다. 둘 다 고차원 데이터에 숨겨진 저차원 다양체 구조를 복원하는 비선형 차원 축소 기법이었다. 기존의 PCA가 데이터의 선형적 변화만 포착했다면, LLE와 Isomap은 데이터의 국소적 이웃 관계를 보존하면서 비선형 구조까지 저차원 좌표로 풀어냈다. 이후 Bengio et al.(2013)이 표현 학습 리뷰 논문에서 다양체 가설을 딥러닝의 핵심 사전 가정으로 체계화하며, 신경망이 데이터 다양체의 구조를 학습한다는 관점을 널리 확산시켰다.
 
 ## AI에서의 역할 — 표현 학습의 수학적 정당화
 
@@ -36,11 +36,13 @@ MNIST 이미지의 주변 차원은 784지만, 손글씨 숫자가 실제로 변
 
 **오토인코더**(autoencoder): 입력 데이터를 좁은 병목층(bottleneck)을 통과시킨 뒤 복원하도록 학습시키는 신경망이다. 인코더가 784차원 이미지를 32차원으로 압축하고, 디코더가 이를 다시 784차원으로 복원한다. 복원이 성공한다면, 그 32차원 표현은 데이터 다양체의 좌표계를 학습한 것이다. 원본의 핵심 정보가 32개의 숫자에 담겨 있다는 뜻이기 때문이다. 이 압축된 표현을 **잠재 공간**(latent space)이라 부른다.
 
-**변분 오토인코더**(VAE, Variational Autoencoder): 잠재 공간에서 두 점 사이를 연속적으로 보간(interpolation)하면, 의미 있는 중간 데이터가 생성된다. 숫자 3의 잠재 표현과 숫자 8의 잠재 표현 사이를 천천히 이동하면 3에서 8로 자연스럽게 변해가는 이미지가 나온다. 이것은 데이터 다양체가 **매끄러운**(smooth) 곡면이기에 가능한 일이다.
+**변분 오토인코더**(VAE, Variational Autoencoder): 잠재 공간에서 두 점 사이를 연속적으로 보간(interpolation)하면, 의미 있는 중간 데이터가 생성된다. 숫자 3의 잠재 표현과 숫자 8의 잠재 표현 사이를 천천히 이동하면 3에서 8로 자연스럽게 변해가는 이미지가 나온다. 이것은 데이터 다양체의 연속적 구조와 함께, VAE가 잠재 분포를 표준 정규분포에 가깝게 정규화하여 잠재 공간에 빈틈이 없도록 강제하기 때문에 가능한 일이다.
 
-**시각화 기법**: t-SNE(van der Maaten & Hinton, 2008)와 UMAP(McInnes et al., 2018)은 고차원 데이터의 다양체 구조를 2차원 평면에 "펼치는" 기법이다. 스위스 롤을 펼치듯, 고차원의 이웃 관계를 보존하면서 사람이 볼 수 있는 차원으로 변환한다.
+**시각화 기법**: t-SNE(van der Maaten & Hinton, 2008)는 고차원의 이웃 관계를 저차원에서 보존하는 시각화 기법이고, UMAP(McInnes et al., 2018)은 데이터의 다양체 구조를 명시적으로 모델링하여 저차원으로 표현한다. 두 기법 모두 고차원 데이터를 사람이 볼 수 있는 2차원 평면으로 변환한다.
 
 **딥러닝의 층별 변환**: 신경망의 각 층은 데이터 다양체를 점진적으로 **펼치는**(unfold) 역할을 한다고 해석할 수 있다. 꼬인 스위스 롤처럼 복잡하게 얽힌 데이터를 층을 거치면서 점차 단순한 구조로 변환하여, 최종 층에서 선형 분리가 가능한 형태로 만든다.
+
+**생성적 적대 신경망**(GAN): GAN의 생성자는 저차원 잠재 벡터로부터 고차원 데이터를 만들어내므로, 생성된 데이터는 본질적으로 저차원 다양체 위에 놓인다. 실제 데이터 다양체와 생성 다양체가 겹치지 않으면 판별자가 완벽히 구분할 수 있어 학습이 불안정해지는데, 이것이 Wasserstein GAN(2017) 등 개량 기법의 이론적 동기가 되었다.
 
 ## 한계와 열린 문제
 
@@ -96,7 +98,7 @@ Natural images are similar. A 1000 x 1000 color photo is a point in 3-million-di
 
 The manifold concept was laid by mathematician Bernhard Riemann in his 1854 habilitation lecture. It is the central object of differential geometry, which handles general spaces with curvature beyond Euclidean geometry. It took roughly 150 years for this abstract mathematical concept to reach data analysis.
 
-In 2000, two papers appeared simultaneously: Roweis & Saul's **LLE** (Locally Linear Embedding) and Tenenbaum, de Silva & Langford's **Isomap**. Both were nonlinear dimensionality reduction techniques that recover low-dimensional manifold structure hidden in high-dimensional data. They shared the key idea of finding low-dimensional coordinates while preserving local neighborhood relationships. Later, Bengio et al. (2004) explicitly discussed the manifold hypothesis in the context of deep learning, advancing the view that neural networks learn the structure of data manifolds.
+In 2000, two papers appeared simultaneously: Roweis & Saul's **LLE** (Locally Linear Embedding) and Tenenbaum, de Silva & Langford's **Isomap**. Both were nonlinear dimensionality reduction techniques that recover low-dimensional manifold structure hidden in high-dimensional data. They shared the key idea of finding low-dimensional coordinates while preserving local neighborhood relationships. Later, Bengio et al. (2013) systematized the manifold hypothesis as a core assumption of deep learning in their influential review on representation learning, broadly advancing the view that neural networks learn the structure of data manifolds.
 
 ## Role in AI — Mathematical Justification for Representation Learning
 
@@ -104,11 +106,13 @@ The manifold hypothesis provides mathematical grounding for several core techniq
 
 **Autoencoders**: Neural networks trained to pass input through a narrow bottleneck layer and reconstruct it. If a 784-dimensional image can be compressed to 32 dimensions and reconstructed back to 784, that 32-dimensional representation has learned a coordinate system for the data manifold. This compressed representation is called the **latent space**.
 
-**Variational Autoencoders (VAE)**: Continuously interpolating between two points in the latent space generates meaningful intermediate data. Moving slowly between the latent representation of digit 3 and digit 8 produces images that naturally morph from 3 to 8. This is possible because the data manifold is a **smooth** surface.
+**Variational Autoencoders (VAE)**: Continuously interpolating between two points in the latent space generates meaningful intermediate data. Moving slowly between the latent representation of digit 3 and digit 8 produces images that naturally morph from 3 to 8. This is possible because of the data manifold's continuous structure, combined with VAE's regularization that constrains the latent distribution toward a standard normal prior, ensuring the latent space has no gaps.
 
-**Visualization techniques**: t-SNE (van der Maaten & Hinton, 2008) and UMAP (McInnes et al., 2018) "unfold" high-dimensional manifold structure onto a 2D plane. Like unrolling a Swiss roll, they transform data into human-visible dimensions while preserving high-dimensional neighborhood relationships.
+**Visualization techniques**: t-SNE (van der Maaten & Hinton, 2008) preserves high-dimensional neighborhood relationships in a low-dimensional visualization, while UMAP (McInnes et al., 2018) explicitly models the manifold structure of data to produce a low-dimensional representation. Both transform high-dimensional data into human-visible 2D planes.
 
 **Layer-by-layer transformation in deep learning**: Each layer of a neural network can be interpreted as progressively **unfolding** the data manifold. Complex, twisted data like a Swiss roll is gradually transformed through layers into simpler structures, until the final layer achieves a form amenable to linear separation.
+
+**Generative Adversarial Networks (GANs)**: A GAN's generator maps low-dimensional latent vectors to high-dimensional data, so generated samples inherently lie on a low-dimensional manifold. When the real data manifold and the generated manifold fail to overlap, the discriminator can perfectly distinguish them, leading to training instability -- the theoretical motivation behind improved methods like Wasserstein GAN (2017).
 
 ## Limitations and Open Problems
 

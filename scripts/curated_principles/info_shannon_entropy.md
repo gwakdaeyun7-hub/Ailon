@@ -14,7 +14,7 @@ Shannon Entropy - 확률 분포의 불확실성을 정량화하는 유일한 척
 
 p(x) = 1(확실한 사건)이면 I(x) = 0이다. 이미 아는 것은 정보가 아니다. p(x) = 0.5(동전 던지기)이면 I(x) = 1비트다. p(x)가 0에 가까울수록 I(x)는 무한대로 커진다. AI에서는 계산 편의상 자연로그(밑 e, 단위: 냇)를 더 자주 쓴다.
 
-Shannon은 한 걸음 더 나아가 **확률 분포 전체**의 평균 불확실성을 측정하려 했다. 세 가지 공리를 세웠다. (1) 연속성, (2) 동등한 선택지가 많을수록 불확실성 증가, (3) 순차적 분해의 일관성. 이 세 조건을 동시에 만족하는 함수는 유일하게 하나뿐이다.
+Shannon은 한 걸음 더 나아가 **확률 분포 전체**의 평균 불확실성을 측정하려 했다. 세 가지 조건을 제시했다. (1) 연속성, (2) 동등한 선택지가 많을수록 불확실성 증가, (3) 순차적 분해의 일관성. 이 세 조건을 동시에 만족하는 함수는 유일하게 하나뿐이다.
 
 H(X) = -sum_x p(x) log p(x)
 
@@ -30,7 +30,7 @@ Shannon 엔트로피가 AI에 들어온 과정은 여러 연구자가 같은 수
 - 최적 부호 길이 = -log p(x) --> **최소 기술 길이 원리**
 - KL 발산 D_KL(p||q) --> **두 분포 사이의 비대칭적 거리**
 
-Quinlan(1986)이 결정 트리 ID3에서 정보 이득을 분할 기준으로 사용한 것이 머신러닝 직접 적용의 초기 사례다. Shannon의 수학이 AI 문제의 언어로 "번역"된 것이 아니라 **동일한 수학이 변형 없이 그대로 적용**되었다. 이것이 이 연결을 "수학적 기반"(mathematical foundation)이라 부르는 이유다.
+Quinlan(1986)이 결정 트리 ID3에서 정보 이득을 분할 기준으로 사용한 것이 머신러닝 직접 적용의 초기 사례다. **동일한 수학적 형식이 변형 없이 적용**되었기에 이 연결을 "수학적 기반"(mathematical foundation)이라 부른다.
 
 ## 교차 엔트로피: AI의 핵심 손실 함수
 
@@ -50,9 +50,9 @@ p는 실제 데이터 분포, q는 모델의 예측 분포다. 이 함수가 표
 
 ## 정보와 압축의 등가
 
-사건 x를 부호화할 때 이론적 최소 비트 수는 -log2 p(x)이다. 자주 일어나는 사건은 짧은 코드로, 드문 사건은 긴 코드로 부호화하는 것이 최적이다. 엔트로피가 낮을수록 데이터가 더 예측 가능하고, 더 짧게 기술할 수 있다.
+사건 x를 부호화할 때 이론적 최소 비트 수는 -log2 p(x)이다. Shannon은 이를 일반화하여 **원천 부호화 정리**(Source Coding Theorem)를 증명했다. 어떤 무손실 부호화도 엔트로피 H보다 낮은 평균 비트율을 달성할 수 없다. 자주 일어나는 사건은 짧은 코드로, 드문 사건은 긴 코드로 부호화하는 것이 최적이며, 엔트로피가 낮을수록 데이터가 더 예측 가능하고 더 짧게 기술할 수 있다.
 
-이 관계에서 Rissanen(1978)의 최소 기술 길이(Minimum Description Length, MDL) 원리가 나온다. "데이터를 가장 짧게 기술하는 모델이 최선이다"라는 학습 원리다. 지나치게 복잡한 모델은 데이터를 외우느라 기술 길이가 길어지고(과적합), 지나치게 단순한 모델은 패턴을 놓쳐 기술 길이가 길어진다(과소적합). 최적 모델 복잡도는 이 두 힘의 균형점에 있다.
+이 부호화 이론에 영감을 받아 Rissanen(1978)이 최소 기술 길이(Minimum Description Length, MDL) 원리를 발전시켰다. "데이터를 가장 짧게 기술하는 모델이 최선이다"라는 학습 원리다. 지나치게 복잡한 모델은 데이터를 외우느라 기술 길이가 길어지고(과적합), 지나치게 단순한 모델은 패턴을 놓쳐 기술 길이가 길어진다(과소적합). 최적 모델 복잡도는 이 두 힘의 균형점에 있다.
 
 ## KL 발산: 비대칭적 거리의 의미
 
@@ -60,20 +60,20 @@ p는 실제 데이터 분포, q는 모델의 예측 분포다. 이 함수가 표
 
 D_KL(p || q) = sum_x p(x) log(p(x) / q(x)) = H(p, q) - H(p)
 
-D_KL(p||q)는 "진짜 분포가 p인데 q의 코드를 써서 부호화할 때 낭비되는 비트 수"다. 핵심 성질은 비대칭성이다. D_KL(p||q)를 최소화하면 모드 커버링(mode-covering) 경향이 있고, D_KL(q||p)를 최소화하면 모드 시킹(mode-seeking) 경향이 있다. GAN 학습에서 역방향 KL이 선명한 이미지를 만드는 것이 이 비대칭성의 대표적 결과다.
+D_KL(p||q)는 "진짜 분포가 p인데 q의 코드를 써서 부호화할 때 낭비되는 비트 수"다. 핵심 성질은 비대칭성이다. D_KL(p||q)를 최소화하면 모드 커버링(mode-covering) 경향이 있고, D_KL(q||p)를 최소화하면 모드 시킹(mode-seeking) 경향이 있다. 원래 GAN(Goodfellow 2014)의 목적함수는 Jensen-Shannon divergence지만, 생성자가 학습 과정에서 사실상 모드 시킹 행동을 보이며 선명하지만 다양성이 부족한 이미지를 만드는 것이 이 비대칭성의 대표적 사례다.
 
 ## 현대 AI에서의 Shannon 엔트로피
 
 **Shannon의 수학을 직접 사용하는 경우:**
 
-- **교차 엔트로피 손실**: 분류 신경망의 표준 손실 함수다. Shannon의 최적 부호 길이 -log p(x)가 그대로 손실의 핵심 항이 된다. 비유가 아니라 수학적 동치다.
-- **결정 트리의 정보 이득**: Quinlan(1986)의 ID3 알고리즘에서 IG(S, A) = H(S) - sum_v |S_v|/|S| * H(S_v)로, 불확실성을 가장 많이 줄이는 특징을 먼저 선택한다. 세 색 공이 섞인 상자를 나눌 때, 한쪽이 단색이 되는 특징이 양쪽에 여전히 혼합인 특징보다 정보 이득이 크다.
-- **VAE의 ELBO**: KL 발산 항이 잠재 표현의 불필요한 복잡성을 방지하며, Shannon의 "낮은 엔트로피가 더 효율적 부호화"라는 통찰이 정규화로 확장된 것이다.
+- **교차 엔트로피 손실**: 앞서 살펴본 것처럼, Shannon의 -log p(x)가 분류 신경망의 표준 손실 함수로 수학적 동치 관계로 적용된다.
+- **결정 트리의 정보 이득**: Quinlan(1986)의 ID3에서 IG(S, A) = H(S) - sum_v |S_v|/|S| * H(S_v)로, 불확실성을 가장 많이 줄이는 특징을 선택한다.
+- **VAE의 ELBO**: KL 발산 항이 잠재 표현의 불필요한 복잡성을 방지하며, "낮은 엔트로피 = 효율적 부호화"라는 통찰의 정규화 확장이다.
 
 **동일한 수학적 직관을 독립적으로 공유하는 구조적 유사성:**
 
 - **자기지도 학습의 정보론적 해석**: BERT가 가려진 토큰을 예측하도록 학습하는 것은, 조건부 엔트로피 H(masked|context)를 줄이는 과정으로 해석된다. Shannon의 "정보 = 불확실성 감소"와 정확히 부합하지만, BERT의 설계 동기는 엔트로피 이론이 아니라 양방향 문맥 이해였다
-- **MDL과 모델 선택**: Rissanen(1978)의 MDL은 Shannon의 최적 부호 길이에서 직접 파생되었지만, AIC, BIC, 정규화 등은 독립적으로 발전했다. 그러나 "불필요한 복잡성 = 비효율적 부호화"라는 직관은 동일하며, L1/L2 정규화가 가중치의 기술 길이를 줄이는 것으로 해석된다
+- **MDL과 모델 선택**: MDL은 Shannon의 부호화 이론에서 파생되었지만, AIC, BIC, 정규화는 독립 발전했다. 공유하는 직관은 "불필요한 복잡성 = 비효율적 부호화"
 - **엔트로피 정규화**: RL에서 정책 엔트로피를 손실에 추가하여 탐색을 촉진하는 기법(SAC, Haarnoja et al. 2018)은, 높은 엔트로피가 다양성을 보장한다는 통찰을 최적화에 활용한 것이다
 
 ## 한계와 약점
@@ -105,21 +105,21 @@ Shannon Entropy - The unique measure quantifying the uncertainty of probability 
 
 ## Redefining Information: Discarding Meaning, Keeping Only Uncertainty
 
-In 1948, mathematician Claude Shannon at Bell Labs published "A Mathematical Theory of Communication." For Shannon, information means only **how much the receiver's uncertainty is reduced**. What the message means is irrelevant.
+In 1948, Claude Shannon at Bell Labs published "A Mathematical Theory of Communication." For Shannon, information means only **how much the receiver's uncertainty is reduced**.
 
-When predicting tomorrow's weather in Seoul, the information content of "it will rain" depends on rain probability. During monsoon season with 90% probability, it tells little you didn't expect. In dry winter with 5%, the same message resolves far more uncertainty. Shannon defined information content as I(x) = -log p(x).
+When predicting Seoul's weather, "it will rain tomorrow" carries little information during monsoon season (90% probability) but resolves far more uncertainty in dry winter (5%). Shannon defined information content as I(x) = -log p(x).
 
-When p(x) = 1 (certain), I(x) = 0. What you already know is not information. When p(x) = 0.5 (coin flip), I(x) = 1 bit. As p(x) approaches 0, I(x) grows toward infinity. AI typically uses natural logarithm (base e, unit: nats) for computational convenience.
+When p(x) = 1, I(x) = 0 — known facts carry no information. When p(x) = 0.5 (coin flip), I(x) = 1 bit. As p(x) nears 0, I(x) grows toward infinity. AI commonly uses natural log (base e, unit: nats).
 
-Shannon sought to measure the **average uncertainty of an entire distribution**. He established three axioms: (1) continuity, (2) uncertainty increases with more equally likely choices, (3) consistent sequential decomposition. Exactly one function satisfies all three:
+Shannon then sought the **average uncertainty of an entire distribution**, establishing three conditions: (1) continuity, (2) monotonic increase with more equally likely choices, (3) consistent sequential decomposition. Exactly one function satisfies all three:
 
 H(X) = -sum_x p(x) log p(x)
 
-This is Shannon entropy. A fair coin gives H = 1 bit. A 99% heads coin gives roughly 0.08 bits. A fair six-sided die gives roughly 2.58 bits. Entropy is maximized for uniform distributions and approaches 0 as one event's probability nears 1.
+This is Shannon entropy. A fair coin: H = 1 bit. A 99%-heads coin: roughly 0.08 bits. A fair die: roughly 2.58 bits. Entropy peaks at uniform distributions and approaches 0 as one event dominates.
 
 ## From Information Theory to AI's Mathematics
 
-Shannon entropy's adoption into AI was cumulative -- multiple researchers independently applied the same mathematics to different AI problems.
+Shannon entropy entered AI cumulatively — researchers independently applied the same mathematics to different problems.
 
 - Shannon entropy H(X) --> **mathematical basis for classification loss**
 - Individual information -log p(x) --> **core term in cross-entropy loss**
@@ -127,58 +127,56 @@ Shannon entropy's adoption into AI was cumulative -- multiple researchers indepe
 - Optimal code length = -log p(x) --> **Minimum Description Length principle**
 - KL divergence D_KL(p||q) --> **asymmetric distance between distributions**
 
-Quinlan (1986) using information gain in ID3 was an early direct ML application. Shannon's mathematics was not translated but **applied identically without modification**. This is why the connection is called a "mathematical foundation."
+Quinlan (1986) using information gain in ID3 was an early ML application. The same formalism was **applied without modification** — a "mathematical foundation."
 
 ## Cross-Entropy: AI's Core Loss Function
 
-Cross-entropy is a direct extension of Shannon entropy:
+Cross-entropy directly extends Shannon entropy:
 
 H(p, q) = -sum_x p(x) log q(x)
 
-Here p is the true distribution and q the model's prediction. Why this became the standard loss:
+Here p is the true distribution and q the model's prediction:
 
 1. H(p, q) = H(p) + D_KL(p || q)
 2. H(p) is constant, so minimizing H(p, q) equals minimizing D_KL(p||q), which reaches zero only when q = p
 3. With one-hot labels, cross-entropy simplifies to -log q(correct)
 
-At probability 0.9 for the correct class, loss is roughly 0.15 bits. At 0.01, roughly 6.64 bits. Loss grows **nonlinearly** as confidence drops, driving rapid correction of wrong predictions early in training.
-
-This is not coincidental. When the model perfectly learns the true distribution, cross-entropy equals Shannon entropy. The gap is KL divergence, and training closes that gap.
+At 0.9 probability for the correct class, loss is roughly 0.15 bits; at 0.01, roughly 6.64 bits. Loss grows **nonlinearly**, rapidly correcting wrong predictions early in training. Perfect learning makes cross-entropy equal Shannon entropy — the gap is KL divergence.
 
 ## The Equivalence of Information and Compression
 
-The theoretical minimum bits to encode event x is -log2 p(x). Frequent events get short codes; rare events get long codes. Lower entropy means more predictable, more compressible data.
+The minimum bits to encode event x is -log2 p(x). Shannon's **Source Coding Theorem** proves no lossless encoding beats entropy H as average bit rate. Frequent events get short codes; rare events get long codes.
 
-From this comes Rissanen's (1978) MDL principle: "the model providing the shortest data description is best." Overly complex models memorize (overfitting); overly simple ones miss patterns (underfitting). Optimal complexity lies at the balance point.
+Inspired by this, Rissanen (1978) developed MDL: "the shortest-describing model is best." Overly complex models memorize (overfitting); overly simple ones miss patterns (underfitting).
 
 ## KL Divergence: The Meaning of Asymmetric Distance
 
-KL divergence derives directly from Shannon entropy:
+KL divergence derives from Shannon entropy:
 
 D_KL(p || q) = sum_x p(x) log(p(x) / q(x)) = H(p, q) - H(p)
 
-It measures "wasted bits when encoding data from p using codes for q." The crucial asymmetry: minimizing D_KL(p||q) produces mode-covering; minimizing D_KL(q||p) produces mode-seeking. GAN's reverse KL producing sharp images is a prime example of this asymmetry.
+It measures "wasted bits from using q's codes on p's data." The key asymmetry: D_KL(p||q) minimization → mode-covering; D_KL(q||p) → mode-seeking. The original GAN (Goodfellow 2014) minimizes Jensen-Shannon divergence, but its generator effectively exhibits mode-seeking behavior, producing sharp yet less diverse images.
 
 ## Shannon Entropy in Modern AI
 
 **Directly using Shannon's mathematics:**
 
-- **Cross-entropy loss**: The standard classification loss. Shannon's -log p(x) becomes the core term -- mathematical equivalence, not analogy.
-- **Information gain in decision trees**: Quinlan's (1986) ID3 selects features that reduce uncertainty most. Splitting mixed-color balls so one side becomes single-colored yields far more information gain than a split leaving both sides mixed.
-- **VAE's ELBO**: The KL term prevents unnecessary latent complexity -- Shannon's "lower entropy encodes more efficiently" extended into regularization.
+- **Cross-entropy loss**: Shannon's -log p(x) directly serves as the standard classification loss.
+- **Information gain in decision trees**: Quinlan's (1986) ID3 selects features maximizing uncertainty reduction.
+- **VAE's ELBO**: The KL term prevents unnecessary latent complexity — "lower entropy = more efficient coding" extended into regularization.
 
 **Structural similarities sharing the same intuition independently:**
 
-- **Information-theoretic view of self-supervised learning**: BERT learning to predict masked tokens can be interpreted as reducing conditional entropy H(masked|context). This matches Shannon's "information = uncertainty reduction," though BERT's motivation was bidirectional understanding, not entropy theory
-- **MDL and model selection**: Rissanen's (1978) MDL derives from Shannon's optimal code length, but AIC, BIC, and regularization developed independently. The shared intuition -- "unnecessary complexity = inefficient coding" -- is identical, with L1/L2 regularization interpretable as reducing weight description length
-- **Entropy regularization**: Adding policy entropy to the RL loss to encourage exploration (SAC, Haarnoja et al. 2018) leverages the insight that high entropy ensures diversity, repurposed for optimization
+- **Self-supervised learning**: BERT's masked token prediction reduces H(masked|context), matching "information = uncertainty reduction" — though BERT's motivation was bidirectional understanding, not entropy
+- **MDL and model selection**: MDL stems from Shannon, but AIC, BIC, regularization developed independently — shared intuition: "complexity = inefficient coding"
+- **Entropy regularization**: Policy entropy in RL loss encourages exploration (SAC, Haarnoja 2018) — high entropy ensures diversity
 
 ## Limitations and Weaknesses
 
-- **Known distribution assumption**: Entropy computation assumes known p(x). Estimated from finite data, entropy carries bias and tends to be underestimated with insufficient samples.
+- **Known distribution assumption**: Entropy assumes known p(x). Estimated from finite data, it carries bias and tends toward underestimation.
 - **Semantic indifference**: Random noise has maximum entropy yet contains no useful information.
-- **Continuous distribution issues**: Differential entropy is not coordinate-invariant and can be negative. The "average bits" interpretation fails in continuous domains.
-- **Cross-entropy's label dependence**: Cross-entropy assumes accurate labels. Noisy labels cause learning incorrect distributions. Label smoothing partially mitigates but doesn't solve this.
+- **Continuous distribution issues**: Differential entropy is not coordinate-invariant and can be negative.
+- **Cross-entropy's label dependence**: Noisy labels cause learning incorrect distributions. Label smoothing partially mitigates but doesn't solve this.
 
 ## Glossary
 

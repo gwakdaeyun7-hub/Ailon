@@ -36,16 +36,16 @@ GA의 각 세대는 네 단계를 순서대로 밟는다.
 
 SA가 온도 하나로 탐색-활용 균형을 조절했듯, GA는 **집단 다양성(population diversity)**과 **선택압(selection pressure)** 사이의 균형이 성능을 좌우한다.
 
-Ronald Fisher(1930)의 기본 정리는 "자연선택에 의한 적합도 증가율은 적합도의 유전적 분산에 비례한다"고 진술한다. 즉 집단이 다양할수록 진화가 빨라진다. 이것이 진화 알고리즘에서 다양성 관리의 이론적 근거가 된다.
+Ronald Fisher(1930)의 기본 정리에 따르면, 자연선택에 의한 적합도 증가율은 적합도의 가산적 유전 분산과 같다. 직관적으로, 집단 내 개체가 다양할수록 선택이 작용할 원재료가 풍부해 진화가 빨라진다. 이것이 진화 알고리즘에서 다양성 관리의 이론적 근거가 된다.
 
 - **선택압 과다/과소**: 너무 강하면 소수만 살아남아 **조기 수렴**(premature convergence), 너무 약하면 무작위 탐색과 같다
 - **돌연변이율 과다/과소**: 너무 높으면 좋은 조합이 파괴되고, 너무 낮으면 탐색 범위가 좁아진다
 
 ## 라마르크주의: 생물학에서는 틀렸지만 AI에서는 작동하는 원리
 
-진화 연산과 생물학 사이의 가장 주목할 만한 차이가 여기 있다. Lamarck의 "획득 형질의 유전"은 생물학에서 반증되었다. 분자생물학의 중심원리에 따르면 정보는 DNA에서 단백질로만 흐르며, 체세포의 경험은 생식세포에 기록되지 않는다.
+Lamarck의 "획득 형질의 유전"은 생물학에서 반증되었다. 분자생물학의 중심원리에 따르면 유전 정보는 DNA→RNA→단백질로 흐르며, 단백질에서 DNA로 거슬러 가는 경로는 없다. 체세포의 경험은 생식세포 DNA 서열을 체계적으로 바꾸지 않는다.
 
-그러나 AI에서는 이것이 **실제로 작동한다**. NEAT(Stanley & Miikkulainen, 2002)에서는 부모가 학습한 가중치가 자손의 출발점이 된다. 사전 학습 모델의 미세조정도 같은 구조다. GPT의 사전 학습 가중치를 "부모 세대의 지식"으로 보면, 이를 물려받아 특정 과제에 적응시키는 것은 획득 형질의 유전과 닮았다.
+그러나 AI에서는 이것이 **실제로 작동한다**. NEAT(Stanley & Miikkulainen, 2002)에서는 부모가 학습한 가중치가 자손의 출발점이 된다. GPT의 사전 학습 가중치를 "부모 세대의 지식"으로 보면, 이를 물려받아 특정 과제에 적응시키는 것은 획득 형질의 유전과 닮았다. 다만 미세조정은 세대 간 전달이 아닌 연속 학습이므로, NEAT보다 비유의 범위가 좁다.
 
 ## 현대 AI 기법과의 연결
 
@@ -53,7 +53,7 @@ Ronald Fisher(1930)의 기본 정리는 "자연선택에 의한 적합도 증가
 
 **자연선택에서 직접 영감을 받은 기법:**
 
-- **유전 프로그래밍(Genetic Programming, Koza 1992)**: 해를 비트열이 아닌 트리 구조의 실행 가능한 프로그램으로 표현하여, 선택-교차-돌연변이로 프로그램 자체를 진화시킨다. 자연선택의 번역이 데이터 구조에서 프로그램 코드로 확장된 것이다.
+- **유전 프로그래밍(Genetic Programming, Koza 1992)**: 해를 비트열이 아닌 트리 구조의 실행 가능한 프로그램으로 표현하여, 선택-교차-돌연변이로 프로그램 자체를 진화시킨다.
 - **NEAT(NeuroEvolution of Augmenting Topologies, Stanley & Miikkulainen 2002)**: 신경망의 구조(토폴로지)와 가중치를 동시에 진화시킨다. 종분화(speciation) 메커니즘으로 구조가 다른 개체들이 같은 적합도 기준으로 경쟁하지 않도록 보호하는데, 이는 자연의 생태적 지위(ecological niche) 분화와 직접 대응한다.
 - **신경 아키텍처 탐색(NAS)**: Real et al.(2019)의 AmoebaNet은 진화 전략을 사용하여 ImageNet에서 인간 설계 아키텍처에 필적하는 성능을 달성했다. 수백 개의 신경망 "종"을 세대별로 진화시켜 최적 구조를 탐색하는 것이다.
 
@@ -67,7 +67,7 @@ Ronald Fisher(1930)의 기본 정리는 "자연선택에 의한 적합도 증가
 - **적합도 함수 설계 문제**: 자연에는 "목적 함수"가 없다. 환경 자체가 선택압이며 끊임없이 변한다. 알고리즘은 미리 정의된 적합도 함수를 전제하므로, 함수를 잘못 설계하면 원하는 것과 다른 방향으로 진화가 진행된다. 이른바 적합도 해킹(fitness hacking) 문제다
 - **계산 비용**: 적합도 평가가 비싸면(시뮬레이션 기반 평가, 물리 실험 등) 수백 개체 x 수천 세대의 비용이 감당하기 어렵다. 경사하강법이 적용 가능한 연속 최적화에서는 거의 항상 GA보다 빠르다. 현대 딥러닝의 수십억 파라미터 공간에서 순수 진화 접근은 실용적이지 않다
 - **교차의 파괴성**: 생물학적 교차는 같은 종의 상동 염색체 사이에서 일어나며 유전체 구조가 보존된다. 알고리즘의 교차는 임의의 두 해를 기계적으로 결합하므로, 의미 있는 부분 패턴(building block)이 파괴될 수 있다
-- **수렴 보장의 부재**: 유한 시간 내 전역 최적해 도달을 보장하지 않는다. 조기 수렴으로 다양성이 소실되면 지역 최적에 빠지며, 이를 감지하고 회복하는 메커니즘을 별도로 설계해야 한다
+- **수렴 보장의 부재**: 유한 시간 내 전역 최적해 도달을 보장하지 않는다. 적응도 경관에서 집단이 하나의 봉우리에 몰려 조기 수렴하면 더 높은 봉우리를 놓치며, 이를 감지하고 회복하는 메커니즘을 별도로 설계해야 한다
 
 ## 용어 정리
 
@@ -85,7 +85,7 @@ Ronald Fisher(1930)의 기본 정리는 "자연선택에 의한 적합도 증가
 
 라마르크주의(Lamarckism) - 살면서 획득한 형질이 자손에게 유전된다는 이론. 생물학에서는 반증되었으나 AI에서는 학습된 가중치 전달로 유효하게 작동한다
 
-파레토 프론트(Pareto front) - 다목적 최적화에서 어떤 목적도 다른 목적을 희생하지 않고는 더 개선할 수 없는 해들의 집합
+적응도 경관(fitness landscape) - 가능한 유전자형을 평면 좌표로, 적합도를 높이로 표현한 지형. 봉우리(지역 최적)와 골짜기가 있으며, 진화 알고리즘의 탐색 과정을 시각화하는 도구
 ---EN---
 Natural Selection - A population-based optimization technique directly inspired by Darwin's mechanism of natural selection
 
@@ -119,16 +119,16 @@ Each generation of a GA follows four steps in order:
 
 Just as SA regulates the exploration-exploitation balance through a single temperature parameter, GA's performance hinges on the balance between **population diversity** and **selection pressure**.
 
-Ronald Fisher's (1930) fundamental theorem states that "the rate of increase in fitness due to natural selection is proportional to the genetic variance in fitness." In other words, the more diverse the population, the faster evolution proceeds. This became the theoretical basis for diversity management in evolutionary algorithms.
+Ronald Fisher's (1930) fundamental theorem holds that the rate of increase in fitness due to natural selection equals the additive genetic variance in fitness. Intuitively, the more diverse the population, the richer the raw material for selection, and the faster evolution proceeds. This became the theoretical basis for diversity management in evolutionary algorithms.
 
 - **Selection pressure too strong/weak**: Too strong and only a few survive, causing **premature convergence**; too weak and the search becomes random
 - **Mutation rate too high/low**: Too high destroys good combinations; too low narrows the search range
 
 ## Lamarckism: Wrong in Biology, Operational in AI
 
-The most notable divergence between evolutionary computation and biology lies here. Lamarck's "inheritance of acquired characteristics" has been disproven in biology. Per the Central Dogma, information flows only from DNA to protein; somatic experiences are not recorded in germ cells.
+Lamarck's "inheritance of acquired characteristics" has been disproven in biology. Per the Central Dogma, genetic information flows DNA → RNA → protein, with no reverse path from protein to DNA. Somatic experiences do not systematically alter germ-cell DNA sequences.
 
-Yet in AI, this **actually works**. In NEAT (Stanley & Miikkulainen, 2002), a parent's learned weights become the offspring's starting point. Fine-tuning pretrained models follows the same structure. If GPT's pretrained weights are "ancestral knowledge," inheriting and adapting them to a specific task resembles inheritance of acquired characteristics.
+Yet in AI, this **actually works**. In NEAT (Stanley & Miikkulainen, 2002), a parent's learned weights become the offspring's starting point. If GPT's pretrained weights are "ancestral knowledge," inheriting and adapting them to a specific task resembles inheritance of acquired characteristics. However, fine-tuning is continuous learning within one model rather than generational transfer, making the analogy narrower than with NEAT.
 
 ## Connections to Modern AI
 
@@ -136,7 +136,7 @@ Natural selection's "variation-selection-heredity" cycle lives on in transformed
 
 **Techniques directly inspired by natural selection:**
 
-- **Genetic Programming (Koza, 1992)**: Represents solutions not as bit strings but as tree-structured executable programs, evolving the programs themselves through selection, crossover, and mutation. The translation of natural selection extended from data structures to program code.
+- **Genetic Programming (Koza, 1992)**: Represents solutions not as bit strings but as tree-structured executable programs, evolving the programs themselves through selection, crossover, and mutation.
 - **NEAT (NeuroEvolution of Augmenting Topologies, Stanley & Miikkulainen, 2002)**: Simultaneously evolves both neural network topology and weights. A speciation mechanism protects structurally different individuals from competing under the same fitness criteria -- directly corresponding to ecological niche differentiation in nature.
 - **Neural Architecture Search (NAS)**: Real et al.'s (2019) AmoebaNet used evolutionary strategies to achieve performance rivaling human-designed architectures on ImageNet. It evolves hundreds of neural network "species" generation by generation to discover optimal structures.
 
@@ -150,7 +150,7 @@ Natural selection's "variation-selection-heredity" cycle lives on in transformed
 - **Fitness function design problem**: Nature has no "objective function." The environment itself is the selection pressure and constantly changes. Algorithms presuppose a predefined fitness function, so a poorly designed function drives evolution in unintended directions -- the so-called fitness hacking problem
 - **Computational cost**: When fitness evaluation is expensive (simulation-based evaluation, physical experiments, etc.), the cost of hundreds of individuals over thousands of generations becomes prohibitive. Gradient descent is nearly always faster for continuous optimization where gradients are available. Pure evolutionary approaches are impractical for modern deep learning's billions of parameters
 - **Destructive crossover**: Biological crossover occurs between homologous chromosomes of the same species, preserving genome structure. Algorithmic crossover mechanically combines arbitrary solutions, potentially destroying meaningful partial patterns (building blocks)
-- **No convergence guarantee**: Global optimum is not guaranteed within finite time. When premature convergence causes diversity loss, the search gets trapped in local optima, requiring separately designed mechanisms for detection and recovery
+- **No convergence guarantee**: Global optimum is not guaranteed within finite time. When the population clusters on a single peak of the fitness landscape through premature convergence, higher peaks are missed, requiring separately designed mechanisms for detection and recovery
 
 ## Glossary
 
@@ -168,4 +168,4 @@ Premature convergence - the phenomenon where population diversity is lost too qu
 
 Lamarckism - the theory that traits acquired during a lifetime are inherited by offspring. Disproven in biology but effectively operational in AI through learned weight transfer
 
-Pareto front - in multi-objective optimization, the set of solutions where no objective can be improved without sacrificing another
+Fitness landscape - a visualization mapping possible genotypes to planar coordinates and fitness to height. Peaks (local optima) and valleys shape how evolutionary algorithms search

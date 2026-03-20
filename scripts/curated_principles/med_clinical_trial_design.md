@@ -8,17 +8,19 @@ Clinical Trial Design - 의학의 인과 추론 설계가 AI의 실험 방법론
 
 ## 무작위 배정이라는 발명
 
-1747년, 영국 해군 군의관 James Lind는 괴혈병에 걸린 선원 12명을 6개 그룹으로 나누어 각각 다른 치료법을 시험했다. 사이다, 황산, 식초, 해수, 오렌지와 레몬, 바크 페이스트. 오렌지와 레몬을 먹은 그룹만 회복했다. 통제 그룹의 존재, 동시 비교, 결과의 체계적 기록이라는 실험 원칙이 이미 이 원시적 시험에 담겨 있었다.
+1747년, 영국 해군 군의관 James Lind는 괴혈병에 걸린 선원 12명을 6개 그룹으로 나누어 각각 다른 치료법을 시험했다. 사이다, 묽은 황산, 식초, 해수, 오렌지와 레몬, 향신료 혼합물. 오렌지와 레몬을 먹은 그룹만 회복했다. 비교 그룹의 체계적 구성, 동시 비교, 결과의 체계적 기록이라는 실험 원칙이 이미 이 원시적 시험에 담겨 있었다.
 
-하지만 핵심 도약은 190년 뒤에 일어난다. Ronald A. Fisher(1935)가 "The Design of Experiments"에서 **무작위 배정**(randomization)의 이론적 기반을 확립했다. Fisher의 통찰은 단순하지만 깊다. 연구자가 아는 교란 변수(나이, 성별, 기저질환)는 의도적으로 균형을 맞출 수 있지만, **연구자가 모르는 교란 변수**는 어떤 의도적 설계로도 통제할 수 없다. 무작위 배정만이 알려진 것과 알려지지 않은 것 모두를 확률적으로 균등하게 분포시키는 유일한 방법이다.
+하지만 핵심 도약은 거의 2세기 뒤에 일어난다. Ronald A. Fisher(1935)가 "The Design of Experiments"에서 **무작위 배정**(randomization)의 이론적 기반을 확립했다. Fisher의 통찰은 단순하지만 깊다. 연구자가 아는 교란 변수(나이, 성별, 기저질환)는 의도적으로 균형을 맞출 수 있지만, **연구자가 모르는 교란 변수**는 어떤 의도적 설계로도 통제할 수 없다. 무작위 배정만이 알려진 것과 알려지지 않은 것 모두를 확률적으로 균등하게 분포시키는 유일한 방법이다. Austin Bradford Hill은 1948년 스트렙토마이신 폐결핵 시험에서 Fisher의 무작위 배정을 실제 환자에게 최초로 적용하여 현대적 RCT를 확립했다.
+
+비유하면, 교란 변수는 저울의 보이지 않는 기울기와 같다. 어디가 기울었는지 몰라도, 충분한 동전 던지기가 양쪽을 평균적으로 수평에 가깝게 만든다.
 
 ## 의학에서 디지털 실험으로
 
-RCT의 구조가 AI와 테크 산업으로 이식된 경로는 두 갈래다.
+RCT의 구조는 테크 산업에도 이식되었다.
 
-**경로 1: A/B 테스트 -- RCT의 디지털 복제**
+**A/B 테스트 -- RCT의 디지털 복제**
 
-2000년대 초, 구글 엔지니어들이 웹페이지 변경의 효과를 측정하기 위해 RCT 구조를 그대로 차용했다. Ron Kohavi(마이크로소프트)가 이 분야를 체계화했고, Kohavi, Tang, Xu의 "Trustworthy Online Controlled Experiments"(2020)가 표준 참고서가 되었다. 핵심 대응 관계는 다음과 같다.
+2000년대 초, 구글 엔지니어들이 웹페이지 변경의 효과를 측정하기 위해 RCT와 동일한 실험 설계 원리를 적용했다. Ron Kohavi(마이크로소프트)가 이 분야를 체계화했고, Kohavi, Tang, Xu의 "Trustworthy Online Controlled Experiments"(2020)가 표준 참고서가 되었다. 핵심 대응 관계는 다음과 같다.
 
 - 환자 --> **사용자**
 - 처치군/대조군 --> **변형(variant) A/B**
@@ -27,7 +29,7 @@ RCT의 구조가 AI와 테크 산업으로 이식된 경로는 두 갈래다.
 - 무작위 배정 --> **사용자 해시 기반 그룹 할당**
 - 맹검 --> **사용자가 실험 중인지 인지하지 못함**
 
-이 대응에서 통계적 검정 도구(t-검정, 유의수준, 검정력 계산)까지 그대로 이식되었다. Google, Meta, Netflix, Microsoft가 연간 수만 건의 A/B 테스트를 실행한다.
+통계적 검정 도구(t-검정, 유의수준, 검정력 계산)까지 이식되어, Google, Meta, Netflix 등이 연간 수만 건의 A/B 테스트를 실행한다.
 
 ## 핵심 수학적 구조
 
@@ -35,21 +37,23 @@ RCT의 구조가 AI와 테크 산업으로 이식된 경로는 두 갈래다.
 
 ATE = E[Y(1)] - E[Y(0)]
 
-Y(1)은 처치를 받았을 때의 결과, Y(0)은 받지 않았을 때의 결과다. 동일한 개체가 동시에 처치를 받으면서 받지 않을 수는 없다. 이것이 인과 추론의 근본 문제(fundamental problem of causal inference)다. 무작위 배정은 두 그룹의 기대값을 비교 가능하게 만들어 이 문제를 우회한다.
+Y(1)은 처치를 받았을 때의 결과, Y(0)은 받지 않았을 때의 결과다. 동일 개체가 동시에 양쪽 상태일 수 없으므로, 개인 수준의 인과 효과는 직접 관찰 불가능하다(인과 추론의 근본 문제). 무작위 배정은 두 그룹의 기대값을 비교 가능하게 만들어 이를 우회한다.
 
 **2. 표본 크기 결정 공식**
 
 n = (z_{alpha/2} + z_beta)^2 * 2 * sigma^2 / delta^2
 
+여기서 alpha는 1종 오류 허용 확률(보통 0.05), beta는 2종 오류 허용 확률(1-beta가 검정력), sigma는 결과의 표준편차, delta는 탐지하려는 최소 효과 크기다.
+
 ## 고정 설계 vs 적응적 설계: 핵심 트레이드오프
 
 RCT의 가장 근본적인 트레이드오프는 **내적 타당성과 효율성** 사이에 있다.
 
-고전적 고정 설계 RCT는 시험 시작 전에 표본 크기, 처치군, 종점(endpoint)을 모두 확정하고 끝까지 변경하지 않는다. 엄격하지만 비효율적이다. 시험 도중 한 처치가 명백히 열등하다는 증거가 쌓여도, 프로토콜에 따라 환자를 계속 배정해야 한다.
+고전적 고정 설계 RCT는 시험 시작 전에 표본 크기, 처치군, 종점(endpoint)을 확정하고 끝까지 변경하지 않는다. 시험 도중 한 처치가 명백히 열등해도 프로토콜대로 환자를 계속 배정해야 한다.
 
-적응적 설계(adaptive design)는 중간 분석(interim analysis)에서 축적된 데이터를 보고 설계를 조정한다. 표본 크기를 늘리거나, 열등한 처치군을 조기 중단하거나, 유망한 하위 집단에 집중할 수 있다. 효율적이지만, 중간에 설계가 변하면 1종 오류 확률(거짓 양성)이 증가할 위험이 있어, 이를 통계적으로 보정하는 복잡한 방법론이 필요하다.
+적응적 설계(adaptive design)는 중간 분석(interim analysis)에서 축적된 데이터를 보고 설계를 조정한다. 열등한 처치군의 조기 중단, 유망한 하위 집단 집중 등이 가능하지만, 설계 변경이 1종 오류(거짓 양성) 확률을 높일 위험이 있어 통계적 보정이 필수다.
 
-이 트레이드오프는 AI에서도 반복된다. 하이퍼파라미터 고정 후 학습(고정 설계)과, 학습 도중 learning rate나 구조를 조정하는 전략(적응적 설계)이 같은 긴장 관계에 놓여 있다.
+이 트레이드오프는 AI에서도 반복된다. 하이퍼파라미터 고정 학습과, 학습 도중 learning rate를 조정하는 적응적 전략이 같은 긴장 관계에 있다.
 
 ## 다중 비교 문제: 의학의 엄격함이 AI에 필요한 이유
 
@@ -63,14 +67,14 @@ RCT의 가장 근본적인 트레이드오프는 **내적 타당성과 효율성
 
 **직접적 영감:**
 
-- **A/B 테스트**: RCT의 구조(무작위 배정, 통제군, 가설 검정)를 디지털 환경에 그대로 이식한 가장 직접적인 사례다. 통계적 검정 방법론까지 동일하게 사용된다.
-- **Thompson Sampling**: Thompson(1933)이 임상시험의 윤리적 배정 문제를 위해 고안한 알고리즘이 현대 MAB 문제의 핵심 전략으로 직접 부활했다. Chapelle & Li(2011)가 온라인 광고 최적화에 적용하면서 실용적 가치가 재확인되었다. 현대 추천 시스템, 동적 가격 책정, 뉴스 피드 개인화에서 epsilon-greedy, UCB(Upper Confidence Bound)와 함께 핵심 MAB 전략으로 사용된다.
+- **A/B 테스트**: RCT의 구조(무작위 배정, 대조군, 가설 검정)를 디지털 환경에 이식한 가장 직접적인 사례다.
+- **Thompson Sampling**: Thompson(1933)이 두 미지 확률의 대소 비교라는 추상적 통계 문제를 위해 제안한 알고리즘이, 이후 임상시험 적응적 배정에 응용되었고 현대 MAB 문제의 핵심 전략으로 부활했다. Chapelle & Li(2011)가 온라인 광고 최적화에 적용하면서 실용적 가치가 재확인되었다. 현대 추천 시스템, 동적 가격 책정, 뉴스 피드 개인화에서 epsilon-greedy, UCB(Upper Confidence Bound)와 함께 핵심 MAB 전략으로 사용된다.
 - **다중 비교 보정**: Bonferroni, FDR 등 임상시험의 다중 비교 보정 방법론이 하이퍼파라미터 탐색, 모델 비교, 특징 선택(feature selection)에서 직접 사용된다.
 
 **구조적 유사성 (독립적으로 같은 문제에 수렴한 경우):**
 
-- **교차 검증과 대조 실험**: k-fold 교차 검증은 데이터를 k개로 나누어 매번 다른 부분을 테스트 세트로 사용한다. RCT와 직접적 역사적 연결은 없지만, "훈련과 평가를 분리한다"는 동일한 직관을 공유한다. 층화 교차 검증이 클래스 비율을 각 폴드에 균등 배분하는 것은 RCT의 층화 무작위 배정과 구조적으로 동일하다.
-- **조기 종료와 적응적 시험**: 검증 손실 악화 시 학습을 멈추는 것은, 적응적 임상시험에서 열등한 처치군을 조기 중단하는 것과 같은 논리다. 둘 다 "축적된 증거에 기반한 최적 중단 시점"이라는 순차적 의사결정 문제를 풀며, Wald(1945)의 순차 분석 이론이 양쪽의 수학적 토대를 제공한다.
+- **교차 검증과 대조 실험**: k-fold 교차 검증은 데이터를 k개로 나누어 매번 다른 부분을 테스트 세트로 사용한다. RCT와 직접적 역사적 연결은 없지만, "훈련과 평가를 분리한다"는 동일한 직관을 공유한다.
+- **조기 종료와 적응적 시험**: 검증 손실 악화 시 학습을 멈추는 것은 적응적 시험에서 열등한 처치군을 조기 중단하는 논리와 같다. 둘 다 Wald(1945)의 순차 분석에 기반한 최적 중단 시점 문제다.
 
 ## 한계와 약점
 
@@ -91,7 +95,7 @@ RCT의 가장 근본적인 트레이드오프는 **내적 타당성과 효율성
 
 맹검(blinding) - 참가자, 연구자, 또는 양쪽 모두가 배정된 그룹을 모르도록 하여 기대 편향을 방지하는 설계 요소. 단일 맹검은 참가자만, 이중 맹검은 양쪽 모두 모름
 
-Thompson Sampling - 각 선택지의 보상 사후 분포에서 샘플을 뽑아 최고값을 가진 선택지를 고르는 MAB 알고리즘. Thompson(1933)이 임상시험 배정을 위해 고안
+Thompson Sampling - 각 선택지의 보상 사후 분포에서 샘플을 뽑아 최고값을 가진 선택지를 고르는 MAB 알고리즘. Thompson(1933)이 제안
 
 다중 슬롯머신 문제(multi-armed bandit, MAB) - 여러 선택지 중 어느 것이 최선인지 모를 때, 탐색과 활용을 균형 잡으며 순차적으로 선택하는 문제
 
@@ -101,17 +105,19 @@ Clinical Trial Design - How medicine's causal inference framework directly inspi
 
 ## The Invention of Randomization
 
-In 1747, British naval surgeon James Lind divided 12 sailors with scurvy into 6 groups, testing different treatments: cider, sulfuric acid, vinegar, seawater, oranges and lemons, and bark paste. Only the group given oranges and lemons recovered. The experimental principles of control groups, simultaneous comparison, and systematic recording of results were already embedded in this primitive trial.
+In 1747, British naval surgeon James Lind divided 12 sailors with scurvy into 6 groups, testing different treatments: cider, dilute sulfuric acid, vinegar, seawater, oranges and lemons, and a spice electuary. Only the group given oranges and lemons recovered. The experimental principles of systematic organization of comparison groups, simultaneous comparison, and systematic recording of results were already embedded in this primitive trial.
 
-But the key leap came 190 years later. Ronald A. Fisher (1935) established the theoretical foundation for **randomization** in "The Design of Experiments." Fisher's insight was simple yet profound. Known confounders (age, sex, pre-existing conditions) can be deliberately balanced, but **unknown confounders** cannot be controlled by any intentional design. Randomization is the only method that probabilistically distributes both the known and the unknown evenly across groups.
+But the key leap came nearly two centuries later. Ronald A. Fisher (1935) established the theoretical foundation for **randomization** in "The Design of Experiments." Fisher's insight was simple yet profound. Known confounders (age, sex, pre-existing conditions) can be deliberately balanced, but **unknown confounders** cannot be controlled by any intentional design. Randomization is the only method that probabilistically distributes both the known and the unknown evenly across groups. Austin Bradford Hill first applied Fisher's randomization to actual patients in the 1948 streptomycin tuberculosis trial, establishing the modern RCT.
+
+By analogy, confounders are like invisible tilts in a scale. Even without knowing which way it leans, enough coin flips bring both sides approximately level on average.
 
 ## From Medicine to Digital Experimentation
 
-RCT's structure was transplanted into AI and the tech industry along two paths.
+RCT's structure was also transplanted into the tech industry.
 
-**Path 1: A/B Testing -- A Digital Replica of the RCT**
+**A/B Testing -- A Digital Replica of the RCT**
 
-In the early 2000s, Google engineers directly borrowed RCT structure to measure the effects of webpage changes. Ron Kohavi (Microsoft) systematized the field, and Kohavi, Tang, and Xu's "Trustworthy Online Controlled Experiments" (2020) became the standard reference. The key correspondences are:
+In the early 2000s, Google engineers applied the same experimental design principles as the RCT to measure the effects of webpage changes. Ron Kohavi (Microsoft) systematized the field, and Kohavi, Tang, and Xu's "Trustworthy Online Controlled Experiments" (2020) became the standard reference. The key correspondences are:
 
 - Patients --> **Users**
 - Treatment/control groups --> **Variants A/B**
@@ -120,7 +126,7 @@ In the early 2000s, Google engineers directly borrowed RCT structure to measure 
 - Randomization --> **User hash-based group assignment**
 - Blinding --> **Users unaware they are in an experiment**
 
-Even the statistical testing tools (t-tests, significance levels, power calculations) were transplanted identically. Google, Meta, Netflix, and Microsoft run tens of thousands of A/B tests annually.
+Statistical testing tools (t-tests, significance levels, power calculations) were also transplanted, and Google, Meta, Netflix, and others now run tens of thousands of A/B tests annually.
 
 ## Core Mathematical Structures
 
@@ -128,21 +134,23 @@ Even the statistical testing tools (t-tests, significance levels, power calculat
 
 ATE = E[Y(1)] - E[Y(0)]
 
-Y(1) is the outcome under treatment, Y(0) the outcome without. The same individual cannot simultaneously receive and not receive treatment. This is the fundamental problem of causal inference. Randomization makes the two groups' expected values comparable, sidestepping this problem.
+Y(1) is the outcome under treatment, Y(0) the outcome without. Since the same individual cannot be in both states at once, individual-level causal effects are unobservable (the fundamental problem of causal inference). Randomization makes the two groups' expected values comparable, sidestepping this.
 
 **2. Sample Size Determination Formula**
 
 n = (z_{alpha/2} + z_beta)^2 * 2 * sigma^2 / delta^2
 
+Here, alpha is the tolerable Type I error rate (typically 0.05), beta is the tolerable Type II error rate (1-beta equals power), sigma is the standard deviation of the outcome, and delta is the minimum effect size to detect.
+
 ## Fixed vs. Adaptive Design: The Core Tradeoff
 
 The most fundamental tradeoff in RCTs lies between **internal validity and efficiency**.
 
-A classical fixed-design RCT locks in sample size, treatment arms, and endpoints before the trial begins and changes nothing until the end. Rigorous but inefficient. Even when evidence accumulates mid-trial that one treatment is clearly inferior, the protocol requires continued patient assignment.
+A classical fixed-design RCT locks in sample size, treatment arms, and endpoints before the trial begins and changes nothing until the end. Even when evidence accumulates mid-trial that one treatment is clearly inferior, the protocol requires continued patient assignment.
 
-Adaptive design adjusts the design based on accumulated data at interim analyses. Sample sizes can be increased, inferior treatment arms terminated early, or promising subgroups prioritized. Efficient but risky -- mid-trial design changes can inflate the Type I error rate (false positives), requiring sophisticated statistical corrections.
+Adaptive design adjusts the design based on accumulated data at interim analyses. Inferior arms can be terminated early and promising subgroups prioritized, but design changes risk inflating the Type I error rate (false positives), requiring statistical corrections.
 
-This tradeoff recurs in AI. Training with fixed hyperparameters (fixed design) versus adjusting learning rates or architecture during training (adaptive design) occupies the same tension.
+This tradeoff recurs in AI. Training with fixed hyperparameters versus adjusting learning rates during training occupies the same tension.
 
 ## The Multiple Comparison Problem: Why Medicine's Rigor Is Needed in AI
 
@@ -156,14 +164,14 @@ Clinical trial design's influence on AI manifests at multiple levels. However, t
 
 **Direct inspiration:**
 
-- **A/B Testing**: The most direct case of transplanting RCT structure (randomization, control groups, hypothesis testing) into a digital environment. Even the statistical testing methodology is used identically.
-- **Thompson Sampling**: The algorithm Thompson (1933) designed for ethical clinical trial allocation was directly revived as a core strategy for the modern MAB problem. Chapelle & Li (2011) reconfirmed its practical value by applying it to online ad optimization. It is now used alongside epsilon-greedy and UCB (Upper Confidence Bound) as a core MAB strategy in recommendation systems, dynamic pricing, and news feed personalization.
+- **A/B Testing**: The most direct case of transplanting RCT structure (randomization, control groups, hypothesis testing) into a digital environment.
+- **Thompson Sampling**: The algorithm Thompson (1933) proposed for the abstract statistical problem of comparing two unknown probabilities was later applied to adaptive clinical trial allocation and then revived as a core strategy for the modern MAB problem. Chapelle & Li (2011) reconfirmed its practical value by applying it to online ad optimization. It is now used alongside epsilon-greedy and UCB (Upper Confidence Bound) as a core MAB strategy in recommendation systems, dynamic pricing, and news feed personalization.
 - **Multiple comparison correction**: Clinical trial methods like Bonferroni and FDR correction are directly used in hyperparameter search, model comparison, and feature selection.
 
 **Structural similarity (independent convergence on the same problem):**
 
-- **Cross-validation and controlled experiments**: k-fold cross-validation splits data into k parts and uses a different part as the test set each time. No direct historical link to RCTs, but it shares the same intuition of "separating training from evaluation." Stratified CV, distributing class proportions evenly across folds, is structurally identical to stratified randomization in RCTs.
-- **Early stopping and adaptive trials**: Halting training when validation loss worsens follows the same logic as terminating inferior arms early in adaptive trials. Both solve the sequential decision problem of "optimal stopping based on accumulated evidence," with Wald's (1945) sequential analysis theory providing the mathematical foundation for both.
+- **Cross-validation and controlled experiments**: k-fold cross-validation splits data into k parts and uses a different part as the test set each time. No direct historical link to RCTs, but it shares the same intuition of "separating training from evaluation."
+- **Early stopping and adaptive trials**: Halting training when validation loss worsens follows the same logic as terminating inferior arms early in adaptive trials. Both are optimal stopping problems grounded in Wald's (1945) sequential analysis.
 
 ## Limitations and Weaknesses
 
@@ -184,7 +192,7 @@ Statistical power - the probability of detecting an effect when it truly exists;
 
 Blinding - a design element preventing participants, researchers, or both from knowing group assignments to prevent expectation bias; single-blind affects participants only, double-blind affects both
 
-Thompson Sampling - a MAB algorithm that selects the arm with the highest sample drawn from each arm's reward posterior distribution; designed by Thompson (1933) for clinical trial allocation
+Thompson Sampling - a MAB algorithm that selects the arm with the highest sample drawn from each arm's reward posterior distribution; proposed by Thompson (1933)
 
 Multi-armed bandit (MAB) - the problem of sequentially selecting among multiple options while balancing exploration and exploitation when the best option is unknown
 

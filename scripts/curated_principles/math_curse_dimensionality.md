@@ -26,7 +26,7 @@ Curse of Dimensionality - 차원이 증가할수록 데이터가 기하급수적
 
 둘째, 고차원 정육면체에서 **부피가 모서리에 집중**된다. 10차원 정육면체에서 각 축의 중심 60% 구간(0.2~0.8 사이)에 해당하는 부피는 전체의 0.6^10, 약 0.6%에 불과하다. 나머지 99.4%는 모서리와 꼭짓점 근처다. 데이터를 중심에서 찾으려 해도 대부분은 변두리에 있다.
 
-셋째, **고차원 구의 부피가 0으로 수렴**한다. d차원에서 반지름 1인 구의 부피 공식은 pi^(d/2) / Gamma(d/2 + 1)인데 (Gamma는 팩토리얼을 실수로 확장한 함수), d가 커지면 이 값이 오히려 줄어들어 결국 0에 수렴한다. 구체적으로, 2차원 원의 넓이는 pi(약 3.14)이고, 3차원 구의 부피는 4pi/3(약 4.19)로 약간 커지지만, 이후 꾸준히 감소하여 20차원쯤이면 사실상 0에 가까워진다. 직관적으로 "구는 둥글고 넓다"는 생각이 고차원에서는 완전히 틀린다. 구 안에는 거의 아무것도 없고, 정육면체의 모서리에 부피가 몰려 있다.
+셋째, **고차원 구의 부피가 0으로 수렴**한다. d차원에서 반지름 1인 구의 부피 공식은 pi^(d/2) / Gamma(d/2 + 1)인데 (Gamma는 팩토리얼을 실수로 확장한 함수), d가 커지면 이 값이 오히려 줄어들어 결국 0에 수렴한다. 구체적으로, 2차원 원의 넓이는 pi(약 3.14)이고, 3차원 구의 부피는 4pi/3(약 4.19)로 커진다. 5차원에서 약 5.26으로 최대에 도달한 뒤 감소하기 시작하여, 20차원쯤이면 사실상 0에 가까워진다. 직관적으로 "구는 둥글고 넓다"는 생각이 고차원에서는 완전히 틀린다. 구 안에는 거의 아무것도 없고, 정육면체의 모서리에 부피가 몰려 있다.
 
 ## 머신러닝에서의 직접적 영향
 
@@ -48,7 +48,7 @@ Curse of Dimensionality - 차원이 증가할수록 데이터가 기하급수적
 
 ## 딥러닝의 역설 — 왜 작동하는가
 
-여기서 역설이 등장한다. GPT 같은 대형 언어 모델은 수십억 개의 파라미터를 가진다. 파라미터 하나가 차원 하나이므로, 이는 수십억 차원의 공간에서 최적점을 찾는 문제다. 차원의 저주에 따르면 이런 문제는 풀 수 없어야 한다. 그러나 현실에서 딥러닝은 작동한다. 무엇이 차원의 저주를 완화하는가?
+여기서 역설이 등장한다. GPT 같은 대형 언어 모델은 수십억 개의 파라미터를 가진다. 파라미터 하나가 최적화 공간의 차원 하나이므로, 이는 수십억 차원의 공간에서 최적점을 찾는 문제다. 차원의 저주에 따르면 이런 문제는 풀 수 없어야 한다. 그러나 현실에서 딥러닝은 작동한다. 무엇이 차원의 저주를 완화하는가?
 
 가장 유력한 답은 **다양체 가설**(manifold hypothesis)이다. 실제 데이터는 고차원 공간을 균일하게 채우지 않고, 저차원 곡면(다양체) 위에 집중되어 있다. 표면상 수십억 차원이지만 데이터가 실질적으로 변화하는 방향은 훨씬 적다. 이것이 실효 차원을 낮추어 학습을 가능하게 한다. 또한 작은 배치 크기의 확률적 경사하강법(SGD)이 넓고 평탄한 최솟값(flat minima)을 선호하여 일반화 성능이 좋다는 연구(Keskar et al., 2017)도 부분적 설명을 제공한다.
 
@@ -92,7 +92,7 @@ First, **distance concentration**. As dimensions increase, distances between all
 
 Second, **volume concentrates at the edges** of high-dimensional cubes. In a 10-dimensional unit cube, the volume within the central 60% of each axis (between 0.2 and 0.8) is only 0.6^10, roughly 0.6% of the total. The remaining 99.4% lies near edges and corners. Even if you look for data near the center, most of it sits at the periphery.
 
-Third, **the volume of a high-dimensional sphere converges to zero**. The volume formula for a d-dimensional unit sphere is pi^(d/2) / Gamma(d/2 + 1) (where Gamma generalizes the factorial to real numbers), and as d grows, this value actually shrinks toward zero. The intuition that "spheres are round and spacious" is completely wrong in high dimensions. The sphere contains almost nothing, while the cube's volume concentrates at its corners.
+Third, **the volume of a high-dimensional sphere converges to zero**. The volume formula for a d-dimensional unit sphere is pi^(d/2) / Gamma(d/2 + 1) (where Gamma generalizes the factorial to real numbers), and as d grows, this value actually shrinks toward zero. Specifically, the 2D circle has area pi (about 3.14), the 3D sphere has volume 4pi/3 (about 4.19), and the volume continues to grow until reaching its maximum of about 5.26 at 5 dimensions, after which it decreases -- approaching virtually zero by 20 dimensions. The intuition that "spheres are round and spacious" is completely wrong in high dimensions. The sphere contains almost nothing, while the cube's volume concentrates at its corners.
 
 ## Direct Impact on Machine Learning
 
@@ -114,7 +114,7 @@ Strategies against the curse of dimensionality follow two main paths: reduce dim
 
 ## The Deep Learning Paradox — Why Does It Work?
 
-Here a paradox emerges. Large language models like GPT have billions of parameters. Each parameter is one dimension, making this an optimization problem in a space of billions of dimensions. According to the curse of dimensionality, such problems should be unsolvable. Yet in practice, deep learning works. What mitigates the curse?
+Here a paradox emerges. Large language models like GPT have billions of parameters. Each parameter is one dimension of the optimization space, making this an optimization problem in a space of billions of dimensions. According to the curse of dimensionality, such problems should be unsolvable. Yet in practice, deep learning works. What mitigates the curse?
 
 The most compelling answer is the **manifold hypothesis**: real data does not fill high-dimensional space uniformly but concentrates on low-dimensional surfaces (manifolds). Although the nominal space has billions of dimensions, the directions along which data actually varies are far fewer. This lowers the effective dimensionality and makes learning feasible. Additionally, research shows that small-batch stochastic gradient descent (SGD) tends to converge to flat minima that generalize better (Keskar et al., 2017), providing a partial explanation.
 

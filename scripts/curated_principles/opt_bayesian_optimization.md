@@ -18,7 +18,7 @@ P(H|D) = P(D|H) * P(H) / P(D)
 
 ## 통계학에서 최적화 알고리즘으로
 
-이 아이디어를 계산 가능한 최적화 전략으로 구체화한 것은 1960~70년대의 일이다. Kushner(1964)가 확률 모델 기반 순차적 최적화를 최초로 제안했고, Mockus(1974)가 기대 향상(Expected Improvement)이라는 획득 함수를 도입했다. 하지만 계산 비용 때문에 수십 년간 논문 속에 잠들어 있었다.
+이 아이디어를 계산 가능한 최적화 전략으로 구체화한 것은 1960~70년대의 일이다. Kushner(1964)가 확률 모델 기반 순차적 최적화의 초기 핵심 기여를 했고, 1970년대 Mockus와 동료들이 기대 향상(Expected Improvement)이라는 획득 함수를 발전시켰다. 하지만 계산 비용 때문에 수십 년간 논문 속에 잠들어 있었다.
 
 전환점은 Jones, Schonlau & Welch(1998)의 EGO(Efficient Global Optimization) 알고리즘이다. 가우시안 프로세스(GP)를 대리 모델로, Expected Improvement를 획득 함수로 조합하여 공학 설계 최적화에서 탁월한 효율을 시연했다. 이후 Snoek, Larochelle & Adams(2012)가 딥러닝 하이퍼파라미터 튜닝에 적용하면서 AI 커뮤니티에서 폭발적으로 주목받게 된다. 핵심 대응 관계는 다음과 같다.
 
@@ -61,11 +61,11 @@ BO의 가치는 "한 번 평가하는 데 드는 비용"에서 나온다. 신경
 
 - **하이퍼파라미터 튜닝 도구들**: Spearmint, Hyperopt, Optuna, BoTorch 등이 BO를 핵심 엔진으로 채택했다. Bergstra et al.(2011)의 TPE는 GP 대신 비모수적 밀도 추정을 사용하여 범주형 변수를 자연스럽게 처리한다
 - **신경망 구조 탐색(NAS)**: 아키텍처 선택도 BO로 최적화된다. 구조 하나 학습에 GPU 수십 시간이 걸리므로, BO가 빛나는 "비싼 평가" 문제다
-- **능동 학습(Active Learning)**: "어떤 데이터를 다음에 라벨링할 것인가"가 BO의 "어디를 다음에 평가할 것인가"와 동일한 구조다
+- **능동 학습(Active Learning)**: "어떤 데이터를 다음에 라벨링할 것인가"가 BO의 "어디를 다음에 평가할 것인가"와 유사한 순차적 의사결정 구조를 공유한다. 다만 BO는 최적값 탐색이, AL은 전체 모델 성능 향상이 목적이다
 
 **구조적 유사성:**
 
-- **강화학습의 탐색-활용 균형**: UCB 획득 함수가 multi-armed bandit의 UCB1(Auer et al., 2002)과 같은 이름을 공유하는 것은 우연이 아니다. 둘 다 평균 + 신뢰 구간의 형태지만, BO의 UCB는 연속 함수 모델 위에서, bandit의 UCB1은 이산적 팔 선택 위에서 독립적으로 발전했다
+- **강화학습의 탐색-활용 균형**: UCB 획득 함수가 multi-armed bandit의 UCB1(Auer et al., 2002)과 같은 이름을 공유하는 것은 우연이 아니다. 둘 다 MAB 이론이라는 공통 뿌리에서 나왔다. Srinivas et al.(2010)이 MAB의 UCB 원리를 GP 위의 연속 함수 최적화로 확장한 것이 GP-UCB이며, 강화학습의 UCB 역시 MAB에서 파생되었다. 같은 수학적 직관(평균 + 신뢰 구간)이 서로 다른 영역으로 확장된 사례다
 - **모델 기반 강화학습**: 환경의 전이 모델을 학습하고 그 위에서 계획을 세우는 구조가, BO에서 대리 모델을 학습한 뒤 획득 함수로 결정하는 구조와 병렬적이다
 
 ## 한계와 약점
@@ -108,7 +108,7 @@ Where this meets optimization is BO's starting point. With an unknown function s
 
 ## From Statistics to Optimization Algorithm
 
-Turning this into a computable strategy happened in the 1960s-70s. Kushner (1964) first proposed probabilistic sequential optimization. Mockus (1974) introduced Expected Improvement as an acquisition function. But computational costs kept these ideas dormant for decades.
+Turning this into a computable strategy happened in the 1960s-70s. Kushner (1964) made an early key contribution to probabilistic sequential optimization. Through the 1970s, Mockus and colleagues developed Expected Improvement as an acquisition function. But computational costs kept these ideas dormant for decades.
 
 The turning point was Jones, Schonlau & Welch's (1998) EGO algorithm. Combining a Gaussian Process (GP) as surrogate model with Expected Improvement demonstrated outstanding efficiency in engineering optimization. Snoek, Larochelle & Adams (2012) then applied this to deep learning hyperparameter tuning, triggering an explosion of interest. Key correspondences:
 
@@ -151,11 +151,11 @@ Conversely, when evaluation is cheap and dimensionality high, GP's computational
 
 - **Hyperparameter tuning tools**: Spearmint, Hyperopt, Optuna, and BoTorch adopted BO as their core engine. Bergstra et al.'s (2011) TPE uses nonparametric density estimation instead of GP, naturally handling categorical variables
 - **Neural Architecture Search (NAS)**: Architecture choices are optimized via BO -- exactly the "expensive evaluation" problem where BO excels
-- **Active Learning**: "Which data to label next" has the same structure as BO's "where to evaluate next"
+- **Active Learning**: "Which data to label next" shares BO's sequential decision-making structure of "where to evaluate next," though BO targets finding the optimum while AL targets improving overall model performance
 
 **Structural similarities sharing the same intuition independently:**
 
-- **Exploration-exploitation in RL**: UCB sharing its name with multi-armed bandit's UCB1 (Auer et al., 2002) is no coincidence. Both use mean + confidence interval, but BO's UCB operates over continuous GP functions while bandit UCB1 operates over discrete arms
+- **Exploration-exploitation in RL**: UCB sharing its name with multi-armed bandit's UCB1 (Auer et al., 2002) is no coincidence -- both stem from the same MAB theoretical root. Srinivas et al. (2010) extended MAB's UCB principle to continuous function optimization over GPs as GP-UCB, while RL's UCB also derives from MAB. The same mathematical intuition (mean + confidence interval) was extended into different domains
 - **Model-based RL**: Learning an environment model then planning over it parallels BO's surrogate-then-acquisition structure
 
 ## Limitations and Weaknesses
