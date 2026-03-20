@@ -57,7 +57,7 @@ RCT의 가장 근본적인 트레이드오프는 **내적 타당성과 효율성
 
 ## 다중 비교 문제: 의학의 엄격함이 AI에 필요한 이유
 
-임상시험에서 여러 결과 변수나 하위 그룹을 동시에 검정하면 **1종 오류(거짓 양성) 확률이 급격히 증가**한다. 구체적으로 보면, 20개 독립 검정을 유의수준 0.05로 수행하면, 하나 이상에서 거짓 양성이 나올 확률은 1 - (1-0.05)^20 = 64%다. 검정이 100개면 99.4%로 사실상 확실하다.
+임상시험에서 여러 결과 변수나 하위 그룹을 동시에 검정하면 **1종 오류(거짓 양성) 확률이 급격히 증가**한다. 구체적으로 보면, 20개 독립 검정을 유의수준 0.05로 수행하면, 하나 이상에서 거짓 양성이 나올 확률은 1 - (1-0.05)^20 = 64%다. 검정이 100개면 99.4%로 사실상 확실하다. 20개 방에서 범인을 찾을 때, 문이 많을수록 무고한 사람을 오인할 확률이 높다.
 
 의학은 이 문제를 수십 년간 다뤄왔다. Bonferroni 보정(유의수준을 검정 횟수로 나눔), Holm-Bonferroni(순위 기반 단계적 보정), Benjamini-Hochberg의 FDR(False Discovery Rate) 제어가 표준 방법이다.
 
@@ -68,13 +68,13 @@ RCT의 가장 근본적인 트레이드오프는 **내적 타당성과 효율성
 **직접적 영감:**
 
 - **A/B 테스트**: RCT의 구조(무작위 배정, 대조군, 가설 검정)를 디지털 환경에 이식한 가장 직접적인 사례다.
-- **Thompson Sampling**: Thompson(1933)이 두 미지 확률의 대소 비교라는 추상적 통계 문제를 위해 제안한 알고리즘이, 이후 임상시험 적응적 배정에 응용되었고 현대 MAB 문제의 핵심 전략으로 부활했다. Chapelle & Li(2011)가 온라인 광고 최적화에 적용하면서 실용적 가치가 재확인되었다. 현대 추천 시스템, 동적 가격 책정, 뉴스 피드 개인화에서 epsilon-greedy, UCB(Upper Confidence Bound)와 함께 핵심 MAB 전략으로 사용된다.
+- **Thompson Sampling**: Thompson(1933)이 두 미지 확률 비교를 위해 제안한 이 알고리즘은 수십 년간 잊혔다가, Chapelle & Li(2011)와 Agrawal & Goyal(2012)가 온라인 광고와 이론 분석을 통해 MAB 전략으로 재발견했다. 임상시험에서는 Bayesian 적응적 배정으로 병행 응용되었다. 현재 추천·가격·뉴스 개인화에서 epsilon-greedy, UCB와 함께 핵심 MAB 전략이다.
 - **다중 비교 보정**: Bonferroni, FDR 등 임상시험의 다중 비교 보정 방법론이 하이퍼파라미터 탐색, 모델 비교, 특징 선택(feature selection)에서 직접 사용된다.
 
 **구조적 유사성 (독립적으로 같은 문제에 수렴한 경우):**
 
 - **교차 검증과 대조 실험**: k-fold 교차 검증은 데이터를 k개로 나누어 매번 다른 부분을 테스트 세트로 사용한다. RCT와 직접적 역사적 연결은 없지만, "훈련과 평가를 분리한다"는 동일한 직관을 공유한다.
-- **조기 종료와 적응적 시험**: 검증 손실 악화 시 학습을 멈추는 것은 적응적 시험에서 열등한 처치군을 조기 중단하는 논리와 같다. 둘 다 Wald(1945)의 순차 분석에 기반한 최적 중단 시점 문제다.
+- **조기 종료와 적응적 시험**: 적응적 시험의 중간 중단은 Wald(1945) 순차 분석에서 직접 발전했다. ML 조기 종료는 독립적으로 과적합 방지에서 발전했지만, 둘 다 최적 중단 문제를 다룬다.
 
 ## 한계와 약점
 
@@ -154,7 +154,7 @@ This tradeoff recurs in AI. Training with fixed hyperparameters versus adjusting
 
 ## The Multiple Comparison Problem: Why Medicine's Rigor Is Needed in AI
 
-Simultaneously testing multiple outcome variables or subgroups in clinical trials causes the **Type I error (false positive) rate to increase sharply**. Concretely, performing 20 independent tests at significance level 0.05, the probability of at least one false positive is 1 - (1-0.05)^20 = 64%. With 100 tests, it reaches 99.4% -- virtually certain.
+Simultaneously testing multiple outcome variables or subgroups in clinical trials causes the **Type I error (false positive) rate to increase sharply**. Concretely, performing 20 independent tests at significance level 0.05, the probability of at least one false positive is 1 - (1-0.05)^20 = 64%. With 100 tests, it reaches 99.4% -- virtually certain. It is like searching for a suspect by opening 20 doors: the more doors you open, the higher the chance of falsely accusing an innocent person.
 
 Medicine has grappled with this for decades. Bonferroni correction (dividing significance level by number of tests), Holm-Bonferroni (rank-based stepwise correction), and Benjamini-Hochberg's FDR (False Discovery Rate) control are standard solutions.
 
@@ -165,13 +165,13 @@ Clinical trial design's influence on AI manifests at multiple levels. However, t
 **Direct inspiration:**
 
 - **A/B Testing**: The most direct case of transplanting RCT structure (randomization, control groups, hypothesis testing) into a digital environment.
-- **Thompson Sampling**: The algorithm Thompson (1933) proposed for the abstract statistical problem of comparing two unknown probabilities was later applied to adaptive clinical trial allocation and then revived as a core strategy for the modern MAB problem. Chapelle & Li (2011) reconfirmed its practical value by applying it to online ad optimization. It is now used alongside epsilon-greedy and UCB (Upper Confidence Bound) as a core MAB strategy in recommendation systems, dynamic pricing, and news feed personalization.
+- **Thompson Sampling**: The algorithm Thompson (1933) proposed for comparing two unknown probabilities was forgotten for decades until Chapelle & Li (2011) and Agrawal & Goyal (2012) rediscovered it as a MAB strategy through online advertising and theoretical analysis. Separately, clinical trials adopted it as Bayesian adaptive randomization. It is now a core MAB strategy alongside epsilon-greedy and UCB (Upper Confidence Bound) in recommendation, pricing, and news personalization.
 - **Multiple comparison correction**: Clinical trial methods like Bonferroni and FDR correction are directly used in hyperparameter search, model comparison, and feature selection.
 
 **Structural similarity (independent convergence on the same problem):**
 
 - **Cross-validation and controlled experiments**: k-fold cross-validation splits data into k parts and uses a different part as the test set each time. No direct historical link to RCTs, but it shares the same intuition of "separating training from evaluation."
-- **Early stopping and adaptive trials**: Halting training when validation loss worsens follows the same logic as terminating inferior arms early in adaptive trials. Both are optimal stopping problems grounded in Wald's (1945) sequential analysis.
+- **Early stopping and adaptive trials**: Interim termination in adaptive trials developed directly from Wald's (1945) sequential analysis. ML early stopping evolved independently as an overfitting prevention technique, but both address the optimal stopping problem.
 
 ## Limitations and Weaknesses
 

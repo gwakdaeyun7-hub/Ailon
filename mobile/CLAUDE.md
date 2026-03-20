@@ -12,7 +12,7 @@
 - **Categories**: Horizontal scroll tabs (research / models_products / industry_business), Top 20 per category
 - **Sources**: 22 source sections, Korean sources (AI타임스, GeekNews, ZDNet AI, 요즘IT) in separate tabs
 - **Article Card**: display_title, one_line, key_points (3-5), why_important, background, tags, glossary, "Read Original" button (Linking.openURL). 요약 모달: F-Minimal 디자인 (소스 뱃지+날짜+카테고리, 세리프 제목, teal 배경 One Line 16pt, 번호 스텝 key_points 15pt(배경 없음), 세리프 소제목 textSecondary, 태그 pill, 원문 버튼 textPrimary 테두리)
-- **Interactions**: Like/dislike (ReactionBar), comments (CommentSheet modal), share, bookmark
+- **Interactions**: Like/dislike (ReactionBar), comments (CommentSheet modal), share (ShareCard 이미지 캡처 + 텍스트 폴백), bookmark
 - **Glossary Highlighting**: Auto-detects terms in text, tap for definition popup (HighlightedText)
 - **Related Articles**: Horizontal carousel in summary modal (RelatedArticlesSection)
 - **Timeline**: Vertical timeline of past coverage (TimelineSection)
@@ -76,6 +76,7 @@
 - **RelatedArticlesSection**: Horizontal card carousel (entity/cluster matching)
 - **TimelineSection**: Vertical timeline with past article links
 - **DailyBriefingCard**: 접힌 상태(TTS + 기사 수 텍스트) / 펼친 상태(도메인 도넛 차트 + 태그 클라우드 + 연구 기사 7일 스파크라인 + 브리핑 전문). 도넛 차트는 topic_cluster_id 기반 도메인 분포(Top 5 + Others) 표시, 7색 도메인 팔레트(NLP/Vision/ML/Robotics/Multimodal/Business/Others)
+- **ShareCard**: 오프스크린 렌더링 → react-native-view-shot 캡처 → expo-sharing 공유. 텍스트 폴백 내장
 - **PersonalizedFeed**: Scoring based on like history (category +3, tag +2)
 - **SideDrawer**: Animated left panel (82% width, max 320px)
 
@@ -96,6 +97,7 @@
 | useNotifications | `users/{uid}` | Expo + FCM token registration, Android channels (news/social) |
 | useNotificationSettings | `users/{uid}/preferences` | Per-type notification toggles |
 | useReportComment | `reports`, `comments/{docId}/entries` | Comment reporting with dedup + reportCount increment |
+| useShareImage | react-native-view-shot + expo-sharing | ShareCard 캡처 → 이미지 공유 (실패 시 텍스트 폴백) |
 
 ### Contexts
 - **LanguageContext**: KO/EN toggle, `t(key)` translation function, AsyncStorage persist
