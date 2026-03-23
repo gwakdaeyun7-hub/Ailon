@@ -17,7 +17,7 @@ LangGraph 8-node pipeline with parallel EN/KO branches:
 | collector | 22 RSS sources + scraping + LLM AI filter + date recovery | trafilatura + Chrome UA, 6 RSS workers + 10 scrape workers + 4 AI filter workers. RSS 날짜 미추출 시 `date_estimated=True` 마킹 → 스크래핑에서 meta 태그(article:published_time 등), `<time>`, JSON-LD, trafilatura bare_extraction으로 날짜 복원 |
 | en_process | EN→KO translation + summarization | batch=3, max_tokens=12288, 5 parallel workers, 6-phase (batch→소배치(2)→individual→fallback→간이번역→제목교정). dict 복구 로직(원본 재탐색+string→dict 파싱). 미요약(one_line 없음) 기사는 간이번역 스킵, selector에서 제외 |
 | ko_process | KO summarization | batch=2, max_tokens=12288, 5 parallel workers, 3-phase retry. 미요약 기사는 selector에서 제외 |
-| categorizer | LLM 3-category classification + 7-layer dedup + 요약 품질 QA | batch=5, 3 parallel workers. 요약 말투 위반 자동 감지 + 전체 기사 요약 상세 출력 |
+| categorizer | LLM 3-category classification + 7-layer dedup + 요약 품질 QA | batch=5, 3 parallel workers. 요약 말투 위반 + subtitle-content 정합성 자동 감지 + 전체 기사 요약 상세 출력 |
 | ranker | Per-category LLM ranking → score (1st=100, last=30) | token_budget=max(6144, count*150), 3 parallel workers (per-category) |
 | entity_extractor | Entity extraction + topic clustering | batch=5, up to 4 parallel workers, 3-tier retry (batch→sub-batch→individual) |
 | selector | Highlight Top 3 + Category Top 20 + 미요약 제외 | today articles only for highlights. one_line 없는 기사 제외 |
