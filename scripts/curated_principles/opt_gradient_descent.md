@@ -58,7 +58,7 @@ Robbins & Monro(1951)가 증명한 수렴 조건은 두 가지다. sum(eta_t) = 
 
 순수 SGD의 두 가지 구조적 약점 -- 좁고 긴 골짜기에서의 진동과 미니배치 노이즈 -- 을 수십 년의 연구가 개선했다.
 
-Polyak(1964)의 **모멘텀**은 물리학의 관성에서 영감을 받았다. 이전 갱신 방향의 기억을 유지하여 일관된 방향으로 가속하고 진동을 감쇠한다. v(t) = beta * v(t-1) + grad(L)에서 beta(보통 0.9)가 관성 계수다. Nesterov(1983)는 모멘텀이 데려갈 예상 위치에서 그래디언트를 계산해 방향을 보정하는 "미리 보기"를 추가했다.
+Polyak(1964)의 **모멘텀**은 물리학의 관성에서 영감을 받았다. 이전 갱신 방향의 기억을 유지하여 일관된 방향으로 가속하고 진동을 감쇠한다. v(t) = beta * v(t-1) + grad(L)로 속도를 누적한 뒤, theta(t+1) = theta(t) - eta * v(t)로 파라미터를 갱신한다. beta(보통 0.9)가 관성 계수다. Nesterov(1983)는 모멘텀이 데려갈 예상 위치에서 그래디언트를 계산해 방향을 보정하는 "미리 보기"를 추가했다.
 
 **적응적 학습률** 계열은 각 파라미터마다 다른 학습률을 자동 조절한다. AdaGrad(Duchi et al., 2011)는 과거 그래디언트 제곱의 누적합으로 나누어 파라미터별 학습률을 조정하지만, 누적합이 단조 증가하여 학습률이 너무 빨리 감소하는 문제가 있다. RMSprop(Hinton, 2012)이 지수 이동 평균으로 이를 해결했고, Adam(Kingma & Ba, 2015)은 모멘텀과 RMSprop을 결합하여 현재 딥러닝에서 가장 널리 쓰이는 옵티마이저가 되었다.
 
@@ -163,7 +163,7 @@ Robbins & Monro's convergence conditions: sum(eta_t) = infinity (can travel far 
 
 Decades of research addressed pure SGD's two weaknesses: oscillation in narrow valleys and mini-batch noise.
 
-Polyak's (1964) **momentum**, inspired by physical inertia, maintains memory of previous directions to accelerate consistently and dampen oscillation. In v(t) = beta * v(t-1) + grad(L), beta (typically 0.9) is the inertia coefficient. Nesterov (1983) added "look-ahead" -- computing gradients at the anticipated position.
+Polyak's (1964) **momentum**, inspired by physical inertia, maintains memory of previous directions to accelerate consistently and dampen oscillation. The velocity accumulates as v(t) = beta * v(t-1) + grad(L), then the parameter updates as theta(t+1) = theta(t) - eta * v(t). Beta (typically 0.9) is the inertia coefficient. Nesterov (1983) added "look-ahead" -- computing gradients at the anticipated position.
 
 **Adaptive learning rate** methods automatically adjust per-parameter rates. AdaGrad (Duchi et al., 2011) divides by accumulated squared gradients but suffers from rates approaching zero too quickly. RMSprop (Hinton, 2012) solved this with exponential moving averages. Adam (Kingma & Ba, 2015) combined momentum and RMSprop, becoming deep learning's most widely used optimizer.
 

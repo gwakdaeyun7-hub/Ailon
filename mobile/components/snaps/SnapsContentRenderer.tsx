@@ -30,6 +30,7 @@ import { latexToDisplay } from '@/lib/latexToDisplay';
 
 type BlockType =
   | 'heading'
+  | 'subheading'
   | 'formula'
   | 'definition'
   | 'definition_group'
@@ -179,10 +180,10 @@ export function parseContent(content: string): ContentBlock[] {
       continue;
     }
 
-    // 이슈 2: 줄 전체가 **텍스트:** 또는 **텍스트** 패턴이면 heading으로 처리
+    // 이슈 2: 줄 전체가 **텍스트:** 또는 **텍스트** 패턴이면 subheading으로 처리
     if (/^\*\*.+\*\*:?$/.test(trimmed) || /^\*\*.+:\*\*$/.test(trimmed)) {
-      const headingText = trimmed.replace(/^\*\*/, '').replace(/:\*\*$/, '').replace(/\*\*:?$/, '');
-      blocks.push({ type: 'heading', text: headingText });
+      const subheadText = trimmed.replace(/^\*\*/, '').replace(/:\*\*$/, '').replace(/\*\*:?$/, '');
+      blocks.push({ type: 'subheading', text: subheadText });
       continue;
     }
 
@@ -297,17 +298,47 @@ function renderBoldText(text: string, boldColor: string): React.ReactNode {
 // Renderers
 // ---------------------------------------------------------------------------
 
-function HeadingBlock({ text }: { text: string }) {
+function HeadingBlock({ text, isFirst }: { text: string; isFirst?: boolean }) {
   const { colors } = useTheme();
   return (
-    <View style={{ marginTop: 28, marginBottom: 12 }}>
-      <Text style={{
-        fontSize: 17,
-        lineHeight: 26,
-        fontFamily: FontFamily.serif,
-        fontWeight: '700',
-        color: colors.textPrimary,
-      }}>
+    <View style={{
+      marginTop: 36,
+      marginBottom: 12,
+      ...(!isFirst && {
+        borderTopWidth: 1,
+        borderTopColor: colors.border,
+        paddingTop: 20,
+      }),
+    }}>
+      <Text
+        style={{
+          fontSize: 20,
+          lineHeight: 30,
+          fontFamily: FontFamily.serif,
+          fontWeight: '700',
+          color: colors.textPrimary,
+        }}
+        accessibilityRole="header"
+      >
+        {text}
+      </Text>
+    </View>
+  );
+}
+
+function SubheadingBlock({ text }: { text: string }) {
+  const { colors } = useTheme();
+  return (
+    <View style={{ marginTop: 20, marginBottom: 6 }}>
+      <Text
+        style={{
+          fontSize: 15,
+          lineHeight: 24,
+          fontWeight: '600',
+          color: colors.textPrimary,
+        }}
+        accessibilityRole="header"
+      >
         {text}
       </Text>
     </View>
@@ -495,8 +526,8 @@ function LeadBlock({ text }: { text: string }) {
     <Text style={{
       fontSize: 16,
       lineHeight: 26,
-      fontWeight: '500',
-      color: colors.textSecondary,
+      fontWeight: '400',
+      color: colors.textPrimary,
       marginTop: 12,
       marginBottom: 20,
     }}>
@@ -516,6 +547,10 @@ interface SnapsContentRendererProps {
 
 export function SnapsContentRenderer({ content }: SnapsContentRendererProps) {
   const blocks = useMemo(() => parseContent(content), [content]);
+  const firstHeadingIdx = useMemo(
+    () => blocks.findIndex(b => b.type === 'heading'),
+    [blocks],
+  );
 
   if (blocks.length === 0) return null;
 
@@ -524,7 +559,9 @@ export function SnapsContentRenderer({ content }: SnapsContentRendererProps) {
       {blocks.map((block, idx) => {
         switch (block.type) {
           case 'heading':
-            return <HeadingBlock key={idx} text={block.text} />;
+            return <HeadingBlock key={idx} text={block.text} isFirst={idx === firstHeadingIdx} />;
+          case 'subheading':
+            return <SubheadingBlock key={idx} text={block.text} />;
           case 'formula':
             return <FormulaBlock key={idx} text={block.text} />;
           case 'definition':

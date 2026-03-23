@@ -21,14 +21,16 @@
 ### Tab 2: Snaps (snaps.tsx) — Principles/Daily Learning
 - **단일 스크롤 자유 형식 텍스트 뷰**: 기존 3-카드 + 딥다이브 탭 구조 제거, 수식이 텍스트 속에 녹아든 자연스러운 읽기 경험
 - **SnapsContentRenderer** (`components/snaps/SnapsContentRenderer.tsx`): 마크다운 파싱 + 블록 렌더링
-  - 9가지 블록 타입: heading, formula, definition, definition_group, steps (번호 리스트 그룹), emphasis, list_item (불릿), lead, body
+  - 10가지 블록 타입: heading, subheading, formula, definition, definition_group, steps (번호 리스트 그룹), emphasis, list_item (불릿), lead, body
   - 인라인 서식: `**텍스트**` → fontWeight 700 굵은 글씨 (renderBoldText 헬퍼)
-  - **lead 블록**: 콘텐츠 첫째 줄(원리 설명)을 16px/weight 500/textSecondary로 렌더링 — 히어로 제목(26pt)과 본문(15px) 사이 타이포그래피 계층
+  - **lead 블록**: 콘텐츠 첫째 줄(원리 설명)을 16px/weight 400/textPrimary로 렌더링 — 히어로 제목(26pt)과 본문(15px) 사이 타이포그래피 계층
+  - **heading 블록**: `## 섹션 제목` → 20px Lora-Bold serif, mt:36, 2번째부터 상단 1px 구분선 + accessibilityRole="header"
+  - **subheading 블록**: `**텍스트:**` 독립 줄 → 15px/weight 600 sans-serif, mt:20, mb:6 + accessibilityRole="header" — heading과 크기(20 vs 15)+서체(serif vs sans)로 계층 구분
   - **definition_group 블록**: 연속 정의를 단일 컨테이너로 병합 (surface 배경, borderRadius 8, 항목 간 12dp gap). 단독 정의는 기존 DefinitionBlock 유지 (surface 배경)
   - 배경색 3-규칙: Teal(primaryLight)=수식, Beige(surface)=용어 정의(단독+그룹)+알고리즘 스텝, 없음=그 외
   - 수식 감지: LaTeX 명령, 그리스 문자, 수학 기호 패턴 (한글 25% 미만, 80자 이하), `latexToDisplay` 변환
   - 용어 정의: "term - description" 패턴 (용어 1~40자) → beige 배경 + 볼드 용어명. 첫 번째 비공백 줄은 definition 매칭 스킵 (리드/서브타이틀 오인 방지)
-  - 볼드 서브헤딩: 줄 전체가 `**텍스트:**` 또는 `**텍스트**` 패턴이면 heading 블록으로 처리
+  - 볼드 서브헤딩: 줄 전체가 `**텍스트:**` 또는 `**텍스트**` 패턴이면 subheading 블록으로 처리 (heading과 별도 타이포그래피)
   - 알고리즘 스텝: 연속 번호 리스트(1. 2. 3.)를 그룹화 → beige 배경 컨테이너
   - 강조 문장: ! 느낌표 종료 → 배경 없이 굵은 텍스트
   - 후처리: 연속 definition 블록을 definition_group으로 그룹화 (사이 spacer 흡수), ContentBlock에 `definitions?: { term: string; desc: string }[]` 필드 추가
