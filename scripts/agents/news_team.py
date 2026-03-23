@@ -1984,8 +1984,6 @@ def categorizer_node(state: NewsGraphState) -> dict:
             print(f"      ⚠ [{', '.join(flags)}] {d_title[:60] or original_title[:60]}")
 
     # 말줄임표 사용 기사 목록 출력 (pipeline-qa가 적절성 판단)
-    _total_active = len(_ellipsis_ko_titles) + len(_plain_ko_titles)
-    print(f"    [제목 통계] 말줄임표('...') KO: {len(_ellipsis_ko_titles)}건, EN: {len(_ellipsis_en_titles)}건 / 전체 {_total_active}건")
     if _ellipsis_ko_titles:
         print(f"    [말줄임표 KO] '...'로 끝나는 제목 ({len(_ellipsis_ko_titles)}건):")
         for t in _ellipsis_ko_titles:
@@ -1998,7 +1996,11 @@ def categorizer_node(state: NewsGraphState) -> dict:
         print(f"    [일반 KO] '...' 없는 제목 ({len(_plain_ko_titles)}건):")
         for t in _plain_ko_titles:
             print(f"      - {t}")
+    ci_endgroup()
 
+    # ── 제목 품질 요약 (접기 밖 — 항상 표시) ──
+    _total_active = len(_ellipsis_ko_titles) + len(_plain_ko_titles)
+    print(f"    [제목 통계] 말줄임표('...') KO: {len(_ellipsis_ko_titles)}건, EN: {len(_ellipsis_en_titles)}건 / 전체 {_total_active}건")
     if _untranslated_count:
         ci_warning(f"미번역 제목 {_untranslated_count}건 — 영어 원문이 display_title에 그대로 사용됨")
     if _no_oneline_count:
@@ -2009,7 +2011,6 @@ def categorizer_node(state: NewsGraphState) -> dict:
         print(f"    ── [QA] 제목 품질 이슈 {_title_issues}건 감지 ──")
     else:
         print("    ── [QA] 제목 품질 이슈 없음 ──")
-    ci_endgroup()
 
     # ── QA: 요약 품질 검증 ──
     ci_group("QA: 요약 품질 검증")
@@ -2061,16 +2062,20 @@ def categorizer_node(state: NewsGraphState) -> dict:
             _smr_tone_count += 1
             _smr_tone_list.append(f"background 경어체: {_smr_t} → \"{_smr_bg[-15:]}\"")
 
-    print(f"    [요약 통계] sections 부족(0-1개): {_smr_kp_short}건, why_important 누락: {_smr_no_why}건, background 누락: {_smr_no_bg}건")
+    # 말투 위반 상세는 접기 안에 유지
     if _smr_tone_count:
-        ci_warning(f"요약 말투 위반 {_smr_tone_count}건 감지")
         for _smr_d in _smr_tone_list[:10]:
             print(f"      ⚠ {_smr_d}")
         if len(_smr_tone_list) > 10:
             print(f"      ... 외 {len(_smr_tone_list) - 10}건")
+    ci_endgroup()
+
+    # ── 요약 품질 요약 (접기 밖 — 항상 표시) ──
+    print(f"    [요약 통계] sections 부족(0-1개): {_smr_kp_short}건, why_important 누락: {_smr_no_why}건, background 누락: {_smr_no_bg}건")
+    if _smr_tone_count:
+        ci_warning(f"요약 말투 위반 {_smr_tone_count}건 감지")
     else:
         print("    [요약 말투] 위반 없음")
-
     if _smr_kp_short > 5:
         ci_warning(f"sections 부족(0-1개) {_smr_kp_short}건 — 요약 프롬프트 점검 필요")
     _smr_issues = _smr_kp_short + _smr_no_why + _smr_tone_count
@@ -2078,7 +2083,54 @@ def categorizer_node(state: NewsGraphState) -> dict:
         print(f"    ── [QA] 요약 품질 이슈 {_smr_issues}건 감지 ──")
     else:
         print("    ── [QA] 요약 품질 이슈 없음 ──")
-    ci_endgroup()
+
+    # ── subtitle-content 정합성 검사 (접기 밖 — 항상 표시) ──
+    _GENERIC_SUBS = {"개요", "결론", "기타", "주요 내용", "요약", "정리", "핵심 사항",
+                     "Overview", "Conclusion", "Summary", "Key Details"}
+    _SC_STOP = {"이", "그", "저", "및", "등", "더", "또", "위", "대", "중", "새",
+                "the", "a", "an", "of", "in", "to", "and", "for", "is", "on", "at", "by", "with"}
+    _sc_generic = 0
+    _sc_mismatch = 0
+    _sc_total = 0
+    _sc_gen_list: list[str] = []
+    _sc_mis_list: list[str] = []
+    for a in candidates:
+        if a.get("_deduped") or a.get("_ai_filtered"):
+            continue
+        _sc_t = (a.get("display_title") or a.get("title", ""))[:35]
+        _sc_secs = a.get("sections", [])
+        if not isinstance(_sc_secs, list):
+            continue
+        for _sc_sec in _sc_secs:
+            if not isinstance(_sc_sec, dict):
+                continue
+            _sc_sub = (_sc_sec.get("subtitle") or "").strip()
+            _sc_cont = (_sc_sec.get("content") or "").strip()
+            if not _sc_sub:
+                continue
+            _sc_total += 1
+            if _sc_sub in _GENERIC_SUBS:
+                _sc_generic += 1
+                _sc_gen_list.append(f"{_sc_t} → \"{_sc_sub}\"")
+            if _sc_cont:
+                _sc_kws = {w for w in _sc_sub.replace(",", " ").replace("·", " ").split()
+                           if len(w) >= 2 and w.lower() not in _SC_STOP}
+                if len(_sc_kws) >= 2 and not any(kw in _sc_cont for kw in _sc_kws):
+                    _sc_mismatch += 1
+                    _sc_mis_list.append(f"{_sc_t} → \"{_sc_sub}\" (0/{len(_sc_kws)})")
+    print(f"    [subtitle-content] 전체 {_sc_total}개 섹션, 일반적 subtitle: {_sc_generic}건, 키워드 불일치: {_sc_mismatch}건")
+    if _sc_generic:
+        ci_warning(f"일반적 subtitle {_sc_generic}건 감지")
+        for _g in _sc_gen_list[:5]:
+            print(f"      ⚠ {_g}")
+        if len(_sc_gen_list) > 5:
+            print(f"      ... 외 {len(_sc_gen_list) - 5}건")
+    if _sc_mismatch:
+        ci_warning(f"subtitle-content 키워드 불일치 {_sc_mismatch}건")
+        for _m in _sc_mis_list[:5]:
+            print(f"      ⚠ {_m}")
+        if len(_sc_mis_list) > 5:
+            print(f"      ... 외 {len(_sc_mis_list) - 5}건")
 
     # 요약 상세 출력 (접기 섹션 — pipeline-qa 심층 분석용)
     ci_group("요약 상세: 전체 기사 요약")
