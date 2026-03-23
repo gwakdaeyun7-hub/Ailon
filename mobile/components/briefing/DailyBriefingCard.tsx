@@ -26,7 +26,6 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useBriefing } from '@/hooks/useBriefing';
 import { useNews } from '@/hooks/useNews';
-import { FontFamily } from '@/lib/theme';
 import type { Article } from '@/lib/types';
 
 // Android LayoutAnimation
@@ -165,12 +164,11 @@ const SectionTitle = React.memo(function SectionTitle({
       {Icon && <Icon size={14} color={color} />}
       <Text
         style={{
-          fontSize: 8,
+          fontSize: 12,
           fontWeight: '600',
           color,
           textTransform: 'uppercase',
           letterSpacing: 0.5,
-          fontFamily: FontFamily.pixel,
         }}
       >
         {title}
@@ -455,9 +453,7 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
           <View
             style={{
               backgroundColor: colors.primaryLight,
-              borderRadius: 0,
-              borderWidth: 2,
-              borderColor: colors.border,
+              borderRadius: 16,
               paddingHorizontal: 16,
               paddingVertical: 14,
               flexDirection: 'row',
@@ -479,7 +475,7 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
                 style={{
                   width: 36,
                   height: 36,
-                  borderRadius: 0,
+                  borderRadius: 18,
                   backgroundColor: speaking
                     ? colors.primary + '30'
                     : colors.primary + '15',
@@ -501,10 +497,9 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <Text
                   style={{
-                    fontSize: 8,
+                    fontSize: 14,
                     fontWeight: '700',
                     color: colors.textPrimary,
-                    fontFamily: FontFamily.pixel,
                   }}
                 >
                   {t('briefing.title')}
@@ -531,9 +526,9 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
     <View ref={cardRef} style={{ marginHorizontal: 16, marginTop: 12, marginBottom: 12 }}>
       <View
         style={{
-          borderRadius: 0,
+          borderRadius: 16,
           overflow: 'hidden',
-          borderWidth: 2,
+          borderWidth: 1,
           borderColor: colors.primaryBorder,
         }}
       >
@@ -590,7 +585,7 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
                   style={{
                     width: 36,
                     height: 36,
-                    borderRadius: 0,
+                    borderRadius: 18,
                     backgroundColor: speaking
                       ? colors.primary + '30'
                       : colors.primary + '15',
@@ -615,7 +610,7 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
                 style={{
                   width: 36,
                   height: 36,
-                  borderRadius: 0,
+                  borderRadius: 18,
                   backgroundColor: colors.primary + '15',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -645,9 +640,7 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
                   flexDirection: 'row',
                   alignItems: 'center',
                   backgroundColor: colors.glossaryBg,
-                  borderRadius: 0,
-                  borderWidth: 2,
-                  borderColor: colors.border,
+                  borderRadius: 14,
                   padding: 16,
                 }}
               >
@@ -675,7 +668,7 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
                           style={{
                             width: 10,
                             height: 10,
-                            borderRadius: 0,
+                            borderRadius: 3,
                             backgroundColor: domainColorMap[item.domain] ?? domainColorMap['Others'],
                             marginRight: 8,
                           }}
@@ -725,8 +718,8 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
                       style={{
                         paddingHorizontal: 12,
                         paddingVertical: 6,
-                        borderRadius: 0,
-                        borderWidth: 2,
+                        borderRadius: 14,
+                        borderWidth: 1,
                         borderColor: isHot ? colors.primary + '60' : colors.border,
                         backgroundColor: isHot
                           ? colors.primary + '15'
@@ -761,9 +754,7 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
               <View
                 style={{
                   backgroundColor: colors.glossaryBg,
-                  borderRadius: 0,
-                  borderWidth: 2,
-                  borderColor: colors.border,
+                  borderRadius: 14,
                   padding: 12,
                   alignItems: 'center',
                 }}
@@ -787,9 +778,7 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
               <View
                 style={{
                   backgroundColor: colors.glossaryBg,
-                  borderRadius: 0,
-                  borderWidth: 2,
-                  borderColor: colors.border,
+                  borderRadius: 12,
                   padding: 14,
                 }}
               >
@@ -817,7 +806,7 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
               alignItems: 'center',
               paddingHorizontal: 16,
               paddingVertical: 14,
-              borderRadius: 0,
+              borderRadius: 14,
               backgroundColor: colors.primary + '12',
               gap: 4,
             }}
