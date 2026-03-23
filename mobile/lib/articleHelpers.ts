@@ -93,9 +93,33 @@ export function getLocalizedOneLine(a: Article, lang: Language) {
   return a.one_line || '';
 }
 
+/**
+ * sections (소제목+내용) 반환. 레거시 key_points 데이터 폴백 포함.
+ * - sections 존재 시: sections 그대로 반환
+ * - sections 없고 key_points만 있는 레거시 데이터: [{subtitle: "", content: point}] 변환
+ */
+export function getLocalizedSections(a: Article, lang: Language): { subtitle: string; content: string }[] {
+  if (lang === 'en') {
+    if (a.sections_en && a.sections_en.length > 0) return a.sections_en;
+    if (a.sections && a.sections.length > 0) return a.sections;
+    // 레거시 key_points 폴백
+    if (a.key_points_en && a.key_points_en.length > 0)
+      return a.key_points_en.map(p => ({ subtitle: '', content: p }));
+    if (a.key_points && a.key_points.length > 0)
+      return a.key_points.map(p => ({ subtitle: '', content: p }));
+    return [];
+  }
+  if (a.sections && a.sections.length > 0) return a.sections;
+  // 레거시 key_points 폴백
+  if (a.key_points && a.key_points.length > 0)
+    return a.key_points.map(p => ({ subtitle: '', content: p }));
+  return [];
+}
+
+/** @deprecated getLocalizedSections()를 사용하세요. 하위 호환용으로 유지. */
 export function getLocalizedKeyPoints(a: Article, lang: Language): string[] {
-  if (lang === 'en' && a.key_points_en && a.key_points_en.length > 0) return a.key_points_en;
-  return a.key_points || [];
+  const sections = getLocalizedSections(a, lang);
+  return sections.map(s => s.content);
 }
 
 export function getLocalizedWhyImportant(a: Article, lang: Language) {

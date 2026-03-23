@@ -63,7 +63,7 @@ AI타임스, GeekNews, ZDNet AI 에디터 (HTML scrape), 요즘IT AI
 ```
 display_title / display_title_en  — 뉴스 헤드라인 스타일 제목 ('...'·'?' 비율 제한 없이 자유 사용, 확정 사실 서술어 뒤 구분자 금지). EN→KO 번역 제목은 `_fix_title_separator()` 후처리로 구분자 '...' → ',' 자동 교정
 one_line / one_line_en            — 사건 1문장 요약 (누가+무엇을)
-key_points / key_points_en        — 구체적 세부정보 3~5개 (2개도 허용)
+sections / sections_en             — 소제목+내용 2~4개 섹션 [{subtitle, content}] (기존 Firestore key_points 데이터는 모바일에서 폴백 지원)
 why_important / why_important_en  — 업계 영향 1-2문장
 background / background_en       — 배경 맥락 1-2문장
 tags / tags_en                   — 키워드 2-4개
@@ -178,7 +178,7 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 - **Tom's Hardware 범용 피드**: NEEDS_AI_FILTER로 비AI 기사 필터링 중, 필터율 30-80% 정상
 - **날짜 추정 (`date_estimated`)**: RSS 날짜 미추출 시 스크래핑 복원 시도, 실패 시 UI에 `~` 접두사 표시
 - **VentureBeat/paywall**: trafilatura Chrome UA 설정 필요 (`_get_traf_config`)
-- **key_points 2개**: 프롬프트 허용 범위 (목표 3~5개), 0-1개는 문제
+- **sections 구조**: 소제목+내용 2~4개 섹션 [{subtitle, content}], subtitle은 명사구, content는 서술체(~했다, ~됐다) 3~5문장. 기존 Firestore의 key_points 데이터는 모바일에서 폴백 렌더링 지원
 - **Pipeline QA**: print + GitHub Actions 어노테이션 + Job Summary, `/pipeline-qa` 스킬로 9개 영역(AI 필터/분류/중복/랭킹/제목 품질/요약 품질/브리핑/용어·태그/학문스낵) 심층 분석 가능. `pipeline-post-check.sh` hook이 파이프라인 실행 후 7개 패턴(JSON 잘림, 0건 수집, 스크래핑 실패, 분류 편향, AI 필터, curated 풀 고갈, API 쿼터) 자동 감지
 - **Python 구문 검증**: .py 파일 수정 시 `python-syntax-check.sh` hook이 `py_compile` 자동 실행, 구문 오류 즉시 차단
 - **EN 번역+요약 dict 복구**: `_summarize_batch()`에서 Gemini가 dict 대신 string 배열 반환 시 2단계 복구 (원본 `[{...}]` 재탐색 + string→dict 파싱). 프롬프트에 한국어 역할 프레이밍 + `***` 마크다운 금지 + JSON 형식 예시 + 닫힘 리마인더 포함

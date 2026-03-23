@@ -14,11 +14,15 @@ export interface Article {
   description?: string;
   summary?: string;          // 한국어 요약 (레거시 폴백)
   one_line?: string;          // 핵심 한줄 요약
-  key_points?: string[];      // 주요 포인트 (3-5개)
+  sections?: { subtitle: string; content: string }[];      // 소제목+내용 섹션 (2-4개)
+  sections_en?: { subtitle: string; content: string }[];   // 영어 섹션
+  /** @deprecated sections로 대체됨. 레거시 Firestore 데이터 호환용 */
+  key_points?: string[];
   why_important?: string;     // 왜 중요한지
   display_title_en?: string;  // 영어 제목
   one_line_en?: string;       // 영어 한줄 요약
-  key_points_en?: string[];   // 영어 주요 포인트
+  /** @deprecated sections_en으로 대체됨. 레거시 Firestore 데이터 호환용 */
+  key_points_en?: string[];
   why_important_en?: string;  // 영어 중요성
   link: string;
   published: string;

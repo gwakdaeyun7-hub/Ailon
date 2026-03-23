@@ -10,7 +10,7 @@ import type { Language } from '@/lib/translations';
 import {
   SOURCE_COLORS, CATEGORY_COLORS,
   getSourceName, getCategoryName, formatDate,
-  getLocalizedTitle, getLocalizedOneLine, getLocalizedKeyPoints,
+  getLocalizedTitle, getLocalizedOneLine, getLocalizedSections,
   getLocalizedWhyImportant,
 } from '@/lib/articleHelpers';
 import { LightColors } from '@/lib/colors';
@@ -29,7 +29,7 @@ export const ShareCard = React.forwardRef<View, ShareCardProps>(
   function ShareCard({ article, lang, t }, ref) {
     const title = getLocalizedTitle(article, lang);
     const oneLine = getLocalizedOneLine(article, lang);
-    const keyPoints = getLocalizedKeyPoints(article, lang);
+    const sections = getLocalizedSections(article, lang);
     const whyImportant = getLocalizedWhyImportant(article, lang);
     const tags = (lang === 'en' && article.tags_en?.length) ? article.tags_en : article.tags;
     const sourceColor = SOURCE_COLORS[article.source_key || ''] || C.primary;
@@ -104,25 +104,18 @@ export const ShareCard = React.forwardRef<View, ShareCardProps>(
             </View>
           ) : null}
 
-          {/* 핵심 포인트 */}
-          {keyPoints.length > 0 ? (
+          {/* 핵심 포인트 (sections) */}
+          {sections.length > 0 ? (
             <View style={{ marginBottom: 16 }}>
-              <Text style={{
-                fontSize: 13,
-                fontWeight: '700',
-                color: C.textSecondary,
-                marginBottom: 10,
-                fontFamily: FontFamily.serif,
-              }}>
-                {t('modal.key_points')}
-              </Text>
-              {keyPoints.map((point, i) => (
-                <View key={i} style={{ flexDirection: 'row', marginBottom: 6 }}>
-                  <Text style={{ fontSize: 13, color: C.primary, fontWeight: '700', width: 20 }}>
-                    {i + 1}.
-                  </Text>
-                  <Text style={{ fontSize: 13, color: C.textPrimary, lineHeight: 20, flex: 1 }}>
-                    {point}
+              {sections.map((section, i) => (
+                <View key={i} style={{ marginTop: i === 0 ? 0 : 12, ...(i > 0 ? { borderTopWidth: 0.5, borderTopColor: C.border, paddingTop: 12 } : {}) }}>
+                  {section.subtitle ? (
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: C.textPrimary, fontFamily: FontFamily.serif, marginBottom: 4 }}>
+                      {section.subtitle}
+                    </Text>
+                  ) : null}
+                  <Text style={{ fontSize: 13, color: C.textPrimary, lineHeight: 20 }}>
+                    {section.content}
                   </Text>
                 </View>
               ))}

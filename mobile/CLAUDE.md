@@ -11,7 +11,7 @@
 - **Daily Briefing**: AI-generated 2-3 min briefing card with TTS playback (expo-speech)
 - **Categories**: Horizontal scroll tabs (research / models_products / industry_business), Top 20 per category
 - **Sources**: 22 source sections, Korean sources (AI타임스, GeekNews, ZDNet AI, 요즘IT) in separate tabs
-- **Article Card**: display_title, one_line, key_points (3-5), why_important, background, tags, glossary, "Read Original" button (Linking.openURL). 요약 모달: F-Minimal 디자인 (소스 뱃지+날짜+카테고리, 세리프 제목, teal 배경 One Line 16pt, 번호 스텝 key_points 15pt(배경 없음), 세리프 소제목 textSecondary, 태그 pill, 원문 버튼 textPrimary 테두리)
+- **Article Card**: display_title, one_line, sections (소제목+내용 2-4개), why_important, background, tags, glossary, "Read Original" button (Linking.openURL). 요약 모달: F-Minimal 디자인 (소스 뱃지+날짜+카테고리, 세리프 제목, teal 배경 One Line 16pt, 소제목+내용 sections 15pt(배경 없음), 세리프 소제목 textSecondary, 태그 pill, 원문 버튼 textPrimary 테두리). 기존 Firestore key_points 데이터는 폴백 렌더링 지원
 - **Interactions**: Like/dislike (ReactionBar), comments (CommentSheet modal), share (ShareCard 이미지 캡처 + 텍스트 폴백), bookmark
 - **Glossary Highlighting**: Auto-detects terms in text, tap for definition popup (HighlightedText)
 - **Related Articles**: Horizontal carousel in summary modal (RelatedArticlesSection)

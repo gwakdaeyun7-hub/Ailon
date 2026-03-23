@@ -383,8 +383,10 @@ def _summarize_batch(batch: list[dict], batch_idx: int, translate: bool = True) 
             "\nAlso produce these English fields:\n"
             "- display_title_en: concise English headline (news-style, not a literal back-translation). Use '...' and '?' freely when tone fits (intrigue, suspense, speculation, open questions). Never use '...' as separator after confirmed facts. Good: 'OpenAI Hints at Next-Gen Model...' / 'Can AI Replace Doctors?' Bad: 'Meta Launches New Chip...'\n"
             "- one_line_en: 1-sentence English headline of what happened (WHO did WHAT). No details, no numbers -- just the event.\n"
-            "- key_points_en: 3-5 key details NOT mentioned in one_line_en (array of 3-5 strings). Each must contain specific data (numbers, specs, comparisons, prices, dates). No vague statements. No overlap with one_line_en.\n"
-            "- why_important_en: 1-2 sentences on impact. Name WHO is affected and HOW specifically. No overlap with one_line_en or key_points_en. Never say 'significant impact' without specifics.\n"
+            "- sections_en: Same structure as sections in English. Array of {\"subtitle\": \"Subtitle\", \"content\": \"Content\"}\n"
+            "  - subtitle: 3-5 word specific noun phrase. No generic words like \"Overview\", \"Conclusion\", \"Summary\", \"Key Details\".\n"
+            "  - content: 3-5 sentences per section. Descriptive prose with concrete details, numbers, and context.\n"
+            "- why_important_en: 1-2 sentences on impact. Name WHO is affected and HOW specifically. No overlap with one_line_en or sections_en. Never say 'significant impact' without specifics.\n"
             "- background_en: 1-2 sentence English background context\n"
             "- tags_en: 2-4 English keywords (array of strings)\n"
             '- glossary_en: English version of glossary (same structure: {"term": "...", "desc": "..."})'
@@ -396,8 +398,10 @@ def _summarize_batch(batch: list[dict], batch_idx: int, translate: bool = True) 
             "\nAlso produce these English fields (translate the Korean summaries to English):\n"
             "- display_title_en: concise English headline for this article. '...' only for 20-30% with genuine intrigue/suspense, never for confirmed facts\n"
             "- one_line_en: 1-sentence English headline of what happened (WHO did WHAT). No details, no numbers -- just the event.\n"
-            "- key_points_en: 3-5 key details NOT mentioned in one_line_en (array of 3-5 strings). Each must contain specific data (numbers, specs, comparisons, prices, dates). No vague statements. No overlap with one_line_en.\n"
-            "- why_important_en: 1-2 sentences on impact. Name WHO is affected and HOW specifically. No overlap with one_line_en or key_points_en. Never say 'significant impact' without specifics.\n"
+            "- sections_en: Same structure as sections in English. Array of {\"subtitle\": \"Subtitle\", \"content\": \"Content\"}\n"
+            "  - subtitle: 3-5 word specific noun phrase. No generic words like \"Overview\", \"Conclusion\", \"Summary\", \"Key Details\".\n"
+            "  - content: 3-5 sentences per section. Descriptive prose with concrete details, numbers, and context.\n"
+            "- why_important_en: 1-2 sentences on impact. Name WHO is affected and HOW specifically. No overlap with one_line_en or sections_en. Never say 'significant impact' without specifics.\n"
             "- background_en: 1-2 sentence English background context\n"
             "- tags_en: 2-4 English keywords (array of strings)\n"
             '- glossary_en: English version of glossary (same structure: {"term": "...", "desc": "..."})'
@@ -423,29 +427,31 @@ For each article, produce:
   - 좋은 예: "OpenAI가 GPT-5를 공식 출시했다" (O -- 서술체)
   - 좋은 예: "Meta가 Llama 4를 오픈소스로 공개했다" (O -- 서술체)
   - 나쁜 예: "OpenAI가 GPT-5를 공식 출시했어요" (X -- 경어체 금지)
-- key_points: one_line을 읽은 사람이 추가로 알아야 할 구체적 세부 정보 3~5개 (개조식)
-  *** 말투: 반드시 명사/동명사로 종결할 것. 문장형 종결어미 절대 금지 ***
-  - 허용 종결: "~임" / "~됨" / "~함" / "~지원" / "~예정" / "~확대" / 명사구 (예: "50% 인하")
-  - 금지 종결: "~했다" / "~했어요" / "~됩니다" / "~이에요" 등 문장형 종결어미 전부 금지
-  역할: one_line이 "무슨 일"이라면, key_points는 "구체적으로 어떤 스펙·수치·조건인지"를 전달
-  추출 우선순위 (기사에 있다면 반드시 포함):
-    1순위: 숫자 데이터 (가격, 성능 수치, 파라미터 수, 벤치마크 점수, 날짜, 금액)
-    2순위: 기술 스펙·비교 데이터 (모델 크기, 이전 버전 대비 차이, 경쟁사 대비 차이)
-    3순위: 구체적 조건·제약 (출시 지역, 대상 사용자, 라이선스, 지원 플랫폼)
+- sections: 기사의 핵심 내용을 2-4개 소제목+내용 섹션으로 구조화. 각 섹션은 {{"subtitle": "소제목", "content": "내용"}} 형태의 배열.
+  - subtitle: 해당 섹션의 핵심을 드러내는 구체적 명사구 (3-5단어)
+    ★ 금지: "개요", "결론", "기타", "주요 내용", "요약", "정리", "핵심 사항" 등 일반적/모호한 단어
+    ★ 사용: 해당 섹션만의 구체적 키워드를 포함한 명사구
+    예: "아키텍처 혁신", "성능 벤치마크 결과", "핵심 의무 사항", "가격 및 요금 체계", "오픈소스 라이선스 전환"
+  - content: 3-5문장의 서술체
+    *** 말투: 반드시 "~했다" / "~됐다" / "~밝혔다" 서술체로 끝낼 것. "~했어요" 경어체 절대 금지. "~임" / "~됨" 개조식도 금지 ***
+    해당 소제목에 대한 구체적 설명, 수치, 맥락을 포함. 단순 나열이 아닌 문장형으로 인과관계와 비교 맥락을 자연스럽게 서술
+    추출 우선순위 (기사에 있다면 반드시 포함):
+      1순위: 숫자 데이터 (가격, 성능 수치, 파라미터 수, 벤치마크 점수, 날짜, 금액)
+      2순위: 기술 스펙·비교 데이터 (모델 크기, 이전 버전 대비 차이, 경쟁사 대비 차이)
+      3순위: 구체적 조건·제약 (출시 지역, 대상 사용자, 라이선스, 지원 플랫폼)
+  - 섹션 수: 기사 내용에 따라 2-4개. 내용이 적으면 2개도 가능. 억지로 늘리지 말 것
   중복 금지 규칙:
-    - one_line에 등장한 주어+동사+목적어를 key_point에서 반복 금지 (같은 사실을 다른 표현으로 바꿔 쓰는 것도 반복)
-    - 각 key_point끼리도 서로 다른 정보를 전달해야 함
-  본문에 구체적 팩트가 부족하면 2개도 허용. 팩트가 풍부하면 5개까지 추출
-  금지 패턴 (이런 문장은 key_points에 넣지 말 것):
-    - "~관심을 받고 있음" / "~주목받고 있음" (관심·주목 표현)
-    - "~할 것으로 보임" / "~할 전망" (추측·전망)
-    - "업계에서 ~로 평가받고 있음" (막연한 평가)
+    - one_line에 등장한 주어+동사+목적어를 sections에서 반복 금지
+    - 각 섹션끼리도 서로 다른 정보를 전달해야 함
+  금지 패턴 (이런 문장은 sections content에 넣지 말 것):
+    - "~관심을 받고 있다" / "~주목받고 있다" (관심·주목 표현)
+    - "~할 것으로 보인다" / "~할 전망이다" (추측·전망)
+    - "업계에서 ~로 평가받고 있다" (막연한 평가)
     - 고유명사·숫자·스펙이 하나도 없는 문장
-  예: one_line="OpenAI가 GPT-5를 공식 출시했다" → key_points=["컨텍스트 윈도우 256K 토큰, GPT-4 대비 2배 확대", "API 가격 입력 $5/출력 $15 per 1M 토큰, GPT-4 대비 50% 인하", "이미지·오디오·비디오 입력 네이티브 지원", "GPT-4 대비 추론 속도 3배 향상, 첫 토큰 응답 0.3초", "개발자 미리보기 3월 출시, 일반 공개 4월 예정"]
 - why_important: 업계/개발자에게 미치는 구체적 영향 -- 1~2문장
   *** 말투: 반드시 "~이에요" / "~해요" / "~있어요" / "~돼요" 부드러운 경어체로 끝낼 것 ***
   - "~했다" 서술체 금지. "~입니다/~합니다" 격식체 금지. 오직 해요체만 사용
-  - one_line·key_points에 이미 나온 정보 반복 금지. 새로운 관점(영향·결과)만 서술
+  - one_line·sections에 이미 나온 정보 반복 금지. 새로운 관점(영향·결과)만 서술
   - 반드시 구체적 대상(누구에게)과 구체적 변화(무엇이 어떻게 달라지는지)를 명시
   - 금지: "업계에 큰 영향" / "주목할 만한 변화" / "경쟁이 치열해질 것" 같은 내용 없는 평가
   - 좋은 예: "오픈소스 개발자들이 상용 수준 모델을 무료로 파인튜닝할 수 있게 돼요"
@@ -481,7 +487,8 @@ For each article, produce:
 | 필드           | 말투         | 종결 예시                        | 절대 금지              |
 |----------------|-------------|--------------------------------|----------------------|
 | one_line       | 서술체       | ~했다, ~됐다, ~밝혔다             | ~했어요, ~이에요       |
-| key_points     | 개조식(명사형)| ~임, ~됨, ~함, ~지원, 명사구 종결  | ~했다, ~했어요, ~이에요 |
+| sections subtitle | 명사구       | 3-5단어 구체적 명사구              | 문장형 종결어미 전부 금지 |
+| sections content  | 서술체       | ~했다, ~됐다, ~밝혔다             | ~했어요, ~이에요, ~임, ~됨 |
 | why_important  | 해요체(부드러운 경어) | ~이에요, ~해요, ~있어요, ~돼요 | ~했다, ~됩니다         |
 | background     | 서술체       | ~했다, ~됐다, ~있었다             | ~했어요, ~이에요       |
 | glossary desc  | 해요체       | ~이에요, ~해요                   | ~이다, ~됩니다         |
@@ -504,18 +511,24 @@ Return exactly {batch_len} items.
     "index": 1,
     "display_title": "OpenAI, 새 모델 GPT-6 공개",
     "one_line": "OpenAI가 차세대 언어 모델 GPT-6를 공식 출시했다.",
-    "key_points": ["파라미터 2조 개 규모", "멀티모달 지원 확대", "API 가격 50% 인하"],
+    "sections": [
+      {{"subtitle": "2조 파라미터 아키텍처 혁신", "content": "GPT-6는 총 2조 개의 파라미터를 사용하며, 이전 세대인 GPT-5 대비 4배 규모로 확장됐다. Mixture-of-Experts 구조를 채택해 실제 추론 시에는 활성 파라미터가 전체의 25%에 불과하다. 이를 통해 대규모 모델의 성능을 유지하면서도 추론 비용을 절감했다."}},
+      {{"subtitle": "API 가격 및 멀티모달 지원", "content": "API 가격은 입력 기준 100만 토큰당 5달러, 출력 기준 15달러로 GPT-5 대비 50% 인하됐다. 텍스트, 이미지, 음성, 비디오를 네이티브로 처리할 수 있는 멀티모달 기능이 추가됐다. 개발자 미리보기는 3월에 시작되며, 일반 공개는 4월로 예정돼 있다."}}
+    ],
     "why_important": "오픈소스 진영과의 성능 격차가 더 벌어질 수 있어요.",
     "background": "OpenAI는 2025년 GPT-5를 출시하며 시장을 선도해왔다.",
     "tags": ["OpenAI", "GPT-6", "LLM"],
-    "glossary": [{{"term": "멀티모달", "desc": "텍스트, 이미지, 음성 등 여러 형태의 데이터를 동시에 처리하는 능력이에요."}}],
+    "glossary": [{{"term": "MoE", "desc": "여러 전문가 모델을 조합해 효율적으로 추론하는 아키텍처예요."}}],
     "display_title_en": "OpenAI Launches GPT-6",
     "one_line_en": "OpenAI officially launched GPT-6.",
-    "key_points_en": ["2T parameters", "expanded multimodal support", "50% API price cut"],
+    "sections_en": [
+      {{"subtitle": "2T-Parameter Architecture Overhaul", "content": "GPT-6 uses 2 trillion parameters, a fourfold increase over GPT-5. It adopts a Mixture-of-Experts architecture that activates only 25% of total parameters during inference. This design maintains large-model performance while reducing compute costs."}},
+      {{"subtitle": "API Pricing and Multimodal Support", "content": "API pricing is set at $5 per million input tokens and $15 per million output tokens, a 50% reduction from GPT-5. The model natively handles text, image, audio, and video inputs. A developer preview launches in March, with general availability planned for April."}}
+    ],
     "why_important_en": "Could widen the performance gap with open-source models.",
     "background_en": "OpenAI has led the market since releasing GPT-5 in 2025.",
     "tags_en": ["OpenAI", "GPT-6", "LLM"],
-    "glossary_en": [{{"term": "multimodal", "desc": "The ability to process multiple data types like text, images, and audio simultaneously."}}]
+    "glossary_en": [{{"term": "MoE", "desc": "An architecture that combines multiple expert models for efficient inference."}}]
   }}
 ]
 위 형식을 정확히 따라 {batch_len}개 기사를 배열로 출력하세요.
@@ -613,18 +626,21 @@ def _apply_batch_results(batch: list[dict], results: list[dict]) -> int:
             if r.get("display_title"):
                 batch[ridx]["display_title"] = r["display_title"]
             one_line = r.get("one_line", "")
-            key_points = r.get("key_points", [])
+            sections = r.get("sections", [])
             why_important = r.get("why_important", "")
-            if one_line or key_points:
+            if one_line or sections:
                 batch[ridx]["one_line"] = one_line
-                kp = (key_points if isinstance(key_points, list) else [])[:5]
-                if len(kp) < 3:
-                    print(f"    [INFO] key_points {len(kp)} for: {batch[ridx].get('title', '')[:50]}")
-                batch[ridx]["key_points"] = kp
+                secs = (sections if isinstance(sections, list) else [])[:4]
+                if len(secs) < 2:
+                    print(f"    [INFO] sections {len(secs)} for: {batch[ridx].get('title', '')[:50]}")
+                batch[ridx]["sections"] = secs
                 batch[ridx]["why_important"] = why_important
                 # summary 폴백 (레거시 호환)
                 parts = [one_line]
-                parts.extend(key_points if isinstance(key_points, list) else [])
+                if isinstance(sections, list):
+                    for sec in sections:
+                        if isinstance(sec, dict):
+                            parts.append(sec.get("content", ""))
                 parts.append(why_important)
                 batch[ridx]["summary"] = "\n".join(p for p in parts if p)
                 done += 1
@@ -636,9 +652,9 @@ def _apply_batch_results(batch: list[dict], results: list[dict]) -> int:
                 batch[ridx]["display_title_en"] = r["display_title_en"]
             if r.get("one_line_en"):
                 batch[ridx]["one_line_en"] = r["one_line_en"]
-            kp_en = r.get("key_points_en", [])
-            if kp_en:
-                batch[ridx]["key_points_en"] = (kp_en if isinstance(kp_en, list) else [])[:5]
+            secs_en = r.get("sections_en", [])
+            if secs_en:
+                batch[ridx]["sections_en"] = (secs_en if isinstance(secs_en, list) else [])[:4]
             if r.get("why_important_en"):
                 batch[ridx]["why_important_en"] = r["why_important_en"]
             # background / tags / glossary 필드
@@ -760,8 +776,8 @@ def _process_articles(articles: list[dict], translate: bool, batch_size: int, ma
             a["display_title_en"] = a["title"] if a.get("lang") != "ko" else ""
         if not a.get("one_line_en"):
             a["one_line_en"] = ""
-        if not a.get("key_points_en"):
-            a["key_points_en"] = []
+        if not a.get("sections_en"):
+            a["sections_en"] = []
         if not a.get("why_important_en"):
             a["why_important_en"] = ""
 
@@ -2006,7 +2022,8 @@ def categorizer_node(state: NewsGraphState) -> dict:
 
     # 말투 간이 검증 패턴
     _OL_BAD_RE = re.compile(r'(했어요|됐어요|이에요|해요|있어요|돼요|합니다|됩니다|입니다)\s*[.!?]*\s*$')
-    _KP_BAD_RE = re.compile(r'[가-힣](했다|됐다|왔다|났다|했어요|됐어요|이에요|해요|합니다|됩니다|입니다)\s*[.!?]*\s*$')
+    # sections content는 서술체(~했다, ~됐다)가 정상. 경어체(~했어요, ~이에요) 사용 시 위반
+    _SEC_BAD_RE = re.compile(r'[가-힣](했어요|됐어요|이에요|해요|있어요|돼요|합니다|됩니다|입니다)\s*[.!?]*\s*$')
     _WI_BAD_RE = re.compile(r'(했다|됐다|밝혔다|있었다|됩니다|입니다|이다)\s*[.!?]*\s*$')
     _BG_BAD_RE = re.compile(r'(했어요|됐어요|이에요|해요|있어요|돼요)\s*[.!?]*\s*$')
 
@@ -2015,11 +2032,11 @@ def categorizer_node(state: NewsGraphState) -> dict:
             continue
         _smr_t = (a.get("display_title") or a.get("title", ""))[:50]
         _smr_ol = a.get("one_line", "")
-        _smr_kps = a.get("key_points", [])
+        _smr_secs = a.get("sections", [])
         _smr_why = a.get("why_important", "")
         _smr_bg = a.get("background", "")
 
-        if isinstance(_smr_kps, list) and len(_smr_kps) <= 1:
+        if isinstance(_smr_secs, list) and len(_smr_secs) <= 1:
             _smr_kp_short += 1
         if not _smr_why:
             _smr_no_why += 1
@@ -2029,12 +2046,14 @@ def categorizer_node(state: NewsGraphState) -> dict:
         if _smr_ol and _OL_BAD_RE.search(_smr_ol):
             _smr_tone_count += 1
             _smr_tone_list.append(f"one_line 경어체: {_smr_t} → \"{_smr_ol[-15:]}\"")
-        if isinstance(_smr_kps, list):
-            for _smr_kp in _smr_kps:
-                if _smr_kp and _KP_BAD_RE.search(_smr_kp):
-                    _smr_tone_count += 1
-                    _smr_tone_list.append(f"key_points 문장형: {_smr_t} → \"{_smr_kp[-15:]}\"")
-                    break
+        if isinstance(_smr_secs, list):
+            for _smr_sec in _smr_secs:
+                if isinstance(_smr_sec, dict):
+                    _smr_ct = _smr_sec.get("content", "")
+                    if _smr_ct and _SEC_BAD_RE.search(_smr_ct):
+                        _smr_tone_count += 1
+                        _smr_tone_list.append(f"sections content 말투위반: {_smr_t} → \"{_smr_ct[-15:]}\"")
+                        break
         if _smr_why and _WI_BAD_RE.search(_smr_why):
             _smr_tone_count += 1
             _smr_tone_list.append(f"why_important 비해요체: {_smr_t} → \"{_smr_why[-15:]}\"")
@@ -2042,7 +2061,7 @@ def categorizer_node(state: NewsGraphState) -> dict:
             _smr_tone_count += 1
             _smr_tone_list.append(f"background 경어체: {_smr_t} → \"{_smr_bg[-15:]}\"")
 
-    print(f"    [요약 통계] key_points 부족(0-1개): {_smr_kp_short}건, why_important 누락: {_smr_no_why}건, background 누락: {_smr_no_bg}건")
+    print(f"    [요약 통계] sections 부족(0-1개): {_smr_kp_short}건, why_important 누락: {_smr_no_why}건, background 누락: {_smr_no_bg}건")
     if _smr_tone_count:
         ci_warning(f"요약 말투 위반 {_smr_tone_count}건 감지")
         for _smr_d in _smr_tone_list[:10]:
@@ -2053,7 +2072,7 @@ def categorizer_node(state: NewsGraphState) -> dict:
         print("    [요약 말투] 위반 없음")
 
     if _smr_kp_short > 5:
-        ci_warning(f"key_points 부족(0-1개) {_smr_kp_short}건 — 요약 프롬프트 점검 필요")
+        ci_warning(f"sections 부족(0-1개) {_smr_kp_short}건 — 요약 프롬프트 점검 필요")
     _smr_issues = _smr_kp_short + _smr_no_why + _smr_tone_count
     if _smr_issues:
         print(f"    ── [QA] 요약 품질 이슈 {_smr_issues}건 감지 ──")
@@ -2071,13 +2090,17 @@ def categorizer_node(state: NewsGraphState) -> dict:
         _c = a.get("_llm_category", "?")
         _t = a.get("display_title") or a.get("title", "")
         _o = a.get("one_line", "")
-        _k = a.get("key_points", [])
+        _secs = a.get("sections", [])
         _w = a.get("why_important", "")
         _b = a.get("background", "")
-        _ks = " | ".join(_k) if isinstance(_k, list) else str(_k)
         print(f"    [{_c}] {_t}")
         print(f"      one_line: {_o}")
-        print(f"      key_points: [{_ks}]")
+        if isinstance(_secs, list):
+            for _si, _sec in enumerate(_secs):
+                if isinstance(_sec, dict):
+                    print(f"      sections[{_si}]: {_sec.get('subtitle', '')} — {_sec.get('content', '')[:80]}")
+        else:
+            print(f"      sections: {_secs}")
         print(f"      why_important: {_w}")
         print(f"      background: {_b}")
     print(f"    [요약 상세] 전체 {_smr_n}건")
@@ -2206,9 +2229,13 @@ def _extract_entities_batch(batch: list[dict], batch_idx: int) -> list[dict]:
         for i, a in enumerate(articles):
             title = a.get("display_title") or a.get("title", "")
             one_line = a.get("one_line") or a.get("one_line_en") or ""
-            kps = a.get("key_points", [])
-            kps_str = (" | " + " | ".join(kps[:2])) if isinstance(kps, list) and kps else ""
-            article_text += f"\n[{i}] {title} | {one_line}{kps_str}"
+            secs = a.get("sections", [])
+            secs_str = ""
+            if isinstance(secs, list) and secs:
+                first_content = secs[0].get("content", "")[:100] if isinstance(secs[0], dict) else ""
+                if first_content:
+                    secs_str = " | " + first_content
+            article_text += f"\n[{i}] {title} | {one_line}{secs_str}"
         return _ENTITY_EXTRACT_PROMPT.format(article_text=article_text, count=len(articles))
 
     def _apply_results(results: list, articles: list[dict]) -> int:

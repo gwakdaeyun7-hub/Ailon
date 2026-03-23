@@ -32,7 +32,7 @@ import { RelatedArticlesSection } from '@/components/shared/RelatedArticlesSecti
 import {
   SOURCE_COLORS, CATEGORY_COLORS,
   getSourceName, getCategoryName, formatDate,
-  getLocalizedTitle, getLocalizedOneLine, getLocalizedKeyPoints,
+  getLocalizedTitle, getLocalizedOneLine, getLocalizedSections,
   getLocalizedWhyImportant, getLocalizedBackground, getLocalizedGlossary,
 } from '@/lib/articleHelpers';
 
@@ -209,13 +209,16 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
 
   const handleShare = async () => {
     const shareOneLine = getLocalizedOneLine(article, lang);
-    const shareKeyPoints = getLocalizedKeyPoints(article, lang);
+    const shareSections = getLocalizedSections(article, lang);
     const shareWhyImportant = getLocalizedWhyImportant(article, lang);
     let body = '';
     if (shareOneLine) {
       body += `${t('share.one_line_label')}\n${shareOneLine}`;
-      if (shareKeyPoints.length > 0) {
-        body += `\n\n${t('share.key_points_label')}\n${shareKeyPoints.map((p, i) => `${i + 1}. ${p}`).join('\n')}`;
+      if (shareSections.length > 0) {
+        const sectionTexts = shareSections.map((s, i) =>
+          s.subtitle ? `${s.subtitle}\n${s.content}` : `${i + 1}. ${s.content}`
+        ).join('\n\n');
+        body += `\n\n${t('share.key_points_label')}\n${sectionTexts}`;
       }
       if (shareWhyImportant) {
         body += `\n\n${t('share.why_important_label')}\n${shareWhyImportant}`;
@@ -235,14 +238,14 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
     });
   }, []);
 
-  const { oneLine, keyPoints, whyImportant, background, tags, glossary } = useMemo(() => {
+  const { oneLine, sections, whyImportant, background, tags, glossary } = useMemo(() => {
     const ol = getLocalizedOneLine(article, lang);
-    const kp = getLocalizedKeyPoints(article, lang);
+    const sc = getLocalizedSections(article, lang);
     const wi = getLocalizedWhyImportant(article, lang);
     const bg = getLocalizedBackground(article, lang);
     const tg = (lang === 'en' && article.tags_en && article.tags_en.length > 0) ? article.tags_en : article.tags;
     const gl = getLocalizedGlossary(article, lang);
-    return { oneLine: ol, keyPoints: kp, whyImportant: wi, background: bg, tags: tg, glossary: gl };
+    return { oneLine: ol, sections: sc, whyImportant: wi, background: bg, tags: tg, glossary: gl };
   }, [article, lang]);
 
   const articleTitle = getLocalizedTitle(article, lang);
@@ -368,22 +371,21 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
                   </Text>
                 ) : null}
 
-                {/* 3. Key Points — 세리프 소제목 + 번호 스텝 */}
-                {keyPoints.length > 0 && (
+                {/* 3. Sections — 소제목 + 내용 블록 (레거시 key_points 폴백 포함) */}
+                {sections.length > 0 && (
                   <View style={{ marginTop: 24 }}>
-                    <Text style={{ fontSize: 18, fontWeight: '700', lineHeight: 26, letterSpacing: -0.2, color: colors.textPrimary, fontFamily: FontFamily.serif, marginBottom: 12 }}>{t('modal.key_points')}</Text>
-                    {keyPoints.map((point, idx) => (
-                      <View key={idx} style={{ borderRadius: 8, paddingHorizontal: 0, paddingVertical: 8, marginBottom: 6 }}>
-                        <View style={{ flexDirection: 'row', gap: 10 }}>
-                          <Text style={{ fontSize: 15, fontWeight: '700', color: colors.textPrimary, lineHeight: 24, minWidth: 22 }}>{idx + 1}.</Text>
-                          <HighlightedText
-                            text={point}
-                            glossaryTerms={glossaryDBTerms}
-                            style={{ fontSize: 15, color: colors.summaryBody, lineHeight: 24, flex: 1 }}
-                            usedTermKeys={usedTermKeys}
-                            onTermsDetected={handleTermsDetected}
-                          />
-                        </View>
+                    {sections.map((section, idx) => (
+                      <View key={idx} style={{ marginTop: idx === 0 ? 0 : 24, ...(idx > 0 ? { borderTopWidth: 0.5, borderTopColor: colors.border, paddingTop: 24 } : {}) }}>
+                        {section.subtitle ? (
+                          <Text style={{ fontSize: 18, fontWeight: '700', lineHeight: 26, letterSpacing: -0.2, color: colors.textPrimary, fontFamily: FontFamily.serif, marginBottom: 10 }}>{section.subtitle}</Text>
+                        ) : null}
+                        <HighlightedText
+                          text={section.content}
+                          glossaryTerms={glossaryDBTerms}
+                          style={{ fontSize: 15, color: colors.summaryBody, lineHeight: 24 }}
+                          usedTermKeys={usedTermKeys}
+                          onTermsDetected={handleTermsDetected}
+                        />
                       </View>
                     ))}
                   </View>
