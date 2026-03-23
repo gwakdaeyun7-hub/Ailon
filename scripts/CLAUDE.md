@@ -69,7 +69,7 @@ background / background_en       — 배경 맥락 1-2문장
 tags / tags_en                   — 키워드 2-4개
 glossary / glossary_en           — 전문 용어 2-3개 ({term, desc})
 entities                         — [{name, type}] (model/company/person/technology/concept/dataset/framework)
-topic_cluster_id                 — "domain/topic" (e.g., "nlp/language_models")
+topic_cluster_id                 — "domain/topic" (e.g., "nlp/language_models"). 13 domains: nlp, vision, ml, multimodal, infra, business, regulation, robotics, audio, security, science, dev + "ml/general" fallback
 date_estimated                   — RSS/스크래핑에서 날짜 추출 실패 시 true (수집 시점으로 대체, UI에서 ~접두사 표시)
 ```
 

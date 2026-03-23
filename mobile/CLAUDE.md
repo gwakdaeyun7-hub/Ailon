@@ -9,8 +9,8 @@
 ### Tab 1: News Feed (index.tsx ~1460 lines)
 - **Highlights**: Hero card + 2x2 grid, top 1 article per category (3 total)
 - **Daily Briefing**: AI-generated 2-3 min briefing card with TTS playback (expo-speech)
-- **Categories**: Horizontal scroll tabs (research / models_products / industry_business), Top 20 per category
-- **Sources**: 22 source sections, Korean sources (AI타임스, GeekNews, ZDNet AI, 요즘IT) in separate tabs
+- **Categories**: Horizontal scroll tab chips (research / models_products / industry_business), Top 20 per category. 섹션 헤더 텍스트 없이 탭 칩만 표시
+- **Sources**: 22 source sections, Korean sources (AI타임스, GeekNews, ZDNet AI, 요즘IT) in separate tabs. 섹션 헤더 텍스트 없이 구분선만 표시
 - **Article Card**: display_title, one_line, sections (소제목+내용 2-4개), why_important, background, tags, glossary, "Read Original" button (Linking.openURL). 요약 모달: F-Minimal 디자인 (소스 뱃지+날짜+카테고리, 세리프 제목, teal 배경 One Line 16pt, 소제목+내용 sections 15pt(배경 없음), 세리프 소제목 textSecondary, 태그 pill, 원문 버튼 textPrimary 테두리). 기존 Firestore key_points 데이터는 폴백 렌더링 지원
 - **Interactions**: Like/dislike (ReactionBar), comments (CommentSheet modal), share (ShareCard 이미지 캡처 + 텍스트 폴백), bookmark. 소셜 기능(좋아요 숫자, 댓글)은 Firestore feature flag(`app_config/social_features`)로 조건부 표시
 - **Glossary Highlighting**: Auto-detects terms in text, tap for definition popup (HighlightedText)
@@ -29,7 +29,7 @@
   - **definition_group 블록**: 연속 정의를 단일 컨테이너로 병합 (surface 배경, borderRadius 8, 항목 간 12dp gap). 단독 정의는 기존 DefinitionBlock 유지 (surface 배경)
   - 배경색 3-규칙: Teal(primaryLight)=수식, Beige(surface)=용어 정의(단독+그룹)+알고리즘 스텝, 없음=그 외
   - 수식 감지: LaTeX 명령, 그리스 문자, 수학 기호 패턴 (한글 25% 미만, 80자 이하), `latexToDisplay` 변환
-  - 용어 정의: "term - description" 패턴 (용어 1~40자) → beige 배경 + 볼드 용어명. 첫 번째 비공백 줄은 definition 매칭 스킵 (리드/서브타이틀 오인 방지)
+  - 용어 정의: "term - description" 패턴 (용어 1~60자) → beige 배경 + 볼드 용어명. 첫 번째 비공백 줄은 definition 매칭 스킵 (리드/서브타이틀 오인 방지)
   - 볼드 서브헤딩: 줄 전체가 `**텍스트:**` 또는 `**텍스트**` 패턴이면 subheading 블록으로 처리 (heading과 별도 타이포그래피)
   - 알고리즘 스텝: 연속 번호 리스트(1. 2. 3.)를 그룹화 → beige 배경 컨테이너
   - 강조 문장: ! 느낌표 종료 → 배경 없이 굵은 텍스트
@@ -77,7 +77,7 @@
 - **HighlightedText**: Auto glossary term detection + definition modal
 - **RelatedArticlesSection**: Horizontal card carousel (entity/cluster matching)
 - **TimelineSection**: Vertical timeline with past article links
-- **DailyBriefingCard**: 접힌 상태(TTS + 기사 수 텍스트) / 펼친 상태(도메인 도넛 차트 + 태그 클라우드 + 연구 기사 7일 스파크라인 + 브리핑 전문). 도넛 차트는 topic_cluster_id 기반 도메인 분포(Top 5 + Others) 표시, 7색 도메인 팔레트(NLP/Vision/ML/Robotics/Multimodal/Business/Others)
+- **DailyBriefingCard**: 접힌 상태(TTS + 기사 수 텍스트) / 펼친 상태(도메인 도넛 차트 + 태그 클라우드 + 연구 기사 7일 스파크라인 + 브리핑 전문). 도넛 차트는 topic_cluster_id 기반 도메인 분포(Top 5 + Others) 표시, 도메인 팔레트(NLP/Vision/ML/Robotics/Multimodal/Business/Infra/Regulation/Audio/Security/Science/Dev/Others)
 - **ShareCard**: 오프스크린 렌더링 → react-native-view-shot 캡처 → expo-sharing 공유. 텍스트 폴백 내장
 - **PersonalizedFeed**: Scoring based on like history (category +3, tag +2)
 - **SideDrawer**: Animated left panel (82% width, max 320px)
@@ -111,10 +111,12 @@
 ### Styling
 - **NativeWind** (TailwindCSS for RN) with dark-first theme
 - **colors.ts**: Light (beige/cream) / Dark (teal/cyan accent), 50+ color tokens
-- **theme.ts**: Spacing, font sizes, radius, card shadow, Lora serif font, MIN_TOUCH_TARGET=44
+- **theme.ts**: Spacing, font sizes, all radius=0 (pixel art/brutalist), cardShadow 제거(elevation 0), pixelShadow(offset 3px), Lora serif font + 4 pixel fonts, MIN_TOUCH_TARGET=44
+- **Pixel Fonts**: `pixel: 'PressStart2P_400Regular'` (EN headings), `pixelBody: 'Silkscreen_400Regular'` (EN small), `pixelBold: 'Silkscreen_700Bold'` (EN bold small), `pixelKo: 'DotGothic16_400Regular'` (KO pixel)
 - Primary: Teal (#0D7377 light, #14B8A6 dark), Accent: Orange (#B45309 light, #F59E0B dark)
 
 ### Design Principles
+- **Pixel Art / Brutalist** — borderRadius 전부 0, borderWidth 2px flat borders, cardShadow 제거 (그림자 없음), pixelShadow(offset 3) 선택적 사용. 모든 컴포넌트에 적용
 - **깔끔, 간단하게** — 불필요한 장식 요소, 과도한 애니메이션, 복잡한 중첩 레이아웃 지양. 콘텐츠가 곧 디자인
 - **AI가 만든 티를 내지 않기** — 그라데이션 남발, 뉴모피즘, 글로우 이펙트, 과도한 아이콘 장식 등 제네릭 AI 앱 패턴 금지
 - **가독성 > 장식** — 타이포그래피 계층(크기·굵기·색상)으로 정보 구조를 만들 것. 배경색·보더·그림자는 최소한으로
