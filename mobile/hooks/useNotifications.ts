@@ -6,10 +6,10 @@
  * - 로그아웃 시 토큰 삭제
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import { doc, setDoc, updateDoc, deleteField } from 'firebase/firestore';
-import { useRouter } from 'expo-router';
+import { useRouter, usePathname } from 'expo-router';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -109,7 +109,17 @@ function handleNotificationNavigation(
 export function useNotifications() {
   const { user } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const prevUidRef = useRef<string | null>(null);
+  const [isRouterReady, setIsRouterReady] = useState(false);
+  const lastProcessedId = useRef<string | null>(null);
+
+  // pathname이 존재하면 라우터가 마운트 완료된 것
+  useEffect(() => {
+    if (pathname && !isRouterReady) {
+      setIsRouterReady(true);
+    }
+  }, [pathname, isRouterReady]);
 
   // 토큰 등록 / 로그아웃 시 삭제
   useEffect(() => {
@@ -126,18 +136,23 @@ export function useNotifications() {
   useEffect(() => {
     if (!Notifications) return;
     const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+      const id = response.notification.request.identifier;
+      if (lastProcessedId.current === id) return;
+      lastProcessedId.current = id;
       handleNotificationNavigation(response, (path) => router.push(path as any));
     });
     return () => sub.remove();
   }, [router]);
 
-  // 콜드 스타트 처리
+  // 콜드 스타트 처리 — 라우터 준비 후 실행
   useEffect(() => {
-    if (!Notifications) return;
+    if (!Notifications || !isRouterReady) return;
     Notifications.getLastNotificationResponseAsync().then((response) => {
-      if (response) {
-        handleNotificationNavigation(response, (path) => router.push(path as any));
-      }
+      if (!response) return;
+      const id = response.notification.request.identifier;
+      if (lastProcessedId.current === id) return;
+      lastProcessedId.current = id;
+      handleNotificationNavigation(response, (path) => router.push(path as any));
     });
-  }, [router]);
+  }, [router, isRouterReady]);
 }

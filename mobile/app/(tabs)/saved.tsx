@@ -27,6 +27,7 @@ import type { Bookmark as BookmarkType, Article } from '@/lib/types';
 import { CommentSheet } from '@/components/shared/CommentSheet';
 import { ShareCard } from '@/components/feed/ShareCard';
 import { useShareImage } from '@/hooks/useShareImage';
+import { useFeatureFlags } from '@/hooks/useFeatureFlags';
 import { HighlightedText } from '@/components/shared/HighlightedText';
 import { RelatedArticlesSection } from '@/components/shared/RelatedArticlesSection';
 import {
@@ -152,6 +153,7 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
   const { lang, t } = useLanguage();
   const { colors } = useTheme();
   const { user } = useAuth();
+  const { showComments } = useFeatureFlags();
   const { isBookmarked, toggleBookmark } = useBookmarks(user?.uid ?? null);
   const { shareCardRef, shareAsImage, isCapturing } = useShareImage();
   const { likes, liked, toggleLike } = useReactions('news', article.link);
@@ -512,14 +514,16 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
             >
               <Heart size={22} color={liked ? colors.likeActiveColor : colors.textDim} fill={liked ? colors.likeActiveColor : 'none'} />
             </Pressable>
-            <Pressable
-              onPress={onOpenComments}
-              accessibilityLabel={t('modal.comment')}
-              accessibilityRole="button"
-              style={{ flex: 1, alignItems: 'center', paddingVertical: 14 }}
-            >
-              <MessageCircle size={22} color={colors.textDim} />
-            </Pressable>
+            {showComments && (
+              <Pressable
+                onPress={onOpenComments}
+                accessibilityLabel={t('modal.comment')}
+                accessibilityRole="button"
+                style={{ flex: 1, alignItems: 'center', paddingVertical: 14 }}
+              >
+                <MessageCircle size={22} color={colors.textDim} />
+              </Pressable>
+            )}
             <Pressable
               onPress={handleShare}
               disabled={isCapturing}
@@ -627,6 +631,7 @@ export default function SavedScreen() {
   const { lang, t } = useLanguage();
   const { colors } = useTheme();
   const typeConfig = useTypeConfig(colors);
+  const { showComments } = useFeatureFlags();
 
   const [selectedBookmark, setSelectedBookmark] = useState<BookmarkType | null>(null);
   const [commentArticleLink, setCommentArticleLink] = useState<string | null>(null);
@@ -752,12 +757,14 @@ export default function SavedScreen() {
       />
 
       {/* 댓글 시트 */}
-      <CommentSheet
-        visible={!!commentArticleLink}
-        onClose={handleCommentClose}
-        itemType="news"
-        itemId={commentArticleLink ?? ''}
-      />
+      {showComments && (
+        <CommentSheet
+          visible={!!commentArticleLink}
+          onClose={handleCommentClose}
+          itemType="news"
+          itemId={commentArticleLink ?? ''}
+        />
+      )}
     </SafeAreaView>
   );
 }

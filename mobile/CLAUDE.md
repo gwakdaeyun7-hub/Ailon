@@ -12,7 +12,7 @@
 - **Categories**: Horizontal scroll tabs (research / models_products / industry_business), Top 20 per category
 - **Sources**: 22 source sections, Korean sources (AI타임스, GeekNews, ZDNet AI, 요즘IT) in separate tabs
 - **Article Card**: display_title, one_line, sections (소제목+내용 2-4개), why_important, background, tags, glossary, "Read Original" button (Linking.openURL). 요약 모달: F-Minimal 디자인 (소스 뱃지+날짜+카테고리, 세리프 제목, teal 배경 One Line 16pt, 소제목+내용 sections 15pt(배경 없음), 세리프 소제목 textSecondary, 태그 pill, 원문 버튼 textPrimary 테두리). 기존 Firestore key_points 데이터는 폴백 렌더링 지원
-- **Interactions**: Like/dislike (ReactionBar), comments (CommentSheet modal), share (ShareCard 이미지 캡처 + 텍스트 폴백), bookmark
+- **Interactions**: Like/dislike (ReactionBar), comments (CommentSheet modal), share (ShareCard 이미지 캡처 + 텍스트 폴백), bookmark. 소셜 기능(좋아요 숫자, 댓글)은 Firestore feature flag(`app_config/social_features`)로 조건부 표시
 - **Glossary Highlighting**: Auto-detects terms in text, tap for definition popup (HighlightedText)
 - **Related Articles**: Horizontal carousel in summary modal (RelatedArticlesSection)
 - **Timeline**: Vertical timeline of past coverage (TimelineSection)
@@ -97,10 +97,11 @@
 | useBatchStats | Multiple collections | Batch fetch likes/views/comments for feed cards |
 | useBriefing | `daily_briefings/{date}` | AI briefing text + story count |
 | useGlossaryDB | `glossary_terms` | Term search (max 200 terms) |
-| useNotifications | `users/{uid}` | Expo + FCM token registration, Android channels (news/social) |
+| useNotifications | `users/{uid}` | Expo + FCM token registration, Android channels (news/social) + cold start router readiness detection |
 | useNotificationSettings | `users/{uid}/preferences` | Per-type notification toggles |
 | useReportComment | `reports`, `comments/{docId}/entries` | Comment reporting with dedup + reportCount increment |
 | useShareImage | react-native-view-shot + expo-sharing | ShareCard 캡처 → 이미지 공유 (실패 시 텍스트 폴백) |
+| useFeatureFlags | `app_config/social_features` | Social feature flags (like counts, comments visibility) |
 
 ### Contexts
 - **LanguageContext**: KO/EN toggle, `t(key)` translation function, AsyncStorage persist

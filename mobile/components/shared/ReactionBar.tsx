@@ -4,6 +4,7 @@ import { Heart, MessageCircle, Share2 } from 'lucide-react-native';
 import { useReactions, type ItemType } from '@/hooks/useReactions';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
+import { useFeatureFlags } from '@/hooks/useFeatureFlags';
 import { CommentSheet } from '@/components/shared/CommentSheet';
 
 interface ReactionBarProps {
@@ -18,6 +19,7 @@ export function ReactionBar({ itemType, itemId, shareText, shareTitle }: Reactio
   const [commentOpen, setCommentOpen] = useState(false);
   const { t } = useLanguage();
   const { colors } = useTheme();
+  const { showLikeCounts, showComments } = useFeatureFlags();
 
   const handleShare = () => {
     Share.share({
@@ -56,7 +58,7 @@ export function ReactionBar({ itemType, itemId, shareText, shareTitle }: Reactio
             color={liked ? colors.primary : colors.textDim}
             fill={liked ? colors.primary : 'none'}
           />
-          {likes > 0 && (
+          {showLikeCounts && likes > 0 && (
             <Text
               style={{
                 color: liked ? colors.primary : colors.textDim,
@@ -70,21 +72,23 @@ export function ReactionBar({ itemType, itemId, shareText, shareTitle }: Reactio
         </Pressable>
 
         {/* Comment */}
-        <Pressable
-          onPress={() => setCommentOpen(true)}
-          accessibilityLabel={t('reaction.comment')}
-          accessibilityRole="button"
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 5,
-            paddingHorizontal: 12,
-            paddingVertical: 12,
-          }}
-        >
-          <MessageCircle size={15} color={colors.textDim} />
-          <Text style={{ color: colors.textDim, fontSize: 12, fontWeight: '600' }}>{t('reaction.comment')}</Text>
-        </Pressable>
+        {showComments && (
+          <Pressable
+            onPress={() => setCommentOpen(true)}
+            accessibilityLabel={t('reaction.comment')}
+            accessibilityRole="button"
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 5,
+              paddingHorizontal: 12,
+              paddingVertical: 12,
+            }}
+          >
+            <MessageCircle size={15} color={colors.textDim} />
+            <Text style={{ color: colors.textDim, fontSize: 12, fontWeight: '600' }}>{t('reaction.comment')}</Text>
+          </Pressable>
+        )}
 
         {/* Share */}
         <Pressable
@@ -104,12 +108,14 @@ export function ReactionBar({ itemType, itemId, shareText, shareTitle }: Reactio
         </Pressable>
       </View>
 
-      <CommentSheet
-        visible={commentOpen}
-        onClose={() => setCommentOpen(false)}
-        itemType={itemType}
-        itemId={itemId}
-      />
+      {showComments && (
+        <CommentSheet
+          visible={commentOpen}
+          onClose={() => setCommentOpen(false)}
+          itemType={itemType}
+          itemId={itemId}
+        />
+      )}
     </>
   );
 }

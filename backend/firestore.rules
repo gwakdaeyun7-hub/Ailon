@@ -12,6 +12,12 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
+    // App config (feature flags) - 인증된 사용자 읽기, 쓰기는 서버(admin)만
+    match /app_config/{configId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+
     // Daily news collection - 모두 읽기 가능
     match /daily_news/{date} {
       allow read: if true; // 누구나 읽기 가능

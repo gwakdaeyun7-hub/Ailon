@@ -22,7 +22,7 @@ import { Image } from 'expo-image';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import {
-  Bell, RefreshCw, ThumbsUp, Eye, Share2, MessageCircle, X, Cpu, Newspaper, Bookmark, ChevronDown, Heart, ExternalLink,
+  RefreshCw, ThumbsUp, Share2, MessageCircle, X, Cpu, Newspaper, Bookmark, ChevronDown, Heart, ExternalLink,
 } from 'lucide-react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNews } from '@/hooks/useNews';
@@ -58,10 +58,8 @@ import { RelatedArticlesSection } from '@/components/shared/RelatedArticlesSecti
 import { HighlightedText, termKey } from '@/components/shared/HighlightedText';
 import { PersonalizedFeed } from '@/components/feed/PersonalizedFeed';
 import { useGlossaryDB } from '@/hooks/useGlossaryDB';
+import { useFeatureFlags } from '@/hooks/useFeatureFlags';
 
-// expo-notifications (optional dependency) — 이슈 #25: any 타입 수정
-let Notifications: typeof import('expo-notifications') | null = null;
-try { Notifications = require('expo-notifications'); } catch {}
 
 // ─── 빈 배열 상수 (이슈 #17: 인라인 리터럴 참조 안정성) ────────────────
 const EMPTY_ARTICLES: Article[] = [];
@@ -85,32 +83,17 @@ const TitleText = React.memo(function TitleText({ children, style, numberOfLines
 });
 
 // ─── 좋아요+뷰 카운트 (정적 — 피드 카드에서 리스너 폭발 방지) ──────────
-const ArticleStats = React.memo(function ArticleStats({ likes, views, comments }: { likes?: number; views?: number; comments?: number }) {
+const ArticleStats = React.memo(function ArticleStats({ likes }: { likes?: number }) {
   const { colors } = useTheme();
+  const { showLikeCounts } = useFeatureFlags();
   const l = likes ?? 0;
-  const c = comments ?? 0;
-  const v = views ?? 0;
-  if (l === 0 && c === 0 && v === 0) return null;
+  if (!showLikeCounts || l < 3) return null;
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-      {l > 0 && (
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-          <ThumbsUp size={12} color={colors.textSecondary} />
-          <Text style={{ fontSize: 11, color: colors.textSecondary, fontWeight: '600' }}>{l}</Text>
-        </View>
-      )}
-      {c > 0 && (
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-          <MessageCircle size={12} color={colors.textSecondary} />
-          <Text style={{ fontSize: 11, color: colors.textSecondary, fontWeight: '600' }}>{c}</Text>
-        </View>
-      )}
-      {v > 0 && (
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-          <Eye size={12} color={colors.textSecondary} />
-          <Text style={{ fontSize: 11, color: colors.textSecondary, fontWeight: '600' }}>{v}</Text>
-        </View>
-      )}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+        <ThumbsUp size={12} color={colors.textSecondary} />
+        <Text style={{ fontSize: 11, color: colors.textSecondary, fontWeight: '600' }}>{l}</Text>
+      </View>
     </View>
   );
 });
@@ -211,7 +194,7 @@ const HighlightScrollCard = React.memo(function HighlightScrollCard({
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             <Text style={{ fontSize: 11, color: colors.textSecondary }}>{formatDate(article.published, lang, article.date_estimated)}</Text>
           </View>
-          <ArticleStats likes={likes} views={views} comments={comments} />
+          <ArticleStats likes={likes} />
         </View>
       </View>
     </Pressable>
@@ -225,6 +208,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
   const { lang, t } = useLanguage();
   const { colors } = useTheme();
   const { user } = useAuth();
+  const { showComments } = useFeatureFlags();
   const { isBookmarked, toggleBookmark } = useBookmarks(user?.uid ?? null);
   const { shareCardRef, shareAsImage, isCapturing } = useShareImage();
   // 이슈 #18: viewTracked 중복 호출 수정 — link 기반 추적
@@ -594,14 +578,16 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
             >
               <Heart size={22} color={liked ? colors.likeActiveColor : colors.textDim} fill={liked ? colors.likeActiveColor : 'none'} />
             </Pressable>
-            <Pressable
-              onPress={onOpenComments}
-              accessibilityLabel={t('modal.comment')}
-              accessibilityRole="button"
-              style={{ flex: 1, alignItems: 'center', paddingVertical: 14 }}
-            >
-              <MessageCircle size={22} color={colors.textDim} />
-            </Pressable>
+            {showComments && (
+              <Pressable
+                onPress={onOpenComments}
+                accessibilityLabel={t('modal.comment')}
+                accessibilityRole="button"
+                style={{ flex: 1, alignItems: 'center', paddingVertical: 14 }}
+              >
+                <MessageCircle size={22} color={colors.textDim} />
+              </Pressable>
+            )}
             <Pressable
               onPress={handleShare}
               disabled={isCapturing}
@@ -743,7 +729,7 @@ const HScrollCard = React.memo(function HScrollCard({
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             <Text style={{ fontSize: 11, color: colors.textSecondary }}>{formatDate(article.published, lang, article.date_estimated)}</Text>
           </View>
-          <ArticleStats likes={likes} views={views} comments={comments} />
+          <ArticleStats likes={likes} />
         </View>
       </View>
     </Pressable>
@@ -885,7 +871,7 @@ function CategoryTabSection({
                     </View>
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                       <Text style={{ fontSize: 11, color: colors.textSecondary }}>{formatDate(a.published, lang, a.date_estimated)}</Text>
-                      <ArticleStats likes={allStats[a.link]?.likes} views={allStats[a.link]?.views} comments={allStats[a.link]?.comments} />
+                      <ArticleStats likes={allStats[a.link]?.likes} />
                     </View>
                   </View>
                 </View>
@@ -945,7 +931,7 @@ function CategoryTabSection({
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                       <Text style={{ fontSize: 11, color: colors.textSecondary }}>{formatDate(a.published, lang, a.date_estimated)}</Text>
                     </View>
-                    <ArticleStats likes={stats[a.link]?.likes} views={stats[a.link]?.views} comments={stats[a.link]?.comments} />
+                    <ArticleStats likes={stats[a.link]?.likes} />
                   </View>
                 </View>
               </View>
@@ -1005,7 +991,7 @@ const SourceHScrollSection = React.memo(function SourceHScrollSection({
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 4, gap: 16 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 4, gap: 16, alignItems: 'center' }}
       >
         {visible.map((a, i) => (
           <HScrollCard
@@ -1025,7 +1011,7 @@ const SourceHScrollSection = React.memo(function SourceHScrollSection({
             accessibilityLabel={`${name} ${t('news.show_more')} ${more5.length}`}
             style={({ pressed }) => ({
               width: 80,
-              alignSelf: 'stretch',
+              alignSelf: 'center',
               minHeight: 44,
               marginRight: 12,
               backgroundColor: colors.border,
@@ -1035,12 +1021,8 @@ const SourceHScrollSection = React.memo(function SourceHScrollSection({
               opacity: pressed ? 0.7 : 1,
             })}
           >
-            <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} style={{ marginBottom: 4 }} />
-            <Text style={{ fontSize: 14, fontWeight: '700', color: colors.textPrimary, textAlign: 'center' }}>
-              +{more5.length}
-            </Text>
-            <Text style={{ fontSize: 11, fontWeight: '500', color: colors.textSecondary, textAlign: 'center' }}>
-              {t('news.show_more')}
+            <Text style={{ fontSize: 13, fontWeight: '600', color: colors.textSecondary, textAlign: 'center' }}>
+              +{more5.length} {t('news.show_more')}
             </Text>
           </Pressable>
         )}
@@ -1104,7 +1086,7 @@ const GeekNewsSection = React.memo(function GeekNewsSection({ articles, onArticl
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
               <Text style={{ fontSize: 11, color: colors.textSecondary }}>{formatDate(a.published, lang, a.date_estimated)}</Text>
-              <ArticleStats likes={stats[a.link]?.likes} views={stats[a.link]?.views} comments={stats[a.link]?.comments} />
+              <ArticleStats likes={stats[a.link]?.likes} />
             </View>
           </Pressable>
         ))}
@@ -1144,11 +1126,6 @@ function sortByDateThenScore(articles: Article[]) {
   });
 }
 
-interface DeliveredNotification {
-  request?: { identifier?: string; content?: { title?: string; body?: string } };
-  date?: number;
-}
-
 // ─── Timestamp 처리 (이슈 #26) ──────────────────────────────────────────
 const getUpdatedTime = (ua: any) => {
   if (!ua) return null;
@@ -1163,14 +1140,13 @@ export default function NewsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [modalArticle, setModalArticle] = useState<Article | null>(null);
   const [commentArticleLink, setCommentArticleLink] = useState<string | null>(null);
-  const [notifModalVisible, setNotifModalVisible] = useState(false);
-  const [notifications, setNotifications] = useState<DeliveredNotification[]>([]);
 
   const mainScrollRef = useRef<ScrollViewType>(null);
   const { openDrawer, setActiveTab } = useDrawer();
   const { lang, t } = useLanguage();
   const { colors, isDark } = useTheme();
   const { newsData, loading, error, refresh } = useNews();
+  const { showComments } = useFeatureFlags();
 
   const handleArticlePress = useCallback((article: Article) => {
     setModalArticle(article);
@@ -1192,21 +1168,6 @@ export default function NewsScreen() {
     }, [setActiveTab])
   );
 
-  const openNotifications = useCallback(async () => {
-    try {
-      if (Notifications) {
-        const delivered = await Notifications.getPresentedNotificationsAsync();
-        setNotifications(delivered.sort((a: any, b: any) =>
-          (b.date ?? 0) - (a.date ?? 0)
-        ) as DeliveredNotification[]);
-      } else {
-        setNotifications([]);
-      }
-    } catch {
-      setNotifications([]);
-    }
-    setNotifModalVisible(true);
-  }, []);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -1302,9 +1263,6 @@ export default function NewsScreen() {
             </Text>
           )}
         </View>
-        <Pressable onPress={openNotifications} accessibilityLabel={t('notification.title')} accessibilityRole="button" style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
-          <Bell size={22} color={colors.textSecondary} />
-        </Pressable>
       </View>
 
       <ScrollView
@@ -1402,55 +1360,15 @@ export default function NewsScreen() {
 
 
       {/* 댓글 시트 (모달과 같은 레벨) */}
-      <CommentSheet
-        visible={!!commentArticleLink}
-        onClose={handleCommentClose}
-        itemType="news"
-        itemId={commentArticleLink ?? ''}
-      />
+      {showComments && (
+        <CommentSheet
+          visible={!!commentArticleLink}
+          onClose={handleCommentClose}
+          itemType="news"
+          itemId={commentArticleLink ?? ''}
+        />
+      )}
 
-      {/* 알림 내역 모달 */}
-      <Modal visible={notifModalVisible} animationType="slide" transparent onRequestClose={() => setNotifModalVisible(false)}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <Pressable style={{ flex: 0.15 }} onPress={() => setNotifModalVisible(false)} />
-          <View style={{ flex: 0.85, backgroundColor: colors.bg, borderTopLeftRadius: 20, borderTopRightRadius: 20, overflow: 'hidden' }} accessibilityViewIsModal={true}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-              <Bell size={20} color={colors.textPrimary} />
-              <Text style={{ flex: 1, fontSize: 17, fontWeight: '700', color: colors.textPrimary, marginLeft: 8 }}>{t('notification.title')}</Text>
-              <Pressable onPress={() => setNotifModalVisible(false)} accessibilityLabel={t('modal.close')} accessibilityRole="button" style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
-                <X size={20} color={colors.textSecondary} />
-              </Pressable>
-            </View>
-            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
-              {notifications.length === 0 ? (
-                <View style={{ alignItems: 'center', paddingTop: 60 }}>
-                  <Bell size={48} color={colors.textSecondary} />
-                  <Text style={{ color: colors.textSecondary, fontSize: 15, marginTop: 16 }}>{t('notification.empty')}</Text>
-                </View>
-              ) : (
-                notifications.map((n, i) => (
-                  <View key={n.request?.identifier ?? i} style={{
-                    backgroundColor: colors.card, borderRadius: 12, padding: 14, marginBottom: 10,
-                    borderWidth: 1, borderColor: colors.border,
-                  }}>
-                    <Text style={{ fontSize: 15, fontWeight: '600', color: colors.textPrimary }} numberOfLines={2}>
-                      {n.request?.content?.title ?? 'AILON'}
-                    </Text>
-                    <Text style={{ fontSize: 13, color: colors.textSecondary, marginTop: 4 }} numberOfLines={3}>
-                      {n.request?.content?.body ?? ''}
-                    </Text>
-                    {n.date ? (
-                      <Text style={{ fontSize: 11, color: colors.textSecondary, marginTop: 6 }}>
-                        {new Date(n.date).toLocaleDateString(lang === 'en' ? 'en-US' : 'ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                      </Text>
-                    ) : null}
-                  </View>
-                ))
-              )}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
     </SafeAreaView>
   );
 }

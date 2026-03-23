@@ -135,6 +135,7 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 | `comments/{docId}/entries` | subcollection | Threaded comments |
 | `article_views/{docId}` | 1 doc/article | View counter |
 | `reports/{reportId}` | 1 doc/report | commentId, docId, reporterUid, authorUid, reason, commentText, status (pending/resolved/dismissed) |
+| `app_config/{configId}` | 1 doc/config | Feature flags (social_features: show_like_counts, show_comments, like_count_threshold) |
 
 ### GitHub Actions (.github/workflows/collect-news.yml)
 - Schedule: 6AM + 6PM KST daily
