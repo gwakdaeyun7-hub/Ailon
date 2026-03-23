@@ -227,6 +227,9 @@ const translations: Record<string, Record<Language, string>> = {
   'domain.Business': { ko: '비즈니스', en: 'Business' },
   'domain.Regulation': { ko: '규제·안전', en: 'Regulation' },
   'domain.Audio': { ko: '오디오', en: 'Audio' },
+  'domain.Security': { ko: '보안', en: 'Security' },
+  'domain.Science': { ko: '과학·의료', en: 'Science' },
+  'domain.Dev': { ko: '개발도구', en: 'Dev Tools' },
   'domain.Others': { ko: '기타', en: 'Others' },
 
 

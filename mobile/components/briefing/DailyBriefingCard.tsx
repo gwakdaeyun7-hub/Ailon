@@ -26,6 +26,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useBriefing } from '@/hooks/useBriefing';
 import { useNews } from '@/hooks/useNews';
+import { FontFamily } from '@/lib/theme';
 import type { Article } from '@/lib/types';
 
 // Android LayoutAnimation
@@ -47,20 +48,38 @@ const DOMAIN_COLOR_KEYS: Record<string, string> = {
   Business: 'domainBusiness',
   Regulation: 'domainBusiness', // reuse indigo
   Audio: 'domainMultimodal', // reuse rose
+  Security: 'domainSecurity',
+  Science: 'domainScience',
+  Dev: 'domainDev',
   Others: 'domainOthers',
 };
 
 // ── Domain aliases for client-side fallback ──
 const DOMAIN_ALIASES: Record<string, string> = {
   nlp: 'NLP', language: 'NLP', text: 'NLP',
+  search: 'NLP', chatbot: 'NLP', rag: 'NLP', translation: 'NLP',
   vision: 'Vision', image: 'Vision', video: 'Vision',
+  visual: 'Vision', '3d': 'Vision',
   ml: 'ML', training: 'ML', optimization: 'ML', machine_learning: 'ML',
-  robotics: 'Robotics', autonomous: 'Robotics', embodied: 'Robotics',
+  data: 'ML', analytics: 'ML', benchmark: 'ML', evaluation: 'ML',
   multimodal: 'Multimodal', agents: 'Multimodal',
+  creative: 'Multimodal', generative: 'Multimodal', gaming: 'Multimodal',
   infra: 'Infra', compute: 'Infra', hardware: 'Infra',
+  cloud: 'Infra', chip: 'Infra', edge: 'Infra', mobile: 'Infra',
   business: 'Business', funding: 'Business',
+  startup: 'Business', enterprise: 'Business', education: 'Business',
   regulation: 'Regulation', policy: 'Regulation', safety: 'Regulation',
-  audio: 'Audio', speech: 'Audio',
+  ethics: 'Regulation', copyright: 'Regulation', governance: 'Regulation',
+  robotics: 'Robotics', autonomous: 'Robotics', embodied: 'Robotics',
+  drone: 'Robotics',
+  audio: 'Audio', speech: 'Audio', music: 'Audio', voice: 'Audio',
+  security: 'Security', cyber: 'Security', privacy: 'Security',
+  adversarial: 'Security', surveillance: 'Security',
+  science: 'Science', healthcare: 'Science', health: 'Science',
+  medical: 'Science', drug: 'Science', bio: 'Science', biotech: 'Science',
+  climate: 'Science', protein: 'Science', materials: 'Science',
+  dev: 'Dev', coding: 'Dev', devops: 'Dev',
+  software: 'Dev', code: 'Dev', testing: 'Dev',
 };
 
 type DomainStat = { domain: string; count: number };
@@ -146,11 +165,12 @@ const SectionTitle = React.memo(function SectionTitle({
       {Icon && <Icon size={14} color={color} />}
       <Text
         style={{
-          fontSize: 12,
+          fontSize: 8,
           fontWeight: '600',
           color,
           textTransform: 'uppercase',
           letterSpacing: 0.5,
+          fontFamily: FontFamily.pixel,
         }}
       >
         {title}
@@ -435,7 +455,9 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
           <View
             style={{
               backgroundColor: colors.primaryLight,
-              borderRadius: 16,
+              borderRadius: 0,
+              borderWidth: 2,
+              borderColor: colors.border,
               paddingHorizontal: 16,
               paddingVertical: 14,
               flexDirection: 'row',
@@ -457,7 +479,7 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
                 style={{
                   width: 36,
                   height: 36,
-                  borderRadius: 18,
+                  borderRadius: 0,
                   backgroundColor: speaking
                     ? colors.primary + '30'
                     : colors.primary + '15',
@@ -479,9 +501,10 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <Text
                   style={{
-                    fontSize: 14,
+                    fontSize: 8,
                     fontWeight: '700',
                     color: colors.textPrimary,
+                    fontFamily: FontFamily.pixel,
                   }}
                 >
                   {t('briefing.title')}
@@ -508,9 +531,9 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
     <View ref={cardRef} style={{ marginHorizontal: 16, marginTop: 12, marginBottom: 12 }}>
       <View
         style={{
-          borderRadius: 16,
+          borderRadius: 0,
           overflow: 'hidden',
-          borderWidth: 1,
+          borderWidth: 2,
           borderColor: colors.primaryBorder,
         }}
       >
@@ -567,7 +590,7 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
                   style={{
                     width: 36,
                     height: 36,
-                    borderRadius: 18,
+                    borderRadius: 0,
                     backgroundColor: speaking
                       ? colors.primary + '30'
                       : colors.primary + '15',
@@ -592,7 +615,7 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
                 style={{
                   width: 36,
                   height: 36,
-                  borderRadius: 18,
+                  borderRadius: 0,
                   backgroundColor: colors.primary + '15',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -622,7 +645,9 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
                   flexDirection: 'row',
                   alignItems: 'center',
                   backgroundColor: colors.glossaryBg,
-                  borderRadius: 14,
+                  borderRadius: 0,
+                  borderWidth: 2,
+                  borderColor: colors.border,
                   padding: 16,
                 }}
               >
@@ -650,7 +675,7 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
                           style={{
                             width: 10,
                             height: 10,
-                            borderRadius: 3,
+                            borderRadius: 0,
                             backgroundColor: domainColorMap[item.domain] ?? domainColorMap['Others'],
                             marginRight: 8,
                           }}
@@ -700,8 +725,8 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
                       style={{
                         paddingHorizontal: 12,
                         paddingVertical: 6,
-                        borderRadius: 14,
-                        borderWidth: 1,
+                        borderRadius: 0,
+                        borderWidth: 2,
                         borderColor: isHot ? colors.primary + '60' : colors.border,
                         backgroundColor: isHot
                           ? colors.primary + '15'
@@ -736,7 +761,9 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
               <View
                 style={{
                   backgroundColor: colors.glossaryBg,
-                  borderRadius: 14,
+                  borderRadius: 0,
+                  borderWidth: 2,
+                  borderColor: colors.border,
                   padding: 12,
                   alignItems: 'center',
                 }}
@@ -760,7 +787,9 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
               <View
                 style={{
                   backgroundColor: colors.glossaryBg,
-                  borderRadius: 12,
+                  borderRadius: 0,
+                  borderWidth: 2,
+                  borderColor: colors.border,
                   padding: 14,
                 }}
               >
@@ -788,7 +817,7 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
               alignItems: 'center',
               paddingHorizontal: 16,
               paddingVertical: 14,
-              borderRadius: 14,
+              borderRadius: 0,
               backgroundColor: colors.primary + '12',
               gap: 4,
             }}

@@ -2241,7 +2241,22 @@ _ENTITY_EXTRACT_PROMPT = """You are an AI news entity extractor. Given a list of
 Entity types (use ONLY these): "model", "company", "person", "technology", "concept", "dataset", "framework"
 
 topic_cluster_id format: "domain/specific_topic"
-Examples: "nlp/language_models", "vision/image_generation", "robotics/autonomous_driving", "ml/training_methods", "infra/compute", "business/funding", "regulation/policy", "audio/speech", "multimodal/agents"
+You MUST use one of these domains (left of /). The specific_topic (right of /) is free-form:
+
+nlp — language models, chatbots, translation, RAG, text generation, search
+vision — image recognition, generation, video, 3D, visual understanding
+ml — training methods, optimization, benchmarks, fine-tuning, data analytics, evaluation
+multimodal — multi-modal models, AI agents, creative/generative AI, gaming AI
+infra — chips, GPUs, cloud, edge/on-device, model compression, deployment
+business — funding, M&A, revenue, startups, strategy, hiring, education
+regulation — policy, safety, ethics, copyright, lawsuits, governance, bias
+robotics — autonomous driving, drones, humanoid robots, embodied AI
+audio — speech, TTS, music generation, voice AI
+security — cybersecurity, adversarial attacks, privacy, surveillance, AI threats
+science — healthcare AI, drug discovery, protein, climate, materials, biotech
+dev — coding assistants, DevOps, testing, software engineering, code generation
+
+If an article does not clearly fit any domain, use "ml/general".
 
 Articles:
 {article_text}
@@ -2252,7 +2267,7 @@ Return a JSON array with exactly {count} elements, one per article, in the same 
 Rules:
 - "index" must match the [N] number of each article
 - "entities": 1-5 most important entities per article. Use exact names as they appear.
-- "topic_cluster_id": one string in "domain/topic" format
+- "topic_cluster_id": one string in "domain/topic" format. domain MUST be from the list above.
 - Output ONLY the JSON array, no explanation
 """
 

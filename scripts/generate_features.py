@@ -255,15 +255,42 @@ Articles:
 
         # 도메인 통계 (topic_cluster_id 기반, highlights + categorized_articles)
         DOMAIN_ALIASES = {
+            # NLP
             "nlp": "NLP", "language": "NLP", "text": "NLP",
+            "search": "NLP", "chatbot": "NLP", "rag": "NLP", "translation": "NLP",
+            # Vision
             "vision": "Vision", "image": "Vision", "video": "Vision",
+            "visual": "Vision", "3d": "Vision",
+            # ML (+ data/analytics 흡수)
             "ml": "ML", "training": "ML", "optimization": "ML", "machine_learning": "ML",
-            "robotics": "Robotics", "autonomous": "Robotics", "embodied": "Robotics",
+            "data": "ML", "analytics": "ML", "benchmark": "ML", "evaluation": "ML",
+            # Multimodal (+ creative/gaming 흡수)
             "multimodal": "Multimodal", "agents": "Multimodal",
+            "creative": "Multimodal", "generative": "Multimodal", "gaming": "Multimodal",
+            # Infra (+ edge/mobile 흡수)
             "infra": "Infra", "compute": "Infra", "hardware": "Infra",
+            "cloud": "Infra", "chip": "Infra", "edge": "Infra", "mobile": "Infra",
+            # Business (+ education 흡수)
             "business": "Business", "funding": "Business",
+            "startup": "Business", "enterprise": "Business", "education": "Business",
+            # Regulation
             "regulation": "Regulation", "policy": "Regulation", "safety": "Regulation",
-            "audio": "Audio", "speech": "Audio",
+            "ethics": "Regulation", "copyright": "Regulation", "governance": "Regulation",
+            # Robotics
+            "robotics": "Robotics", "autonomous": "Robotics", "embodied": "Robotics",
+            "drone": "Robotics",
+            # Audio
+            "audio": "Audio", "speech": "Audio", "music": "Audio", "voice": "Audio",
+            # Security (신규)
+            "security": "Security", "cyber": "Security", "privacy": "Security",
+            "adversarial": "Security", "surveillance": "Security",
+            # Science (신규)
+            "science": "Science", "healthcare": "Science", "health": "Science",
+            "medical": "Science", "drug": "Science", "bio": "Science", "biotech": "Science",
+            "climate": "Science", "protein": "Science", "materials": "Science",
+            # Dev (신규)
+            "dev": "Dev", "coding": "Dev", "devops": "Dev",
+            "software": "Dev", "code": "Dev", "testing": "Dev",
         }
         domain_freq: dict[str, int] = {}
         domain_articles = list(highlights)
@@ -293,9 +320,14 @@ Articles:
         if others_count > 0:
             domain_stats.append({"domain": "Others", "count": others_count})
 
-        # Hot topics: 전체 기사 태그 빈도 Top 8 (KO + EN 합산, 소문자 기준 중복 제거)
+        # Hot topics: highlights + categorized_articles 태그 빈도 Top 8 (도넛 차트와 동일 풀, KO + EN 합산, 소문자 기준 중복 제거)
         tag_freq: dict[str, int] = {}
-        for art in all_articles:
+        seen_tag_links: set[str] = set()
+        for art in domain_articles:
+            link = art.get("link", "")
+            if link in seen_tag_links:
+                continue
+            seen_tag_links.add(link)
             for tag in (art.get("tags") or []):
                 t = tag.strip().lower()
                 if len(t) >= 2:
