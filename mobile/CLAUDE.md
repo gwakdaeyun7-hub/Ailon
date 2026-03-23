@@ -81,6 +81,7 @@
 - **ShareCard**: 오프스크린 렌더링 → react-native-view-shot 캡처 → expo-sharing 공유. 텍스트 폴백 내장
 - **PersonalizedFeed**: Scoring based on like history (category +3, tag +2)
 - **SideDrawer**: Animated left panel (82% width, max 320px)
+- **ShowMoreButton**: 더보기/접기 pill 버튼 (카테고리, GeekNews 세로 리스트 공용)
 
 ### Hooks
 | Hook | Data Source | Purpose |

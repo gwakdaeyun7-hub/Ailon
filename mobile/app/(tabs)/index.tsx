@@ -38,6 +38,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { NewsCardSkeleton } from '@/components/shared/LoadingSkeleton';
 import { CommentSheet } from '@/components/shared/CommentSheet';
 import { ShareCard } from '@/components/feed/ShareCard';
+import { ShowMoreButton } from '@/components/feed/ShowMoreButton';
 import { useShareImage } from '@/hooks/useShareImage';
 import type { Article } from '@/lib/types';
 import { Colors } from '@/lib/colors';
@@ -951,7 +952,10 @@ function CategoryTabSection({
       </View>}
 
       {activeTab !== '_personalized' && totalCount > BATCH_SIZE && (
-        <Pressable
+        <ShowMoreButton
+          shownCount={shownCount}
+          totalCount={totalCount}
+          isExpanded={isFullyExpanded}
           onPress={() => {
             if (isFullyExpanded) {
               setExpandLevel(0);
@@ -962,28 +966,14 @@ function CategoryTabSection({
               setExpandLevel(prev => Math.min(prev + 1, maxLevel));
             }
           }}
-          accessibilityLabel={isFullyExpanded ? t('news.collapse') : `${t('news.show_more')} ${shownCount}/${totalCount}`}
-          accessibilityRole="button"
-          style={{ alignItems: 'center', paddingVertical: 14, minHeight: 44, justifyContent: 'center' }}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Text style={{ fontSize: 13, fontWeight: '600', color: colors.primary }}>
-              {isFullyExpanded ? t('news.collapse') : `${t('news.show_more')} (${shownCount}/${totalCount})`}
-            </Text>
-            <Ionicons
-              name={isFullyExpanded ? 'chevron-up' : 'chevron-down'}
-              size={14}
-              color={colors.primary}
-            />
-          </View>
-        </Pressable>
+        />
       )}
     </View>
   );
 }
 
 // ─── Section 3: 소스별 가로 스크롤 (한국 소스) ──────────────────────────
-function SourceHScrollSection({
+const SourceHScrollSection = React.memo(function SourceHScrollSection({
   sourceKey, articles, onArticlePress, allStats,
 }: {
   sourceKey: string; articles: Article[]; onArticlePress: (article: Article) => void; allStats: Record<string, BatchStats>;
@@ -996,11 +986,10 @@ function SourceHScrollSection({
   if (!articles || articles.length === 0) return null;
 
   const name = getSourceName(sourceKey, t);
-  const color = SOURCE_COLORS[sourceKey] || colors.textSecondary;
-  const capped = articles.slice(0, 10);
-  const first5 = capped.slice(0, 5);
-  const more5 = capped.slice(5);
-  const visible = showMore ? capped : first5;
+  const capped = useMemo(() => articles.slice(0, 10), [articles]);
+  const first5 = useMemo(() => capped.slice(0, 5), [capped]);
+  const more5 = useMemo(() => capped.slice(5), [capped]);
+  const visible = useMemo(() => showMore ? capped : first5, [showMore, capped, first5]);
 
   return (
     <View style={{ marginBottom: 24 }}>
@@ -1032,18 +1021,20 @@ function SourceHScrollSection({
             onPress={() => setShowMore(true)}
             accessibilityRole="button"
             accessibilityLabel={`${name} ${t('news.show_more')} ${more5.length}`}
-            style={{
+            style={({ pressed }) => ({
               width: 80,
               alignSelf: 'stretch',
+              minHeight: 44,
               marginRight: 12,
               backgroundColor: colors.border,
               borderRadius: 12,
               alignItems: 'center',
               justifyContent: 'center',
-            }}
+              opacity: pressed ? 0.7 : 1,
+            })}
           >
-            <Ionicons name="chevron-forward" size={20} color={colors.primary} style={{ marginBottom: 4 }} />
-            <Text style={{ fontSize: 14, fontWeight: '700', color: colors.primary, textAlign: 'center' }}>
+            <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} style={{ marginBottom: 4 }} />
+            <Text style={{ fontSize: 14, fontWeight: '700', color: colors.textPrimary, textAlign: 'center' }}>
               +{more5.length}
             </Text>
             <Text style={{ fontSize: 11, fontWeight: '500', color: colors.textSecondary, textAlign: 'center' }}>
@@ -1054,7 +1045,7 @@ function SourceHScrollSection({
       </ScrollView>
     </View>
   );
-}
+});
 
 // ─── GeekNews 세로 리스트 ────────────────────────────────────────────────
 const GeekNewsSection = React.memo(function GeekNewsSection({ articles, onArticlePress, allStats }: { articles: Article[]; onArticlePress: (article: Article) => void; allStats: Record<string, BatchStats> }) {
@@ -1118,17 +1109,19 @@ const GeekNewsSection = React.memo(function GeekNewsSection({ articles, onArticl
       </View>
 
       {hasMore && (
-        <Pressable
+        <ShowMoreButton
+          moreCount={moreCount}
+          isExpanded={false}
           onPress={() => setShowMore(true)}
-          accessibilityLabel={`${t('news.show_more')} ${moreCount}`}
-          accessibilityRole="button"
-          style={{ alignItems: 'center', paddingVertical: 14, minHeight: 44, justifyContent: 'center' }}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Text style={{ fontSize: 13, fontWeight: '600', color: colors.primary }}>{t('news.show_more')} ({moreCount})</Text>
-            <Ionicons name="chevron-down" size={14} color={colors.primary} />
-          </View>
-        </Pressable>
+          sectionName={name}
+        />
+      )}
+      {showMore && capped.length > 5 && (
+        <ShowMoreButton
+          isExpanded={true}
+          onPress={() => setShowMore(false)}
+          sectionName={name}
+        />
       )}
     </View>
   );
