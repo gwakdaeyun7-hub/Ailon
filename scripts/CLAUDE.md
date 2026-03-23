@@ -15,7 +15,7 @@ LangGraph 8-node pipeline with parallel EN/KO branches:
 | Node | Function | Key Config |
 |------|----------|------------|
 | collector | 22 RSS sources + scraping + LLM AI filter + date recovery | trafilatura + Chrome UA, 6 RSS workers + 10 scrape workers + 4 AI filter workers. RSS 날짜 미추출 시 `date_estimated=True` 마킹 → 스크래핑에서 meta 태그(article:published_time 등), `<time>`, JSON-LD, trafilatura bare_extraction으로 날짜 복원 |
-| en_process | EN→KO translation + summarization | batch=5, max_tokens=12288, 5 parallel workers, 6-phase (batch→소배치(2)→individual→fallback→간이번역→제목교정). dict 복구 로직(원본 재탐색+string→dict 파싱). 미요약(one_line 없음) 기사는 간이번역 스킵, selector에서 제외 |
+| en_process | EN→KO translation + summarization | batch=3, max_tokens=12288, 5 parallel workers, 6-phase (batch→소배치(2)→individual→fallback→간이번역→제목교정). dict 복구 로직(원본 재탐색+string→dict 파싱). 미요약(one_line 없음) 기사는 간이번역 스킵, selector에서 제외 |
 | ko_process | KO summarization | batch=2, max_tokens=12288, 5 parallel workers, 3-phase retry. 미요약 기사는 selector에서 제외 |
 | categorizer | LLM 3-category classification + 7-layer dedup + 요약 품질 QA | batch=5, 3 parallel workers. 요약 말투 위반 자동 감지 + 전체 기사 요약 상세 출력 |
 | ranker | Per-category LLM ranking → score (1st=100, last=30) | token_budget=max(6144, count*150), 3 parallel workers (per-category) |
@@ -44,7 +44,7 @@ AI타임스, GeekNews, ZDNet AI 에디터 (HTML scrape), 요즘IT AI
 | CATEGORY_TOP_N | 20 | 카테고리별 최대 기사 수 |
 | MAX_ARTICLE_AGE_DAYS | 5 | 표시 범위 |
 | CLASSIFY_BATCH_SIZE | 5 | LLM 안정성 |
-| EN batch size | 5 | 번역+요약 |
+| EN batch size | 3 | 번역+요약. 이전 5에서 61.5% 1차 실패율 발생 → 3으로 축소 (2026-03-23) |
 | KO batch size | 2 | 한국어 본문이 길어서 |
 | `_TITLE_FORBIDDEN_ELLIPSIS` | 정규식 — 34개 금지 서술어 + `...`/`…` + 후속 텍스트 | EN→KO 번역 제목에서 구분자 '...'/'…' → ',' 자동 교정 (`_fix_title_separator()`). KO 소스 원본 제목은 미적용. 제목 끝 여운 '...'는 `(?=\S)` lookahead로 보존 |
 | DEDUP layers | 7 (L1 URL→L2 orig_title≥0.65→L3 disp_title≥0.65→L4 one_line≥0.65 + 고유명사 가드→L5 key_tokens(고유명사3+숫자1 겹침)→L6 embedding→L7 title_entity) | L4 가드: 양쪽 기사에 식별 가능한 고유명사(영어)가 있으면 최소 1개 공유 필요 — 문장 구조만 유사한 오탐 방지 (e.g., "Anthropic lawsuit" vs "Nintendo lawsuit") |

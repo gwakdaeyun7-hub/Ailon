@@ -1136,7 +1136,7 @@ def en_process_node(state: NewsGraphState) -> dict:
 
     if en_articles:
         print(f"\n  --- EN 브랜치: {len(en_articles)}개 번역+요약 ---")
-        _process_articles(en_articles, translate=True, batch_size=5)
+        _process_articles(en_articles, translate=True, batch_size=3)
     else:
         print("  [EN] 영어 기사 없음")
     if ko_fallback_count:
