@@ -6,6 +6,7 @@
 [Tier 3] 한국 소스 — AI타임스 / GeekNews / ZDNet AI 에디터 / 요즘IT AI
 """
 
+import html
 import os
 import re
 import feedparser
@@ -464,6 +465,45 @@ def _within_days_ymd(date_str: str, days: int) -> bool:
         return True
 
 
+def _extract_content_encoded_images(raw_xml: str) -> dict[str, str]:
+    """
+    Raw RSS XML에서 content:encoded의 이중 인코딩된 이미지 URL을 추출.
+    Returns: {article_link: first_image_url}
+    """
+    result: dict[str, str] = {}
+    # <item> 블록 단위 분리
+    items = re.findall(r'<item[^>]*>(.*?)</item>', raw_xml, re.DOTALL)
+    for item_xml in items:
+        # <link> 추출 (CDATA 포함 가능)
+        link_match = re.search(r'<link>\s*(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?\s*</link>', item_xml)
+        if not link_match:
+            continue
+        link = link_match.group(1).strip()
+
+        # content:encoded 추출
+        ce_match = re.search(
+            r'<content:encoded>(.*?)</content:encoded>', item_xml, re.DOTALL
+        )
+        if not ce_match:
+            continue
+        raw_content = ce_match.group(1).strip()
+
+        # 이중 인코딩 해제: &lt; → <, &gt; → >, &amp; → & 등
+        decoded = html.unescape(raw_content)
+        # CDATA 마커 제거
+        decoded = re.sub(r'<!\[CDATA\[', '', decoded)
+        decoded = re.sub(r'\]\]>', '', decoded)
+
+        # 첫 번째 <img src="..."> 추출
+        img_match = re.search(r'<img[^>]+src=["\']([^"\']+)["\']', decoded)
+        if img_match:
+            url = img_match.group(1)
+            if url.startswith("http") and not url.endswith(".svg"):
+                result[link] = url
+
+    return result
+
+
 # ─── RSS 수집 ────────────────────────────────────────────────────────────
 def fetch_source(source_config: dict) -> list[dict]:
     """단일 소스에서 기사 수집 (RSS 또는 HTML 스크래핑)"""
@@ -482,7 +522,21 @@ def fetch_source(source_config: dict) -> list[dict]:
     articles = []
     date_filtered = 0
     try:
-        feed = feedparser.parse(rss_url, agent="Mozilla/5.0")
+        # content_image 소스: 원본 XML을 먼저 가져와서 이중 인코딩 이미지 복구 준비
+        raw_content_images: dict[str, str] = {}
+        if rss_image_field == "content_image":
+            try:
+                resp = requests.get(rss_url, headers={"User-Agent": "Mozilla/5.0"}, timeout=15)
+                resp.raise_for_status()
+                raw_xml = resp.text
+                raw_content_images = _extract_content_encoded_images(raw_xml)
+                feed = feedparser.parse(raw_xml)
+            except Exception:
+                # 원본 XML 가져오기 실패 시 기존 방식 폴백
+                feed = feedparser.parse(rss_url, agent="Mozilla/5.0")
+        else:
+            feed = feedparser.parse(rss_url, agent="Mozilla/5.0")
+
         for entry in feed.entries:
             if len(articles) >= max_items:
                 break
@@ -503,6 +557,10 @@ def fetch_source(source_config: dict) -> list[dict]:
 
             link = entry.get("link", "")
             image_url = _extract_rss_image(entry, rss_image_field)
+
+            # Fallback: content:encoded 이중 인코딩 시 원본 XML에서 이미지 복구
+            if not image_url and raw_content_images:
+                image_url = _upgrade_image_quality(raw_content_images.get(link, ""))
 
             # published가 비어있으면 feedparser의 published_parsed/updated_parsed 폴백
             has_date = bool(published)
@@ -531,6 +589,12 @@ def fetch_source(source_config: dict) -> list[dict]:
                 "lang": lang,
                 "image_url": image_url,
             })
+
+        # 이중 인코딩 이미지 복구 로그
+        if raw_content_images:
+            recovered = sum(1 for a in articles if a.get("image_url") and a["link"] in raw_content_images)
+            if recovered > 0:
+                print(f"    [RSS] {name}: content:encoded 이중 인코딩 감지 → 원본 XML에서 이미지 {recovered}개 복구")
 
     except Exception as e:
         print(f"  [WARNING] {name} RSS 수집 실패: {e}")

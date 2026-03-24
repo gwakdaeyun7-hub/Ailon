@@ -266,6 +266,31 @@ export function latexToDisplay(latex: string): string {
   // Superscripts and subscripts with braces: x^{...}, x_{...}
   s = processScripts(s);
 
+  // --- Plaintext formula enhancements (for curated content without LaTeX markup) ---
+
+  // P1: Bare Greek letters without backslash: theta → θ, alpha → α
+  // Sorted longest-first to prevent partial matches (e.g., "epsilon" before "pi")
+  const BARE_GREEK_SORTED = Object.entries(GREEK_LOWER)
+    .sort((a, b) => b[0].length - a[0].length);
+  for (const [name, symbol] of BARE_GREEK_SORTED) {
+    s = s.replace(new RegExp('(?<![a-zA-Z])' + name + '(?![a-zA-Z])', 'g'), symbol);
+  }
+  const BARE_GREEK_UPPER_SORTED = Object.entries(GREEK_UPPER)
+    .sort((a, b) => b[0].length - a[0].length);
+  for (const [name, symbol] of BARE_GREEK_UPPER_SORTED) {
+    s = s.replace(new RegExp('(?<![a-zA-Z])' + name + '(?![a-zA-Z])', 'g'), symbol);
+  }
+
+  // P2: Multi-char subscripts without braces: _ij → ᵢⱼ (must run before single-char)
+  s = s.replace(/(?<=[a-zA-Z0-9)\]])_([a-zA-Z0-9]{2,})(?![a-zA-Z0-9_])/g,
+    (_m, group) => toSubscript(group));
+
+  // P3: Parenthesized superscripts: ^(-1) → ⁻¹, ^(2) → ² (existing only handles ^{...})
+  s = s.replace(/\^\(([^)]{1,20})\)/g, (_m, inner) => {
+    const sup = toSuperscript(inner);
+    return sup.startsWith('^(') ? '^(' + inner + ')' : sup;
+  });
+
   // Single-char superscripts/subscripts without braces: x^2, x_i
   s = s.replace(/\^([0-9a-zA-Z+\-])/g, (_m, ch) => {
     return SUPERSCRIPT_MAP[ch] || '^(' + ch + ')';

@@ -56,7 +56,6 @@ import type { ScrollView as ScrollViewType } from 'react-native';
 
 import { RelatedArticlesSection } from '@/components/shared/RelatedArticlesSection';
 import { HighlightedText, termKey } from '@/components/shared/HighlightedText';
-import { PersonalizedFeed } from '@/components/feed/PersonalizedFeed';
 import { useGlossaryDB } from '@/hooks/useGlossaryDB';
 import { useFeatureFlags } from '@/hooks/useFeatureFlags';
 
@@ -738,10 +737,10 @@ const HScrollCard = React.memo(function HScrollCard({
 
 // ─── Section 2: 카테고리 탭 + 세로 리스트 ──────────────────────────────
 function CategoryTabSection({
-  categorizedArticles, categoryOrder, onArticlePress, allStats, userLikedLinks,
+  categorizedArticles, categoryOrder, onArticlePress, allStats,
   scrollViewRef,
 }: {
-  categorizedArticles: Record<string, Article[]>; categoryOrder: string[]; onArticlePress: (article: Article) => void; allStats: Record<string, BatchStats>; userLikedLinks?: string[];
+  categorizedArticles: Record<string, Article[]>; categoryOrder: string[]; onArticlePress: (article: Article) => void; allStats: Record<string, BatchStats>;
   scrollViewRef?: React.RefObject<ScrollViewType>;
 }) {
   const [activeTab, setActiveTab] = useState(categoryOrder[0] || 'research');
@@ -772,42 +771,22 @@ function CategoryTabSection({
 
   return (
     <View style={{ marginBottom: 24 }} onLayout={(e) => { sectionY.current = e.nativeEvent.layout.y; }}>
-      {/* 카테고리 탭 */}
+      {/* 카테고리 탭 — Equal-Width Segmented Bar */}
       <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: 8 }}
-          style={{ flex: 1 }}
+        <View
+          style={{
+            flexDirection: 'row',
+            borderWidth: 2,
+            borderColor: colors.border,
+            borderRadius: 0,
+            overflow: 'hidden',
+          }}
           accessibilityRole="tablist"
         >
-          {/* 맞춤 탭 */}
-          <Pressable
-            key="_personalized"
-            onPress={() => handleTabChange('_personalized')}
-            accessibilityLabel={t('feed.personalized')}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: activeTab === '_personalized' }}
-            style={{
-              paddingHorizontal: 14, paddingVertical: 10,
-              minHeight: 44,
-              borderRadius: 16,
-              backgroundColor: activeTab === '_personalized' ? colors.primary : colors.primaryLight,
-              borderWidth: 1,
-              borderColor: activeTab === '_personalized' ? colors.primary : colors.primaryLight,
-              justifyContent: 'center',
-            }}
-          >
-            <Text style={{
-              fontSize: 12, fontWeight: '700',
-              color: activeTab === '_personalized' ? colors.card : colors.primary,
-            }}>
-              {t('feed.personalized')}
-            </Text>
-          </Pressable>
-          {categoryOrder.map(catKey => {
+          {categoryOrder.map((catKey, idx) => {
             const isActive = catKey === activeTab;
             const catName = getCategoryName(catKey, t);
+            const isLast = idx === categoryOrder.length - 1;
             return (
               <Pressable
                 key={catKey}
@@ -816,72 +795,30 @@ function CategoryTabSection({
                 accessibilityRole="tab"
                 accessibilityState={{ selected: isActive }}
                 style={{
-                  paddingHorizontal: 14, paddingVertical: 10,
+                  flex: 1,
                   minHeight: 44,
-                  borderRadius: 16,
-                  backgroundColor: isActive ? colors.primary : colors.primaryLight,
-                  borderWidth: 1,
-                  borderColor: isActive ? colors.primary : colors.primaryLight,
                   justifyContent: 'center',
+                  alignItems: 'center',
+                  backgroundColor: isActive ? colors.primary : 'transparent',
+                  borderRightWidth: isLast ? 0 : 2,
+                  borderRightColor: isLast ? 'transparent' : colors.border,
                 }}
               >
                 <Text style={{
-                  fontSize: 12, fontWeight: '700',
-                  color: isActive ? colors.card : colors.primary,
+                  fontSize: 13,
+                  fontWeight: isActive ? '700' : '600',
+                  color: isActive ? colors.card : colors.textSecondary,
                 }}>
                   {catName}
                 </Text>
               </Pressable>
             );
           })}
-        </ScrollView>
+        </View>
       </View>
 
-      {/* 맞춤 피드 */}
-      {activeTab === '_personalized' ? (
-        <PersonalizedFeed
-          articles={Object.values(categorizedArticles).flat()}
-          userLikes={userLikedLinks || []}
-          renderCard={(a, idx) => (
-            <View key={`pf-${idx}-${a.link}`} style={{ paddingHorizontal: 16, marginBottom: 12 }}>
-              <Pressable
-                onPress={() => onArticlePress(a)}
-                style={({ pressed }) => ({
-                  height: 120, backgroundColor: colors.card, borderRadius: 12, overflow: 'hidden',
-                  borderWidth: 1, borderColor: colors.border, opacity: pressed ? 0.85 : 1,
-                })}
-              >
-                <View style={{ flexDirection: 'row', flex: 1 }}>
-                  {a.image_url ? (
-                    <View style={{ width: 118, height: 118, backgroundColor: colors.border, borderRadius: 8, overflow: 'hidden' }}>
-                      <Image source={a.image_url} style={{ width: 118, height: 118 }} contentFit="cover" transition={200} recyclingKey={a.link} />
-                    </View>
-                  ) : (
-                    <View style={{ width: 118, height: 118, backgroundColor: colors.border, borderRadius: 8, alignItems: 'center', justifyContent: 'center' }}>
-                      <Newspaper size={24} color={colors.textLight} />
-                    </View>
-                  )}
-                  <View style={{ flex: 1, padding: 14, justifyContent: 'space-between' }}>
-                    <View>
-                      <SourceBadge sourceKey={a.source_key} name={getSourceName(a.source_key || '', t)} />
-                      <TitleText style={{ fontSize: 14, fontWeight: '700', color: colors.textPrimary, lineHeight: 20, marginTop: 6, fontFamily: FontFamily.serif }} numberOfLines={2}>
-                        {getLocalizedTitle(a, lang)}
-                      </TitleText>
-                    </View>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <Text style={{ fontSize: 11, color: colors.textSecondary }}>{formatDate(a.published, lang, a.date_estimated)}</Text>
-                      <ArticleStats likes={allStats[a.link]?.likes} />
-                    </View>
-                  </View>
-                </View>
-              </Pressable>
-            </View>
-          )}
-        />
-      ) : null}
-
-      {/* 세로 기사 리스트 (기존 카테고리 — 맞춤 탭이면 숨김) */}
-      {activeTab !== '_personalized' && <View style={{ paddingHorizontal: 16, gap: 12 }}>
+      {/* 세로 기사 리스트 */}
+      <View style={{ paddingHorizontal: 16, gap: 12 }}>
         {visible.map((a, i) => (
             <Pressable
               key={`cat-${activeTab}-${i}-${a.link}`}
@@ -891,16 +828,16 @@ function CategoryTabSection({
               style={({ pressed }) => ({
                 height: 120,
                 backgroundColor: colors.card,
-                borderRadius: 12,
+                borderRadius: 0,
                 overflow: 'hidden',
-                borderWidth: 1,
+                borderWidth: 2,
                 borderColor: colors.border,
                 opacity: pressed ? 0.85 : 1,
               })}
             >
               <View style={{ flexDirection: 'row', flex: 1 }}>
                 {a.image_url ? (
-                  <View style={{ width: 118, height: 118, backgroundColor: colors.border, borderRadius: 8, overflow: 'hidden' }}>
+                  <View style={{ width: 118, height: 118, backgroundColor: colors.border, borderRadius: 0, overflow: 'hidden' }}>
                     <Image
                       source={a.image_url}
                       style={{ width: 118, height: 118 }}
@@ -910,7 +847,7 @@ function CategoryTabSection({
                     />
                   </View>
                 ) : (
-                  <View style={{ width: 118, height: 118, backgroundColor: colors.border, borderRadius: 8, alignItems: 'center', justifyContent: 'center' }}>
+                  <View style={{ width: 118, height: 118, backgroundColor: colors.border, borderRadius: 0, alignItems: 'center', justifyContent: 'center' }}>
                     <Newspaper size={24} color={colors.textLight} />
                   </View>
                 )}
@@ -936,9 +873,9 @@ function CategoryTabSection({
               </View>
             </Pressable>
         ))}
-      </View>}
+      </View>
 
-      {activeTab !== '_personalized' && totalCount > BATCH_SIZE && (
+      {totalCount > BATCH_SIZE && (
         <ShowMoreButton
           shownCount={shownCount}
           totalCount={totalCount}
@@ -1316,7 +1253,6 @@ export default function NewsScreen() {
               categoryOrder={categoryOrder}
               onArticlePress={handleArticlePress}
               allStats={allStats}
-              userLikedLinks={Object.entries(allStats).filter(([, s]) => s.likes > 0).map(([link]) => link)}
               scrollViewRef={mainScrollRef}
             />
 

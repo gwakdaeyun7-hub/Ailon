@@ -244,13 +244,6 @@ const translations: Record<string, Record<Language, string>> = {
   'glossary.no_results': { ko: '검색 결과 없음', en: 'No results' },
   'glossary.articles': { ko: '관련 기사', en: 'Related Articles' },
 
-  // ─── 맞춤 피드 ───
-  'feed.personalized': { ko: '맞춤', en: 'For You' },
-  'feed.all': { ko: '전체', en: 'All' },
-  'feed.reason': { ko: '추천 이유', en: 'Why recommended' },
-  'feed.interest_match': { ko: '관심사 일치', en: 'Matches your interests' },
-  'feed.no_data': { ko: '맞춤 뉴스 준비 중', en: 'Personalizing...' },
-
   // ─── AI 스토리 타임라인 ───
   'story.title': { ko: 'AI 스토리', en: 'AI Stories' },
   'story.count': { ko: '개 스토리', en: ' stories' },
