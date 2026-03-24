@@ -320,6 +320,18 @@ Articles:
         if others_count > 0:
             domain_stats.append({"domain": "Others", "count": others_count})
 
+        # 핫토픽 블랙리스트: AI 뉴스앱에서 무의미한 포괄적 태그 제거 (소문자 기준)
+        _hot_topic_blacklist: set[str] = {
+            # 영어
+            "ai", "artificial intelligence", "machine learning", "deep learning",
+            "llm", "large language model", "neural network", "generative ai",
+            "automation", "data", "model", "algorithm", "technology",
+            # 한국어
+            "인공지능", "머신러닝", "딥러닝", "대규모 언어 모델",
+            "자동화", "데이터", "모델", "알고리즘", "기술",
+            "생성형 ai", "신경망",
+        }
+
         # Hot topics: highlights + categorized_articles 태그 빈도 Top 8 (도넛 차트와 동일 풀, KO + EN 합산, 소문자 기준 중복 제거)
         tag_freq: dict[str, int] = {}
         seen_tag_links: set[str] = set()
@@ -330,11 +342,11 @@ Articles:
             seen_tag_links.add(link)
             for tag in (art.get("tags") or []):
                 t = tag.strip().lower()
-                if len(t) >= 2:
+                if len(t) >= 2 and t not in _hot_topic_blacklist:
                     tag_freq[t] = tag_freq.get(t, 0) + 1
             for tag in (art.get("tags_en") or []):
                 t = tag.strip().lower()
-                if len(t) >= 2:
+                if len(t) >= 2 and t not in _hot_topic_blacklist:
                     tag_freq[t] = tag_freq.get(t, 0) + 1
 
         # 하위 태그 병합: "microsoft 365" → "microsoft" 등 포함 관계 태그 합산

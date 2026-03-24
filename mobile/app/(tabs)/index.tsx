@@ -770,15 +770,15 @@ function CategoryTabSection({
   };
 
   return (
-    <View style={{ marginBottom: 24 }} onLayout={(e) => { sectionY.current = e.nativeEvent.layout.y; }}>
+    <View style={{ marginTop: 16, marginBottom: 24 }} onLayout={(e) => { sectionY.current = e.nativeEvent.layout.y; }}>
       {/* 카테고리 탭 — Equal-Width Segmented Bar */}
       <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>
         <View
           style={{
             flexDirection: 'row',
-            borderWidth: 2,
+            borderWidth: 1,
             borderColor: colors.border,
-            borderRadius: 0,
+            borderRadius: 22,
             overflow: 'hidden',
           }}
           accessibilityRole="tablist"
@@ -796,19 +796,24 @@ function CategoryTabSection({
                 accessibilityState={{ selected: isActive }}
                 style={{
                   flex: 1,
+                  paddingHorizontal: 14,
+                  paddingVertical: 10,
                   minHeight: 44,
                   justifyContent: 'center',
                   alignItems: 'center',
-                  backgroundColor: isActive ? colors.primary : 'transparent',
-                  borderRightWidth: isLast ? 0 : 2,
+                  backgroundColor: isActive ? colors.highlightBg : colors.surface,
+                  borderRightWidth: isLast ? 0 : 1,
                   borderRightColor: isLast ? 'transparent' : colors.border,
                 }}
               >
-                <Text style={{
-                  fontSize: 13,
-                  fontWeight: isActive ? '700' : '600',
-                  color: isActive ? colors.card : colors.textSecondary,
-                }}>
+                <Text
+                  numberOfLines={1}
+                  style={{
+                    fontSize: 12,
+                    fontWeight: '700',
+                    color: isActive ? colors.primary : colors.textSecondary,
+                  }}
+                >
                   {catName}
                 </Text>
               </Pressable>
