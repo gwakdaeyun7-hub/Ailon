@@ -463,6 +463,9 @@ def accumulate_glossary(result: dict):
             desc_en = ""
             # term 기반 매칭: KO 용어의 term을 키로 EN dict에서 lookup
             en_match = en_by_term.get(term_ko.lower())
+            # index 폴백: term 불일치 시 (e.g., "파인튜닝" vs "Fine-tuning") 배열 순서로 매칭
+            if not en_match and g_en and i < len(g_en) and isinstance(g_en[i], dict):
+                en_match = g_en[i]
             if en_match:
                 term_en = en_match.get("term", "").strip()
                 desc_en = en_match.get("desc", "").strip()
