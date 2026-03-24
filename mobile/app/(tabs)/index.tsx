@@ -772,9 +772,8 @@ function CategoryTabSection({
 
   return (
     <View style={{ marginBottom: 24 }} onLayout={(e) => { sectionY.current = e.nativeEvent.layout.y; }}>
-      {/* 섹션 헤더 + 카테고리 탭 */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 16 }}>
-        <Text style={{ fontSize: 17, fontWeight: '700', color: colors.textPrimary, marginRight: 12, fontFamily: FontFamily.serif }}>{t('news.category_title')}</Text>
+      {/* 카테고리 탭 */}
+      <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -1324,13 +1323,7 @@ export default function NewsScreen() {
             {/* 구분선: 카테고리 → 소스별 */}
             {sourceOrder.some(key => (sourceArticles[key]?.length ?? 0) > 0) && (
               <View style={{ paddingHorizontal: 16, marginTop: 24, marginBottom: 24 }}>
-                <View style={{ height: 1, backgroundColor: colors.border, marginBottom: 16 }} />
-                <Text style={{ fontSize: 16, fontWeight: '700', color: colors.textPrimary, fontFamily: FontFamily.serif }}>
-                  {t('news.source_title')}
-                </Text>
-                <Text style={{ fontSize: 12, color: colors.textSecondary, marginTop: 4 }}>
-                  {t('news.source_subtitle')}
-                </Text>
+                <View style={{ height: 1, backgroundColor: colors.border }} />
               </View>
             )}
 
