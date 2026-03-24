@@ -368,7 +368,7 @@ function FormulaBlock({ text }: { text: string }) {
           lineHeight: 24,
           fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
           fontWeight: '500',
-          color: colors.primaryDark,
+          color: colors.textPrimary,
         }}
         selectable
         accessibilityRole="text"
@@ -505,7 +505,7 @@ function ListItemBlock({ text, prefix = '\u2022' }: { text: string; prefix?: str
 
 function BodyBlock({ text }: { text: string }) {
   const { colors, isDark } = useTheme();
-  const bodyColor = isDark ? colors.textDark : '#44403C';
+  const bodyColor = isDark ? colors.textPrimary : '#44403C';
 
   return (
     <Text style={{

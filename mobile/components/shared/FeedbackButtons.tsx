@@ -66,13 +66,13 @@ export function FeedbackButtons({ userId, itemType, itemId, initialReaction = nu
       >
         <ThumbsUp
           size={14}
-          color={reaction === 'like' ? colors.success : colors.textLight}
+          color={reaction === 'like' ? colors.success : colors.textDim}
           strokeWidth={2}
         />
         <Text
           style={{
             fontSize: 12,
-            color: reaction === 'like' ? colors.success : colors.textLight,
+            color: reaction === 'like' ? colors.success : colors.textDim,
           }}
         >
           {t('feedback.like')}
@@ -95,13 +95,13 @@ export function FeedbackButtons({ userId, itemType, itemId, initialReaction = nu
       >
         <ThumbsDown
           size={14}
-          color={reaction === 'dislike' ? colors.primary : colors.textLight}
+          color={reaction === 'dislike' ? colors.primary : colors.textDim}
           strokeWidth={2}
         />
         <Text
           style={{
             fontSize: 12,
-            color: reaction === 'dislike' ? colors.primary : colors.textLight,
+            color: reaction === 'dislike' ? colors.primary : colors.textDim,
           }}
         >
           {t('feedback.dislike')}

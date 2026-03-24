@@ -118,11 +118,8 @@ function ScoreBadge({ article }: { article: Article }) {
   const { colors } = useTheme();
   const { score, category } = article;
   if (score == null) return null;
-  const color = category === 'industry_business' ? colors.scoreBiz
-    : category === 'research' ? colors.scoreResearch
-    : colors.scoreProduct;
   return (
-    <Text style={{ fontSize: 11, color, fontWeight: '700' }}>{score}</Text>
+    <Text style={{ fontSize: 11, color: colors.textPrimary, fontWeight: '700' }}>{score}</Text>
   );
 }
 
@@ -176,7 +173,7 @@ const HighlightScrollCard = React.memo(function HighlightScrollCard({
         </View>
       ) : (
         <View style={{ width: HIGHLIGHT_CARD_WIDTH, height: 150, backgroundColor: colors.border, borderRadius: 8, alignItems: 'center', justifyContent: 'center' }}>
-          <Newspaper size={28} color={colors.textLight} />
+          <Newspaper size={28} color={colors.textDim} />
         </View>
       )}
       <View style={{ padding: 14, flex: 1, justifyContent: 'space-between', width: HIGHLIGHT_CARD_WIDTH }}>
@@ -377,14 +374,14 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
                 const sc = SOURCE_COLORS[sk] || colors.textSecondary;
                 return (
                   <View style={{ backgroundColor: `${sc}18`, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 }}>
-                    <Text style={{ fontSize: 11, fontWeight: '700', color: sc }}>{getSourceName(sk, t)}</Text>
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: colors.textPrimary }}>{getSourceName(sk, t)}</Text>
                   </View>
                 );
               })()}
               <Text style={{ fontSize: 11, color: colors.textDim }}>{formatDate(article.published, lang, article.date_estimated)}</Text>
               {article.category ? (
                 <View style={{ backgroundColor: `${CATEGORY_COLORS[article.category] || colors.textDim}18`, borderRadius: 16, paddingHorizontal: 8, paddingVertical: 3 }}>
-                  <Text style={{ fontSize: 10, fontWeight: '700', color: CATEGORY_COLORS[article.category] || colors.textDim }}>{getCategoryName(article.category, t)}</Text>
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: colors.textPrimary }}>{getCategoryName(article.category, t)}</Text>
                 </View>
               ) : null}
               <View style={{ marginLeft: 'auto' }}>
@@ -447,7 +444,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
                         <HighlightedText
                           text={section.content}
                           glossaryTerms={glossaryDBTerms}
-                          style={{ fontSize: 15, color: colors.summaryBody, lineHeight: 24 }}
+                          style={{ fontSize: 15, color: colors.textPrimary, lineHeight: 24 }}
                           usedTermKeys={usedTermKeys}
                           onTermsDetected={handleTermsDetected}
                         />
@@ -463,7 +460,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
                     <HighlightedText
                       text={whyImportant}
                       glossaryTerms={glossaryDBTerms}
-                      style={{ fontSize: 15, color: colors.summaryBody, lineHeight: 26, letterSpacing: 0.2 }}
+                      style={{ fontSize: 15, color: colors.textPrimary, lineHeight: 26, letterSpacing: 0.2 }}
                       usedTermKeys={usedTermKeys}
                       onTermsDetected={handleTermsDetected}
                     />
@@ -519,7 +516,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
               </View>
             ) : article.summary ? (
               <Text style={{
-                fontSize: 15, color: colors.summaryBody, lineHeight: 24, letterSpacing: 0.2, marginBottom: 16,
+                fontSize: 15, color: colors.textPrimary, lineHeight: 24, letterSpacing: 0.2, marginBottom: 16,
                 paddingHorizontal: 20,
               }}>
                 {article.summary}
@@ -575,7 +572,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
               accessibilityRole="button"
               style={{ flex: 1, alignItems: 'center', paddingVertical: 14 }}
             >
-              <Heart size={22} color={liked ? colors.likeActiveColor : colors.textDim} fill={liked ? colors.likeActiveColor : 'none'} />
+              <Heart size={22} color={liked ? colors.primary : colors.textDim} fill={liked ? colors.primary : 'none'} />
             </Pressable>
             {showComments && (
               <Pressable
@@ -634,7 +631,7 @@ function HighlightSection({ highlights, onArticlePress, allStats }: { highlights
   if (!highlights || highlights.length === 0) return null;
 
   return (
-    <View style={{ paddingTop: 12, paddingBottom: 24, backgroundColor: colors.highlightBg }}>
+    <View style={{ paddingTop: 12, paddingBottom: 24, backgroundColor: colors.primaryLight }}>
       {/* 섹션 헤더 */}
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 16 }}>
         <Text style={{ fontSize: 17, fontWeight: '700', color: colors.textPrimary, fontFamily: FontFamily.serif }}>{t('news.highlight_title')}</Text>
@@ -712,7 +709,7 @@ const HScrollCard = React.memo(function HScrollCard({
         </View>
       ) : (
         <View style={{ width: CARD_WIDTH, height: 140, backgroundColor: colors.border, borderRadius: 8, alignItems: 'center', justifyContent: 'center' }}>
-          <Newspaper size={28} color={colors.textLight} />
+          <Newspaper size={28} color={colors.textDim} />
         </View>
       )}
       <View style={{ padding: 14, flex: 1, width: CARD_WIDTH }}>
@@ -801,7 +798,7 @@ function CategoryTabSection({
                   minHeight: 44,
                   justifyContent: 'center',
                   alignItems: 'center',
-                  backgroundColor: isActive ? colors.highlightBg : colors.surface,
+                  backgroundColor: isActive ? colors.primaryLight : colors.card,
                   borderRightWidth: isLast ? 0 : 1,
                   borderRightColor: isLast ? 'transparent' : colors.border,
                 }}
@@ -811,7 +808,7 @@ function CategoryTabSection({
                   style={{
                     fontSize: 12,
                     fontWeight: '700',
-                    color: isActive ? colors.primary : colors.textSecondary,
+                    color: isActive ? colors.textPrimary : colors.textSecondary,
                   }}
                 >
                   {catName}
@@ -853,7 +850,7 @@ function CategoryTabSection({
                   </View>
                 ) : (
                   <View style={{ width: 118, height: 118, backgroundColor: colors.border, borderRadius: 0, alignItems: 'center', justifyContent: 'center' }}>
-                    <Newspaper size={24} color={colors.textLight} />
+                    <Newspaper size={24} color={colors.textDim} />
                   </View>
                 )}
                 <View style={{ flex: 1, padding: 14, justifyContent: 'space-between' }}>

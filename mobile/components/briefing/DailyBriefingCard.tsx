@@ -333,7 +333,7 @@ const SparklineChart = React.memo(function SparklineChart({
             textAnchor={idx === 0 ? 'start' : idx === data.length - 1 ? 'end' : 'middle'}
             fontSize={10}
             fontWeight={isLast ? '700' : '400'}
-            fill={isLast ? primaryColor : dimColor}
+            fill={isLast ? textColor : dimColor}
           >
             {formatDate(data[idx].date)}
           </SvgText>
@@ -509,7 +509,7 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
 
             {/* Article count */}
             {domainStats ? (
-              <Text style={{ fontSize: 13, fontWeight: '700', color: colors.primary }}>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: colors.textPrimary }}>
                 {domainStats.total}
               </Text>
             ) : null}
@@ -535,7 +535,7 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
         {/* Header */}
         <View
           style={{
-            backgroundColor: colors.highlightBg,
+            backgroundColor: colors.primaryLight,
             paddingHorizontal: 20,
             paddingTop: 20,
             paddingBottom: 16,
@@ -639,7 +639,7 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
-                  backgroundColor: colors.glossaryBg,
+                  backgroundColor: colors.primaryLight,
                   borderRadius: 14,
                   padding: 16,
                 }}
@@ -730,7 +730,7 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
                         style={{
                           fontSize: 12,
                           fontWeight: isHot ? '600' : '400',
-                          color: isHot ? colors.primary : colors.tagText,
+                          color: colors.textPrimary,
                         }}
                       >
                         {tag}
@@ -753,7 +753,7 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
               <SectionTitle title={t('briefing.trend')} color={colors.textSecondary} />
               <View
                 style={{
-                  backgroundColor: colors.glossaryBg,
+                  backgroundColor: colors.primaryLight,
                   borderRadius: 14,
                   padding: 12,
                   alignItems: 'center',
@@ -777,7 +777,7 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
               <SectionTitle title={t('briefing.briefingText')} color={colors.textSecondary} />
               <View
                 style={{
-                  backgroundColor: colors.glossaryBg,
+                  backgroundColor: colors.primaryLight,
                   borderRadius: 12,
                   padding: 14,
                 }}
@@ -815,7 +815,7 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
               style={{
                 fontSize: 12,
                 fontWeight: '600',
-                color: colors.primary,
+                color: colors.textPrimary,
               }}
             >
               {t('briefing.collapse')}

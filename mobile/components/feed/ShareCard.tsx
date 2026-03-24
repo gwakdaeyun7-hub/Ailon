@@ -150,7 +150,7 @@ export const ShareCard = React.forwardRef<View, ShareCardProps>(
                   paddingHorizontal: 10,
                   paddingVertical: 4,
                 }}>
-                  <Text style={{ fontSize: 11, color: C.tagText }}>{tag}</Text>
+                  <Text style={{ fontSize: 11, color: C.textSecondary }}>{tag}</Text>
                 </View>
               ))}
             </View>

@@ -123,10 +123,10 @@ const CONNECTION_TYPE_DESC: Record<string, { ko: string; en: string }> = {
 
 function ConnectionTypeBadge({ type, colors, lang }: { type: string; colors: Record<string, string>; lang: string }) {
   const config: Record<string, { bg: string; color: string; ko: string; en: string }> = {
-    direct_inspiration: { bg: colors.coreTechBg, color: colors.coreTech, ko: '직접 영감', en: 'Direct' },
-    structural_analogy: { bg: colors.indigoBg, color: colors.indigo, ko: '구조적 유사', en: 'Structural' },
-    mathematical_foundation: { bg: colors.glossaryBg, color: colors.glossaryTerm, ko: '수학적 기반', en: 'Mathematical' },
-    conceptual_borrowing: { bg: colors.coreTechBg, color: colors.coreTech, ko: '개념 차용', en: 'Conceptual' },
+    direct_inspiration: { bg: colors.primaryLight, color: colors.textPrimary, ko: '직접 영감', en: 'Direct' },
+    structural_analogy: { bg: colors.primaryLight, color: colors.textPrimary, ko: '구조적 유사', en: 'Structural' },
+    mathematical_foundation: { bg: colors.primaryLight, color: colors.textPrimary, ko: '수학적 기반', en: 'Mathematical' },
+    conceptual_borrowing: { bg: colors.primaryLight, color: colors.textPrimary, ko: '개념 차용', en: 'Conceptual' },
   };
   const c = config[type];
   if (!c) return null;
@@ -228,7 +228,7 @@ function NotebookCard({
           paddingHorizontal: 12, paddingVertical: 8,
           borderWidth: 1, borderColor: colors.warningBorder,
         }}>
-          <Text style={{ fontSize: 13, lineHeight: 20, color: colors.warning, fontWeight: '600' }}>
+          <Text style={{ fontSize: 13, lineHeight: 20, color: colors.textPrimary, fontWeight: '600' }}>
             {problemLine}
           </Text>
         </View>
@@ -260,7 +260,7 @@ function NotebookCard({
               backgroundColor: colors.tagBg, borderRadius: 14,
               paddingHorizontal: 10, paddingVertical: 4,
             }}>
-              <Text style={{ fontSize: 10, color: colors.tagText, fontWeight: '600' }}>{kw}</Text>
+              <Text style={{ fontSize: 10, color: colors.textSecondary, fontWeight: '600' }}>{kw}</Text>
             </View>
           ))}
         </View>
@@ -338,7 +338,7 @@ function DeepDiveContent({ deepDive, lang, principle, catConfig }: {
 
       <DeepDiveSection
         icon={<Clock size={12} color={colors.coreTech} />}
-        iconBg={colors.coreTechBg}
+        iconBg={colors.primaryLight}
         title={t('snaps.original_problem')}
       >
         <Text style={{ fontSize: 12, lineHeight: 19.2, color: colors.textSecondary }}>
@@ -348,8 +348,8 @@ function DeepDiveContent({ deepDive, lang, principle, catConfig }: {
 
       {deepDive.bridge ? (
         <DeepDiveSection
-          icon={<Link2 size={12} color={colors.indigo} />}
-          iconBg={colors.indigoBg}
+          icon={<Link2 size={12} color={colors.teal} />}
+          iconBg={colors.primaryLight}
           title={t('snaps.bridge')}
         >
           <Text style={{ fontSize: 12, lineHeight: 19.2, color: colors.textSecondary }}>
@@ -631,7 +631,7 @@ export default function SnapsScreen() {
                       backgroundColor: colors.tagBg, borderRadius: 14,
                       paddingHorizontal: 8, paddingVertical: 3,
                     }}>
-                      <Text style={{ fontSize: 10, color: colors.tagText, fontWeight: '600' }}>{kw}</Text>
+                      <Text style={{ fontSize: 10, color: colors.textSecondary, fontWeight: '600' }}>{kw}</Text>
                     </View>
                   ))}
                 </View>
@@ -712,7 +712,7 @@ export default function SnapsScreen() {
                     body={L(principle.foundation.body, principle.foundation.body_en, lang)}
                     subLine={L(principle.foundation.analogy, principle.foundation.analogy_en, lang)}
                     accentColor={colors.coreTech}
-                    accentBg={colors.coreTechBg}
+                    accentBg={colors.primaryLight}
                     IconComponent={Lightbulb}
                   />
                 )}
@@ -724,8 +724,8 @@ export default function SnapsScreen() {
                     body={L(principle.application.body, principle.application.body_en, lang)}
                     problemLine={principle.application.problem ? `${t('snaps.problem')}: ${L(principle.application.problem, principle.application.problem_en, lang)}` : undefined}
                     subLine={L(principle.application.mechanism, principle.application.mechanism_en, lang)}
-                    accentColor={colors.indigo}
-                    accentBg={colors.indigoBg}
+                    accentColor={colors.teal}
+                    accentBg={colors.primaryLight}
                     IconComponent={Cpu}
                   />
                 )}
@@ -765,18 +765,18 @@ export default function SnapsScreen() {
                 {deepDive && activeTab === 'insight' && (
                   <Pressable onPress={() => setActiveTab('deepdive')} style={{
                     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-                    backgroundColor: colors.indigoBg, borderRadius: 10, padding: 12,
+                    backgroundColor: colors.primaryLight, borderRadius: 10, padding: 12,
                     borderWidth: 1, borderColor: colors.border,
                   }}>
-                    <BookOpen size={14} color={colors.indigo} />
-                    <Text style={{ fontSize: 12, fontWeight: '600', color: colors.indigo }}>
+                    <BookOpen size={14} color={colors.textPrimary} />
+                    <Text style={{ fontSize: 12, fontWeight: '600', color: colors.textPrimary }}>
                       {L(
                         principle.deepDiveHook || '딥다이브 탭에서 더 자세히 알아보기',
                         principle.deepDiveHook_en || 'Explore the Deep Dive for more details',
                         lang,
                       )}
                     </Text>
-                    <ChevronRight size={12} color={colors.indigo} />
+                    <ChevronRight size={12} color={colors.teal} />
                   </Pressable>
                 )}
               </>

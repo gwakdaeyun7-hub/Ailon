@@ -216,7 +216,7 @@ export default function ProfileScreen() {
               accessibilityRole="button"
               style={{ flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 44, paddingVertical: 10, paddingHorizontal: 8 }}
             >
-              <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '600' }}>{t('profile.view')}</Text>
+              <Text style={{ color: colors.textPrimary, fontSize: 13, fontWeight: '600' }}>{t('profile.view')}</Text>
               <ChevronRight size={14} color={colors.primary} />
             </Pressable>
           </View>

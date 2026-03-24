@@ -147,7 +147,7 @@ export const HighlightedText = React.memo(function HighlightedText({ text, gloss
                 onPress={() => handleTermPress(seg.term!)}
                 style={{
                   ...style,
-                  color: colors.summaryIndigo,
+                  color: colors.textPrimary,
                   fontWeight: '600',
                 }}
               >
@@ -163,7 +163,7 @@ export const HighlightedText = React.memo(function HighlightedText({ text, gloss
       <Modal visible={!!popover} transparent animationType="fade" onRequestClose={() => setPopover(null)}>
         <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', padding: 32 }} onPress={() => setPopover(null)}>
           <View style={{ backgroundColor: colors.card, borderRadius: 16, padding: 20, maxHeight: 300 }}>
-            <Text style={{ fontSize: 16, fontWeight: '700', color: colors.summaryIndigo, marginBottom: 8 }}>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: colors.textPrimary, marginBottom: 8 }}>
               {popover ? (lang === 'en' ? popover.term_en : popover.term_ko) : ''}
             </Text>
             <Text style={{ fontSize: 14, color: colors.textPrimary, lineHeight: 22 }}>

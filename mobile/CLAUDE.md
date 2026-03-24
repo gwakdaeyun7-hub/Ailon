@@ -109,10 +109,11 @@
 
 ### Styling
 - **NativeWind** (TailwindCSS for RN) with dark-first theme
-- **colors.ts**: Light (beige/cream) / Dark (teal/cyan accent), 50+ color tokens
+- **colors.ts**: Light (white bg, black text) / Dark (teal/cyan accent), ~50 color tokens (21개 dead token 제거 후)
 - **theme.ts**: Spacing, font sizes, all radius=0 (pixel art/brutalist), cardShadow 제거(elevation 0), pixelShadow(offset 3px), Lora serif font + 4 pixel fonts, MIN_TOUCH_TARGET=44
 - **Pixel Fonts**: `pixel: 'PressStart2P_400Regular'` (EN headings), `pixelBody: 'Silkscreen_400Regular'` (EN small), `pixelBold: 'Silkscreen_700Bold'` (EN bold small), `pixelKo: 'DotGothic16_400Regular'` (KO pixel)
 - Primary: Teal (#0D7377 light, #14B8A6 dark), Accent: Orange (#B45309 light, #F59E0B dark)
+- Light Text: 모든 텍스트 #000000 검정 통일 (textPrimary/textSecondary/textDim 동일값)
 
 ### Design Principles
 - **Pixel Art / Brutalist** — borderRadius 전부 0, borderWidth 2px flat borders, cardShadow 제거 (그림자 없음), pixelShadow(offset 3) 선택적 사용. 모든 컴포넌트에 적용

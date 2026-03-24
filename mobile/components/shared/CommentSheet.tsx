@@ -81,7 +81,7 @@ function ReportReasonModal({
               accessibilityLabel={r.label}
               style={{ paddingHorizontal: 20, paddingVertical: 14, borderTopWidth: 1, borderTopColor: colors.border }}
             >
-              <Text style={{ color: colors.textDark, fontSize: 15 }}>{r.label}</Text>
+              <Text style={{ color: colors.textPrimary, fontSize: 15 }}>{r.label}</Text>
             </Pressable>
           ))}
 
@@ -92,7 +92,7 @@ function ReportReasonModal({
             accessibilityLabel={t('comment.report_cancel')}
             style={{ paddingHorizontal: 20, paddingVertical: 16, borderTopWidth: 1, borderTopColor: colors.border, alignItems: 'center' }}
           >
-            <Text style={{ color: colors.textLight, fontSize: 15, fontWeight: '600' }}>{t('comment.report_cancel')}</Text>
+            <Text style={{ color: colors.textSecondary, fontSize: 15, fontWeight: '600' }}>{t('comment.report_cancel')}</Text>
           </Pressable>
         </Pressable>
       </Pressable>
@@ -135,8 +135,8 @@ function CommentItem({
           <CornerDownRight size={14} color={colors.placeholder} style={{ marginTop: 4 }} />
         )}
         <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 12, backgroundColor: colors.surface, borderRadius: 8 }}>
-          <AlertTriangle size={14} color={colors.textLight} />
-          <Text style={{ color: colors.textLight, fontSize: 13, fontStyle: 'italic' }}>{t('comment.hidden')}</Text>
+          <AlertTriangle size={14} color={colors.textDim} />
+          <Text style={{ color: colors.textSecondary, fontSize: 13, fontStyle: 'italic' }}>{t('comment.hidden')}</Text>
         </View>
       </View>
     );
@@ -148,14 +148,14 @@ function CommentItem({
         <CornerDownRight size={14} color={colors.placeholder} style={{ marginTop: 4 }} />
       )}
       <View style={{ width: isReply ? 28 : 34, height: isReply ? 28 : 34, borderRadius: isReply ? 14 : 17, backgroundColor: isReply ? colors.warningLight : colors.primaryLight, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        <Text style={{ color: isReply ? colors.warning : colors.primary, fontSize: isReply ? 10 : 12, fontWeight: '700' }}>{initials}</Text>
+        <Text style={{ color: colors.textPrimary, fontSize: isReply ? 10 : 12, fontWeight: '700' }}>{initials}</Text>
       </View>
       <View style={{ flex: 1 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 3 }}>
           <Text style={{ color: colors.textPrimary, fontSize: isReply ? 12 : 13, fontWeight: '700' }}>{comment.authorName}</Text>
-          <Text style={{ color: colors.placeholder, fontSize: 11 }}>{date}</Text>
+          <Text style={{ color: colors.textDim, fontSize: 11 }}>{date}</Text>
         </View>
-        <Text style={{ color: colors.textDark, fontSize: isReply ? 13 : 14, lineHeight: 20 }}>{comment.text}</Text>
+        <Text style={{ color: colors.textPrimary, fontSize: isReply ? 13 : 14, lineHeight: 20 }}>{comment.text}</Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 }}>
           {!isReply && onReply && (
             <Pressable
@@ -163,7 +163,7 @@ function CommentItem({
               accessibilityRole="button"
               style={{ alignSelf: 'flex-start', paddingVertical: 8, paddingHorizontal: 12, minHeight: 44 }}
             >
-              <Text style={{ color: colors.textLight, fontSize: 12, fontWeight: '600' }}>{t('comment.reply')}</Text>
+              <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: '600' }}>{t('comment.reply')}</Text>
             </Pressable>
           )}
           {isOwnComment && onDelete ? (
@@ -173,7 +173,7 @@ function CommentItem({
               accessibilityLabel={t('comment.delete')}
               style={{ paddingVertical: 8, paddingHorizontal: 10, minHeight: 44, justifyContent: 'center' }}
             >
-              <Trash2 size={14} color={colors.textLight} />
+              <Trash2 size={14} color={colors.textDim} />
             </Pressable>
           ) : (
             !isOwnComment && onReport && (
@@ -183,7 +183,7 @@ function CommentItem({
                 accessibilityLabel={t('comment.report')}
                 style={{ paddingVertical: 8, paddingHorizontal: 10, minHeight: 44, justifyContent: 'center' }}
               >
-                <Flag size={14} color={colors.textLight} />
+                <Flag size={14} color={colors.textDim} />
               </Pressable>
             )
           )}
@@ -326,7 +326,7 @@ export function CommentSheet({ visible, onClose, itemType, itemId }: CommentShee
             <Text style={{ color: colors.textPrimary, fontSize: 17, fontWeight: '700' }}>{t('comment.title')}</Text>
             {comments.length > 0 && (
               <View style={{ backgroundColor: colors.primaryLight, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 }}>
-                <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>{comments.length}</Text>
+                <Text style={{ color: colors.textPrimary, fontSize: 12, fontWeight: '700' }}>{comments.length}</Text>
               </View>
             )}
           </View>
@@ -348,8 +348,8 @@ export function CommentSheet({ visible, onClose, itemType, itemId }: CommentShee
           ) : comments.length === 0 ? (
             <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 40 }}>
               <MessageCircle size={32} color={colors.textDim} style={{ marginBottom: 12 }} />
-              <Text style={{ color: colors.textDark, fontSize: 15, fontWeight: '600', marginBottom: 4 }}>{t('comment.first')}</Text>
-              <Text style={{ color: colors.placeholder, fontSize: 13 }}>{t('comment.curious')}</Text>
+              <Text style={{ color: colors.textPrimary, fontSize: 15, fontWeight: '600', marginBottom: 4 }}>{t('comment.first')}</Text>
+              <Text style={{ color: colors.textPrimary, fontSize: 13 }}>{t('comment.curious')}</Text>
             </View>
           ) : (
             <FlatList
@@ -385,7 +385,7 @@ export function CommentSheet({ visible, onClose, itemType, itemId }: CommentShee
           {replyTo && (
             <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8, backgroundColor: colors.warningLight, borderTopWidth: 1, borderTopColor: colors.warningBorder }}>
               <CornerDownRight size={14} color={colors.warning} />
-              <Text style={{ flex: 1, fontSize: 13, color: colors.warning, fontWeight: '600', marginLeft: 8 }}>
+              <Text style={{ flex: 1, fontSize: 13, color: colors.textPrimary, fontWeight: '600', marginLeft: 8 }}>
                 @{replyTo.authorName} {t('comment.reply_to')}
               </Text>
               <Pressable onPress={cancelReply} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} style={{ padding: 10 }}>
@@ -425,12 +425,12 @@ export function CommentSheet({ visible, onClose, itemType, itemId }: CommentShee
               </>
             ) : (
               <View style={{ flex: 1, alignItems: 'center', paddingVertical: 8, gap: 8 }}>
-                <Text style={{ color: colors.textLight, fontSize: 13 }}>{t('comment.login_required')}</Text>
+                <Text style={{ color: colors.textSecondary, fontSize: 13 }}>{t('comment.login_required')}</Text>
                 <Pressable
                   onPress={() => { onClose(); router.push('/auth'); }}
                   style={{ paddingHorizontal: 16, paddingVertical: 8, backgroundColor: colors.primaryLight, borderRadius: 8 }}
                 >
-                  <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '700' }}>{t('comment.login')}</Text>
+                  <Text style={{ color: colors.textPrimary, fontSize: 13, fontWeight: '700' }}>{t('comment.login')}</Text>
                 </Pressable>
               </View>
             )}

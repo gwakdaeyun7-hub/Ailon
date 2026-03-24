@@ -40,9 +40,9 @@ import {
 function useTypeConfig(colors: ThemeColors) {
   const { t } = useLanguage();
   return {
-    news: { label: t('saved.type_news'), color: colors.primary, bgColor: colors.primaryLight, Icon: Newspaper },
-    snap: { label: t('saved.type_principle'), color: colors.coreTech, bgColor: colors.coreTechBg, Icon: BookOpen },
-    principle: { label: t('saved.type_principle'), color: colors.coreTech, bgColor: colors.coreTechBg, Icon: BookOpen },
+    news: { label: t('saved.type_news'), color: colors.textPrimary, bgColor: colors.primaryLight, Icon: Newspaper },
+    snap: { label: t('saved.type_principle'), color: colors.textPrimary, bgColor: colors.primaryLight, Icon: BookOpen },
+    principle: { label: t('saved.type_principle'), color: colors.textPrimary, bgColor: colors.primaryLight, Icon: BookOpen },
   } as const;
 }
 
@@ -74,7 +74,7 @@ function SavedItemCard({
             <Text style={{ color: colors.textDim, fontSize: 12 }}>{meta.category}</Text>
           )}
           {typeof bookmark.createdAt === 'string' && (
-            <Text style={{ color: colors.textLight, fontSize: 12 }}>
+            <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
               {'· '}
               {new Date(bookmark.createdAt).toLocaleDateString(lang === 'en' ? 'en-US' : 'ko-KR')}
             </Text>
@@ -123,8 +123,8 @@ function SavedItemCard({
               opacity: pressed ? 0.7 : 1,
             })}
           >
-            <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '600' }}>{t('saved.view_original')}</Text>
-            <ExternalLink size={12} color={colors.primary} />
+            <Text style={{ color: colors.textPrimary, fontSize: 12, fontWeight: '600' }}>{t('saved.view_original')}</Text>
+            <ExternalLink size={12} color={colors.textPrimary} />
           </Pressable>
         </View>
       )}
@@ -314,14 +314,14 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
                 const sc = SOURCE_COLORS[sk] || colors.textSecondary;
                 return (
                   <View style={{ backgroundColor: `${sc}18`, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 }}>
-                    <Text style={{ fontSize: 11, fontWeight: '700', color: sc }}>{getSourceName(sk, t)}</Text>
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: colors.textPrimary }}>{getSourceName(sk, t)}</Text>
                   </View>
                 );
               })()}
               <Text style={{ fontSize: 11, color: colors.textDim }}>{formatDate(article.published, lang, article.date_estimated)}</Text>
               {article.category ? (
                 <View style={{ backgroundColor: `${CATEGORY_COLORS[article.category] || colors.textDim}18`, borderRadius: 16, paddingHorizontal: 8, paddingVertical: 3 }}>
-                  <Text style={{ fontSize: 10, fontWeight: '700', color: CATEGORY_COLORS[article.category] || colors.textDim }}>{getCategoryName(article.category, t)}</Text>
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: colors.textPrimary }}>{getCategoryName(article.category, t)}</Text>
                 </View>
               ) : null}
               <View style={{ marginLeft: 'auto' }}>
@@ -384,7 +384,7 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
                         <HighlightedText
                           text={section.content}
                           glossaryTerms={glossaryDBTerms}
-                          style={{ fontSize: 15, color: colors.summaryBody, lineHeight: 24 }}
+                          style={{ fontSize: 15, color: colors.textPrimary, lineHeight: 24 }}
                           usedTermKeys={usedTermKeys}
                           onTermsDetected={handleTermsDetected}
                         />
@@ -400,7 +400,7 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
                     <HighlightedText
                       text={whyImportant}
                       glossaryTerms={glossaryDBTerms}
-                      style={{ fontSize: 15, color: colors.summaryBody, lineHeight: 26, letterSpacing: 0.2 }}
+                      style={{ fontSize: 15, color: colors.textPrimary, lineHeight: 26, letterSpacing: 0.2 }}
                       usedTermKeys={usedTermKeys}
                       onTermsDetected={handleTermsDetected}
                     />
@@ -456,7 +456,7 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
               </View>
             ) : article.summary ? (
               <Text style={{
-                fontSize: 15, color: colors.summaryBody, lineHeight: 24, letterSpacing: 0.2, marginBottom: 16,
+                fontSize: 15, color: colors.textPrimary, lineHeight: 24, letterSpacing: 0.2, marginBottom: 16,
                 paddingHorizontal: 20,
               }}>
                 {article.summary}
@@ -512,7 +512,7 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
               accessibilityRole="button"
               style={{ flex: 1, alignItems: 'center', paddingVertical: 14 }}
             >
-              <Heart size={22} color={liked ? colors.likeActiveColor : colors.textDim} fill={liked ? colors.likeActiveColor : 'none'} />
+              <Heart size={22} color={liked ? colors.primary : colors.textDim} fill={liked ? colors.primary : 'none'} />
             </Pressable>
             {showComments && (
               <Pressable

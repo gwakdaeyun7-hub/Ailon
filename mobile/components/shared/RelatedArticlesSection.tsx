@@ -68,7 +68,7 @@ export const RelatedArticlesSection = React.memo(function RelatedArticlesSection
                 />
               ) : (
                 <View style={{ width: CARD_W, height: 80, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' }}>
-                  <Newspaper size={24} color={colors.textLight} />
+                  <Newspaper size={24} color={colors.textDim} />
                 </View>
               )}
               <View style={{ padding: 10 }}>

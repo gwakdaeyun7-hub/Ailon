@@ -68,7 +68,7 @@ export const TimelineSection = React.memo(function TimelineSection({ timelineIds
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                 <View style={{
                   width: 8, height: 8, borderRadius: 4,
-                  backgroundColor: colors.summaryIndigo,
+                  backgroundColor: colors.summaryTeal,
                 }} />
                 <Text style={{ fontSize: 12, color: colors.textSecondary }}>{date}</Text>
               </View>
