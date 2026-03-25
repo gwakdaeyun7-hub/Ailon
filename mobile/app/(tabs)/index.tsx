@@ -958,14 +958,16 @@ const SourceHScrollSection = React.memo(function SourceHScrollSection({
               alignSelf: 'center',
               minHeight: 44,
               marginRight: 12,
-              backgroundColor: colors.border,
+              backgroundColor: colors.card,
               borderRadius: 12,
+              borderWidth: 1,
+              borderColor: colors.border,
               alignItems: 'center',
               justifyContent: 'center',
               opacity: pressed ? 0.7 : 1,
             })}
           >
-            <Text style={{ fontSize: 13, fontWeight: '600', color: colors.textSecondary, textAlign: 'center' }}>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: colors.textPrimary, textAlign: 'center' }}>
               +{more5.length} {t('news.show_more')}
             </Text>
           </Pressable>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, View, Text } from 'react-native';
+import { ChevronDown, ChevronUp } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/context/LanguageContext';
 
@@ -60,6 +61,11 @@ export function ShowMoreButton({
         <Text style={{ fontSize: 13, fontWeight: '600', color: colors.textPrimary }}>
           {label}
         </Text>
+        {isExpanded ? (
+          <ChevronUp size={14} color={colors.textPrimary} strokeWidth={2} />
+        ) : (
+          <ChevronDown size={14} color={colors.textPrimary} strokeWidth={2} />
+        )}
       </Pressable>
     </View>
   );

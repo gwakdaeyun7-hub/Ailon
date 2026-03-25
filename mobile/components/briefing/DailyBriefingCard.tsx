@@ -507,7 +507,7 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
               </View>
             </View>
 
-            <ChevronDown size={16} color={colors.textSecondary} style={{ marginLeft: 4 }} />
+            <ChevronDown size={16} color={colors.textPrimary} style={{ marginLeft: 4 }} />
           </View>
         </Pressable>
       </View>
@@ -800,7 +800,7 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
               paddingHorizontal: 16,
               paddingVertical: 14,
               borderRadius: 14,
-              backgroundColor: colors.primary + '12',
+              backgroundColor: colors.primary + '15',
               gap: 4,
             }}
           >
