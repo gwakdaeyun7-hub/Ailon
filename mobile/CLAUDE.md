@@ -128,3 +128,9 @@
 - **index.tsx ~1460 lines**: 더 이상 inline 컴포넌트 추가 금지, components/feed/로 추출할 것 — `guard-index-bloat.sh` hook이 PreToolUse에서 자동 차단
 - **TypeScript 타입 체크**: .ts/.tsx 수정 시 `mobile-typecheck.sh` hook이 `tsc --noEmit` 자동 실행 (정보 제공, 비차단)
 - **EAS Build OneDrive 문제**: OneDrive 동기화 폴더에서 `eas build` 실행 시 빌드 서버 tar 해제 Permission denied. 반드시 `C:\dev\ailon` 등 로컬 폴더로 복사 후 빌드
+
+## Security Notes
+
+- **딥링크 화이트리스트**: `useNotifications`에서 `VALID_TABS` 배열로 알림 딥링크 경로 검증 — 새 탭 추가 시 화이트리스트 업데이트 필요
+- **Production console 제거**: `babel.config.js`에서 `NODE_ENV === "production"` 시 `transform-remove-console` 플러그인으로 console.* 자동 제거
+- **에러 핸들링**: `useComments` deleteComment 등 Firestore 쓰기 작업은 try-catch 필수

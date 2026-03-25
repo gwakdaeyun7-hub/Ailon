@@ -137,6 +137,20 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 | `reports/{reportId}` | 1 doc/report | commentId, docId, reporterUid, authorUid, reason, commentText, status (pending/resolved/dismissed) |
 | `app_config/{configId}` | 1 doc/config | Feature flags (social_features: show_like_counts, show_comments, like_count_threshold) |
 
+### Firestore Security Rules (backend/firestore.rules)
+
+새 컬렉션/필드 추가 시 보안 규칙 동시 업데이트 필수. 주요 패턴:
+
+| 컬렉션 | 읽기 | 쓰기 패턴 |
+|--------|------|-----------|
+| 파이프라인 데이터 (daily_news, daily_principles, articles 등) | 전체 허용 | `allow write: if false` (서버/admin만) |
+| users/{uid} | 본인만 | update 시 `affectedKeys().hasOnly([8개 필드])` — 허용 필드 화이트리스트 |
+| article_views | 전체 허용 | create/update 분리, `views` 필드만 허용, increment +1만 허용 |
+| reactions | 전체 허용 | 필드 타입 검증(int/list) + `count == array.size()` 일관성 검증 + 허용 필드 제한 |
+| comments/entries | 전체 허용 | create: `authorUid == request.auth.uid` + text 2000자 + 허용 필드 제한. 루트 comments 문서는 `allow write: if false` |
+| comments/entries update | — | 본인 수정 OR reportCount +1만 허용 (int 타입 + 미존재 필드 0→1 ternary 대응) |
+| reports | 본인 신고만 | create만 허용, update/delete 불가 |
+
 ### GitHub Actions (.github/workflows/collect-news.yml)
 - Schedule: 6AM + 6PM KST daily
 - Manual trigger: target (all/news/principle), force flag
@@ -147,6 +161,8 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 
 - **3-레이어**: 파이프라인 뉴스(`notifications.py`, FCM+Expo 폴백) + Cloud Functions v2 소셜(댓글/좋아요, Expo Push API) + 모바일 클라이언트
 - **KO/EN 자동전환** (`users/{uid}.language`), Android 채널 `news`(HIGH) / `social`(DEFAULT), 좋아요 5분 디바운싱
+- **PII 최소 노출**: `notifications.py` `_collect_users()`에서 `db.collection("users").select(["fcmToken", "expoPushToken", "language"])` — 필요 필드만 조회
+- **Cloud Functions 입력 새니타이징**: `onCommentReply`에서 authorName을 regex 특수문자 제거 + 50자 제한 (알림 텍스트 injection 방지)
 
 ### CI Logging (`scripts/agents/ci_utils.py`)
 - `ci_warning(msg)` / `ci_error(msg)` — `::warning::` / `::error::` 어노테이션 (CI에서만) + 항상 print + 내부 리스트에 수집
