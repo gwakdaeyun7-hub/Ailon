@@ -20,7 +20,7 @@ ailon/
 │   ├── components/   # UI: briefing/, feed/, shared/
 │   ├── hooks/        # Data hooks: useNews, usePrinciple, useBriefing, useAuth, etc.
 │   ├── context/      # DrawerContext, LanguageContext, ThemeContext
-│   └── lib/          # firebase.ts, types.ts, colors.ts, translations.ts, theme.ts
+│   └── lib/          # firebase.ts, types.ts, colors.ts, translations.ts, theme.ts, articleHelpers.ts, latexToDisplay.ts, speech.ts
 ├── functions/        # Firebase Cloud Functions v2 (comment/like push notifications)
 ├── backend/          # Firebase config (firebase.json, firestore.rules)
 └── .github/workflows/collect-news.yml  # Scheduled pipeline (6AM + 6PM KST)
@@ -116,7 +116,7 @@ cd ../functions && firebase deploy --only functions
 - **Simplicity first**: Minimum code that solves the problem, no speculative features
 - **Surgical changes**: Touch only what you must, match existing style
 - **Goal-driven execution**: Define verifiable success criteria, loop until verified
-- **Do NOT add inline components to index.tsx** — 이미 ~1460줄, `guard-index-bloat.sh` hook이 자동 차단. `components/feed/`로 추출할 것
+- **Do NOT add inline components to index.tsx** — 이미 ~1300줄, `guard-index-bloat.sh` hook이 자동 차단. `components/feed/`로 추출할 것
 - **UI는 깔끔하고 미니멀하게** — 장식보다 콘텐츠, AI 앱 같은 제네릭한 디자인 금지. 상세 원칙은 `mobile/CLAUDE.md` Design Principles 참조
 
 ## Hooks (`.claude/hooks/`)
@@ -130,3 +130,11 @@ cd ../functions && firebase deploy --only functions
 | *(inline)* | Stop / Notification | Info | 비프음 알림 (800Hz, 0.3s) |
 
 설정: `.claude/settings.local.json` (gitignore 대상). 훅 스크립트 자체는 커밋 대상.
+
+## Skills (`.claude/skills/`)
+
+| Skill | Invocation | Purpose |
+|-------|-----------|---------|
+| `pipeline-qa` | `/pipeline-qa` | 파이프라인 실행 로그 분석 → 9개 영역 심층 QA + 자동 수정 |
+| `principle-qa` | `/principle-qa` | curated 원리 콘텐츠 SA 기준 8차원 품질 검토 + 수정 |
+| `sync-harness` | `/sync-harness` | 코드 변경 → 하네스 파일 동기화 + 커밋/푸시 |

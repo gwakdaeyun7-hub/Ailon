@@ -25,7 +25,7 @@ fi
 # Detect new component/function definitions (const XxxComponent, function XxxComponent, etc.)
 # Look for patterns like "const SomeName = (" or "function SomeName(" that indicate new components
 if echo "$NEW_CONTENT" | grep -qE '^\s*(const|function|export\s+(const|function))\s+[A-Z][a-zA-Z]+\s*[:=]\s*(\(|React\.|memo|forwardRef)'; then
-  echo "BLOCK: index.tsx is 1560+ lines. Do NOT add inline components here."
+  echo "BLOCK: index.tsx is 1300+ lines. Do NOT add inline components here."
   echo "Extract new components to mobile/components/feed/ instead."
   echo "See: mobile/CLAUDE.md rule — 'index.tsx ~1500 lines: inline component 추가 금지'"
   exit 2
