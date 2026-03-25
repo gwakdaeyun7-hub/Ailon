@@ -63,7 +63,7 @@
 ### Tab 5: Profile (profile.tsx)
 - **카드 그룹핑 (4+1)**: Avatar / Settings(Language+DarkMode) / Notification / More(Activity+Legal) / SignOut
 - **Avatar**: 64px, 가로 배치 (flexDirection: 'row') — 이름+이메일 우측 배치
-- **Settings 카드**: Language toggle (KO/EN, system language detection default) + dark/light theme switch
+- **Settings 카드**: Language toggle (EN/KO 순서, default English — 시스템 언어 감지 없음) + dark/light theme switch
 - **Notification 카드**: newsAlerts, commentReplies, likes (per-type toggles)
 - **More 카드**: Activity + Legal links (Privacy Policy + Terms of Service, bilingual KO/EN via GitHub Pages)
 - **Sign Out**: 카드 스타일 제거 → 단순 회색 텍스트 버튼
@@ -77,7 +77,7 @@
 - **HighlightedText**: Auto glossary term detection + definition modal
 - **RelatedArticlesSection**: Horizontal card carousel (entity/cluster matching)
 - **TimelineSection**: Vertical timeline with past article links
-- **DailyBriefingCard**: 접힌 상태(TTS + 기사 수 텍스트) / 펼친 상태(도메인 도넛 차트 + 태그 클라우드 + 연구 기사 7일 스파크라인 + 브리핑 전문). 도넛 차트는 topic_cluster_id 기반 도메인 분포(Top 5 + Others) 표시, 도메인 팔레트(NLP/Vision/ML/Robotics/Multimodal/Business/Infra/Regulation/Audio/Security/Science/Dev/Others)
+- **DailyBriefingCard**: 접힌 상태(TTS + 기사 수 텍스트) / 펼친 상태(도메인 도넛 차트 + 태그 클라우드 + 연구 기사 7일 스파크라인 + 브리핑 전문). 도넛 차트는 topic_cluster_id 기반 도메인 분포(Top 5 + Others) 표시, 도메인 팔레트(NLP/Vision/ML/Robotics/Multimodal/Business/Infra/Regulation/Audio/Security/Science/Dev/Others). 핫토픽은 lang별 hot_topics/hot_topics_en 분기 (EN 없으면 KO 폴백)
 - **ShareCard**: 오프스크린 렌더링 → react-native-view-shot 캡처 → expo-sharing 공유. 텍스트 폴백 내장
 - **SideDrawer**: Animated left panel (82% width, max 320px)
 - **ShowMoreButton**: 더보기/접기 pill 버튼 (카테고리, GeekNews 세로 리스트 공용)
@@ -103,7 +103,7 @@
 | useFeatureFlags | `app_config/social_features` | Social feature flags (like counts, comments visibility) |
 
 ### Contexts
-- **LanguageContext**: KO/EN toggle, `t(key)` translation function, AsyncStorage persist
+- **LanguageContext**: EN/KO toggle (default English), `t(key)` translation function, AsyncStorage persist
 - **ThemeContext**: Dark/light mode, system-aware default, color tokens
 - **DrawerContext**: Side drawer animation state (translateX, overlayOpacity)
 
