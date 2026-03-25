@@ -109,17 +109,6 @@ export default function ProfileScreen() {
             <Globe size={20} color={colors.textSecondary} />
             <View style={{ flex: 1, flexDirection: 'row', gap: 8 }}>
               <Pressable
-                onPress={() => setLanguage('ko')}
-                accessibilityRole="button"
-                style={{
-                  flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: 'center', minHeight: 44, justifyContent: 'center',
-                  backgroundColor: lang === 'ko' ? colors.primary : colors.surface,
-                  borderWidth: 1, borderColor: lang === 'ko' ? colors.primary : colors.border,
-                }}
-              >
-                <Text style={{ fontSize: 14, fontWeight: '600', color: lang === 'ko' ? colors.card : colors.textSecondary }}>한국어</Text>
-              </Pressable>
-              <Pressable
                 onPress={() => setLanguage('en')}
                 accessibilityRole="button"
                 style={{
@@ -129,6 +118,17 @@ export default function ProfileScreen() {
                 }}
               >
                 <Text style={{ fontSize: 14, fontWeight: '600', color: lang === 'en' ? colors.card : colors.textSecondary }}>English</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setLanguage('ko')}
+                accessibilityRole="button"
+                style={{
+                  flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: 'center', minHeight: 44, justifyContent: 'center',
+                  backgroundColor: lang === 'ko' ? colors.primary : colors.surface,
+                  borderWidth: 1, borderColor: lang === 'ko' ? colors.primary : colors.border,
+                }}
+              >
+                <Text style={{ fontSize: 14, fontWeight: '600', color: lang === 'ko' ? colors.card : colors.textSecondary }}>한국어</Text>
               </Pressable>
             </View>
           </View>

@@ -33,7 +33,7 @@ export const RelatedArticlesSection = React.memo(function RelatedArticlesSection
   if (items.length === 0) return null;
 
   return (
-    <View style={{ marginBottom: 16 }}>
+    <View style={{ marginTop: 24, marginBottom: 16 }}>
       <Text style={{ fontSize: 13, fontWeight: '700', color: colors.textSecondary, marginBottom: 10, paddingHorizontal: 20 }}>
         {t('modal.related')}
       </Text>

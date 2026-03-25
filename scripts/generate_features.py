@@ -332,41 +332,37 @@ Articles:
             "생성형 ai", "신경망",
         }
 
-        # Hot topics: highlights + categorized_articles 태그 빈도 Top 8 (도넛 차트와 동일 풀, KO + EN 합산, 소문자 기준 중복 제거)
+        # Hot topics: tags_en 기반 통일 (AI 용어는 영어가 가독성 좋음), 소문자 기준 중복 제거, 원본 케이스 보존
         tag_freq: dict[str, int] = {}
+        tag_display: dict[str, str] = {}  # lowercase → 원본 케이스 (첫 등장 보존)
         seen_tag_links: set[str] = set()
         for art in domain_articles:
             link = art.get("link", "")
             if link in seen_tag_links:
                 continue
             seen_tag_links.add(link)
-            for tag in (art.get("tags") or []):
+            for tag in (art.get("tags_en") or art.get("tags") or []):
                 t = tag.strip().lower()
                 if len(t) >= 2 and t not in _hot_topic_blacklist:
                     tag_freq[t] = tag_freq.get(t, 0) + 1
-            for tag in (art.get("tags_en") or []):
-                t = tag.strip().lower()
-                if len(t) >= 2 and t not in _hot_topic_blacklist:
-                    tag_freq[t] = tag_freq.get(t, 0) + 1
+                    if t not in tag_display:
+                        tag_display[t] = tag.strip()
 
         # 하위 태그 병합: "microsoft 365" → "microsoft" 등 포함 관계 태그 합산
-        tags_sorted = sorted(tag_freq.keys(), key=len)  # 짧은 태그 먼저
+        tags_sorted = sorted(tag_freq.keys(), key=len)
         merged: dict[str, int] = {}
-        alias: dict[str, str] = {}  # 하위태그 → 부모태그 매핑
         for t in tags_sorted:
             parent = None
             for m in merged:
-                # 부모 태그가 하위 태그의 접두어이고 공백 경계로 분리되는 경우만 병합
                 if t.startswith(m + " "):
                     parent = m
                     break
             if parent:
                 merged[parent] += tag_freq[t]
-                alias[t] = parent
             else:
                 merged[t] = tag_freq[t]
 
-        hot_topics = [{"tag": t, "count": c} for t, c in sorted(merged.items(), key=lambda x: -x[1])[:8]]
+        hot_topics = [{"tag": tag_display.get(t, t), "count": c} for t, c in sorted(merged.items(), key=lambda x: -x[1])[:8]]
 
         db = get_firestore_client()
         today = datetime.now(_KST).strftime("%Y-%m-%d")

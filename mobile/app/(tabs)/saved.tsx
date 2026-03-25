@@ -8,7 +8,7 @@
  */
 
 import React, { useMemo, useCallback, useState, useEffect, useRef } from 'react';
-import { View, Text, FlatList, Pressable, Linking, Alert, Modal, ScrollView, ActivityIndicator, Animated } from 'react-native';
+import { View, Text, FlatList, Pressable, Linking, Alert, Modal, ScrollView, ActivityIndicator, Animated, StyleSheet, LayoutAnimation } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -294,7 +294,7 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
           <ScrollView
             showsVerticalScrollIndicator
             bounces
-            contentContainerStyle={{ paddingBottom: 20 }}
+            contentContainerStyle={{ paddingBottom: 32 }}
           >
             {/* 썸네일 이미지 — 풀 너비 */}
             {article.image_url ? (
@@ -351,6 +351,7 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
                 fontSize: 22, fontWeight: '900', color: colors.textPrimary, lineHeight: 32,
                 letterSpacing: -0.3,
                 paddingHorizontal: 20, fontFamily: FontFamily.serif,
+                marginTop: 8,
               }}
             >
               {articleTitle}
@@ -360,7 +361,7 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
             {oneLine ? (
               <View style={{ paddingHorizontal: 20 }}>
                 {/* 1. One Line — teal 배경 */}
-                <View style={{ marginTop: 12, padding: 14, borderRadius: 12, backgroundColor: colors.primaryLight }}>
+                <View style={{ marginTop: 16, padding: 14, borderRadius: 12, backgroundColor: colors.primaryLight }}>
                   <Text style={{ fontSize: 16, fontWeight: '600', lineHeight: 26, color: colors.textPrimary }}>
                     {oneLine}
                   </Text>
@@ -377,7 +378,7 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
                 {sections.length > 0 && (
                   <View style={{ marginTop: 24 }}>
                     {sections.map((section, idx) => (
-                      <View key={idx} style={{ marginTop: idx === 0 ? 0 : 24, ...(idx > 0 ? { borderTopWidth: 0.5, borderTopColor: colors.border, paddingTop: 24 } : {}) }}>
+                      <View key={idx} style={{ marginTop: idx === 0 ? 0 : 32 }}>
                         {section.subtitle ? (
                           <Text style={{ fontSize: 18, fontWeight: '700', lineHeight: 26, letterSpacing: -0.2, color: colors.textPrimary, fontFamily: FontFamily.serif, marginBottom: 10 }}>{section.subtitle}</Text>
                         ) : null}
@@ -420,9 +421,12 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
 
                 {/* Glossary — 아코디언 */}
                 {glossary.length > 0 ? (
-                  <View style={{ marginTop: 16 }}>
+                  <View style={{ marginTop: 24 }}>
                     <Pressable
-                      onPress={() => setGlossaryOpen(!glossaryOpen)}
+                      onPress={() => {
+                        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                        setGlossaryOpen(!glossaryOpen);
+                      }}
                       accessibilityRole="button"
                       accessibilityLabel={t('modal.glossary')}
                       accessibilityState={{ expanded: glossaryOpen }}
@@ -471,7 +475,7 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
 
             {/* Read Original 버튼 */}
             {article.link ? (
-              <View style={{ paddingHorizontal: 20, marginTop: 20, marginBottom: 8 }}>
+              <View style={{ paddingHorizontal: 20, marginTop: 32, marginBottom: 8 }}>
                 <Pressable
                   onPress={() => Linking.openURL(article.link)}
                   accessibilityRole="button"
@@ -501,7 +505,7 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
           {/* 고정 하단 액션 바 */}
           <View style={{
             flexDirection: 'row',
-            borderTopWidth: 0.5,
+            borderTopWidth: StyleSheet.hairlineWidth,
             borderTopColor: colors.border,
             backgroundColor: colors.card,
             paddingBottom: Math.max(insets.bottom, 10),

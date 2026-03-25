@@ -7,14 +7,8 @@ import { auth, db } from '@/lib/firebase';
 
 const STORAGE_KEY = 'ailon_language';
 
-/** 시스템 언어가 한국어이면 'ko', 그 외 'en' */
+/** 기본 언어는 항상 영어, 사용자가 수동 변경 시 AsyncStorage에 저장 */
 function getSystemLanguage(): Language {
-  try {
-    const locales = getLocales();
-    if (locales.length > 0 && locales[0].languageCode?.startsWith('ko')) {
-      return 'ko';
-    }
-  } catch {}
   return 'en';
 }
 
