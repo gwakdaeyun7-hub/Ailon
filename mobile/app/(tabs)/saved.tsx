@@ -8,11 +8,11 @@
  */
 
 import React, { useMemo, useCallback, useState, useEffect, useRef } from 'react';
-import { View, Text, FlatList, Pressable, Linking, Alert, Modal, ScrollView, ActivityIndicator, Animated, StyleSheet, LayoutAnimation } from 'react-native';
+import { View, Text, FlatList, Pressable, Linking, Alert, Modal, ScrollView, ActivityIndicator, Animated, StyleSheet, LayoutAnimation, Share } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Bookmark, ExternalLink, Trash2, Newspaper, BookOpen, X, ChevronDown, Heart, Share2, MessageCircle } from 'lucide-react-native';
+import { Bookmark, ExternalLink, Trash2, Newspaper, BookOpen, X, ChevronDown, Heart, Share2, MessageCircle, Clock } from 'lucide-react-native';
 import { useAuth } from '@/hooks/useAuth';
 import { useBookmarks } from '@/hooks/useBookmarks';
 import { useArticle } from '@/hooks/useArticle';
@@ -25,9 +25,9 @@ import { cardShadow, FontFamily } from '@/lib/theme';
 import type { ThemeColors } from '@/lib/colors';
 import type { Bookmark as BookmarkType, Article } from '@/lib/types';
 import { CommentSheet } from '@/components/shared/CommentSheet';
-import { ShareCard } from '@/components/feed/ShareCard';
-import { useShareImage } from '@/hooks/useShareImage';
+import { useShareLink } from '@/hooks/useShareLink';
 import { useFeatureFlags } from '@/hooks/useFeatureFlags';
+import { useReadStats } from '@/hooks/useReadStats';
 import { HighlightedText } from '@/components/shared/HighlightedText';
 import { RelatedArticlesSection } from '@/components/shared/RelatedArticlesSection';
 import {
@@ -155,7 +155,7 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
   const { user } = useAuth();
   const { showComments } = useFeatureFlags();
   const { isBookmarked, toggleBookmark } = useBookmarks(user?.uid ?? null);
-  const { shareCardRef, shareAsImage, isCapturing } = useShareImage();
+  const { shareArticleLink } = useShareLink();
   const { likes, liked, toggleLike } = useReactions('news', article.link);
   const { views, trackView } = useArticleViews(article.link);
   const { allTerms: glossaryDBTerms } = useGlossaryDB();
@@ -210,26 +210,17 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
   };
 
   const handleShare = async () => {
-    const shareOneLine = getLocalizedOneLine(article, lang);
-    const shareSections = getLocalizedSections(article, lang);
-    const shareWhyImportant = getLocalizedWhyImportant(article, lang);
-    let body = '';
-    if (shareOneLine) {
-      body += `${t('share.one_line_label')}\n${shareOneLine}`;
-      if (shareSections.length > 0) {
-        const sectionTexts = shareSections.map((s, i) =>
-          s.subtitle ? `${s.subtitle}\n${s.content}` : `${i + 1}. ${s.content}`
-        ).join('\n\n');
-        body += `\n\n${t('share.key_points_label')}\n${sectionTexts}`;
+    const title = getLocalizedTitle(article, lang);
+    const oneLine = getLocalizedOneLine(article, lang);
+    if (article.article_id) {
+      await shareArticleLink(article.article_id, title, oneLine, lang);
+    } else {
+      try {
+        await Share.share({ message: `${title}\n\n${article.link || ''}\n\n${t('share.footer')}` });
+      } catch (err) {
+        console.warn('Share failed:', err);
       }
-      if (shareWhyImportant) {
-        body += `\n\n${t('share.why_important_label')}\n${shareWhyImportant}`;
-      }
-    } else if (article.summary) {
-      body = article.summary;
     }
-    const fallbackText = `${getLocalizedTitle(article, lang)}\n\n${body}\n\n${t('share.footer')}`;
-    await shareAsImage(fallbackText);
   };
 
   const handleTermsDetected = useCallback((keys: string[]) => {
@@ -240,14 +231,16 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
     });
   }, []);
 
-  const { oneLine, sections, whyImportant, background, tags, glossary } = useMemo(() => {
+  const { oneLine, sections, whyImportant, background, tags, glossary, readMin } = useMemo(() => {
     const ol = getLocalizedOneLine(article, lang);
     const sc = getLocalizedSections(article, lang);
     const wi = getLocalizedWhyImportant(article, lang);
     const bg = getLocalizedBackground(article, lang);
     const tg = (lang === 'en' && article.tags_en && article.tags_en.length > 0) ? article.tags_en : article.tags;
     const gl = getLocalizedGlossary(article, lang);
-    return { oneLine: ol, sections: sc, whyImportant: wi, background: bg, tags: tg, glossary: gl };
+    const summaryText = [ol, ...sc.map(s => s.content), wi].join('');
+    const rm = Math.max(1, Math.round(summaryText.length / 500));
+    return { oneLine: ol, sections: sc, whyImportant: wi, background: bg, tags: tg, glossary: gl, readMin: rm };
   }, [article, lang]);
 
   const articleTitle = getLocalizedTitle(article, lang);
@@ -313,15 +306,19 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
                 const sk = article.source_key || article.source;
                 const sc = SOURCE_COLORS[sk] || colors.textSecondary;
                 return (
-                  <View style={{ backgroundColor: `${sc}18`, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 }}>
+                  <View style={{ backgroundColor: `${sc}18`, borderRadius: 0, paddingHorizontal: 8, paddingVertical: 4 }}>
                     <Text style={{ fontSize: 11, fontWeight: '700', color: colors.textPrimary }}>{getSourceName(sk, t)}</Text>
                   </View>
                 );
               })()}
               <Text style={{ fontSize: 11, color: colors.textDim }}>{formatDate(article.published, lang, article.date_estimated)}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                <Clock size={11} color={colors.textDim} strokeWidth={2} />
+                <Text style={{ fontSize: 11, color: colors.textDim }}>{readMin}{lang === 'ko' ? '분' : ' min'}</Text>
+              </View>
               {article.category ? (
-                <View style={{ backgroundColor: `${CATEGORY_COLORS[article.category] || colors.textDim}18`, borderRadius: 16, paddingHorizontal: 8, paddingVertical: 3 }}>
-                  <Text style={{ fontSize: 10, fontWeight: '700', color: colors.textPrimary }}>{getCategoryName(article.category, t)}</Text>
+                <View style={{ backgroundColor: `${CATEGORY_COLORS[article.category] || colors.textDim}18`, borderRadius: 0, paddingHorizontal: 8, paddingVertical: 3 }}>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: colors.textPrimary }}>{getCategoryName(article.category, t)}</Text>
                 </View>
               ) : null}
               <View style={{ marginLeft: 'auto' }}>
@@ -550,10 +547,6 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
             </Animated.View>
           ) : null}
 
-          {/* 오프스크린 ShareCard — 캡처 전용 */}
-          <View style={{ position: 'absolute', left: -9999 }} pointerEvents="none">
-            <ShareCard ref={shareCardRef} article={article} lang={lang} t={t} />
-          </View>
         </View>
       </View>
     </Modal>
@@ -636,6 +629,7 @@ export default function SavedScreen() {
   const { colors } = useTheme();
   const typeConfig = useTypeConfig(colors);
   const { showComments } = useFeatureFlags();
+  const { recordRead } = useReadStats(user?.uid ?? null);
 
   const [selectedBookmark, setSelectedBookmark] = useState<BookmarkType | null>(null);
   const [commentArticleLink, setCommentArticleLink] = useState<string | null>(null);
@@ -664,7 +658,8 @@ export default function SavedScreen() {
 
   const handleCardPress = useCallback((bookmark: BookmarkType) => {
     setSelectedBookmark(bookmark);
-  }, []);
+    if (bookmark.type === 'news') recordRead(bookmark.itemId);
+  }, [recordRead]);
 
   const handleCloseModal = useCallback(() => {
     setSelectedBookmark(null);

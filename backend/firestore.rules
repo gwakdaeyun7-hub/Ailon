@@ -87,7 +87,8 @@ service cloud.firestore {
       allow update: if isOwner(userId)
         && request.resource.data.diff(resource.data).affectedKeys()
            .hasOnly(['language', 'displayName', 'photoURL', 'email',
-                     'expoPushToken', 'fcmToken', 'lastLoginAt', 'theme']);
+                     'expoPushToken', 'fcmToken', 'lastLoginAt', 'theme',
+                     'notificationsEnabled']);
 
       // User's bookmarks subcollection
       match /bookmarks/{bookmarkId} {
@@ -101,6 +102,11 @@ service cloud.firestore {
 
       // User's preferences subcollection
       match /preferences/{prefId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      // User's read history subcollection (읽기 통계 추적)
+      match /read_history/{articleId} {
         allow read, write: if isOwner(userId);
       }
     }

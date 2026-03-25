@@ -128,8 +128,9 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 | `articles/{article_id}` | 1 doc/article | Full article + entities, related_ids, timeline_ids |
 | `daily_briefings/{date}` | 1 doc/day | briefing_ko, briefing_en, story_count, category_stats, domain_stats, hot_topics (EN 통일), trend_history (research 카테고리 기사 수 기준) |
 | `glossary_terms/{term}` | 1 doc/term | term/desc (KO+EN), article_ids |
-| `users/{uid}` | 1 doc/user | profile, expoPushToken, fcmToken, language (ko/en), lastLikeNotifiedAt |
+| `users/{uid}` | 1 doc/user | profile, expoPushToken, fcmToken, language (ko/en), lastLikeNotifiedAt, notificationsEnabled |
 | `users/{uid}/bookmarks` | subcollection | type, itemId, metadata |
+| `users/{uid}/read_history/{articleId}` | subcollection | readAt, articleId |
 | `users/{uid}/preferences/notifications` | subdoc | newsAlerts, commentReplies, likes |
 | `reactions/{itemId}` | 1 doc/item | likedBy[], dislikedBy[] |
 | `comments/{docId}/entries` | subcollection | Threaded comments |
@@ -144,7 +145,8 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 | 컬렉션 | 읽기 | 쓰기 패턴 |
 |--------|------|-----------|
 | 파이프라인 데이터 (daily_news, daily_principles, articles 등) | 전체 허용 | `allow write: if false` (서버/admin만) |
-| users/{uid} | 본인만 | update 시 `affectedKeys().hasOnly([8개 필드])` — 허용 필드 화이트리스트 |
+| users/{uid} | 본인만 | update 시 `affectedKeys().hasOnly([9개 필드])` — 허용 필드 화이트리스트 (notificationsEnabled 포함) |
+| users/{uid}/read_history | 본인만 | create/update 허용 |
 | article_views | 전체 허용 | create/update 분리, `views` 필드만 허용, increment +1만 허용 |
 | reactions | 전체 허용 | 필드 타입 검증(int/list) + `count == array.size()` 일관성 검증 + 허용 필드 제한 |
 | comments/entries | 전체 허용 | create: `authorUid == request.auth.uid` + text 2000자 + 허용 필드 제한. 루트 comments 문서는 `allow write: if false` |
@@ -159,7 +161,8 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 
 ### Push Notification System
 
-- **3-레이어**: 파이프라인 뉴스(`notifications.py`, FCM+Expo 폴백) + Cloud Functions v2 소셜(댓글/좋아요, Expo Push API) + 모바일 클라이언트
+- **3-레이어**: 파이프라인 뉴스(`notifications.py`, FCM+Expo 폴백) + Cloud Functions v2 소셜(댓글/좋아요, Expo Push API) + `deleteUserData` callable(8단계 계정 삭제: 서브컬렉션, reactions, 댓글, Storage, Auth) + 모바일 클라이언트
+- **notificationsEnabled 마스터 토글**: `getUserInfo`에서 `notificationsEnabled` 필드 체크 — false이면 알림 발송 스킵
 - **KO/EN 자동전환** (`users/{uid}.language`), Android 채널 `news`(HIGH) / `social`(DEFAULT), 좋아요 5분 디바운싱
 - **PII 최소 노출**: `notifications.py` `_collect_users()`에서 `db.collection("users").select(["fcmToken", "expoPushToken", "language"])` — 필요 필드만 조회
 - **Cloud Functions 입력 새니타이징**: `onCommentReply`에서 authorName을 regex 특수문자 제거 + 50자 제한 (알림 텍스트 injection 방지)

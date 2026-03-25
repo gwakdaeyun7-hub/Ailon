@@ -6,6 +6,7 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { initializeAuth, getReactNativePersistence, getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GoogleAuthProvider } from 'firebase/auth';
 
@@ -32,5 +33,6 @@ const auth = existingApps.length === 0
 
 export { auth };
 export const db = getFirestore(app);
+export const storage = getStorage(app);
 export const googleProvider = new GoogleAuthProvider();
 export default app;

@@ -24,7 +24,7 @@ import { Image } from 'expo-image';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import {
-  RefreshCw, ThumbsUp, Share2, MessageCircle, X, Cpu, Newspaper, Bookmark, ChevronDown, Heart, ExternalLink,
+  RefreshCw, ThumbsUp, Share2, MessageCircle, X, Cpu, Newspaper, Bookmark, ChevronDown, Heart, ExternalLink, Clock,
 } from 'lucide-react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNews } from '@/hooks/useNews';
@@ -60,6 +60,7 @@ import { RelatedArticlesSection } from '@/components/shared/RelatedArticlesSecti
 import { HighlightedText, termKey } from '@/components/shared/HighlightedText';
 import { useGlossaryDB } from '@/hooks/useGlossaryDB';
 import { useFeatureFlags } from '@/hooks/useFeatureFlags';
+import { useReadStats } from '@/hooks/useReadStats';
 
 
 // ─── 빈 배열 상수 (이슈 #17: 인라인 리터럴 참조 안정성) ────────────────
@@ -375,15 +376,19 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
                 const sk = article.source_key || article.source;
                 const sc = SOURCE_COLORS[sk] || colors.textSecondary;
                 return (
-                  <View style={{ backgroundColor: `${sc}18`, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 }}>
+                  <View style={{ backgroundColor: `${sc}18`, borderRadius: 0, paddingHorizontal: 8, paddingVertical: 4 }}>
                     <Text style={{ fontSize: 11, fontWeight: '700', color: colors.textPrimary }}>{getSourceName(sk, t)}</Text>
                   </View>
                 );
               })()}
               <Text style={{ fontSize: 11, color: colors.textDim }}>{formatDate(article.published, lang, article.date_estimated)}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                <Clock size={11} color={colors.textDim} strokeWidth={2} />
+                <Text style={{ fontSize: 11, color: colors.textDim }}>{readMin}{lang === 'ko' ? '분' : ' min'}</Text>
+              </View>
               {article.category ? (
-                <View style={{ backgroundColor: `${CATEGORY_COLORS[article.category] || colors.textDim}18`, borderRadius: 16, paddingHorizontal: 8, paddingVertical: 3 }}>
-                  <Text style={{ fontSize: 10, fontWeight: '700', color: colors.textPrimary }}>{getCategoryName(article.category, t)}</Text>
+                <View style={{ backgroundColor: `${CATEGORY_COLORS[article.category] || colors.textDim}18`, borderRadius: 0, paddingHorizontal: 8, paddingVertical: 3 }}>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: colors.textPrimary }}>{getCategoryName(article.category, t)}</Text>
                 </View>
               ) : null}
               <View style={{ marginLeft: 'auto' }}>
@@ -637,7 +642,7 @@ function HighlightSection({ highlights, onArticlePress, allStats }: { highlights
   if (!highlights || highlights.length === 0) return null;
 
   return (
-    <View style={{ paddingTop: 12, paddingBottom: 24, backgroundColor: colors.primaryLight }}>
+    <View style={{ paddingTop: 12, paddingBottom: 6, backgroundColor: colors.primaryLight }}>
       {/* 섹션 헤더 */}
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 16 }}>
         <Text style={{ fontSize: 17, fontWeight: '700', color: colors.textPrimary, fontFamily: FontFamily.serif }}>{t('news.highlight_title')}</Text>
@@ -779,8 +784,8 @@ function CategoryTabSection({
         <View
           style={{
             flexDirection: 'row',
-            borderWidth: 1,
-            borderColor: colors.border,
+            borderWidth: 2,
+            borderColor: colors.textPrimary,
             borderRadius: 22,
             overflow: 'hidden',
           }}
@@ -805,8 +810,8 @@ function CategoryTabSection({
                   justifyContent: 'center',
                   alignItems: 'center',
                   backgroundColor: isActive ? colors.primaryLight : colors.card,
-                  borderRightWidth: isLast ? 0 : 1,
-                  borderRightColor: isLast ? 'transparent' : colors.border,
+                  borderRightWidth: isLast ? 0 : 2,
+                  borderRightColor: isLast ? 'transparent' : colors.textPrimary,
                 }}
               >
                 <Text
@@ -836,16 +841,16 @@ function CategoryTabSection({
               style={({ pressed }) => ({
                 height: 120,
                 backgroundColor: colors.card,
-                borderRadius: 0,
+                borderRadius: 12,
                 overflow: 'hidden',
-                borderWidth: 2,
+                borderWidth: 1,
                 borderColor: colors.border,
                 opacity: pressed ? 0.85 : 1,
               })}
             >
               <View style={{ flexDirection: 'row', flex: 1 }}>
                 {a.image_url ? (
-                  <View style={{ width: 118, height: 118, backgroundColor: colors.border, borderRadius: 0, overflow: 'hidden' }}>
+                  <View style={{ width: 118, height: 118, backgroundColor: colors.border, borderRadius: 8, overflow: 'hidden' }}>
                     <Image
                       source={a.image_url}
                       style={{ width: 118, height: 118 }}
@@ -855,7 +860,7 @@ function CategoryTabSection({
                     />
                   </View>
                 ) : (
-                  <View style={{ width: 118, height: 118, backgroundColor: colors.border, borderRadius: 0, alignItems: 'center', justifyContent: 'center' }}>
+                  <View style={{ width: 118, height: 118, backgroundColor: colors.border, borderRadius: 8, alignItems: 'center', justifyContent: 'center' }}>
                     <Newspaper size={24} color={colors.textDim} />
                   </View>
                 )}
@@ -1093,10 +1098,13 @@ export default function NewsScreen() {
   const { colors, isDark } = useTheme();
   const { newsData, loading, error, refresh } = useNews();
   const { showComments } = useFeatureFlags();
+  const { user } = useAuth();
+  const { recordRead } = useReadStats(user?.uid ?? null);
 
   const handleArticlePress = useCallback((article: Article) => {
     setModalArticle(article);
-  }, []);
+    recordRead(article.link);
+  }, [recordRead]);
 
   const handleOpenComments = useCallback(() => {
     if (modalArticle) {

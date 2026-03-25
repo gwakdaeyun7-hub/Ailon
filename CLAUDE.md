@@ -22,7 +22,7 @@ ailon/
 │   ├── context/      # DrawerContext, LanguageContext, ThemeContext
 │   └── lib/          # firebase.ts, types.ts, colors.ts, translations.ts, theme.ts, articleHelpers.ts, latexToDisplay.ts, speech.ts
 ├── functions/        # Firebase Cloud Functions v2 (comment/like push notifications, article web share page)
-├── backend/          # Firebase config (firebase.json, firestore.rules)
+├── backend/          # Firebase config (firebase.json, firestore.rules, storage.rules)
 └── .github/workflows/collect-news.yml  # Scheduled pipeline (6AM + 6PM KST)
 ```
 
@@ -88,6 +88,7 @@ cd ../functions && firebase deploy --only functions
 - Principle pipeline (curated 전용 — 11 disciplines, 4 super categories, 45개 사전 작성 콘텐츠, LLM 생성 비활성화)
 - Post-pipeline: briefing, glossary, timeline, related articles
 - Auth (Google), dark mode, bilingual (KO/EN), push notifications
+- Profile: edit (nickname+photo), read stats, notification master toggle, account deletion
 
 ### What NOT to Build Before Launch
 - Synergy Lab (Phase 3 per PRD)

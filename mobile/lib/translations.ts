@@ -95,6 +95,40 @@ const translations: Record<string, Record<Language, string>> = {
   'profile.terms_of_service': { ko: '이용약관', en: 'Terms of Service' },
   'profile.settings': { ko: '설정', en: 'Settings' },
   'profile.more': { ko: '기타', en: 'More' },
+  'profile.edit': { ko: '프로필 편집', en: 'Edit Profile' },
+  'profile.edit_nickname': { ko: '닉네임', en: 'Nickname' },
+  'profile.edit_nickname_placeholder': { ko: '닉네임을 입력하세요', en: 'Enter your nickname' },
+  'profile.edit_photo': { ko: '사진 변경', en: 'Change Photo' },
+  'profile.edit_photo_remove': { ko: '사진 삭제', en: 'Remove Photo' },
+  'profile.edit_save': { ko: '저장', en: 'Save' },
+  'profile.edit_cancel': { ko: '취소', en: 'Cancel' },
+  'profile.edit_saving': { ko: '저장 중...', en: 'Saving...' },
+  'profile.edit_success': { ko: '프로필이 업데이트되었습니다', en: 'Profile updated' },
+  'profile.edit_error': { ko: '프로필 업데이트에 실패했습니다', en: 'Failed to update profile' },
+  'profile.edit_name_empty': { ko: '닉네임을 입력해주세요', en: 'Please enter a nickname' },
+
+  // ─── 계정 삭제 ───
+  'profile.delete_account': { ko: '계정 삭제', en: 'Delete Account' },
+  'profile.delete_confirm': {
+    ko: '모든 데이터가 삭제됩니다. 이 작업은 되돌릴 수 없습니다.',
+    en: 'All data will be deleted. This action cannot be undone.',
+  },
+  'profile.delete_cancel': { ko: '취소', en: 'Cancel' },
+  'profile.delete_action': { ko: '삭제', en: 'Delete' },
+  'profile.delete_error': { ko: '계정 삭제에 실패했습니다. 다시 시도해주세요.', en: 'Failed to delete account. Please try again.' },
+  'profile.delete_reauth': {
+    ko: '보안을 위해 다시 로그인 후 삭제해주세요.',
+    en: 'Please sign in again before deleting your account.',
+  },
+
+  // ─── 알림 마스터 토글 ───
+  'profile.notifications_toggle': { ko: '알림', en: 'Notifications' },
+
+  // ─── 읽기 통계 ───
+  'profile.stats_title': { ko: '활동 통계', en: 'Activity Stats' },
+  'profile.stats_weekly': { ko: '이번 주', en: 'This Week' },
+  'profile.stats_total': { ko: '총 읽음', en: 'Total Read' },
+  'profile.stats_saved': { ko: '저장됨', en: 'Saved' },
 
   // ─── 알림 설정 ───
   'notification.title': { ko: '알림', en: 'Notifications' },

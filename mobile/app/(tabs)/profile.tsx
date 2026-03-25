@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,33 +8,65 @@ import {
   Switch,
   Linking,
   Platform,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LogOut, Bookmark, User as UserIcon, ChevronRight, Globe, Bell, MessageCircle, Heart, Moon, ExternalLink, Shield, FileText } from 'lucide-react-native';
+import { LogOut, Bookmark, User as UserIcon, ChevronRight, Globe, Bell, MessageCircle, Heart, Moon, ExternalLink, Shield, FileText, Pencil } from 'lucide-react-native';
 // expo-notifications는 dev build에서만 동작
 let Notifications: typeof import('expo-notifications') | null = null;
 try { Notifications = require('expo-notifications'); } catch {}
 import { useAuth } from '@/hooks/useAuth';
 import { useBookmarks } from '@/hooks/useBookmarks';
 import { useNotificationSettings } from '@/hooks/useNotificationSettings';
+import { useReadStats } from '@/hooks/useReadStats';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useRouter } from 'expo-router';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { cardShadow, FontFamily } from '@/lib/theme';
+import EditProfileModal from '@/components/profile/EditProfileModal';
+import ReadStatsCard from '@/components/profile/ReadStatsCard';
+
+import NotificationToggle from '@/components/profile/NotificationToggle';
+import DeleteAccountSection from '@/components/profile/DeleteAccountSection';
+import AppVersionLabel from '@/components/profile/AppVersionLabel';
 
 export default function ProfileScreen() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, updateUserProfile } = useAuth();
   const { bookmarks } = useBookmarks(user?.uid ?? null);
+  const { stats: readStats, loading: readStatsLoading } = useReadStats(user?.uid ?? null);
   const { lang, setLanguage, t } = useLanguage();
   const { colors, isDark, toggleTheme } = useTheme();
   const { settings, updateSetting } = useNotificationSettings();
   const router = useRouter();
   const [signingOut, setSigningOut] = useState(false);
   const [notifPermission, setNotifPermission] = useState<string>('undetermined');
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+
+  const handleProfileSave = useCallback(async (updates: { displayName?: string; photoURI?: string }) => {
+    await updateUserProfile(updates);
+  }, [updateUserProfile]);
 
   useEffect(() => {
     Notifications?.getPermissionsAsync().then(({ status }) => setNotifPermission(status));
   }, []);
+
+  // Firestore에서 notificationsEnabled 초기값 로드
+  useEffect(() => {
+    if (!user) return;
+    const fetchNotifEnabled = async () => {
+      try {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists()) {
+          const data = userDoc.data();
+          setNotificationsEnabled(data.notificationsEnabled !== false); // 기본 true
+        }
+      } catch {}
+    };
+    fetchNotifEnabled();
+  }, [user]);
 
   const initials = user?.displayName
     ? user.displayName.slice(0, 2).toUpperCase()
@@ -88,20 +120,43 @@ export default function ProfileScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Card 1: Avatar + Name + Email (horizontal) */}
+        {/* Card 1: Avatar + Name + Email (horizontal) + Edit button */}
         <View style={{ marginHorizontal: 16, marginBottom: 24, backgroundColor: colors.card, borderRadius: 16, padding: 20, flexDirection: 'row', alignItems: 'center', gap: 16, ...cardShadow }}>
-          <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ color: colors.card, fontSize: 22, fontWeight: '800' }}>{initials}</Text>
-          </View>
+          {user.photoURL ? (
+            <Image
+              source={{ uri: user.photoURL }}
+              style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: colors.surface }}
+            />
+          ) : (
+            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ color: colors.card, fontSize: 22, fontWeight: '800' }}>{initials}</Text>
+            </View>
+          )}
           <View style={{ flex: 1 }}>
             <Text style={{ color: colors.textPrimary, fontSize: 18, fontWeight: '800', marginBottom: 4 }}>
               {user.displayName ?? t('profile.user')}
             </Text>
             <Text style={{ color: colors.textDim, fontSize: 14 }}>{user.email}</Text>
           </View>
+          <Pressable
+            onPress={() => setEditModalVisible(true)}
+            accessibilityRole="button"
+            accessibilityLabel={t('profile.edit')}
+            style={{ minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Pencil size={18} color={colors.textSecondary} />
+          </Pressable>
         </View>
 
-        {/* Card 2: Settings (Language + Dark Mode) */}
+        {/* Read Stats Card */}
+        <ReadStatsCard
+          weeklyCount={readStats.weeklyCount}
+          totalCount={readStats.totalCount}
+          savedCount={bookmarks.length}
+          loading={readStatsLoading}
+        />
+
+        {/* Card 2: Settings (Language + Dark Mode + Notifications) */}
         <View style={{ marginHorizontal: 16, marginBottom: 16, backgroundColor: colors.card, borderRadius: 16, padding: 20, ...cardShadow }}>
           <Text style={{ color: colors.textSecondary, fontSize: 13, fontWeight: '600', ...(lang === 'en' ? { textTransform: 'uppercase', letterSpacing: 0.5 } : {}), marginBottom: 14 }}>{t('profile.settings')}</Text>
           {/* Language */}
@@ -146,6 +201,13 @@ export default function ProfileScreen() {
               accessibilityLabel={t('profile.dark_mode')}
             />
           </View>
+          {/* Divider */}
+          <View style={{ borderTopWidth: 1, borderTopColor: colors.border, marginVertical: 16 }} />
+          {/* Notification Master Toggle */}
+          <NotificationToggle
+            enabled={notificationsEnabled}
+            onToggle={setNotificationsEnabled}
+          />
         </View>
 
         {/* Card 3: Notification Settings */}
@@ -257,7 +319,7 @@ export default function ProfileScreen() {
         </View>
 
         {/* Sign Out — plain text button */}
-        <View style={{ marginHorizontal: 16, marginBottom: 32 }}>
+        <View style={{ marginHorizontal: 16, marginBottom: 8 }}>
           <Pressable
             onPress={handleSignOut}
             disabled={signingOut}
@@ -270,7 +332,22 @@ export default function ProfileScreen() {
             </Text>
           </Pressable>
         </View>
+
+        {/* Delete Account */}
+        <DeleteAccountSection />
+
+        {/* App Version */}
+        <AppVersionLabel />
       </ScrollView>
+
+      {/* Edit Profile Modal */}
+      <EditProfileModal
+        visible={editModalVisible}
+        onClose={() => setEditModalVisible(false)}
+        onSave={handleProfileSave}
+        currentName={user.displayName ?? ''}
+        currentPhotoURL={user.photoURL ?? null}
+      />
     </SafeAreaView>
   );
 }

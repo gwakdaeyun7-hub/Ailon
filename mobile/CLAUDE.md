@@ -61,12 +61,17 @@
 - footer borderTop 구분선 제거, 뉴스 아닌 타입은 footer 미렌더링
 
 ### Tab 5: Profile (profile.tsx)
-- **카드 그룹핑 (4+1)**: Avatar / Settings(Language+DarkMode) / Notification / More(Activity+Legal) / SignOut
-- **Avatar**: 64px, 가로 배치 (flexDirection: 'row') — 이름+이메일 우측 배치
-- **Settings 카드**: Language toggle (EN/KO 순서, default English — 시스템 언어 감지 없음) + dark/light theme switch
+- **카드 그룹핑 (6+2)**: Avatar(사진+편집) / ReadStatsCard / Settings(Language+DarkMode+NotificationToggle) / Notification(per-type) / More(Activity+Legal) / SignOut / DeleteAccount / AppVersion
+- **Avatar**: 64px, 가로 배치 (flexDirection: 'row') — 이름+이메일 우측 배치. photoURL 있으면 Image 표시, 없으면 이니셜. 편집 버튼(Pencil) → EditProfileModal
+- **EditProfileModal** (`components/profile/EditProfileModal.tsx`): 닉네임 변경(30자 제한) + 사진 변경(expo-image-picker → Firebase Storage `profile_photos/{uid}`) + 사진 삭제
+- **ReadStatsCard** (`components/profile/ReadStatsCard.tsx`): 이번 주/총 읽음/저장됨 3열 통계 (`useReadStats`)
+- **Settings 카드**: Language toggle (EN/KO) + dark/light theme switch + NotificationToggle (알림 마스터 on/off)
+- **NotificationToggle** (`components/profile/NotificationToggle.tsx`): 전체 알림 마스터 on/off — fcmToken/expoPushToken 등록/해제, Firestore `notificationsEnabled` 필드
 - **Notification 카드**: newsAlerts, commentReplies, likes (per-type toggles)
 - **More 카드**: Activity + Legal links (Privacy Policy + Terms of Service, bilingual KO/EN via GitHub Pages)
 - **Sign Out**: 카드 스타일 제거 → 단순 회색 텍스트 버튼
+- **DeleteAccountSection** (`components/profile/DeleteAccountSection.tsx`): 빨간 텍스트 + 확인 Alert → `deleteUserData` Cloud Function 호출 (8단계 계정 삭제)
+- **AppVersionLabel** (`components/profile/AppVersionLabel.tsx`): expo-constants 버전 표시
 - **섹션 라벨**: 13pt, ko→letterSpacing 0, en→uppercase
 - **스타일**: borderRadius 16 통일, fontWeight 제목 800 / 나머지 600
 
@@ -101,6 +106,7 @@
 | useReportComment | `reports`, `comments/{docId}/entries` | Comment reporting with dedup + reportCount increment |
 | useShareImage | react-native-view-shot + expo-sharing | ShareCard 캡처 → 이미지 공유 (실패 시 텍스트 폴백) |
 | useShareLink | OS Share API | 웹 공유 페이지 URL 생성 + OS 공유 시트 (saved.tsx, ReactionBar) |
+| useReadStats | `users/{uid}/read_history` | Read tracking + weekly/total/saved stats |
 | useFeatureFlags | `app_config/social_features` | Social feature flags (like counts, comments visibility) |
 
 ### Contexts

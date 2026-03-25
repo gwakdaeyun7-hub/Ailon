@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Pressable, Share } from 'react-native';
+import { View, Text, Pressable, Share, Platform } from 'react-native';
 import { Heart, MessageCircle, Share2 } from 'lucide-react-native';
 import { useReactions, type ItemType } from '@/hooks/useReactions';
 import { useLanguage } from '@/context/LanguageContext';
@@ -7,25 +7,38 @@ import { useTheme } from '@/context/ThemeContext';
 import { useFeatureFlags } from '@/hooks/useFeatureFlags';
 import { CommentSheet } from '@/components/shared/CommentSheet';
 
+const SHARE_DOMAIN = 'ailon-46131.web.app';
+
 interface ReactionBarProps {
   itemType: ItemType;
   itemId: string;
+  articleId?: string;
   shareText?: string;
   shareTitle?: string;
 }
 
-export function ReactionBar({ itemType, itemId, shareText, shareTitle }: ReactionBarProps) {
+export function ReactionBar({ itemType, itemId, articleId, shareText, shareTitle }: ReactionBarProps) {
   const { likes, liked, toggleLike } = useReactions(itemType, itemId);
   const [commentOpen, setCommentOpen] = useState(false);
-  const { t } = useLanguage();
+  const { lang, t } = useLanguage();
   const { colors } = useTheme();
   const { showLikeCounts, showComments } = useFeatureFlags();
 
   const handleShare = () => {
-    Share.share({
-      message: shareText ?? shareTitle ?? '',
-      title: shareTitle,
-    });
+    if (articleId) {
+      const url = `https://${SHARE_DOMAIN}/article/${articleId}?lang=${lang}`;
+      const message = `${shareTitle || ''}\n\n${url}`;
+      Share.share(
+        Platform.OS === 'ios'
+          ? { message: shareTitle || '', url }
+          : { message },
+      );
+    } else {
+      Share.share({
+        message: shareText ?? shareTitle ?? '',
+        title: shareTitle,
+      });
+    }
   };
 
   return (
