@@ -97,8 +97,12 @@ export function useComments(itemType: ItemType, itemId: string): UseCommentsRetu
   const deleteComment = useCallback(
     async (commentId: string) => {
       if (!user) return;
-      const ref = doc(db, 'comments', docId, 'entries', commentId);
-      await deleteDoc(ref);
+      try {
+        const ref = doc(db, 'comments', docId, 'entries', commentId);
+        await deleteDoc(ref);
+      } catch (err) {
+        console.error('Delete comment error:', err);
+      }
     },
     [user, docId],
   );

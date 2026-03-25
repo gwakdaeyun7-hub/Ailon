@@ -94,14 +94,14 @@ async function clearPushToken(uid: string) {
   }
 }
 
+const VALID_TABS = ['index', 'snaps', 'tools', 'saved', 'profile'] as const;
+
 function handleNotificationNavigation(
   response: any,
   navigate: (path: string) => void,
 ) {
   const data = response?.notification?.request?.content?.data;
-  // articleId가 있으면 추후 기사 상세 딥링크에 활용 가능
-  // 현재는 해당 탭으로 이동
-  if (data?.tab) {
+  if (data?.tab && VALID_TABS.includes(data.tab)) {
     navigate(`/(tabs)/${data.tab}`);
   }
 }

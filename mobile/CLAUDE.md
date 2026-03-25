@@ -77,7 +77,7 @@
 - **HighlightedText**: Auto glossary term detection + definition modal
 - **RelatedArticlesSection**: Horizontal card carousel (entity/cluster matching)
 - **TimelineSection**: Vertical timeline with past article links
-- **DailyBriefingCard**: 접힌 상태(TTS + 기사 수 텍스트) / 펼친 상태(도메인 도넛 차트 + 태그 클라우드 + 연구 기사 7일 스파크라인 + 브리핑 전문). 도넛 차트는 topic_cluster_id 기반 도메인 분포(Top 5 + Others) 표시, 도메인 팔레트(NLP/Vision/ML/Robotics/Multimodal/Business/Infra/Regulation/Audio/Security/Science/Dev/Others). 핫토픽은 lang별 hot_topics/hot_topics_en 분기 (EN 없으면 KO 폴백)
+- **DailyBriefingCard**: 접힌 상태(TTS + 라벨) / 펼친 상태(도메인 도넛 차트 + 태그 클라우드 + 연구 기사 7일 스파크라인 + 브리핑 전문). 도넛 차트는 topic_cluster_id 기반 도메인 분포(Top 5 + Others) 표시, 도메인 팔레트(NLP/Vision/ML/Robotics/Multimodal/Business/Infra/Regulation/Audio/Security/Science/Dev/Others). 핫토픽은 lang별 hot_topics/hot_topics_en 분기 (EN 없으면 KO 폴백)
 - **ShareCard**: 오프스크린 렌더링 → react-native-view-shot 캡처 → expo-sharing 공유. 텍스트 폴백 내장
 - **SideDrawer**: Animated left panel (82% width, max 320px)
 - **ShowMoreButton**: 더보기/접기 pill 버튼 (카테고리, GeekNews 세로 리스트 공용)
@@ -112,7 +112,7 @@
 - **colors.ts**: Light (white bg, black text) / Dark (teal/cyan accent), ~50 color tokens (21개 dead token 제거 후)
 - **theme.ts**: Spacing, font sizes, all radius=0 (pixel art/brutalist), cardShadow 제거(elevation 0), pixelShadow(offset 3px), Lora serif font + 4 pixel fonts, MIN_TOUCH_TARGET=44
 - **Pixel Fonts**: `pixel: 'PressStart2P_400Regular'` (EN headings), `pixelBody: 'Silkscreen_400Regular'` (EN small), `pixelBold: 'Silkscreen_700Bold'` (EN bold small), `pixelKo: 'DotGothic16_400Regular'` (KO pixel)
-- Primary: Teal (#0D7377 light, #14B8A6 dark), Accent: Orange (#B45309 light, #F59E0B dark)
+- Primary: Teal (#5EEAD4 light/dark 통일), Accent: Orange (#B45309 light, #F59E0B dark)
 - Light Text: 모든 텍스트 #000000 검정 통일 (textPrimary/textSecondary/textDim 동일값)
 
 ### Design Principles

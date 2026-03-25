@@ -485,9 +485,9 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
                 }}
               >
                 {speaking ? (
-                  <Pause size={14} color={colors.primary} />
+                  <Pause size={14} color={colors.textPrimary} />
                 ) : (
-                  <Play size={14} color={colors.primary} />
+                  <Play size={14} color={colors.textPrimary} />
                 )}
               </Pressable>
             ) : null}
@@ -507,14 +507,7 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
               </View>
             </View>
 
-            {/* Article count */}
-            {domainStats ? (
-              <Text style={{ fontSize: 13, fontWeight: '700', color: colors.textPrimary }}>
-                {domainStats.total}
-              </Text>
-            ) : null}
-
-            <ChevronDown size={16} color={colors.textSecondary} style={{ marginLeft: 8 }} />
+            <ChevronDown size={16} color={colors.textSecondary} style={{ marginLeft: 4 }} />
           </View>
         </Pressable>
       </View>
@@ -594,9 +587,9 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
                   }}
                 >
                   {speaking ? (
-                    <Pause size={14} color={colors.primary} />
+                    <Pause size={14} color={colors.textPrimary} />
                   ) : (
-                    <Play size={14} color={colors.primary} />
+                    <Play size={14} color={colors.textPrimary} />
                   )}
                 </Pressable>
               ) : null}
@@ -616,7 +609,7 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
                   justifyContent: 'center',
                 }}
               >
-                <ChevronUp size={16} color={colors.primary} />
+                <ChevronUp size={16} color={colors.textPrimary} />
               </Pressable>
             </View>
           </View>
@@ -820,7 +813,7 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
             >
               {t('briefing.collapse')}
             </Text>
-            <ChevronUp size={14} color={colors.primary} />
+            <ChevronUp size={14} color={colors.textPrimary} />
           </Pressable>
         </View>
       </View>

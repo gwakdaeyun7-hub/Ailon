@@ -118,7 +118,8 @@ exports.onCommentReply = onDocumentCreated(
     const userInfo = await getUserInfo(parentAuthorUid, "commentReplies");
     if (!userInfo) return;
 
-    const authorName = entry.authorName || "Someone";
+    const rawName = entry.authorName || "Someone";
+    const authorName = rawName.replace(/[^\p{L}\p{N}\s._-]/gu, "").slice(0, 50) || "Someone";
     const body =
       userInfo.lang === "ko"
         ? `${authorName}님이 댓글에 답글을 남겼습니다`

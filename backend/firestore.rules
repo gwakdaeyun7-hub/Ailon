@@ -80,9 +80,14 @@ service cloud.firestore {
       allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
 
-    // User data - 본인만 읽기/쓰기 가능
+    // User data - 본인만 읽기/쓰기 (업데이트 시 허용 필드 제한)
     match /users/{userId} {
-      allow read, write: if isOwner(userId);
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId)
+        && request.resource.data.diff(resource.data).affectedKeys()
+           .hasOnly(['language', 'displayName', 'photoURL', 'email',
+                     'expoPushToken', 'fcmToken', 'lastLoginAt', 'theme']);
 
       // User's bookmarks subcollection
       match /bookmarks/{bookmarkId} {
@@ -100,34 +105,65 @@ service cloud.firestore {
       }
     }
 
-    // Article views (조회수) - 누구나 읽기/쓰기 (비로그인도 조회수 기록 가능)
+    // Article views (조회수) - 누구나 읽기, 쓰기는 views 필드 +1만 허용
     match /article_views/{articleId} {
       allow read: if true;
-      allow write: if true;
+      allow create: if request.resource.data.keys().hasOnly(['views'])
+                    && request.resource.data.views is int
+                    && request.resource.data.views == 1;
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views'])
+                    && request.resource.data.views is int
+                    && request.resource.data.views == resource.data.views + 1;
     }
 
-    // Reactions (좋아요) - 누구나 읽기, 로그인 시 쓰기
+    // Reactions (좋아요) - 누구나 읽기, 로그인 시 쓰기 (필드 타입 + count 일관성 검증)
     match /reactions/{reactionId} {
       allow read: if true;
-      allow write: if isAuthenticated();
+      allow create: if isAuthenticated()
+        && request.resource.data.keys().hasAll(['likes', 'likedBy', 'dislikes', 'dislikedBy'])
+        && request.resource.data.keys().hasOnly(['likes', 'likedBy', 'dislikes', 'dislikedBy', 'contentAuthorUid'])
+        && request.resource.data.likes is int
+        && request.resource.data.likedBy is list
+        && request.resource.data.dislikes is int
+        && request.resource.data.dislikedBy is list
+        && request.resource.data.likes == request.resource.data.likedBy.size()
+        && request.resource.data.dislikes == request.resource.data.dislikedBy.size();
+      allow update: if isAuthenticated()
+        && request.resource.data.diff(resource.data).affectedKeys()
+           .hasOnly(['likes', 'likedBy', 'dislikes', 'dislikedBy', 'contentAuthorUid'])
+        && request.resource.data.likes is int
+        && request.resource.data.likedBy is list
+        && request.resource.data.dislikes is int
+        && request.resource.data.dislikedBy is list
+        && request.resource.data.likes == request.resource.data.likedBy.size()
+        && request.resource.data.dislikes == request.resource.data.dislikedBy.size();
     }
 
-    // Comments (댓글) - 누구나 읽기, 로그인 시 작성
+    // Comments (댓글) - 누구나 읽기, 루트 문서 클라이언트 쓰기 불가
     match /comments/{commentId} {
       allow read: if true;
-      allow write: if isAuthenticated();
+      allow write: if false;
 
       match /entries/{entryId} {
         allow read: if true;
-        allow create: if isAuthenticated();
-        // 본인 댓글: 수정/삭제 가능
-        // 타인 댓글: reportCount increment만 허용 (신고 시)
+        // 생성: 본인 UID 필수 + 텍스트 길이 제한 + 허용 필드만
+        allow create: if isAuthenticated()
+          && request.resource.data.authorUid == request.auth.uid
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 2000
+          && request.resource.data.authorName is string
+          && request.resource.data.authorName.size() <= 100
+          && request.resource.data.keys().hasOnly(['text', 'authorName', 'authorUid', 'createdAt', 'parentId']);
+        // 본인 댓글 삭제
         allow delete: if isAuthenticated() && resource.data.authorUid == request.auth.uid;
+        // 본인 댓글 수정 또는 타인 댓글 reportCount +1 (신고)
         allow update: if isAuthenticated() && (
           resource.data.authorUid == request.auth.uid ||
           (
             request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reportCount']) &&
-            request.resource.data.reportCount == resource.data.reportCount + 1
+            request.resource.data.reportCount is int &&
+            request.resource.data.reportCount == (('reportCount' in resource.data) ? resource.data.reportCount + 1 : 1)
           )
         );
       }

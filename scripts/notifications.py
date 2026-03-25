@@ -20,7 +20,9 @@ def _article_id(url: str) -> str:
 def _collect_users(db) -> list[dict]:
     """알림 대상 사용자 수집 (token + language + newsAlerts 확인)"""
     users = []
-    for user_doc in db.collection("users").stream():
+    for user_doc in db.collection("users").select(
+        ["fcmToken", "expoPushToken", "language"]
+    ).stream():
         data = user_doc.to_dict()
         fcm_token = data.get("fcmToken")
         expo_token = data.get("expoPushToken")
