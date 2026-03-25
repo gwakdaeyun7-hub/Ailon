@@ -21,7 +21,7 @@ ailon/
 │   ├── hooks/        # Data hooks: useNews, usePrinciple, useBriefing, useAuth, etc.
 │   ├── context/      # DrawerContext, LanguageContext, ThemeContext
 │   └── lib/          # firebase.ts, types.ts, colors.ts, translations.ts, theme.ts, articleHelpers.ts, latexToDisplay.ts, speech.ts
-├── functions/        # Firebase Cloud Functions v2 (comment/like push notifications)
+├── functions/        # Firebase Cloud Functions v2 (comment/like push notifications, article web share page)
 ├── backend/          # Firebase config (firebase.json, firestore.rules)
 └── .github/workflows/collect-news.yml  # Scheduled pipeline (6AM + 6PM KST)
 ```

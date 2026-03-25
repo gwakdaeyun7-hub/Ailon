@@ -53,7 +53,7 @@
 - Real-time sync from `users/{uid}/bookmarks` subcollection
 - **AI 요약 모달**: 뉴스 카드 탭 시 ArticleSummaryModal 바텀 시트 표시 (saved.tsx 내 인라인 컴포넌트, index.tsx SummaryModalContent와 동일 디자인)
   - `useArticle(articleId)` 훅으로 `articles/{article_id}` 컬렉션에서 fetch
-  - 바텀 시트 디자인: 썸네일 이미지, 소스 뱃지+날짜+카테고리 행, HighlightedText(용어집 하이라이팅), 용어집 아코디언, Related Articles, 하단 액션 바(좋아요/댓글/공유(ShareCard 이미지 캡처 + 텍스트 폴백)), Toast, CommentSheet 통합
+  - 바텀 시트 디자인: 썸네일 이미지, 소스 뱃지+날짜+카테고리 행, HighlightedText(용어집 하이라이팅), 용어집 아코디언, Related Articles, 하단 액션 바(좋아요/댓글/공유(웹 공유 링크 useShareLink)), Toast, CommentSheet 통합
   - 다국어(ko/en) 자동 분기 (articleHelpers.ts 공용 헬퍼 사용)
   - articleId 없는 이전 북마크: 안내 메시지 + 원문 링크 제공
 - **날짜 표시**: 상단 배지 행에 `· 날짜` 형태로 표시 (footer에서 이동)
@@ -72,7 +72,7 @@
 
 ### Shared Components
 - **CommentSheet**: Full-screen modal, threaded replies, author avatars, report (Flag icon) + delete (Trash icon) per comment, ReportReasonModal (4 reasons), auto-hide at 3+ reports
-- **ReactionBar**: Like (count) + Comment + Share buttons
+- **ReactionBar**: Like (count) + Comment + Share buttons (`articleId` prop 시 웹 공유 URL)
 - **BookmarkButton**: Toggle bookmark with filled/stroke icon
 - **HighlightedText**: Auto glossary term detection + definition modal
 - **RelatedArticlesSection**: Horizontal card carousel (entity/cluster matching)
@@ -100,6 +100,7 @@
 | useNotificationSettings | `users/{uid}/preferences` | Per-type notification toggles |
 | useReportComment | `reports`, `comments/{docId}/entries` | Comment reporting with dedup + reportCount increment |
 | useShareImage | react-native-view-shot + expo-sharing | ShareCard 캡처 → 이미지 공유 (실패 시 텍스트 폴백) |
+| useShareLink | OS Share API | 웹 공유 페이지 URL 생성 + OS 공유 시트 (saved.tsx, ReactionBar) |
 | useFeatureFlags | `app_config/social_features` | Social feature flags (like counts, comments visibility) |
 
 ### Contexts
