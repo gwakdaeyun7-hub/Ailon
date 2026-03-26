@@ -61,6 +61,7 @@ nativewind-env.d.ts
 .claude/settings.local.json
 .claude/agent-memory/
 .claude/worktrees/
+.claude/lab-review-state.json
 
 # Keystore files
 *.jks

@@ -25,11 +25,13 @@ LAB 탭의 curated 학문원리 콘텐츠(`scripts/curated_principles/*.md`)가 
 - `/lab-review scan` -- 빠른 스캔: 전체 45개 렌더링 호환성 + 길이 + 구조만 체크 (에이전트 없이 1분 내)
 - `/lab-review compare {seed_id}` -- SA와 나란히 비교: 5개 차원별 구조 대조
 - `/lab-review dashboard` -- 검토 현황: 등급 분포, 미검토 목록, 우선순위 큐
-- `/lab-review sim-audit` -- 시뮬레이션 필요성 일괄 평가 (41개 미보유 원리)
+- `/lab-review sim-audit` -- 시뮬레이션 필요성 일괄 평가 (SEED_TO_SIM 미보유 원리)
 
 ## 검토 상태 추적
 
 검토 결과는 `.claude/lab-review-state.json`에 누적 저장한다.
+
+**초기화**: 파일이 없으면 첫 실행 시 아래 구조로 자동 생성한다. SA는 Gold Standard이므로 A등급으로 사전 등록한다.
 
 ```json
 {
@@ -89,7 +91,7 @@ LAB 탭의 curated 학문원리 콘텐츠(`scripts/curated_principles/*.md`)가 
 
 ### `/lab-review sim-audit` -- 시뮬레이션 일괄 평가
 
-SEED_TO_SIM에 없는 41개 원리에 대해 **simulation-expert** 에이전트로 시뮬레이션 필요성을 일괄 평가한다.
+SEED_TO_SIM에 없는 원리(현재 20개, 45 - 25 시뮬)에 대해 **simulation-expert** 에이전트로 시뮬레이션 필요성을 일괄 평가한다.
 super_category별로 분할하여 병렬 실행. ESSENTIAL/BENEFICIAL 판정 시 app-developer로 기술 구현 가능성 보조 확인.
 
 **출력:**
@@ -222,7 +224,9 @@ Gold Standard 비유 예시 (SA):
 
 ### Phase 3: 시뮬레이션 필요성 평가 (simulation-expert + app-developer)
 
-시뮬레이션이 없는 원리(SEED_TO_SIM에 없는 원리)에 대해 **simulation-expert** 에이전트로 교육적 임팩트를 평가하고, 필요 시 **app-developer**로 기술 구현 가능성을 보조 확인한다.
+시뮬레이션이 없는 원리(SEED_TO_SIM에 없는 원리, 현재 20개)에 대해 **simulation-expert** 에이전트로 교육적 임팩트를 평가하고, 필요 시 **app-developer**로 기술 구현 가능성을 보조 확인한다.
+
+> **실행 전**: `mobile/lib/labPrinciples.ts`의 `SEED_TO_SIM`을 읽어 현재 시뮬레이션 보유 원리 목록을 확인한다. 하드코딩된 목록을 사용하지 않는다.
 
 **Step 1: 교육적 임팩트 평가 (simulation-expert)**
 
@@ -231,8 +235,8 @@ Gold Standard 비유 예시 (SA):
 원리: {principle_name}
 콘텐츠 요약: {one_line_summary}
 
-현재 시뮬레이션이 있는 원리: SA (에너지 지형 탐색), GD (등고선 + 3종 옵티마이저),
-Swarm (군집 이동 시각화), Bayesian (사전/사후 분포 업데이트)
+현재 시뮬레이션이 있는 원리 (SEED_TO_SIM에서 동적으로 읽은 목록):
+{SEED_TO_SIM 키 목록을 여기에 나열}
 
 평가 기준:
 1. 시뮬레이션 없이 텍스트만으로 핵심 메커니즘을 이해할 수 있는가?
