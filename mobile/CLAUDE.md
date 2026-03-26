@@ -50,22 +50,25 @@
 - **데이터**: `lib/labPrinciples.ts` (타입, 그룹핑 헬퍼, sim 매핑) — 콘텐츠 JSON 미사용 (시뮬레이션 전용)
 - **시뮬레이션 있는 원리**: 제목(18pt bold) + InteractiveSim 표시
 - **시뮬레이션 없는 원리**: "시뮬레이션 준비 중" empty state (번역 키: `lab.sim_coming_soon`, `lab.sim_coming_soon_desc`)
-- **SEED_TO_SIM** (`lib/labPrinciples.ts` 내) — 25개 매핑:
+- **SEED_TO_SIM** (`lib/labPrinciples.ts` 내) — 45개 매핑:
   - Optimization: `opt_simulated_annealing→sa`, `opt_gradient_descent→gd`, `opt_convex_optimization→convex`, `opt_bayesian_optimization→bayesopt`
-  - Control Engineering: `ctrl_optimal_control→dp`, `ctrl_kalman_filter→kalman`, `ctrl_pid_control→pid`, `ctrl_cybernetics→cybernetics`
-  - Electrical Engineering: `ee_fourier_transform→fourier`
-  - Information Theory: `info_shannon_entropy→entropy`, `info_kl_divergence→kl`
-  - Physics: `phys_boltzmann_distribution→boltzmann`, `phys_diffusion_process→diffusion`, `phys_hopfield_network→hopfield`
+  - Control Engineering: `ctrl_optimal_control→dp`, `ctrl_kalman_filter→kalman`, `ctrl_pid_control→pid`, `ctrl_cybernetics→cybernetics`, `ctrl_model_predictive_control→mpc`, `ctrl_lyapunov_stability→lyapunov`
+  - Electrical Engineering: `ee_fourier_transform→fourier`, `ee_nyquist_sampling→nyquist`, `ee_quantization→quantize`
+  - Information Theory: `info_shannon_entropy→entropy`, `info_kl_divergence→kl`, `info_channel_capacity→channel`, `info_mutual_information→mutual`
+  - Physics: `phys_boltzmann_distribution→boltzmann`, `phys_diffusion_process→diffusion`, `phys_hopfield_network→hopfield`, `phys_renormalization_group→renorm`
   - Biology: `bio_natural_selection→evolution`, `bio_hebbian_learning→hebbian`, `bio_swarm_intelligence→swarm`
-  - Neuroscience: `neuro_visual_cortex_cnn→visualcortex`, `neuro_dopamine_td→dopamine`
-  - Mathematics: `math_linear_algebra_nn→linalg`, `math_universal_approximation→uat`, `math_curse_dimensionality→curse`
-  - Statistics: `stat_bayesian_inference→bayesian`, `stat_bias_variance_tradeoff→biasvar`, `stat_maximum_likelihood→mle`
-- **SIMULATIONS 레지스트리**: `components/snaps/simulations/index.ts` — `Record<string, (isDark, lang) => string>`. 현재 25개:
+  - Neuroscience: `neuro_visual_cortex_cnn→visualcortex`, `neuro_dopamine_td→dopamine`, `neuro_attention_mechanism→attention`, `neuro_predictive_coding→predcoding`, `neuro_experience_replay→replay`
+  - Chemistry: `chem_molecular_graph→molgraph`
+  - Mathematics: `math_linear_algebra_nn→linalg`, `math_universal_approximation→uat`, `math_curse_dimensionality→curse`, `math_information_geometry→infogeo`, `math_graph_theory_gnn→gnn`, `math_manifold_hypothesis→manifold`
+  - Statistics: `stat_bayesian_inference→bayesian`, `stat_bias_variance_tradeoff→biasvar`, `stat_maximum_likelihood→mle`, `stat_bootstrapping→bootstrap`, `stat_markov_chain_monte_carlo→mcmc`
+  - Robotics: `robo_subsumption→subsumption`, `robo_imitation_learning→imitation`
+  - Medicine: `med_epidemiology_network→epidemic`, `med_clinical_trial_design→clinical`
+- **SIMULATIONS 레지스트리**: `components/snaps/simulations/index.ts` — `Record<string, (isDark, lang) => string>`. 현재 45개:
   - `sa` — Simulated Annealing: 5가지 목적함수(+Deceptive), 파라미터 슬라이더, Advanced 토글(냉각 스케줄 3종 Geometric/Logarithmic/Linear + Steps/Temp), 에너지 지형 플롯(탭으로 초기 위치 설정, 온도별 마커 색상), 수렴 그래프, 수용 확률 실시간 표시(Step/Pause 모드), 완료 시 전역/지역 최적해 판정(런타임 수치 탐색), 경계 반사(reflection)
   - `gd` — Gradient Descent: 2D 등고선 맵에서 Vanilla GD/Momentum/Adam 3종 경로 비교
   - `swarm` — Swarm Intelligence (Boid): Separation/Alignment/Cohesion 토글, 실시간 군집 시뮬레이션
   - `bayesian` — Bayesian Inference: Beta 분포 Prior→Posterior 업데이트, 동전 던지기 인터랙션
-  - `convex`, `bayesopt`, `dp`, `kalman`, `pid`, `cybernetics`, `fourier`, `entropy`, `kl`, `boltzmann`, `diffusion`, `hopfield`, `evolution`, `hebbian`, `visualcortex`, `dopamine`, `linalg`, `uat`, `curse`, `biasvar`, `mle`
+  - `convex`, `bayesopt`, `dp`, `kalman`, `pid`, `cybernetics`, `mpc`, `lyapunov`, `fourier`, `nyquist`, `quantize`, `entropy`, `kl`, `channel`, `mutual`, `boltzmann`, `diffusion`, `hopfield`, `renorm`, `evolution`, `hebbian`, `visualcortex`, `dopamine`, `attention`, `predcoding`, `replay`, `molgraph`, `linalg`, `uat`, `curse`, `infogeo`, `gnn`, `manifold`, `biasvar`, `mle`, `bootstrap`, `mcmc`, `subsumption`, `imitation`, `epidemic`, `clinical`
 - **시뮬레이션 공통**: self-contained HTML/JS/Canvas, KO/EN 바이링구얼, dark/light 테마
 - **이전 모드 복원**: 기존 daily-principle 모드(usePrinciple() → 당일 원리 1개 표시)는 git commit `85173a6` 이전 tools.tsx로 복원 가능
 - **탭 아이콘**: FlaskConical (lucide), 라벨 `tab.lab`

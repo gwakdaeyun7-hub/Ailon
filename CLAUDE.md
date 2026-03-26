@@ -82,7 +82,7 @@ cd ../functions && firebase deploy --only functions
 ## Current Phase: Launch Readiness (MVP)
 
 ### What's Done
-- 5-tab mobile app (news feed, snaps, AI tools [준비 중], saved, profile)
+- 5-tab mobile app (news feed, snaps, lab [45개 시뮬레이션], saved, profile)
 - All interactions: likes, comments, bookmarks (news/principle), share, TTS, glossary highlight, saved tab AI 요약 모달
 - LangGraph news pipeline (8 nodes, 22 sources, EN/KO parallel)
 - Principle pipeline (curated 전용 — 11 disciplines, 4 super categories, 45개 사전 작성 콘텐츠, LLM 생성 비활성화)

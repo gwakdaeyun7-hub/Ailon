@@ -101,18 +101,24 @@ export const SEED_TO_SIM: Record<string, string> = {
   ctrl_kalman_filter: 'kalman',
   ctrl_pid_control: 'pid',
   ctrl_cybernetics: 'cybernetics',
+  ctrl_model_predictive_control: 'mpc',
+  ctrl_lyapunov_stability: 'lyapunov',
 
   // Electrical Engineering
   ee_fourier_transform: 'fourier',
+  ee_nyquist_sampling: 'nyquist',
+  ee_quantization: 'quantize',
 
   // Information Theory
   info_shannon_entropy: 'entropy',
   info_kl_divergence: 'kl',
+  info_channel_capacity: 'channel',
 
   // Physics
   phys_boltzmann_distribution: 'boltzmann',
   phys_diffusion_process: 'diffusion',
   phys_hopfield_network: 'hopfield',
+  phys_renormalization_group: 'renorm',
 
   // Biology
   bio_natural_selection: 'evolution',
@@ -122,16 +128,38 @@ export const SEED_TO_SIM: Record<string, string> = {
   // Neuroscience
   neuro_visual_cortex_cnn: 'visualcortex',
   neuro_dopamine_td: 'dopamine',
+  neuro_attention_mechanism: 'attention',
+  neuro_predictive_coding: 'predcoding',
+  neuro_experience_replay: 'replay',
+
+  // Chemistry
+  chem_molecular_graph: 'molgraph',
 
   // Mathematics
   math_linear_algebra_nn: 'linalg',
   math_universal_approximation: 'uat',
   math_curse_dimensionality: 'curse',
+  math_information_geometry: 'infogeo',
+  math_graph_theory_gnn: 'gnn',
+  math_manifold_hypothesis: 'manifold',
+
+  // Information Theory (cont.)
+  info_mutual_information: 'mutual',
 
   // Statistics
   stat_bayesian_inference: 'bayesian',
   stat_bias_variance_tradeoff: 'biasvar',
   stat_maximum_likelihood: 'mle',
+  stat_bootstrapping: 'bootstrap',
+  stat_markov_chain_monte_carlo: 'mcmc',
+
+  // Robotics
+  robo_subsumption: 'subsumption',
+  robo_imitation_learning: 'imitation',
+
+  // Medicine & Life Science
+  med_epidemiology_network: 'epidemic',
+  med_clinical_trial_design: 'clinical',
 };
 
 export function getSimId(seedId: string): string | undefined {
