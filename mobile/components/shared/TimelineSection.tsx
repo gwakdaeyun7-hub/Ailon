@@ -5,12 +5,13 @@
  */
 
 import React from 'react';
-import { View, Text, Pressable, Linking } from 'react-native';
+import { View, Text, Pressable } from 'react-native';
 import { Clock } from 'lucide-react-native';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useArticles } from '@/hooks/useArticle';
 import type { Article } from '@/lib/types';
+import { openArticle } from '@/lib/openArticle';
 
 interface Props {
   timelineIds: string[];
@@ -56,7 +57,7 @@ export const TimelineSection = React.memo(function TimelineSection({ timelineIds
           return (
             <Pressable
               key={node.article_id || idx}
-              onPress={() => node.link && Linking.openURL(node.link)}
+              onPress={() => node.link && openArticle(node.link)}
               style={{
                 paddingHorizontal: 16,
                 paddingVertical: 14,

@@ -12,7 +12,7 @@ import {
   ScrollView,
   Pressable,
   RefreshControl,
-  Linking,
+
   Share,
   StatusBar,
   Modal,
@@ -45,6 +45,7 @@ import type { Article } from '@/lib/types';
 import { Colors } from '@/lib/colors';
 import { FontFamily } from '@/lib/theme';
 import type { Language } from '@/lib/translations';
+import { openArticle } from '@/lib/openArticle';
 import {
   SOURCE_COLORS, CATEGORY_COLORS,
   getSourceName, getCategoryName, formatDate,
@@ -140,7 +141,7 @@ const HighlightScrollCard = React.memo(function HighlightScrollCard({
     if (onToggle) {
       onToggle();
     } else {
-      if (article.link) Linking.openURL(article.link);
+      if (article.link) openArticle(article.link);
     }
   };
 
@@ -534,7 +535,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
             {article.link ? (
               <View style={{ paddingHorizontal: 20, marginTop: 32, marginBottom: 8 }}>
                 <Pressable
-                  onPress={() => Linking.openURL(article.link)}
+                  onPress={() => openArticle(article.link)}
                   accessibilityRole="button"
                   accessibilityLabel={t('article.read_original')}
                   style={({ pressed }) => ({
@@ -670,7 +671,7 @@ const HScrollCard = React.memo(function HScrollCard({
     if (onToggle) {
       onToggle();
     } else {
-      if (article.link) Linking.openURL(article.link);
+      if (article.link) openArticle(article.link);
     }
   };
 

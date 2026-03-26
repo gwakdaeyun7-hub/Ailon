@@ -8,7 +8,7 @@
  */
 
 import React, { useMemo, useCallback, useState, useEffect, useRef } from 'react';
-import { View, Text, FlatList, Pressable, Linking, Alert, Modal, ScrollView, ActivityIndicator, Animated, StyleSheet, LayoutAnimation, Share } from 'react-native';
+import { View, Text, FlatList, Pressable, Alert, Modal, ScrollView, ActivityIndicator, Animated, StyleSheet, LayoutAnimation, Share } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -36,6 +36,7 @@ import {
   getLocalizedTitle, getLocalizedOneLine, getLocalizedSections,
   getLocalizedWhyImportant, getLocalizedBackground, getLocalizedGlossary,
 } from '@/lib/articleHelpers';
+import { openArticle } from '@/lib/openArticle';
 
 function useTypeConfig(colors: ThemeColors) {
   const { t } = useLanguage();
@@ -114,7 +115,7 @@ function SavedItemCard({
       {bookmark.type === 'news' && meta?.link && (
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 8 }}>
           <Pressable
-            onPress={() => Linking.openURL(meta.link!)}
+            onPress={() => openArticle(meta.link!)}
             accessibilityLabel={t('saved.view_original')}
             accessibilityRole="link"
             style={({ pressed }) => ({
@@ -474,7 +475,7 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
             {article.link ? (
               <View style={{ paddingHorizontal: 20, marginTop: 32, marginBottom: 8 }}>
                 <Pressable
-                  onPress={() => Linking.openURL(article.link)}
+                  onPress={() => openArticle(article.link)}
                   accessibilityRole="button"
                   accessibilityLabel={t('article.read_original')}
                   style={({ pressed }) => ({
@@ -598,7 +599,7 @@ function ArticleSummaryModal({
             </Text>
             {link && (
               <Pressable
-                onPress={() => Linking.openURL(link)}
+                onPress={() => openArticle(link)}
                 style={{ backgroundColor: colors.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 }}
               >
                 <Text style={{ color: colors.card, fontWeight: '600', fontSize: 14 }}>

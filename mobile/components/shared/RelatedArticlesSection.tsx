@@ -3,13 +3,14 @@
  */
 
 import React from 'react';
-import { View, Text, Pressable, ScrollView, Linking } from 'react-native';
+import { View, Text, Pressable, ScrollView } from 'react-native';
 import { Image } from 'expo-image';
 import { Newspaper } from 'lucide-react-native';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useArticles } from '@/hooks/useArticle';
 import type { Article } from '@/lib/types';
+import { openArticle } from '@/lib/openArticle';
 
 interface Props {
   relatedIds: string[];
@@ -49,7 +50,7 @@ export const RelatedArticlesSection = React.memo(function RelatedArticlesSection
           return (
             <Pressable
               key={a.article_id || idx}
-              onPress={() => a.link && Linking.openURL(a.link)}
+              onPress={() => a.link && openArticle(a.link)}
               style={{
                 width: CARD_W,
                 backgroundColor: colors.card,
