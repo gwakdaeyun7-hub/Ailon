@@ -44,9 +44,13 @@
 
 ### Tab 3: Lab (tools.tsx) — Interactive Simulations
 - **usePrinciple()** → `seed_id` → `SEED_TO_SIM` 매핑 → 대응 시뮬레이션 있으면 **InteractiveSim** 렌더링, 없으면 빈 상태(FlaskConical 아이콘 + 안내 텍스트)
-- **SEED_TO_SIM**: `opt_simulated_annealing → 'sa'` (tools.tsx 내 정의)
-- **SIMULATIONS 레지스트리**: `components/snaps/simulations/index.ts` — `Record<string, (isDark, lang) => string>`. 현재: `sa` (Simulated Annealing)
-- **SA 시뮬레이션** (`simulations/sa.ts`): self-contained HTML/JS/Canvas. 4가지 목적함수, 파라미터 조절 슬라이더, 수렴 그래프 애니메이션, KO/EN 바이링구얼, dark/light 테마
+- **SEED_TO_SIM** (tools.tsx 내 정의): `opt_simulated_annealing → 'sa'`, `opt_gradient_descent → 'gd'`, `bio_swarm_intelligence → 'swarm'`, `stat_bayesian_inference → 'bayesian'`
+- **SIMULATIONS 레지스트리**: `components/snaps/simulations/index.ts` — `Record<string, (isDark, lang) => string>`. 현재 4개:
+  - `sa` — Simulated Annealing: 4가지 목적함수, 파라미터 슬라이더, 수렴 그래프 애니메이션
+  - `gd` — Gradient Descent: 2D 등고선 맵에서 Vanilla GD/Momentum/Adam 3종 경로 비교
+  - `swarm` — Swarm Intelligence (Boid): Separation/Alignment/Cohesion 토글, 실시간 군집 시뮬레이션
+  - `bayesian` — Bayesian Inference: Beta 분포 Prior→Posterior 업데이트, 동전 던지기 인터랙션
+- **시뮬레이션 공통**: self-contained HTML/JS/Canvas, KO/EN 바이링구얼, dark/light 테마
 - **탭 아이콘**: FlaskConical (lucide), 라벨 `tab.lab`
 
 ### Tab 4: Saved (saved.tsx)

@@ -8,8 +8,14 @@
  */
 
 import { getSASimulationHTML } from './sa';
+import { getGDSimulationHTML } from './gd';
+import { getSwarmSimulationHTML } from './swarm';
+import { getBayesianSimulationHTML } from './bayesian';
 
 /** Each value is a function: (isDark, lang) => fullHTMLString */
 export const SIMULATIONS: Record<string, (isDark: boolean, lang: string) => string> = {
   sa: getSASimulationHTML,
+  gd: getGDSimulationHTML,
+  swarm: getSwarmSimulationHTML,
+  bayesian: getBayesianSimulationHTML,
 };

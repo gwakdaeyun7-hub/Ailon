@@ -21,6 +21,9 @@ import { FontFamily } from '@/lib/theme';
 /** seed_id → simulation ID 매핑 */
 const SEED_TO_SIM: Record<string, string> = {
   opt_simulated_annealing: 'sa',
+  opt_gradient_descent: 'gd',
+  bio_swarm_intelligence: 'swarm',
+  stat_bayesian_inference: 'bayesian',
 };
 
 export default function LabScreen() {

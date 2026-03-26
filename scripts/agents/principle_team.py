@@ -337,6 +337,14 @@ def seed_selector(state: PrincipleGraphState) -> dict:
     db = get_firestore_client()
     now_kst = datetime.now(_KST)
 
+    # ── TEMP: SA 시드 고정 (시뮬레이터 테스트용, 테스트 후 제거) ──
+    _forced = [s for s in PRINCIPLE_SEEDS if s["id"] == "opt_simulated_annealing"]
+    if _forced:
+        seed = _forced[0]
+        print(f"  [seed_selector] ⚠ FORCED: {seed['id']} (테스트용 고정)")
+        return {"seed": seed}
+    # ── /TEMP ──
+
     # curated 시드 ID 스캔
     curated_ids = _get_curated_seed_ids()
     curated_seeds = [s for s in PRINCIPLE_SEEDS if s["id"] in curated_ids]
