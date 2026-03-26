@@ -1,54 +1,89 @@
 /**
- * Lab 탭 — 오늘의 학문 원리에 대응하는 인터랙티브 시뮬레이션
+ * Lab 탭 — 45개 학문원리 브라우저 + 인터랙티브 시뮬레이션
  *
- * - usePrinciple()로 오늘의 원리 fetch
- * - Firestore seed_id → SIMULATIONS 레지스트리 매핑
- * - 대응 시뮬레이션 있으면 InteractiveSim 렌더링
- * - 없으면 빈 상태 표시
+ * 2단 탭 구조:
+ *  1) Super category (공학 / 자연과학 / 형식과학 / 응용과학)
+ *  2) 카테고리 내 원리 목록 (horizontal scroll)
+ *
+ * 선택된 원리의 학문스낵 콘텐츠 + 시뮬레이션(있는 경우) 표시
  */
 
-import React from 'react';
-import { View, Text, ScrollView, ActivityIndicator } from 'react-native';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { View, Text, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { FlaskConical, BookOpen } from 'lucide-react-native';
-import { usePrinciple } from '@/hooks/usePrinciple';
+import { FlaskConical } from 'lucide-react-native';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
-import { SIMULATIONS } from '@/components/snaps/simulations';
 import { InteractiveSim } from '@/components/snaps/InteractiveSim';
+import { SnapsContentRenderer } from '@/components/snaps/SnapsContentRenderer';
 import { FontFamily } from '@/lib/theme';
+import { SIMULATIONS } from '@/components/snaps/simulations';
+import {
+  SUPER_CATEGORIES,
+  getSuperCategoryEn,
+  getDisciplineEn,
+  getPrinciplesByCategory,
+  getSimId,
+  type LabPrinciple,
+} from '@/lib/labPrinciples';
 
-/** seed_id → simulation ID 매핑 */
-const SEED_TO_SIM: Record<string, string> = {
-  opt_simulated_annealing: 'sa',
-  opt_gradient_descent: 'gd',
-  bio_swarm_intelligence: 'swarm',
-  stat_bayesian_inference: 'bayesian',
+// ---------------------------------------------------------------------------
+// CONNECTION_TYPE labels
+// ---------------------------------------------------------------------------
+
+const CONNECTION_LABELS: Record<string, { ko: string; en: string }> = {
+  direct_inspiration: { ko: '직접 영감', en: 'Direct Inspiration' },
+  structural_analogy: { ko: '구조적 유추', en: 'Structural Analogy' },
+  mathematical_foundation: { ko: '수학적 토대', en: 'Mathematical Foundation' },
+  conceptual_borrowing: { ko: '개념 차용', en: 'Conceptual Borrowing' },
 };
+
+const DIFFICULTY_LABELS: Record<string, { ko: string; en: string }> = {
+  beginner: { ko: '입문', en: 'Beginner' },
+  intermediate: { ko: '중급', en: 'Intermediate' },
+  advanced: { ko: '심화', en: 'Advanced' },
+};
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 
 export default function LabScreen() {
   const { lang } = useLanguage();
-  const { colors, isDark } = useTheme();
-  const { principleData, loading } = usePrinciple();
+  const { colors } = useTheme();
+  const isKo = lang === 'ko';
 
-  const seedId = (principleData as any)?.seed_id as string | undefined;
-  const simId = seedId ? SEED_TO_SIM[seedId] : undefined;
-  const hasSimulation = simId != null && SIMULATIONS[simId] != null;
+  // --- State ---
+  const [catIdx, setCatIdx] = useState(0);
+  const [principleIdx, setPrincipleIdx] = useState(0);
+  const principleScrollRef = useRef<ScrollView>(null);
 
-  const principleName = principleData?.principle?.title
-    || principleData?.principle?.title_en
-    || '';
+  const cat = SUPER_CATEGORIES[catIdx];
+  const principles = getPrinciplesByCategory(cat);
+  const p = principles[principleIdx] as LabPrinciple | undefined;
+
+  // Reset principle selection when switching category
+  useEffect(() => {
+    setPrincipleIdx(0);
+    principleScrollRef.current?.scrollTo({ x: 0, animated: false });
+  }, [catIdx]);
+
+  const simId = p ? getSimId(p.id) : undefined;
+  const hasSim = simId != null && SIMULATIONS[simId] != null;
+
+  const content = p
+    ? (isKo ? p.contentKo : p.contentEn) || p.contentKo
+    : '';
+
+  const handleCatPress = useCallback((idx: number) => setCatIdx(idx), []);
+  const handlePrinciplePress = useCallback((idx: number) => setPrincipleIdx(idx), []);
+
+  if (!p) return null;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top']}>
-      {/* Header */}
-      <View style={{
-        paddingHorizontal: 20,
-        paddingTop: 16,
-        paddingBottom: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.border,
-      }}>
+      {/* ── Header ── */}
+      <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 }}>
         <Text style={{
           fontSize: 20,
           fontWeight: '800',
@@ -59,88 +94,203 @@ export default function LabScreen() {
         </Text>
       </View>
 
-      {loading ? (
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <ActivityIndicator size="small" color={colors.primary} />
-        </View>
-      ) : hasSimulation ? (
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Principle context badge */}
+      {/* ── Super Category Tabs ── */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 16, gap: 6 }}
+        style={{ flexGrow: 0, paddingBottom: 10 }}
+      >
+        {SUPER_CATEGORIES.map((c, idx) => {
+          const active = idx === catIdx;
+          return (
+            <Pressable
+              key={c}
+              onPress={() => handleCatPress(idx)}
+              style={{
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                backgroundColor: active ? colors.primary : colors.surface,
+                borderWidth: 1,
+                borderColor: active ? colors.primary : colors.border,
+              }}
+            >
+              <Text style={{
+                fontSize: 12,
+                fontWeight: active ? '700' : '500',
+                color: active ? '#000' : colors.textDim,
+              }}>
+                {isKo ? c : getSuperCategoryEn(c)}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+
+      {/* ── Principle Tabs ── */}
+      <ScrollView
+        ref={principleScrollRef}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 16 }}
+        style={{
+          flexGrow: 0,
+          borderBottomWidth: 1,
+          borderBottomColor: colors.border,
+        }}
+      >
+        {principles.map((item, idx) => {
+          const active = idx === principleIdx;
+          return (
+            <Pressable
+              key={item.id}
+              onPress={() => handlePrinciplePress(idx)}
+              style={{
+                paddingHorizontal: 12,
+                paddingTop: 8,
+                paddingBottom: 10,
+                borderBottomWidth: 2,
+                borderBottomColor: active ? colors.primary : 'transparent',
+                marginBottom: -1,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 12,
+                  fontWeight: active ? '700' : '500',
+                  color: active ? colors.textPrimary : colors.textDim,
+                }}
+                numberOfLines={1}
+              >
+                {item.principleName}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+
+      {/* ── Content ── */}
+      <ScrollView
+        key={p.id}
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 60 }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Discipline badge */}
+        <View style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 6,
+          marginTop: 16,
+          marginBottom: 8,
+        }}>
           <View style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            marginTop: 16,
-            marginBottom: 4,
-            gap: 6,
+            paddingHorizontal: 8,
+            paddingVertical: 3,
+            backgroundColor: colors.surface,
+            borderWidth: 1,
+            borderColor: colors.border,
           }}>
-            <BookOpen size={14} color={colors.textDim} strokeWidth={2} />
             <Text style={{
-              fontSize: 11,
+              fontSize: 10,
               fontWeight: '700',
-              letterSpacing: 1,
-              textTransform: 'uppercase',
               color: colors.textDim,
+              letterSpacing: 0.5,
+              textTransform: 'uppercase',
             }}>
-              {lang === 'ko' ? '오늘의 학문 스낵' : "TODAY'S SNACK"}
+              {isKo ? p.superCategory : getSuperCategoryEn(p.superCategory)}
+              {'  ·  '}
+              {isKo ? p.disciplineName : getDisciplineEn(p.discipline)}
             </Text>
           </View>
 
-          {/* Principle name */}
-          <Text style={{
-            fontSize: 22,
-            fontWeight: '700',
-            fontFamily: FontFamily.serif,
-            color: colors.textPrimary,
-            marginBottom: 16,
+          {/* Difficulty */}
+          <View style={{
+            paddingHorizontal: 6,
+            paddingVertical: 2,
+            backgroundColor: colors.surface,
+            borderWidth: 1,
+            borderColor: colors.border,
           }}>
-            {principleName}
-          </Text>
+            <Text style={{ fontSize: 9, fontWeight: '600', color: colors.textDim }}>
+              {DIFFICULTY_LABELS[p.difficulty]?.[isKo ? 'ko' : 'en'] || p.difficulty}
+            </Text>
+          </View>
 
-          {/* Simulation */}
-          <InteractiveSim id={simId!} />
-        </ScrollView>
-      ) : (
-        /* Empty state — no simulation for today's principle */
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 }}>
-          <FlaskConical size={36} color={colors.textDim} style={{ marginBottom: 20 }} />
-          <Text style={{
-            fontSize: 16,
-            fontWeight: '700',
-            color: colors.textPrimary,
-            marginBottom: 8,
-            textAlign: 'center',
+          {/* Connection type */}
+          <View style={{
+            paddingHorizontal: 6,
+            paddingVertical: 2,
+            backgroundColor: colors.surface,
+            borderWidth: 1,
+            borderColor: colors.border,
           }}>
-            {lang === 'ko' ? '오늘은 실험이 없어요' : 'No experiment today'}
-          </Text>
-          {principleName ? (
-            <Text style={{
-              fontSize: 13,
-              color: colors.textSecondary,
-              textAlign: 'center',
-              lineHeight: 20,
-            }}>
-              {lang === 'ko'
-                ? `오늘의 원리 "${principleName}"에 대응하는\n시뮬레이션을 준비 중이에요.`
-                : `A simulation for "${principleName}"\nis coming soon.`}
+            <Text style={{ fontSize: 9, fontWeight: '600', color: colors.textDim }}>
+              {CONNECTION_LABELS[p.connectionType]?.[isKo ? 'ko' : 'en'] || p.connectionType}
             </Text>
-          ) : (
-            <Text style={{
-              fontSize: 13,
-              color: colors.textSecondary,
-              textAlign: 'center',
-              lineHeight: 20,
-            }}>
-              {lang === 'ko'
-                ? '시뮬레이션이 있는 원리가 나오면\n여기에서 직접 실험해볼 수 있어요.'
-                : 'When a principle with a simulation appears,\nyou can experiment with it here.'}
-            </Text>
-          )}
+          </View>
         </View>
-      )}
+
+        {/* Principle title */}
+        <Text style={{
+          fontSize: 22,
+          fontWeight: '700',
+          fontFamily: FontFamily.serif,
+          color: colors.textPrimary,
+          marginBottom: 16,
+        }}>
+          {p.principleName}
+        </Text>
+
+        {/* Snaps content */}
+        {content ? (
+          <SnapsContentRenderer content={content} />
+        ) : null}
+
+        {/* Takeaway */}
+        {(isKo ? p.takeaway : p.takeawayEn || p.takeaway) ? (
+          <View style={{
+            marginTop: 24,
+            padding: 14,
+            backgroundColor: colors.primaryLight,
+            borderWidth: 1,
+            borderColor: colors.primaryBorder,
+          }}>
+            <Text style={{
+              fontSize: 13,
+              color: colors.textPrimary,
+              lineHeight: 20,
+            }}>
+              {isKo ? p.takeaway : (p.takeawayEn || p.takeaway)}
+            </Text>
+          </View>
+        ) : null}
+
+        {/* Simulation */}
+        {hasSim ? (
+          <View style={{ marginTop: 28 }}>
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+              marginBottom: 8,
+            }}>
+              <FlaskConical size={14} color={colors.textDim} strokeWidth={2} />
+              <Text style={{
+                fontSize: 11,
+                fontWeight: '700',
+                letterSpacing: 1,
+                textTransform: 'uppercase',
+                color: colors.textDim,
+              }}>
+                {isKo ? '인터랙티브 시뮬레이션' : 'INTERACTIVE SIMULATION'}
+              </Text>
+            </View>
+            <InteractiveSim id={simId!} />
+          </View>
+        ) : null}
+      </ScrollView>
     </SafeAreaView>
   );
 }

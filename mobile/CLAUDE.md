@@ -42,15 +42,22 @@
 - **Takeaway**: seed에서 전달된 핵심 인사이트 1문장, teal(primaryLight) 배경 + 시스템 기본 폰트 (색상바 없음)
 - **normalizePrinciple**: snake_case 필드 폴백 (deepDiveHook, takeaway 등 신규 필드 포함)
 
-### Tab 3: Lab (tools.tsx) — Interactive Simulations
-- **usePrinciple()** → `seed_id` → `SEED_TO_SIM` 매핑 → 대응 시뮬레이션 있으면 **InteractiveSim** 렌더링, 없으면 빈 상태(FlaskConical 아이콘 + 안내 텍스트)
-- **SEED_TO_SIM** (tools.tsx 내 정의): `opt_simulated_annealing → 'sa'`, `opt_gradient_descent → 'gd'`, `bio_swarm_intelligence → 'swarm'`, `stat_bayesian_inference → 'bayesian'`
+### Tab 3: Lab (tools.tsx) — 학문원리 브라우저 + Interactive Simulations
+- **45개 전체 학문원리 브라우저**: 2단 탭 구조로 모든 curated 원리를 자유 탐색
+  - **1단 탭**: Super Category (공학/자연과학/형식과학/응용과학) — 4개 pill 탭
+  - **2단 탭**: 카테고리 내 원리 목록 (horizontal scroll, teal 하단 인디케이터)
+  - 카테고리 전환 시 원리 탭 자동 리셋 + 스크롤 초기화
+- **데이터**: `lib/labPrinciplesData.json` (45개 원리 콘텐츠 KO/EN 번들, ~889KB) + `lib/labPrinciples.ts` (타입, 그룹핑 헬퍼, sim 매핑)
+- **콘텐츠 렌더링**: 분야 배지 (superCategory·discipline) + difficulty·connectionType 태그 + 세리프 제목(22pt) + **SnapsContentRenderer** (학문스낵 마크다운 전체 표시) + Takeaway (teal 배경)
+- **시뮬레이션 연동**: 4개 원리(GD/SA/Swarm/Bayesian)에 한해 콘텐츠 하단에 InteractiveSim 자동 표시
+- **SEED_TO_SIM** (`lib/labPrinciples.ts` 내): `opt_simulated_annealing → 'sa'`, `opt_gradient_descent → 'gd'`, `bio_swarm_intelligence → 'swarm'`, `stat_bayesian_inference → 'bayesian'`
 - **SIMULATIONS 레지스트리**: `components/snaps/simulations/index.ts` — `Record<string, (isDark, lang) => string>`. 현재 4개:
   - `sa` — Simulated Annealing: 5가지 목적함수(+Deceptive), 파라미터 슬라이더, Advanced 토글(냉각 스케줄 3종 Geometric/Logarithmic/Linear + Steps/Temp), 에너지 지형 플롯(탭으로 초기 위치 설정, 온도별 마커 색상), 수렴 그래프, 수용 확률 실시간 표시(Step/Pause 모드), 완료 시 전역/지역 최적해 판정(런타임 수치 탐색), 경계 반사(reflection)
   - `gd` — Gradient Descent: 2D 등고선 맵에서 Vanilla GD/Momentum/Adam 3종 경로 비교
   - `swarm` — Swarm Intelligence (Boid): Separation/Alignment/Cohesion 토글, 실시간 군집 시뮬레이션
   - `bayesian` — Bayesian Inference: Beta 분포 Prior→Posterior 업데이트, 동전 던지기 인터랙션
 - **시뮬레이션 공통**: self-contained HTML/JS/Canvas, KO/EN 바이링구얼, dark/light 테마
+- **이전 모드 복원**: 기존 daily-principle 모드(usePrinciple() → 당일 원리 1개 표시)는 git commit `85173a6` 이전 tools.tsx로 복원 가능
 - **탭 아이콘**: FlaskConical (lucide), 라벨 `tab.lab`
 
 ### Tab 4: Saved (saved.tsx)
