@@ -2,10 +2,16 @@
  * Simulated Annealing interactive simulation — self-contained HTML/JS
  *
  * Features:
- * - 4 preset objective functions (quadratic, multi-modal, Rastrigin, wavy)
+ * - 5 preset objective functions (quadratic, multi-modal, Rastrigin, wavy, deceptive)
  * - Adjustable parameters: T0, cooling rate, max iterations, perturbation sigma, bounds
- * - Animated function plot with current/best position markers + acceptance trail
+ * - Advanced panel: cooling schedule (Geometric/Logarithmic/Linear), steps per temperature
+ * - Animated energy landscape with current/best position markers + acceptance trail
+ * - Temperature-mapped marker color (hot=accent, cold=teal)
+ * - Tap to set initial position (before first run)
  * - Convergence plot (temperature + best energy over iterations)
+ * - Real-time acceptance probability display (paused / step mode)
+ * - Completion verdict (global optimum found vs stuck in local min)
+ * - Boundary reflection instead of clamping
  * - Step / Run / Pause / Reset controls
  * - Dark/light theme, Korean/English bilingual
  */
@@ -43,9 +49,20 @@ export function getSASimulationHTML(isDark: boolean, lang: string): string {
 '.stats{font-family:monospace;font-size:11px;line-height:2;color:var(--text2)}' +
 '.stats .hi{color:var(--teal);font-weight:700}' +
 '.stats .warn{color:var(--accent);font-weight:700}' +
+'.stats .verdict-ok{color:var(--green);font-weight:700}' +
+'.stats .verdict-stuck{color:var(--accent);font-weight:700}' +
 '.bounds-row{display:flex;align-items:center;gap:6px}' +
 '.bounds-input{width:52px;padding:6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-family:monospace;text-align:center}' +
 '.bounds-sep{color:var(--text3);font-size:12px;font-weight:700}' +
+'.seg-row{display:flex;gap:0;margin-bottom:10px}' +
+'.seg-btn{flex:1;padding:8px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:11px;font-weight:700;text-align:center;cursor:pointer;-webkit-tap-highlight-color:transparent}' +
+'.seg-btn:active{opacity:0.7}' +
+'.seg-btn.sel{background:var(--teal);border-color:var(--teal);color:#1A1816}' +
+'.adv-toggle{padding:10px 0 2px;font-size:11px;font-weight:700;letter-spacing:0.5px;color:var(--text3);cursor:pointer;-webkit-tap-highlight-color:transparent;text-align:center}' +
+'.adv-toggle:active{opacity:0.7}' +
+'.adv-section{display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}' +
+'.adv-section.open{display:block}' +
+'.prob-box{border-top:1px solid var(--border);margin-top:4px;padding-top:6px;font-family:monospace;font-size:11px;line-height:1.8;color:var(--text2)}' +
 '</style></head><body>' +
 
 '<div class="panel"><div class="label" id="lbl-func"></div>' +
@@ -60,7 +77,7 @@ export function getSASimulationHTML(isDark: boolean, lang: string): string {
 '<span class="ctrl-val" id="valT0"></span></div>' +
 '<div class="ctrl-hint" id="hint-t0"></div>' +
 
-'<div class="row"><span class="ctrl-name" id="lbl-cool"></span>' +
+'<div class="row" id="row-cool"><span class="ctrl-name" id="lbl-cool"></span>' +
 '<input type="range" id="slCool" min="900" max="999" value="995" oninput="onParam()">' +
 '<span class="ctrl-val" id="valCool"></span></div>' +
 '<div class="ctrl-hint" id="hint-cool"></div>' +
@@ -84,7 +101,28 @@ export function getSASimulationHTML(isDark: boolean, lang: string): string {
 '<div class="row"><span class="ctrl-name" id="lbl-speed"></span>' +
 '<input type="range" id="slSpeed" min="1" max="20" value="5" oninput="onParam()">' +
 '<span class="ctrl-val" id="valSpeed"></span></div>' +
+
+// ── Advanced toggle + section ──
+'<div class="adv-toggle" id="advToggle" onclick="toggleAdvanced()"></div>' +
+'<div class="adv-section" id="advSection">' +
+
+// Cooling schedule selector
+'<div class="label" id="lbl-schedule"></div>' +
+'<div class="seg-row" id="segSchedule">' +
+'<div class="seg-btn sel" data-v="geometric" onclick="onSchedule(this)">Geometric</div>' +
+'<div class="seg-btn" data-v="logarithmic" onclick="onSchedule(this)">Logarithmic</div>' +
+'<div class="seg-btn" data-v="linear" onclick="onSchedule(this)">Linear</div>' +
 '</div>' +
+'<div class="ctrl-hint" id="hint-schedule"></div>' +
+
+// Steps per temperature
+'<div class="row"><span class="ctrl-name" id="lbl-spt"></span>' +
+'<input type="range" id="slSPT" min="1" max="20" value="1" oninput="onParam()">' +
+'<span class="ctrl-val" id="valSPT"></span></div>' +
+'<div class="ctrl-hint" id="hint-spt"></div>' +
+
+'</div>' + // end advSection
+'</div>' + // end params panel
 
 '<div class="panel"><div class="btn-row">' +
 '<div class="btn btn-primary" id="btnRun" onclick="onRun()"></div>' +
@@ -103,7 +141,7 @@ export function getSASimulationHTML(isDark: boolean, lang: string): string {
 
 // ── Labels ──────────────────────────────────────────────────────────
 'var L={' +
-'ko:{func:"\\uBAA9\\uC801\\uD568\\uC218",plot:"\\uD568\\uC218 \\uADF8\\uB798\\uD504",params:"\\uD30C\\uB77C\\uBBF8\\uD130",' +
+'ko:{func:"\\uBAA9\\uC801\\uD568\\uC218",plot:"\\uC5D0\\uB108\\uC9C0 \\uC9C0\\uD615",params:"\\uD30C\\uB77C\\uBBF8\\uD130",' +
 't0:"\\uCD08\\uAE30\\uC628\\uB3C4",cool:"\\uB0C9\\uAC01\\uB960",iter:"\\uBC18\\uBCF5\\uD69F\\uC218",sigma:"\\uC12D\\uB3D9 \\u03C3",' +
 'bounds:"\\uBC94\\uC704",speed:"\\uC560\\uB2C8 \\uC18D\\uB3C4",' +
 'run:"\\u25B6 \\uC2E4\\uD589",pause:"\\u23F8 \\uC77C\\uC2DC\\uC815\\uC9C0",step:"\\u23ED \\uD55C \\uB2E8\\uACC4",reset:"\\u21BA \\uB9AC\\uC14B",' +
@@ -112,8 +150,22 @@ export function getSASimulationHTML(isDark: boolean, lang: string): string {
 'hintCool:"1\\uC5D0 \\uAC00\\uAE4C\\uC6B8\\uC218\\uB85D \\uCC9C\\uCC9C\\uD788 \\uB0C9\\uAC01\\uB429\\uB2C8\\uB2E4",' +
 'hintSigma:"\\uD074\\uC218\\uB85D \\uD55C \\uBC88\\uC5D0 \\uB354 \\uBA40\\uB9AC \\uC774\\uB3D9\\uD569\\uB2C8\\uB2E4",' +
 'cur:"\\uD604\\uC7AC",best:"\\uCD5C\\uC801",temp:"\\uC628\\uB3C4",iterN:"\\uBC18\\uBCF5",accept:"\\uC218\\uC6A9\\uB960",' +
-'waiting:"\\uD30C\\uB77C\\uBBF8\\uD130\\uB97C \\uC870\\uC808\\uD558\\uACE0 \\uC2E4\\uD589\\uC744 \\uB20C\\uB7EC\\uBCF4\\uC138\\uC694"},' +
-'en:{func:"OBJECTIVE FUNCTION",plot:"FUNCTION PLOT",params:"PARAMETERS",' +
+'waiting:"\\uD30C\\uB77C\\uBBF8\\uD130\\uB97C \\uC870\\uC808\\uD558\\uACE0 \\uC2E4\\uD589\\uC744 \\uB20C\\uB7EC\\uBCF4\\uC138\\uC694",' +
+// New labels
+'advOpen:"\\uACE0\\uAE09 \\uC124\\uC815 \\u00BB",' + // 고급 설정 >>
+'advClose:"\\u00AB \\uACE0\\uAE09 \\uC124\\uC815",' + // << 고급 설정
+'schedule:"\\uB0C9\\uAC01 \\uC2A4\\uCF00\\uC904",' + // 냉각 스케줄
+'hintLog:"Geman & Geman (1984) \\u2014 \\uC774\\uB860\\uC801 \\uC218\\uB834 \\uBCF4\\uC7A5",' + // 이론적 수렴 보장
+'hintGeo:"",' +
+'hintLin:"",' +
+'spt:"\\uC628\\uB3C4\\uBCC4 \\uBC18\\uBCF5",' + // 온도별 반복
+'hintSPT:"\\uAC01 \\uC628\\uB3C4\\uC5D0\\uC11C N\\uBC88 \\uD0D0\\uC0C9 \\uD6C4 \\uB0C9\\uAC01",' + // 각 온도에서 N번 탐색 후 냉각
+'verdictOk:"\\u2713 \\uC804\\uC5ED \\uCD5C\\uC801\\uD574 \\uB3C4\\uB2EC!",' + // 전역 최적해 도달!
+'verdictStuck:"\\u25B3 \\uC9C0\\uC5ED \\uCD5C\\uC18F\\uAC12\\uC5D0 \\uBE60\\uC9D0 \\u2014 T0\\u2191 \\uB610\\uB294 \\uB0C9\\uAC01\\uB960\\u2191",' + // 지역 최솟값에 빠짐
+'tapHint:"\\uD0ED\\uD558\\uC5EC \\uC2DC\\uC791\\uC810 \\uC124\\uC815",' + // 탭하여 시작점 설정
+'probAccepted:"ACCEPTED",probRejected:"REJECTED"' +
+'},' +
+'en:{func:"OBJECTIVE FUNCTION",plot:"ENERGY LANDSCAPE",params:"PARAMETERS",' +
 't0:"Init Temp",cool:"Cool Rate",iter:"Iterations",sigma:"Perturb \\u03C3",' +
 'bounds:"Bounds",speed:"Anim Speed",' +
 'run:"\\u25B6 Run",pause:"\\u23F8 Pause",step:"\\u23ED Step",reset:"\\u21BA Reset",' +
@@ -122,7 +174,21 @@ export function getSASimulationHTML(isDark: boolean, lang: string): string {
 'hintCool:"Closer to 1 = slower cooling",' +
 'hintSigma:"Larger = bigger jumps per step",' +
 'cur:"Current",best:"Best",temp:"Temp",iterN:"Iter",accept:"Accept Rate",' +
-'waiting:"Adjust parameters and press Run"}' +
+'waiting:"Adjust parameters and press Run",' +
+// New labels
+'advOpen:"Advanced \\u00BB",' +
+'advClose:"\\u00AB Advanced",' +
+'schedule:"COOLING SCHEDULE",' +
+'hintLog:"Geman & Geman (1984) \\u2014 theoretical convergence guarantee",' +
+'hintGeo:"",' +
+'hintLin:"",' +
+'spt:"Steps/Temp",' +
+'hintSPT:"N explorations per temperature level",' +
+'verdictOk:"\\u2713 Global optimum found!",' +
+'verdictStuck:"\\u25B3 Stuck in local min \\u2014 try higher T0 or slower cooling",' +
+'tapHint:"TAP TO SET START",' +
+'probAccepted:"ACCEPTED",probRejected:"REJECTED"' +
+'}' +
 '};' +
 'var T=L[LANG]||L.en;' +
 
@@ -131,8 +197,11 @@ export function getSASimulationHTML(isDark: boolean, lang: string): string {
 '{id:"quad",name:"(x-2)\\u00B2 + 5",fn:function(x){return(x-2)*(x-2)+5},defBounds:[-5,8]},' +
 '{id:"multi",name:"x\\u2074 - 3x\\u00B2 + x",fn:function(x){return x*x*x*x-3*x*x+x},defBounds:[-3,3]},' +
 '{id:"rast",name:"Rastrigin 1D",fn:function(x){return 10+x*x-10*Math.cos(2*Math.PI*x)},defBounds:[-5,5]},' +
-'{id:"wavy",name:"|x-3| + 2sin(5x)",fn:function(x){return Math.abs(x-3)+2*Math.sin(5*x)},defBounds:[-2,8]}' +
+'{id:"wavy",name:"|x-3| + 2sin(5x)",fn:function(x){return Math.abs(x-3)+2*Math.sin(5*x)},defBounds:[-2,8]},' +
+'{id:"decept",name:"-x\\u00B7sin(x) (Deceptive)",fn:function(x){return -x*Math.sin(x)},defBounds:[0,15]}' +
 '];' +
+// Runtime numerical min finder — avoids hardcoding errors, adapts to current bounds
+'function findGlobalMin(fn,lo,hi){var m=Infinity;for(var i=0;i<=10000;i++){var v=fn(lo+(hi-lo)*i/10000);if(v<m)m=v}return m};' +
 'var curFunc=FUNCS[0];' +
 
 // ── State ───────────────────────────────────────────────────────────
@@ -140,6 +209,16 @@ export function getSASimulationHTML(isDark: boolean, lang: string): string {
 'var temperature,iteration,accepted,total;' +
 'var histX=[],histBestE=[],histTemp=[],histAccepted=[];' +
 'var animating=false,done=false;' +
+// Advanced state
+'var advOpen=false;' +
+'var coolSchedule="geometric";' + // geometric | logarithmic | linear
+'var stepsPerTemp=1;' +
+'var tempStepCount=0;' +
+// Acceptance probability display state
+'var lastDE=0,lastP=0,lastRand=0,lastAccepted=false,hasLastStep=false;' +
+// Tap to set initial position state
+'var tapStartX=0,tapStartY=0;' +
+'var userSetStart=false;' +
 
 // ── DOM refs ────────────────────────────────────────────────────────
 'var cvFunc=document.getElementById("cvFunc");' +
@@ -165,6 +244,12 @@ export function getSASimulationHTML(isDark: boolean, lang: string): string {
 'document.getElementById("btnRun").textContent=T.run;' +
 'document.getElementById("btnStep").textContent=T.step;' +
 'document.getElementById("btnReset").textContent=T.reset;' +
+// New labels
+'document.getElementById("advToggle").textContent=T.advOpen;' +
+'document.getElementById("lbl-schedule").textContent=T.schedule;' +
+'document.getElementById("hint-schedule").textContent=T.hintGeo;' +
+'document.getElementById("lbl-spt").textContent=T.spt;' +
+'document.getElementById("hint-spt").textContent=T.hintSPT;' +
 
 // ── Populate function selector ──────────────────────────────────────
 'var sel=document.getElementById("funcSelect");' +
@@ -192,12 +277,39 @@ export function getSASimulationHTML(isDark: boolean, lang: string): string {
 'low=+document.getElementById("inLow").value;' +
 'high=+document.getElementById("inHigh").value;' +
 'speed=+document.getElementById("slSpeed").value;' +
+'stepsPerTemp=+document.getElementById("slSPT").value;' +
 'if(low>=high){high=low+1;document.getElementById("inHigh").value=high}' +
 'document.getElementById("valT0").textContent=T0;' +
 'document.getElementById("valCool").textContent=coolRate.toFixed(3);' +
 'document.getElementById("valIter").textContent=maxIter;' +
 'document.getElementById("valSigma").textContent=sigma.toFixed(2);' +
-'document.getElementById("valSpeed").textContent="x"+speed}' +
+'document.getElementById("valSpeed").textContent="x"+speed;' +
+'document.getElementById("valSPT").textContent=stepsPerTemp}' +
+
+// ── Advanced toggle ─────────────────────────────────────────────────
+'function toggleAdvanced(){' +
+'advOpen=!advOpen;' +
+'document.getElementById("advSection").className=advOpen?"adv-section open":"adv-section";' +
+'document.getElementById("advToggle").textContent=advOpen?T.advClose:T.advOpen;' +
+'notifyHeight()}' +
+
+// ── Cooling schedule selector ───────────────────────────────────────
+'function onSchedule(el){' +
+'coolSchedule=el.getAttribute("data-v");' +
+'var btns=document.getElementById("segSchedule").children;' +
+'for(var i=0;i<btns.length;i++){btns[i].className=btns[i]===el?"seg-btn sel":"seg-btn"}' +
+// Update hint
+'var hintEl=document.getElementById("hint-schedule");' +
+'if(coolSchedule==="logarithmic"){hintEl.textContent=T.hintLog}' +
+'else if(coolSchedule==="linear"){hintEl.textContent=T.hintLin}' +
+'else{hintEl.textContent=T.hintGeo}' +
+// Show/hide coolRate row based on schedule
+'var coolRow=document.getElementById("row-cool");' +
+'var coolHint=document.getElementById("hint-cool");' +
+'if(coolSchedule==="linear"){coolRow.style.display="none";coolHint.style.display="none"}' +
+'else{coolRow.style.display="flex";coolHint.style.display="block"}' +
+// Reset simulation when schedule changes
+'resetState()}' +
 
 // ── Draw function plot ──────────────────────────────────────────────
 'function drawFunc(){' +
@@ -257,11 +369,25 @@ export function getSASimulationHTML(isDark: boolean, lang: string): string {
 'ctx.moveTo(bx,by-7);ctx.lineTo(bx+5,by);ctx.lineTo(bx,by+7);ctx.lineTo(bx-5,by);ctx.closePath();ctx.fill();' +
 'ctx.strokeStyle=accentC;ctx.lineWidth=1;ctx.setLineDash([2,2]);' +
 'ctx.beginPath();ctx.moveTo(bx,by);ctx.lineTo(bx,h-pad);ctx.stroke();ctx.setLineDash([])}' +
-// current position (large teal dot)
+// current position — temperature-mapped fill color (#6)
 'if(xCur!==undefined&&histX.length>0){' +
 'var cx=toX(xCur),cy=toY(fn(xCur));' +
-'ctx.fillStyle=tealC;ctx.beginPath();ctx.arc(cx,cy,6,0,Math.PI*2);ctx.fill();' +
-'ctx.strokeStyle="rgba(94,234,212,0.3)";ctx.lineWidth=8;ctx.beginPath();ctx.arc(cx,cy,10,0,Math.PI*2);ctx.stroke()}' +
+'var tRatio=T0>0?Math.min(1,temperature/T0):0;' +
+'var markerFill=tRatio>0.5?accentC:tealC;' +
+'ctx.fillStyle=markerFill;ctx.beginPath();ctx.arc(cx,cy,6,0,Math.PI*2);ctx.fill();' +
+'ctx.strokeStyle=markerFill;ctx.lineWidth=2;ctx.beginPath();ctx.arc(cx,cy,10,0,Math.PI*2);ctx.stroke()}' +
+// tap-to-set crosshair (before first run, user tapped) (#8)
+'if(iteration===0&&userSetStart&&xCur!==undefined){' +
+'var sx=toX(xCur),sy=toY(fn(xCur));' +
+'ctx.strokeStyle=tealC;ctx.lineWidth=1;ctx.setLineDash([3,3]);' +
+'ctx.beginPath();ctx.moveTo(sx,pad);ctx.lineTo(sx,h-pad);ctx.stroke();' +
+'ctx.beginPath();ctx.moveTo(pad,sy);ctx.lineTo(w-pad,sy);ctx.stroke();ctx.setLineDash([]);' +
+'ctx.fillStyle=tealC;ctx.font="10px monospace";ctx.textAlign="left";' +
+'ctx.fillText("x\\u2080 = "+xCur.toFixed(3),sx+6,sy-6)}' +
+// tap hint text (before first run, no user tap yet) (#8)
+'if(iteration===0&&!userSetStart){' +
+'ctx.fillStyle=textC;ctx.font="11px -apple-system,sans-serif";ctx.textAlign="center";' +
+'ctx.fillText(T.tapHint,w/2,h-pad-6)}' +
 // legend
 'ctx.font="10px -apple-system,sans-serif";' +
 'ctx.fillStyle=tealC;ctx.beginPath();ctx.arc(w-90,pad+8,4,0,Math.PI*2);ctx.fill();' +
@@ -270,6 +396,28 @@ export function getSASimulationHTML(isDark: boolean, lang: string): string {
 'ctx.moveTo(w-40,pad+2);ctx.lineTo(w-36,pad+8);ctx.lineTo(w-40,pad+14);ctx.lineTo(w-44,pad+8);ctx.closePath();ctx.fill();' +
 'ctx.fillStyle=textC;ctx.fillText(T.best,w-32,pad+12)' +
 '}' +
+
+// ── Tap to set initial position — canvas touch handlers (#8) ───────
+'var _touchSX=0,_touchSY=0;' +
+'cvFunc.addEventListener("touchstart",function(e){' +
+'if(iteration!==0)return;' +
+'var t=e.touches[0];_touchSX=t.clientX;_touchSY=t.clientY},false);' +
+'cvFunc.addEventListener("touchend",function(e){' +
+'if(iteration!==0)return;' +
+'var t=e.changedTouches[0];' +
+'var dx=t.clientX-_touchSX;var dy=t.clientY-_touchSY;' +
+'if(Math.sqrt(dx*dx+dy*dy)>10)return;' + // scroll, not tap
+// Convert touch x to domain x
+'var rect=cvFunc.getBoundingClientRect();' +
+'var relX=t.clientX-rect.left;' +
+'var cssW=rect.width;' +
+'var pad=20;var pw=cssW-pad*2;' +
+'var frac=(relX-pad)/pw;' +
+'if(frac<0||frac>1)return;' +
+'var domainX=low+(high-low)*frac;' +
+'xCur=domainX;bestX=domainX;' +
+'userSetStart=true;' +
+'drawFunc();updateStats();notifyHeight()},false);' +
 
 // ── Draw convergence plot ───────────────────────────────────────────
 'function drawConv(){' +
@@ -331,26 +479,57 @@ export function getSASimulationHTML(isDark: boolean, lang: string): string {
 's+="<span class=\\"warn\\">"+T.best+"</span>  x = "+bestX.toFixed(4)+"  f(x) = "+curFunc.fn(bestX).toFixed(4)+"<br>";' +
 's+=T.temp+": "+temperature.toFixed(4)+"  |  "+T.iterN+": <span class=\\"hi\\">"+iteration+"</span>/"+maxIter+"<br>";' +
 's+=T.accept+": "+rate+"%";' +
+// Completion verdict (#5) — runtime min computation (adapts to current bounds)
+'if(done){' +
+'var bestF=curFunc.fn(bestX);var gMin=findGlobalMin(curFunc.fn,low,high);var eps=0.5;' +
+'if(Math.abs(bestF-gMin)<eps){' +
+'s+="<br><span class=\\"verdict-ok\\">"+T.verdictOk+"</span>"}' +
+'else{' +
+'s+="<br><span class=\\"verdict-stuck\\">"+T.verdictStuck+"</span>"}}' +
+// Acceptance probability display (#1) — only when paused or step mode (not animating)
+'if(hasLastStep&&!animating){' +
+'s+="<div class=\\"prob-box\\">";' +
+'s+="dE: "+(lastDE>=0?"+":"")+lastDE.toFixed(3)+"    P: "+lastP.toFixed(3)+"<br>";' +
+'s+="rand: "+lastRand.toFixed(3)+"   \\u2192 ";' +
+'if(lastAccepted){s+="<span class=\\"hi\\">"+T.probAccepted+"</span>"}' +
+'else{s+="<span class=\\"warn\\">"+T.probRejected+"</span>"}' +
+'s+="</div>"}' +
 'box.innerHTML=s}' +
 
 // ── SA step ─────────────────────────────────────────────────────────
 'function saStep(){' +
 'if(iteration>=maxIter){done=true;return}' +
+// Boundary reflection (#9)
 'var xNew=xCur+randn()*sigma;' +
-'xNew=Math.max(low,Math.min(high,xNew));' +
-'var dE=curFunc.fn(xNew)-curFunc.fn(xCur);' +
+'if(xNew<low)xNew=low+(low-xNew);' +
+'if(xNew>high)xNew=high-(xNew-high);' +
+'xNew=Math.max(low,Math.min(high,xNew));' + // safety clamp for double-bounce
+'var eCur=curFunc.fn(xCur);var eNew=curFunc.fn(xNew);' +
+'var dE=eNew-eCur;' +
 'total++;' +
 'var didAccept=false;' +
-'if(dE<0||Math.exp(-dE/temperature)>Math.random()){' +
+'var prob=dE<0?1:Math.exp(-dE/Math.max(temperature,1e-10));' +
+'var randVal=Math.random();' +
+'if(dE<0||prob>randVal){' +
 'xCur=xNew;accepted++;didAccept=true;' +
 'if(curFunc.fn(xCur)<curFunc.fn(bestX)){bestX=xCur}}' +
+// Store last step details for acceptance probability display (#1)
+'lastDE=dE;lastP=prob;lastRand=randVal;lastAccepted=didAccept;hasLastStep=true;' +
 'histX.push(xCur);histBestE.push(curFunc.fn(bestX));histTemp.push(temperature);histAccepted.push(didAccept);' +
-'temperature*=coolRate;iteration++}' +
+// Cooling with steps-per-temperature (#3) and schedule (#2)
+'tempStepCount++;' +
+'if(tempStepCount>=stepsPerTemp){' +
+'tempStepCount=0;' +
+'if(coolSchedule==="logarithmic"){temperature=T0/(1+Math.log(1+iteration))}' +
+'else if(coolSchedule==="linear"){temperature=T0*Math.max(0,1-iteration/maxIter)}' +
+'else{temperature*=coolRate}}' + // geometric (default)
+'iteration++}' +
 
 // ── Reset state ─────────────────────────────────────────────────────
 'function resetState(){' +
 'readParams();temperature=T0;iteration=0;accepted=0;total=0;' +
 'histX=[];histBestE=[];histTemp=[];histAccepted=[];' +
+'tempStepCount=0;hasLastStep=false;userSetStart=false;' +
 'xCur=low+Math.random()*(high-low);bestX=xCur;' +
 'done=false;animating=false;' +
 'document.getElementById("btnRun").textContent=T.run;' +
@@ -380,10 +559,14 @@ export function getSASimulationHTML(isDark: boolean, lang: string): string {
 'function onRun(){' +
 'if(animating){animating=false;' +
 'document.getElementById("btnRun").textContent=T.run;' +
-'document.getElementById("btnRun").className="btn btn-primary";return}' +
+'document.getElementById("btnRun").className="btn btn-primary";' +
+// Show acceptance probability when pausing (#1)
+'updateStats();return}' +
 'if(done)resetState();' +
-'readParams();if(iteration===0){temperature=T0;xCur=low+Math.random()*(high-low);bestX=xCur;' +
-'histX=[];histBestE=[];histTemp=[];histAccepted=[];accepted=0;total=0}' +
+'readParams();if(iteration===0){temperature=T0;' +
+'if(!userSetStart){xCur=low+Math.random()*(high-low)}' +
+'bestX=xCur;' +
+'histX=[];histBestE=[];histTemp=[];histAccepted=[];accepted=0;total=0;tempStepCount=0}' +
 'animating=true;' +
 'document.getElementById("btnRun").textContent=T.pause;' +
 'document.getElementById("btnRun").className="btn btn-stop";' +
@@ -394,8 +577,10 @@ export function getSASimulationHTML(isDark: boolean, lang: string): string {
 'document.getElementById("btnRun").textContent=T.run;' +
 'document.getElementById("btnRun").className="btn btn-primary"}' +
 'if(done)return;' +
-'readParams();if(iteration===0){temperature=T0;xCur=low+Math.random()*(high-low);bestX=xCur;' +
-'histX=[];histBestE=[];histTemp=[];histAccepted=[];accepted=0;total=0}' +
+'readParams();if(iteration===0){temperature=T0;' +
+'if(!userSetStart){xCur=low+Math.random()*(high-low)}' +
+'bestX=xCur;' +
+'histX=[];histBestE=[];histTemp=[];histAccepted=[];accepted=0;total=0;tempStepCount=0}' +
 'saStep();drawFunc();drawConv();updateStats();notifyHeight()}' +
 
 'function onReset(){animating=false;resetState()}' +

@@ -46,7 +46,7 @@
 - **usePrinciple()** → `seed_id` → `SEED_TO_SIM` 매핑 → 대응 시뮬레이션 있으면 **InteractiveSim** 렌더링, 없으면 빈 상태(FlaskConical 아이콘 + 안내 텍스트)
 - **SEED_TO_SIM** (tools.tsx 내 정의): `opt_simulated_annealing → 'sa'`, `opt_gradient_descent → 'gd'`, `bio_swarm_intelligence → 'swarm'`, `stat_bayesian_inference → 'bayesian'`
 - **SIMULATIONS 레지스트리**: `components/snaps/simulations/index.ts` — `Record<string, (isDark, lang) => string>`. 현재 4개:
-  - `sa` — Simulated Annealing: 4가지 목적함수, 파라미터 슬라이더, 수렴 그래프 애니메이션
+  - `sa` — Simulated Annealing: 5가지 목적함수(+Deceptive), 파라미터 슬라이더, Advanced 토글(냉각 스케줄 3종 Geometric/Logarithmic/Linear + Steps/Temp), 에너지 지형 플롯(탭으로 초기 위치 설정, 온도별 마커 색상), 수렴 그래프, 수용 확률 실시간 표시(Step/Pause 모드), 완료 시 전역/지역 최적해 판정(런타임 수치 탐색), 경계 반사(reflection)
   - `gd` — Gradient Descent: 2D 등고선 맵에서 Vanilla GD/Momentum/Adam 3종 경로 비교
   - `swarm` — Swarm Intelligence (Boid): Separation/Alignment/Cohesion 토글, 실시간 군집 시뮬레이션
   - `bayesian` — Bayesian Inference: Beta 분포 Prior→Posterior 업데이트, 동전 던지기 인터랙션
