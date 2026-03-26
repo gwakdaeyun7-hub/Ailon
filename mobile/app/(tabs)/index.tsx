@@ -367,7 +367,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
                 const sc = SOURCE_COLORS[sk] || colors.textSecondary;
                 return (
                   <View style={{ backgroundColor: `${sc}18`, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 }}>
-                    <Text style={{ fontSize: 11, fontWeight: '700', color: colors.textPrimary }}>{getSourceName(sk, t)}</Text>
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: sc }}>{getSourceName(sk, t)}</Text>
                   </View>
                 );
               })()}

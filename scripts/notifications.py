@@ -18,12 +18,17 @@ def _article_id(url: str) -> str:
 
 
 def _collect_users(db) -> list[dict]:
-    """알림 대상 사용자 수집 (token + language + newsAlerts 확인)"""
+    """알림 대상 사용자 수집 (token + notificationsEnabled 마스터 토글 + newsAlerts 확인)"""
     users = []
     for user_doc in db.collection("users").select(
-        ["fcmToken", "expoPushToken", "language"]
+        ["fcmToken", "expoPushToken", "language", "notificationsEnabled"]
     ).stream():
         data = user_doc.to_dict()
+
+        # 마스터 토글: notificationsEnabled가 명시적으로 False이면 스킵
+        if data.get("notificationsEnabled") is False:
+            continue
+
         fcm_token = data.get("fcmToken")
         expo_token = data.get("expoPushToken")
         if not fcm_token and not expo_token:

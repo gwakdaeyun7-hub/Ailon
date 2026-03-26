@@ -241,7 +241,7 @@ export default function ProfileScreen() {
               </Pressable>
             </View>
           ) : (
-            <View style={{ gap: 12 }}>
+            <View style={{ gap: 12, opacity: notificationsEnabled ? 1 : 0.4 }}>
               {([
                 { key: 'newsAlerts' as const, icon: Bell, label: t('notification.news_alerts') },
                 { key: 'commentReplies' as const, icon: MessageCircle, label: t('notification.comment_replies') },
@@ -251,10 +251,11 @@ export default function ProfileScreen() {
                   <Icon size={20} color={colors.textSecondary} />
                   <Text style={{ flex: 1, color: colors.textPrimary, fontSize: 15, fontWeight: '600' }}>{label}</Text>
                   <Switch
-                    value={settings[key]}
+                    value={notificationsEnabled && settings[key]}
                     onValueChange={(v) => updateSetting(key, v)}
+                    disabled={!notificationsEnabled}
                     trackColor={{ false: colors.border, true: colors.switchTrackActive }}
-                    thumbColor={settings[key] ? colors.primary : colors.textDim}
+                    thumbColor={(notificationsEnabled && settings[key]) ? colors.primary : colors.textDim}
                     accessibilityLabel={label}
                   />
                 </View>

@@ -8,7 +8,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
-import { doc, setDoc, updateDoc, deleteField } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, deleteField, getDoc } from 'firebase/firestore';
 import { useRouter, usePathname } from 'expo-router';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
@@ -121,10 +121,21 @@ export function useNotifications() {
     }
   }, [pathname, isRouterReady]);
 
-  // 토큰 등록 / 로그아웃 시 삭제
+  // 토큰 등록 / 로그아웃 시 삭제 (마스터 토글 확인)
   useEffect(() => {
     if (user) {
-      registerForPushNotifications(user.uid);
+      // notificationsEnabled 확인 후 토큰 등록 (기본 true)
+      getDoc(doc(db, 'users', user.uid))
+        .then((snap) => {
+          const enabled = snap.exists() ? snap.data()?.notificationsEnabled !== false : true;
+          if (enabled) {
+            registerForPushNotifications(user.uid);
+          }
+        })
+        .catch(() => {
+          // 문서 조회 실패 시 기본 동작: 토큰 등록
+          registerForPushNotifications(user.uid);
+        });
       prevUidRef.current = user.uid;
     } else if (prevUidRef.current) {
       clearPushToken(prevUidRef.current);

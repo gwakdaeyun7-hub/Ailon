@@ -234,8 +234,8 @@ const CATEGORY_NAMES = {
 };
 
 const LABELS = {
-  ko: { whyImportant: "\uC65C \uC911\uC694\uD574\uC694?", openApp: "AILON \uC571\uC5D0\uC11C \uBCF4\uAE30", readOriginal: "\uC6D0\uBB38 \uBCF4\uAE30", footer: "AI \uB274\uC2A4 & \uC778\uC0AC\uC774\uD2B8", notFound: "\uAE30\uC0AC\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4" },
-  en: { whyImportant: "Why It Matters", openApp: "Open in AILON", readOriginal: "Read Original", footer: "AI News & Insights", notFound: "Article not found" },
+  ko: { whyImportant: "\uC65C \uC911\uC694\uD574\uC694?", openApp: "AILON \uC571\uC5D0\uC11C \uBCF4\uAE30", readOriginal: "\uC6D0\uBB38 \uBCF4\uAE30", footer: "AI \uB274\uC2A4 & \uC778\uC0AC\uC774\uD2B8", notFound: "\uAE30\uC0AC\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4", glossary: "\uC6A9\uC5B4 \uD574\uC124" },
+  en: { whyImportant: "Why It Matters", openApp: "Open in AILON", readOriginal: "Read Original", footer: "AI News & Insights", notFound: "Article not found", glossary: "Glossary" },
 };
 
 const EN_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -294,6 +294,21 @@ function detectLang(req) {
   return "en";
 }
 
+function getBackground(a, lang) {
+  if (lang === "en" && a.background_en) return a.background_en;
+  return a.background || "";
+}
+
+function getGlossary(a, lang) {
+  if (lang === "en" && a.glossary_en && a.glossary_en.length) return a.glossary_en;
+  return a.glossary || [];
+}
+
+function calcReadMin(oneLine, sections, whyImportant) {
+  const text = [oneLine, ...sections.map((s) => s.content), whyImportant].join("");
+  return Math.max(1, Math.round(text.length / 500));
+}
+
 function buildArticleHTML(article, articleId, lang) {
   const l = LABELS[lang] || LABELS.en;
   const catNames = CATEGORY_NAMES[lang] || CATEGORY_NAMES.en;
@@ -301,25 +316,42 @@ function buildArticleHTML(article, articleId, lang) {
   const oneLine = getOneLine(article, lang);
   const sections = getSections(article, lang);
   const whyImportant = getWhyImportant(article, lang);
+  const background = getBackground(article, lang);
   const tags = (lang === "en" && article.tags_en && article.tags_en.length) ? article.tags_en : (article.tags || []);
+  const glossary = getGlossary(article, lang);
   const sourceColor = SOURCE_COLORS[article.source_key || ""] || "#5EEAD4";
   const sourceName = SOURCE_NAMES[article.source_key || ""] || article.source_key || "";
   const catColor = CATEGORY_COLORS[article.category || ""] || "#666";
   const catName = catNames[article.category || ""] || "";
   const date = formatDate(article.published, lang);
+  const readMin = calcReadMin(oneLine, sections, whyImportant);
   const imgUrl = article.image_url || "";
   const ogImg = imgUrl || `https://${HOSTING_DOMAIN}/og-default.png`;
   const pageUrl = `https://${HOSTING_DOMAIN}/article/${articleId}`;
 
   const sectionsHTML = sections.map((s, i) => `
-    <div style="margin-top:${i === 0 ? 0 : 16}px;${i > 0 ? "border-top:1px solid #E7E5E4;padding-top:16px;" : ""}">
-      ${s.subtitle ? `<div style="font-family:'Lora',serif;font-size:14px;font-weight:700;margin-bottom:4px">${esc(s.subtitle)}</div>` : ""}
-      <div style="font-size:14px;line-height:1.6;color:#000">${esc(s.content)}</div>
+    <div style="margin-top:${i === 0 ? 0 : 32}px">
+      ${s.subtitle ? `<div class="section-subtitle">${esc(s.subtitle)}</div>` : ""}
+      <div class="section-content">${esc(s.content)}</div>
     </div>`).join("");
 
-  const tagsHTML = tags.slice(0, 5).map((t) =>
-    `<span style="display:inline-block;background:#F5F2EE;padding:4px 10px;font-size:11px;margin:0 6px 6px 0">${esc(t)}</span>`
+  const tagsHTML = tags.slice(0, 8).map((t) =>
+    `<span class="tag">#${esc(t)}</span>`
   ).join("");
+
+  const glossaryHTML = glossary.length ? `
+    <div class="glossary">
+      <details>
+        <summary class="glossary-toggle">${esc(l.glossary)}</summary>
+        <div class="glossary-list">
+          ${glossary.map((g, i) => `
+            <div class="glossary-item" style="${i < glossary.length - 1 ? "margin-bottom:10px" : ""}">
+              <div class="glossary-term">${esc(g.term)}</div>
+              <div class="glossary-desc">${esc(g.desc)}</div>
+            </div>`).join("")}
+        </div>
+      </details>
+    </div>` : "";
 
   return `<!DOCTYPE html>
 <html lang="${lang}">
@@ -340,33 +372,49 @@ function buildArticleHTML(article, articleId, lang) {
 <meta name="twitter:image" content="${esc(ogImg)}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;700;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F5F5F4;color:#000;min-height:100vh}
-.header{background:#fff;border-bottom:2px solid #000;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+.header{background:#fff;border-bottom:1px solid #E7E5E4;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
 .logo{font-size:18px;font-weight:800;color:#5EEAD4;letter-spacing:1.5px}
-.header-btn{background:#5EEAD4;color:#000;font-weight:700;font-size:12px;padding:8px 16px;border:2px solid #000;text-decoration:none}
-.card{max-width:480px;margin:16px auto;background:#fff;border:2px solid #000;overflow:hidden}
-.thumb{width:100%;max-height:240px;object-fit:cover;display:block;border-bottom:2px solid #000}
+.header-btn{background:#5EEAD4;color:#000;font-weight:700;font-size:12px;padding:8px 16px;border-radius:8px;text-decoration:none}
+.card{max-width:480px;margin:16px auto;background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.06)}
+.thumb{width:100%;height:200px;object-fit:cover;display:block}
 .body{padding:20px}
-.meta{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:14px}
-.badge{padding:3px 8px;font-size:11px;font-weight:700;color:#fff}
-.date{font-size:11px;color:#666}
-.cat{font-size:11px;font-weight:600}
-h1{font-family:'Lora',serif;font-size:20px;font-weight:700;line-height:1.4;margin-bottom:16px}
-.one-line{background:#F0FDFA;border:2px solid #99F6E4;padding:14px;margin-bottom:18px}
-.one-line p{font-size:14px;font-weight:600;color:#0D9488;line-height:1.5}
+.meta{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.source-badge{padding:4px 8px;font-size:11px;font-weight:700;border-radius:8px;color:#000}
+.date{font-size:11px;color:#000}
+.read-time{display:inline-flex;align-items:center;gap:3px;font-size:11px;color:#000}
+.read-time svg{vertical-align:middle}
+.cat-badge{padding:3px 8px;font-size:11px;font-weight:700;border-radius:8px;color:#000}
+h1{font-family:'Lora',serif;font-size:22px;font-weight:900;line-height:1.45;letter-spacing:-0.3px;margin-bottom:16px;color:#000}
+.one-line{background:#F0FDFA;border-radius:12px;padding:14px;margin-bottom:18px}
+.one-line p{font-size:16px;font-weight:600;color:#000;line-height:1.625}
+.background-text{font-size:14px;line-height:1.64;letter-spacing:0.2px;color:#000;margin-bottom:20px}
 .sections{margin-bottom:18px}
+.section-subtitle{font-family:'Lora',serif;font-size:18px;font-weight:700;line-height:1.44;letter-spacing:-0.2px;color:#000;margin-bottom:10px}
+.section-content{font-size:15px;line-height:1.6;color:#000}
 .why{margin-bottom:18px}
-.why-label{font-family:'Lora',serif;font-size:13px;font-weight:700;color:#666;margin-bottom:8px}
-.why-text{font-size:14px;line-height:1.6}
-.tags{margin-bottom:18px}
-.footer{border-top:2px solid #000;padding:16px 20px;display:flex;align-items:center;justify-content:space-between}
+.why-label{font-family:'Lora',serif;font-size:16px;font-weight:700;line-height:1.625;color:#000;margin-bottom:8px}
+.why-text{font-size:15px;line-height:1.73;letter-spacing:0.2px;color:#000}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px}
+.tag{display:inline-block;background:#F5F2EE;border-radius:14px;padding:3px 8px;font-size:10px;font-weight:600;color:#000}
+.glossary{margin-bottom:18px}
+.glossary-toggle{font-size:11px;font-weight:600;letter-spacing:1.5px;color:#000;text-transform:uppercase;cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between}
+.glossary-toggle::-webkit-details-marker{display:none}
+.glossary-toggle::after{content:'';display:inline-block;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid #000;transition:transform 0.2s}
+details[open] .glossary-toggle::after{transform:rotate(180deg)}
+.glossary-list{padding-top:10px;padding-left:12px}
+.glossary-term{font-size:12px;font-weight:600;color:#000;margin-bottom:1px}
+.glossary-desc{font-size:11px;color:#000;line-height:1.55}
+.original-btn{display:flex;align-items:center;justify-content:center;gap:8px;border:1.5px solid #000;border-radius:14px;padding:13px 20px;margin:32px 0 8px;text-decoration:none;min-height:44px}
+.original-btn span{font-size:15px;font-weight:700;color:#000}
+.original-btn svg{flex-shrink:0}
+.footer{border-top:1px solid #E7E5E4;padding:16px 20px;display:flex;align-items:center;justify-content:space-between}
 .footer-logo{font-size:14px;font-weight:800;color:#5EEAD4;letter-spacing:1px}
 .footer-sub{font-size:11px;color:#999}
-.cta{display:block;text-align:center;background:#5EEAD4;color:#000;font-weight:700;font-size:15px;padding:14px;border-top:2px solid #000;text-decoration:none}
-.original{display:block;text-align:center;font-size:13px;color:#666;padding:12px;border-top:1px solid #E7E5E4;text-decoration:underline}
+.cta{display:block;text-align:center;background:#5EEAD4;color:#000;font-weight:700;font-size:15px;padding:14px;border-radius:0 0 20px 20px;text-decoration:none}
 </style>
 </head>
 <body>
@@ -378,21 +426,24 @@ h1{font-family:'Lora',serif;font-size:20px;font-weight:700;line-height:1.4;margi
   ${imgUrl ? `<img class="thumb" src="${esc(imgUrl)}" alt="">` : ""}
   <div class="body">
     <div class="meta">
-      ${sourceName ? `<span class="badge" style="background:${esc(sourceColor)}">${esc(sourceName)}</span>` : ""}
+      ${sourceName ? `<span class="source-badge" style="background:${esc(sourceColor)}18">${esc(sourceName)}</span>` : ""}
       ${date ? `<span class="date">${esc(date)}</span>` : ""}
-      ${catName ? `<span class="cat" style="color:${esc(catColor)}">${esc(catName)}</span>` : ""}
+      <span class="read-time"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${readMin}${lang === "ko" ? "\uBD84" : " min"}</span>
+      ${catName ? `<span class="cat-badge" style="background:${esc(catColor)}18">${esc(catName)}</span>` : ""}
     </div>
     <h1>${esc(title)}</h1>
     ${oneLine ? `<div class="one-line"><p>${esc(oneLine)}</p></div>` : ""}
+    ${background ? `<div class="background-text">${esc(background)}</div>` : ""}
     ${sections.length ? `<div class="sections">${sectionsHTML}</div>` : ""}
     ${whyImportant ? `<div class="why"><div class="why-label">${esc(l.whyImportant)}</div><div class="why-text">${esc(whyImportant)}</div></div>` : ""}
     ${tags.length ? `<div class="tags">${tagsHTML}</div>` : ""}
+    ${glossaryHTML}
+    ${article.link ? `<a class="original-btn" href="${esc(article.link)}"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg><span>${esc(l.readOriginal)}</span></a>` : ""}
   </div>
   <div class="footer">
     <span class="footer-logo">AILON</span>
     <span class="footer-sub">${esc(l.footer)}</span>
   </div>
-  ${article.link ? `<a class="original" href="${esc(article.link)}">${esc(l.readOriginal)}</a>` : ""}
   <a class="cta" href="ailon://article/${esc(articleId)}">${esc(l.openApp)}</a>
 </div>
 </body>
