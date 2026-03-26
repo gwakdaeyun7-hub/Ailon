@@ -18,8 +18,13 @@
 - **Timeline**: Vertical timeline of past coverage (TimelineSection)
 - **Pull-to-refresh**, skeleton loading, batch stats fetching
 
-### Tab 2: Snaps (snaps.tsx) — Principles/Daily Learning
-- **단일 스크롤 자유 형식 텍스트 뷰**: 기존 3-카드 + 딥다이브 탭 구조 제거, 수식이 텍스트 속에 녹아든 자연스러운 읽기 경험
+### Tab 2: Snaps (snaps.tsx ~267 lines) — 45개 학문원리 텍스트 브라우저
+- **45개 전체 학문원리 브라우저**: `labPrinciplesData.json` 기반 2단 탭 구조로 모든 curated 원리의 텍스트/수식 콘텐츠 자유 탐색 (시뮬레이션 없음 — Lab 탭에서만 표시)
+  - **1단 탭**: Super Category (공학/자연과학/형식과학/응용과학) — 4개 pill 탭
+  - **2단 탭**: 카테고리 내 원리 목록 (horizontal scroll, teal 하단 인디케이터)
+  - 카테고리 전환 시 원리 탭 자동 리셋 + 스크롤 초기화
+- **데이터**: `lib/labPrinciplesData.json` (45개 원리 콘텐츠 KO/EN 번들) + `lib/labPrinciples.ts` (타입, 그룹핑 헬퍼)
+- **콘텐츠 렌더링**: 분야 배지 (superCategory·discipline) + difficulty·connectionType 태그 + 세리프 제목(22pt) + **SnapsContentRenderer** (학문스낵 마크다운 전체 표시) + Takeaway (teal 배경)
 - **SnapsContentRenderer** (`components/snaps/SnapsContentRenderer.tsx`): 마크다운 파싱 + 블록 렌더링
   - 11가지 블록 타입: heading, subheading, formula, definition, definition_group, steps (번호 리스트 그룹), emphasis, list_item (불릿), lead, body, simulation (`:::sim <id>` 파서 → simId 필드)
   - 인라인 서식: `**텍스트**` → fontWeight 700 굵은 글씨 (renderBoldText 헬퍼)
@@ -34,28 +39,33 @@
   - 알고리즘 스텝: 연속 번호 리스트(1. 2. 3.)를 그룹화 → beige 배경 컨테이너
   - 강조 문장: ! 느낌표 종료 → 배경 없이 굵은 텍스트
   - 후처리: 연속 definition 블록을 definition_group으로 그룹화 (사이 spacer 흡수), ContentBlock에 `definitions?: { term: string; desc: string }[]` 필드 추가
-- **buildFreeformContent**: 구조화된 Principle + DeepDive 데이터를 자유 텍스트로 조합 (curated 전용 모드에서는 content_ko/en이 이미 자유 형식 마크다운이므로 bypass됨)
-- **Header**: 제목(serif 26pt), 분야 배지(superCategory 아이콘), connectionType, difficulty, readTime, keywords + 공유 아이콘(배지 행 우측). 날짜/제목 라벨/날짜 네비게이션 화살표 없음
 - **connectionType**: 탭 시 educational Alert popup (direct_inspiration/structural_analogy/mathematical_foundation/conceptual_borrowing 4종)
 - **4 Super Categories**: 공학(4), 자연과학(4), 형식과학(2), 응용과학(1) — 11 disciplines total
-- AsyncStorage offline caching
-- **Takeaway**: seed에서 전달된 핵심 인사이트 1문장, teal(primaryLight) 배경 + 시스템 기본 폰트 (색상바 없음)
-- **normalizePrinciple**: snake_case 필드 폴백 (deepDiveHook, takeaway 등 신규 필드 포함)
 
-### Tab 3: Lab (tools.tsx) — 학문원리 브라우저 + Interactive Simulations
-- **45개 전체 학문원리 브라우저**: 2단 탭 구조로 모든 curated 원리를 자유 탐색
+### Tab 3: Lab (tools.tsx ~216 lines) — 시뮬레이션 전용 브라우저
+- **시뮬레이션 전용 브라우저**: 2단 탭 구조로 45개 원리의 인터랙티브 시뮬레이션만 표시 (텍스트 콘텐츠는 Snaps 탭)
   - **1단 탭**: Super Category (공학/자연과학/형식과학/응용과학) — 4개 pill 탭
-  - **2단 탭**: 카테고리 내 원리 목록 (horizontal scroll, teal 하단 인디케이터)
+  - **2단 탭**: 카테고리 내 원리 목록 (horizontal scroll, teal 하단 인디케이터) + **teal dot indicator** (시뮬레이션 존재 여부 표시, 6px 원형)
   - 카테고리 전환 시 원리 탭 자동 리셋 + 스크롤 초기화
-- **데이터**: `lib/labPrinciplesData.json` (45개 원리 콘텐츠 KO/EN 번들, ~889KB) + `lib/labPrinciples.ts` (타입, 그룹핑 헬퍼, sim 매핑)
-- **콘텐츠 렌더링**: 분야 배지 (superCategory·discipline) + difficulty·connectionType 태그 + 세리프 제목(22pt) + **SnapsContentRenderer** (학문스낵 마크다운 전체 표시) + Takeaway (teal 배경)
-- **시뮬레이션 연동**: 4개 원리(GD/SA/Swarm/Bayesian)에 한해 콘텐츠 하단에 InteractiveSim 자동 표시
-- **SEED_TO_SIM** (`lib/labPrinciples.ts` 내): `opt_simulated_annealing → 'sa'`, `opt_gradient_descent → 'gd'`, `bio_swarm_intelligence → 'swarm'`, `stat_bayesian_inference → 'bayesian'`
-- **SIMULATIONS 레지스트리**: `components/snaps/simulations/index.ts` — `Record<string, (isDark, lang) => string>`. 현재 4개:
+- **데이터**: `lib/labPrinciples.ts` (타입, 그룹핑 헬퍼, sim 매핑) — 콘텐츠 JSON 미사용 (시뮬레이션 전용)
+- **시뮬레이션 있는 원리**: 제목(18pt bold) + InteractiveSim 표시
+- **시뮬레이션 없는 원리**: "시뮬레이션 준비 중" empty state (번역 키: `lab.sim_coming_soon`, `lab.sim_coming_soon_desc`)
+- **SEED_TO_SIM** (`lib/labPrinciples.ts` 내) — 25개 매핑:
+  - Optimization: `opt_simulated_annealing→sa`, `opt_gradient_descent→gd`, `opt_convex_optimization→convex`, `opt_bayesian_optimization→bayesopt`
+  - Control Engineering: `ctrl_optimal_control→dp`, `ctrl_kalman_filter→kalman`, `ctrl_pid_control→pid`, `ctrl_cybernetics→cybernetics`
+  - Electrical Engineering: `ee_fourier_transform→fourier`
+  - Information Theory: `info_shannon_entropy→entropy`, `info_kl_divergence→kl`
+  - Physics: `phys_boltzmann_distribution→boltzmann`, `phys_diffusion_process→diffusion`, `phys_hopfield_network→hopfield`
+  - Biology: `bio_natural_selection→evolution`, `bio_hebbian_learning→hebbian`, `bio_swarm_intelligence→swarm`
+  - Neuroscience: `neuro_visual_cortex_cnn→visualcortex`, `neuro_dopamine_td→dopamine`
+  - Mathematics: `math_linear_algebra_nn→linalg`, `math_universal_approximation→uat`, `math_curse_dimensionality→curse`
+  - Statistics: `stat_bayesian_inference→bayesian`, `stat_bias_variance_tradeoff→biasvar`, `stat_maximum_likelihood→mle`
+- **SIMULATIONS 레지스트리**: `components/snaps/simulations/index.ts` — `Record<string, (isDark, lang) => string>`. 현재 25개:
   - `sa` — Simulated Annealing: 5가지 목적함수(+Deceptive), 파라미터 슬라이더, Advanced 토글(냉각 스케줄 3종 Geometric/Logarithmic/Linear + Steps/Temp), 에너지 지형 플롯(탭으로 초기 위치 설정, 온도별 마커 색상), 수렴 그래프, 수용 확률 실시간 표시(Step/Pause 모드), 완료 시 전역/지역 최적해 판정(런타임 수치 탐색), 경계 반사(reflection)
   - `gd` — Gradient Descent: 2D 등고선 맵에서 Vanilla GD/Momentum/Adam 3종 경로 비교
   - `swarm` — Swarm Intelligence (Boid): Separation/Alignment/Cohesion 토글, 실시간 군집 시뮬레이션
   - `bayesian` — Bayesian Inference: Beta 분포 Prior→Posterior 업데이트, 동전 던지기 인터랙션
+  - `convex`, `bayesopt`, `dp`, `kalman`, `pid`, `cybernetics`, `fourier`, `entropy`, `kl`, `boltzmann`, `diffusion`, `hopfield`, `evolution`, `hebbian`, `visualcortex`, `dopamine`, `linalg`, `uat`, `curse`, `biasvar`, `mle`
 - **시뮬레이션 공통**: self-contained HTML/JS/Canvas, KO/EN 바이링구얼, dark/light 테마
 - **이전 모드 복원**: 기존 daily-principle 모드(usePrinciple() → 당일 원리 1개 표시)는 git commit `85173a6` 이전 tools.tsx로 복원 가능
 - **탭 아이콘**: FlaskConical (lucide), 라벨 `tab.lab`
