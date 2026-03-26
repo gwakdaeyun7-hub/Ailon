@@ -306,7 +306,7 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
                 const sk = article.source_key || article.source;
                 const sc = SOURCE_COLORS[sk] || colors.textSecondary;
                 return (
-                  <View style={{ backgroundColor: `${sc}18`, borderRadius: 0, paddingHorizontal: 8, paddingVertical: 4 }}>
+                  <View style={{ backgroundColor: `${sc}18`, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 }}>
                     <Text style={{ fontSize: 11, fontWeight: '700', color: colors.textPrimary }}>{getSourceName(sk, t)}</Text>
                   </View>
                 );
@@ -317,7 +317,7 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
                 <Text style={{ fontSize: 11, color: colors.textDim }}>{readMin}{lang === 'ko' ? '분' : ' min'}</Text>
               </View>
               {article.category ? (
-                <View style={{ backgroundColor: `${CATEGORY_COLORS[article.category] || colors.textDim}18`, borderRadius: 0, paddingHorizontal: 8, paddingVertical: 3 }}>
+                <View style={{ backgroundColor: `${CATEGORY_COLORS[article.category] || colors.textDim}18`, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
                   <Text style={{ fontSize: 11, fontWeight: '700', color: colors.textPrimary }}>{getCategoryName(article.category, t)}</Text>
                 </View>
               ) : null}
@@ -527,10 +527,9 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
             )}
             <Pressable
               onPress={handleShare}
-              disabled={isCapturing}
               accessibilityLabel={t('modal.share')}
               accessibilityRole="button"
-              style={{ flex: 1, alignItems: 'center', paddingVertical: 14, opacity: isCapturing ? 0.5 : 1 }}
+              style={{ flex: 1, alignItems: 'center', paddingVertical: 14 }}
             >
               <Share2 size={22} color={colors.textDim} />
             </Pressable>

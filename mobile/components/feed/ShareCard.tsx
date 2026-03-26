@@ -60,7 +60,7 @@ export const ShareCard = React.forwardRef<View, ShareCardProps>(
           <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
             <View style={{
               backgroundColor: sourceColor,
-              borderRadius: 6,
+              borderRadius: 8,
               paddingHorizontal: 8,
               paddingVertical: 3,
             }}>
