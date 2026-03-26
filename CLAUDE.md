@@ -138,5 +138,5 @@ cd ../functions && firebase deploy --only functions
 |-------|-----------|---------|
 | `pipeline-qa` | `/pipeline-qa` | 파이프라인 실행 로그 분석 → 9개 영역 심층 QA + 자동 수정 |
 | `principle-qa` | `/principle-qa` | curated 원리 콘텐츠 SA 기준 8차원 **구조/형식** 품질 검토 + 수정 |
-| `lab-review` | `/lab-review` | curated 원리 콘텐츠 SA 기준 5차원 **교육 효과** 검토 + 에이전트 수정 |
+| `lab-review` | `/lab-review` | curated 원리 콘텐츠 SA 기준 5차원 **교육 효과** + 시뮬레이션 품질 검토 + 에이전트 수정 |
 | `sync-harness` | `/sync-harness` | 코드 변경 → 하네스 파일 동기화 + 커밋/푸시 |
