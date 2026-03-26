@@ -163,9 +163,9 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 ### Push Notification System
 
 - **3-레이어**: 파이프라인 뉴스(`notifications.py`, FCM+Expo 폴백) + Cloud Functions v2 소셜(댓글/좋아요, Expo Push API) + `deleteUserData` callable(8단계 계정 삭제: 서브컬렉션, reactions, 댓글, Storage, Auth) + 모바일 클라이언트
-- **notificationsEnabled 마스터 토글**: `getUserInfo`에서 `notificationsEnabled` 필드 체크 — false이면 알림 발송 스킵
+- **notificationsEnabled 마스터 토글**: Cloud Functions `getUserInfo` + 파이프라인 `_collect_users()` 양쪽에서 체크 — false이면 알림 발송 스킵
 - **KO/EN 자동전환** (`users/{uid}.language`), Android 채널 `news`(HIGH) / `social`(DEFAULT), 좋아요 5분 디바운싱
-- **PII 최소 노출**: `notifications.py` `_collect_users()`에서 `db.collection("users").select(["fcmToken", "expoPushToken", "language"])` — 필요 필드만 조회
+- **PII 최소 노출**: `notifications.py` `_collect_users()`에서 `db.collection("users").select(["fcmToken", "expoPushToken", "language", "notificationsEnabled"])` — 필요 필드만 조회
 - **Cloud Functions 입력 새니타이징**: `onCommentReply`에서 authorName을 regex 특수문자 제거 + 50자 제한 (알림 텍스트 injection 방지)
 
 ### CI Logging (`scripts/agents/ci_utils.py`)

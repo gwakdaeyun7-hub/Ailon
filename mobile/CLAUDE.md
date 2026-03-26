@@ -67,7 +67,7 @@
 - **ReadStatsCard** (`components/profile/ReadStatsCard.tsx`): 이번 주/총 읽음/저장됨 3열 통계 (`useReadStats`)
 - **Settings 카드**: Language toggle (EN/KO) + dark/light theme switch + NotificationToggle (알림 마스터 on/off)
 - **NotificationToggle** (`components/profile/NotificationToggle.tsx`): 전체 알림 마스터 on/off — fcmToken/expoPushToken 등록/해제, Firestore `notificationsEnabled` 필드
-- **Notification 카드**: newsAlerts, commentReplies, likes (per-type toggles)
+- **Notification 카드**: newsAlerts, commentReplies, likes (per-type toggles) — 마스터 토글 off 시 비활성(opacity 0.4 + disabled)
 - **More 카드**: Activity + Legal links (Privacy Policy + Terms of Service, bilingual KO/EN via GitHub Pages)
 - **Sign Out**: 카드 스타일 제거 → 단순 회색 텍스트 버튼
 - **DeleteAccountSection** (`components/profile/DeleteAccountSection.tsx`): 빨간 텍스트 + 확인 Alert → `deleteUserData` Cloud Function 호출 (8단계 계정 삭제)
@@ -101,7 +101,7 @@
 | useBatchStats | Multiple collections | Batch fetch likes/views/comments for feed cards |
 | useBriefing | `daily_briefings/{date}` | AI briefing text + story count |
 | useGlossaryDB | `glossary_terms` | Term search (max 200 terms) |
-| useNotifications | `users/{uid}` | Expo + FCM token registration, Android channels (news/social) + cold start router readiness detection |
+| useNotifications | `users/{uid}` | Expo + FCM token registration (notificationsEnabled 마스터 토글 확인 후), Android channels (news/social) + cold start router readiness detection |
 | useNotificationSettings | `users/{uid}/preferences` | Per-type notification toggles |
 | useReportComment | `reports`, `comments/{docId}/entries` | Comment reporting with dedup + reportCount increment |
 | useShareImage | react-native-view-shot + expo-sharing | ShareCard 캡처 → 이미지 공유 (현재 미사용 — useShareLink로 대체) |
