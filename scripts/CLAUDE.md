@@ -46,6 +46,7 @@ AI타임스, GeekNews, ZDNet AI 에디터 (HTML scrape), 요즘IT AI
 | CLASSIFY_BATCH_SIZE | 5 | LLM 안정성 |
 | EN batch size | 3 | 번역+요약. 이전 5에서 61.5% 1차 실패율 발생 → 3으로 축소 (2026-03-23) |
 | KO batch size | 2 | 한국어 본문이 길어서 |
+| Briefing max_tokens | 8192 + 재시도 1회 | 4096에서 KO+EN 브리핑 JSON 잘림 발생 → 8192로 상향 + 실패 시 자동 재시도 (2026-03-26) |
 | `_TITLE_FORBIDDEN_ELLIPSIS` | 정규식 — 34개 금지 서술어 + `...`/`…` + 후속 텍스트 | EN→KO 번역 제목에서 구분자 '...'/'…' → ',' 자동 교정 (`_fix_title_separator()`). KO 소스 원본 제목은 미적용. 제목 끝 여운 '...'는 `(?=\S)` lookahead로 보존 |
 | DEDUP layers | 7 (L1 URL→L2 orig_title≥0.65→L3 disp_title≥0.65→L4 one_line≥0.65 + 고유명사 가드→L5 key_tokens(고유명사3+숫자1 겹침)→L6 embedding→L7 title_entity) | L4 가드: 양쪽 기사에 식별 가능한 고유명사(영어)가 있으면 최소 1개 공유 필요 — 문장 구조만 유사한 오탐 방지 (e.g., "Anthropic lawsuit" vs "Nintendo lawsuit") |
 | Embedding threshold | 0.92 cosine | L6 |

@@ -225,12 +225,22 @@ Output format:
 Articles:
 {articles_text}"""
 
-        llm = get_llm(temperature=0.3, max_tokens=4096, thinking=False, json_mode=True)
-        resp = llm.invoke([HumanMessage(content=prompt)])
-        data = _parse_llm_json(resp.content if hasattr(resp, "content") else str(resp))
+        llm = get_llm(temperature=0.3, max_tokens=8192, thinking=False, json_mode=True)
+        data = None
+        for _attempt in range(2):
+            try:
+                resp = llm.invoke([HumanMessage(content=prompt)])
+                data = _parse_llm_json(resp.content if hasattr(resp, "content") else str(resp))
+                if isinstance(data, dict) and "briefing_ko" in data:
+                    break
+            except Exception:
+                pass
+            data = None
+            if _attempt == 0:
+                print("  [재시도] 브리핑 생성 재시도...")
         if not isinstance(data, dict) or "briefing_ko" not in data:
-            actual_type = type(data).__name__
-            actual_keys = list(data.keys())[:5] if isinstance(data, dict) else str(data)[:100]
+            actual_type = type(data).__name__ if data else "None"
+            actual_keys = list(data.keys())[:5] if isinstance(data, dict) else str(data)[:100] if data else "N/A"
             ci_error(f"브리핑 실패: 잘못된 응답 형식 type={actual_type}, keys={actual_keys}")
             return None
 
