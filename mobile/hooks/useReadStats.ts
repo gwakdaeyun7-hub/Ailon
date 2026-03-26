@@ -24,7 +24,7 @@ export function useReadStats(userId: string | null) {
     }
 
     try {
-      const historyRef = collection(db, 'read_history', userId, 'articles');
+      const historyRef = collection(db, 'users', userId, 'read_history');
       const allSnap = await getDocs(historyRef);
       const totalCount = allSnap.size;
 
@@ -59,7 +59,7 @@ export function useReadStats(userId: string | null) {
     if (!userId || !articleId) return;
     try {
       const safeId = articleId.replace(/[\/\.#$\[\]?&=:%+@]/g, '_').slice(0, 200);
-      const docRef = doc(db, 'read_history', userId, 'articles', safeId);
+      const docRef = doc(db, 'users', userId, 'read_history', safeId);
       await setDoc(docRef, {
         articleId,
         readAt: Timestamp.now(),
