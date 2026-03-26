@@ -33,9 +33,9 @@ export function getDPSimulationHTML(isDark: boolean, lang: string): string {
 '.row:last-child{margin-bottom:0}' +
 '.ctrl-name{font-size:12px;font-weight:600;color:var(--text);min-width:56px;flex-shrink:0}' +
 '.ctrl-val{font-size:12px;font-family:monospace;color:var(--teal);min-width:50px;text-align:right;flex-shrink:0}' +
-'input[type=range]{flex:1;min-width:0;accent-color:var(--teal);height:20px}' +
+'input[type=range]{flex:1;min-width:0;accent-color:var(--teal);height:32px}' +
 '.btn-row{display:flex;gap:6px;margin-top:4px}' +
-'.btn{flex:1;padding:10px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent}' +
+'.btn{flex:1;padding:14px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent}' +
 '.btn:active{opacity:0.7}' +
 '.btn-primary{background:var(--teal);border-color:var(--teal);color:#1A1816}' +
 '.btn-stop{background:var(--accent);border-color:var(--accent);color:#1A1816}' +
@@ -51,7 +51,7 @@ export function getDPSimulationHTML(isDark: boolean, lang: string): string {
 // ── Controls Panel ──
 '<div class="panel"><div class="label" id="lbl-ctrl"></div>' +
 '<div class="row"><span class="ctrl-name" id="lblGamma"></span>' +
-'<input type="range" id="slGamma" min="50" max="99" value="90" oninput="onGamma()">' +
+'<input type="range" id="slGamma" min="0" max="99" value="90" oninput="onGamma()">' +
 '<span class="ctrl-val" id="valGamma"></span></div>' +
 '<div class="row"><span class="ctrl-name" id="lblSpeed"></span>' +
 '<input type="range" id="slSpeed" min="1" max="10" value="5" oninput="onSpeed()">' +
