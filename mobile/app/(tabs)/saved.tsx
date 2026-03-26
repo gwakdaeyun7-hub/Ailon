@@ -358,8 +358,8 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
             {/* 콘텐츠 영역 */}
             {oneLine ? (
               <View style={{ paddingHorizontal: 20 }}>
-                {/* 1. One Line — teal 배경 */}
-                <View style={{ marginTop: 16, padding: 14, borderRadius: 12, backgroundColor: colors.primaryLight }}>
+                {/* 1. One Line — left-border 강조 */}
+                <View style={{ marginTop: 16, borderLeftWidth: 2, borderLeftColor: colors.primary, paddingLeft: 14, paddingVertical: 4 }}>
                   <Text style={{ fontSize: 16, fontWeight: '600', lineHeight: 26, color: colors.textPrimary }}>
                     {oneLine}
                   </Text>
