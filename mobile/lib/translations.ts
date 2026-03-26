@@ -8,7 +8,7 @@ const translations: Record<string, Record<Language, string>> = {
   // ─── 탭 이름 ───
   'tab.news': { ko: 'AI 트렌드', en: 'AI Trends' },
   'tab.snaps': { ko: '학문 스낵', en: 'Snacks' },
-  'tab.tools': { ko: 'AI 도구', en: 'Tools' },
+  'tab.lab': { ko: 'Lab', en: 'Lab' },
   'tab.saved': { ko: '저장', en: 'Saved' },
   'tab.profile': { ko: '프로필', en: 'Profile' },
 

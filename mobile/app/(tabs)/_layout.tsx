@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Cpu, BookOpen, Wand2, Bookmark, User } from 'lucide-react-native';
+import { Cpu, BookOpen, FlaskConical, Bookmark, User } from 'lucide-react-native';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
 
@@ -52,8 +52,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name="tools"
         options={{
-          title: t('tab.tools'),
-          tabBarIcon: ({ color, focused }) => <TabIcon Icon={Wand2} color={color} focused={focused} />,
+          title: t('tab.lab'),
+          tabBarIcon: ({ color, focused }) => <TabIcon Icon={FlaskConical} color={color} focused={focused} />,
         }}
       />
       <Tabs.Screen

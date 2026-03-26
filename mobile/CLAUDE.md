@@ -21,7 +21,7 @@
 ### Tab 2: Snaps (snaps.tsx) — Principles/Daily Learning
 - **단일 스크롤 자유 형식 텍스트 뷰**: 기존 3-카드 + 딥다이브 탭 구조 제거, 수식이 텍스트 속에 녹아든 자연스러운 읽기 경험
 - **SnapsContentRenderer** (`components/snaps/SnapsContentRenderer.tsx`): 마크다운 파싱 + 블록 렌더링
-  - 10가지 블록 타입: heading, subheading, formula, definition, definition_group, steps (번호 리스트 그룹), emphasis, list_item (불릿), lead, body
+  - 11가지 블록 타입: heading, subheading, formula, definition, definition_group, steps (번호 리스트 그룹), emphasis, list_item (불릿), lead, body, simulation (`:::sim <id>` 파서 → simId 필드)
   - 인라인 서식: `**텍스트**` → fontWeight 700 굵은 글씨 (renderBoldText 헬퍼)
   - **lead 블록**: 콘텐츠 첫째 줄(원리 설명)을 16px/weight 400/textPrimary로 렌더링 — 히어로 제목(26pt)과 본문(15px) 사이 타이포그래피 계층
   - **heading 블록**: `## 섹션 제목` → 20px Lora-Bold serif, mt:36, 2번째부터 상단 1px 구분선 + accessibilityRole="header"
@@ -42,10 +42,12 @@
 - **Takeaway**: seed에서 전달된 핵심 인사이트 1문장, teal(primaryLight) 배경 + 시스템 기본 폰트 (색상바 없음)
 - **normalizePrinciple**: snake_case 필드 폴백 (deepDiveHook, takeaway 등 신규 필드 포함)
 
-### Tab 3: AI Tools & Tips (tools.tsx) — 준비 중
-- "Coming Soon" 플레이스홀더 화면 (향후 업데이트에서 구현 예정)
-- 탭 구조는 유지, 컴포넌트/훅/백엔드 생성 로직은 제거된 상태
-- `generate_daily_tools()` 함수는 generate_features.py에 코드 존재하나 generate_daily.py에서 호출하지 않음
+### Tab 3: Lab (tools.tsx) — Interactive Simulations
+- **usePrinciple()** → `seed_id` → `SEED_TO_SIM` 매핑 → 대응 시뮬레이션 있으면 **InteractiveSim** 렌더링, 없으면 빈 상태(FlaskConical 아이콘 + 안내 텍스트)
+- **SEED_TO_SIM**: `opt_simulated_annealing → 'sa'` (tools.tsx 내 정의)
+- **SIMULATIONS 레지스트리**: `components/snaps/simulations/index.ts` — `Record<string, (isDark, lang) => string>`. 현재: `sa` (Simulated Annealing)
+- **SA 시뮬레이션** (`simulations/sa.ts`): self-contained HTML/JS/Canvas. 4가지 목적함수, 파라미터 조절 슬라이더, 수렴 그래프 애니메이션, KO/EN 바이링구얼, dark/light 테마
+- **탭 아이콘**: FlaskConical (lucide), 라벨 `tab.lab`
 
 ### Tab 4: Saved (saved.tsx)
 - Bookmark collection with type filter (News | Principles)
@@ -86,6 +88,7 @@
 - **ShareCard**: 오프스크린 렌더링 → react-native-view-shot 캡처 → expo-sharing 공유. 텍스트 폴백 내장 (현재 미사용 — index.tsx/saved.tsx 모두 useShareLink로 전환)
 - **SideDrawer**: Animated left panel (82% width, max 320px)
 - **ShowMoreButton**: 더보기/접기 pill 버튼 + ChevronDown/Up 아이콘 (카테고리, GeekNews 세로 리스트 공용)
+- **InteractiveSim** (`components/snaps/InteractiveSim.tsx`): WebView wrapper for simulations. react-native-webview lazy import (네이티브 모듈 없으면 graceful fallback). theme(isDark)/lang aware, 동적 높이 조절
 
 ### Hooks
 | Hook | Data Source | Purpose |
@@ -135,6 +138,7 @@
 - **index.tsx ~1300 lines**: 더 이상 inline 컴포넌트 추가 금지, components/feed/로 추출할 것 — `guard-index-bloat.sh` hook이 PreToolUse에서 자동 차단
 - **TypeScript 타입 체크**: .ts/.tsx 수정 시 `mobile-typecheck.sh` hook이 `tsc --noEmit` 자동 실행 (정보 제공, 비차단)
 - **EAS Build OneDrive 문제**: OneDrive 동기화 폴더에서 `eas build` 실행 시 빌드 서버 tar 해제 Permission denied. 반드시 `C:\dev\ailon` 등 로컬 폴더로 복사 후 빌드
+- **react-native-webview 네이티브 모듈**: Lab 탭 시뮬레이션에 필요. 네이티브 모듈이므로 추가/업데이트 시 dev client 재빌드 필요 (hot reload 불가). InteractiveSim은 lazy import로 모듈 미설치 시 fallback 표시
 
 ## Security Notes
 

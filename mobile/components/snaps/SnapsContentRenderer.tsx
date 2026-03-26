@@ -39,7 +39,8 @@ type BlockType =
   | 'list_item'
   | 'steps'
   | 'body'
-  | 'spacer';
+  | 'spacer'
+  | 'simulation';
 
 interface ContentBlock {
   type: BlockType;
@@ -54,6 +55,8 @@ interface ContentBlock {
   items?: string[];
   /** For definition_group: grouped definitions */
   definitions?: { term: string; desc: string }[];
+  /** For simulation: simulation ID (e.g. "sa") */
+  simId?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -163,6 +166,13 @@ export function parseContent(content: string): ContentBlock[] {
 
     if (inCodeBlock) {
       codeBuffer.push(line);
+      continue;
+    }
+
+    // :::sim <id> — interactive simulation block
+    const simMatch = trimmed.match(/^:::sim\s+(\S+)/);
+    if (simMatch) {
+      blocks.push({ type: 'simulation', text: '', simId: simMatch[1] });
       continue;
     }
 
