@@ -284,6 +284,14 @@ const translations: Record<string, Record<Language, string>> = {
   'story.summary': { ko: '정리하면', en: 'In summary' },
   'story.no_data': { ko: '오늘의 스토리를 준비하고 있어요', en: 'Preparing today\'s stories' },
 
+  // ─── Lab 탭 ───
+  'lab.title': { ko: 'Lab', en: 'Lab' },
+  'lab.sim_coming_soon': { ko: '시뮬레이션 준비 중', en: 'Simulation Coming Soon' },
+  'lab.sim_coming_soon_desc': {
+    ko: '이 원리의 인터랙티브 시뮬레이션을 제작하고 있습니다',
+    en: "We're building an interactive simulation for this principle",
+  },
+
   // ─── Tools 탭 (Phase 2) ───
   'snaps.tab_tools': { ko: 'AI 도구', en: 'AI Tools' },
   'tools.title': { ko: 'AI 도구 & 팁', en: 'AI Tools & Tips' },

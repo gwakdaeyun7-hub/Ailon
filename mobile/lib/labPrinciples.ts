@@ -90,10 +90,48 @@ export function getPrinciplesByCategory(cat: string): LabPrinciple[] {
 // ---------------------------------------------------------------------------
 
 export const SEED_TO_SIM: Record<string, string> = {
+  // Optimization
   opt_simulated_annealing: 'sa',
   opt_gradient_descent: 'gd',
+  opt_convex_optimization: 'convex',
+  opt_bayesian_optimization: 'bayesopt',
+
+  // Control Engineering
+  ctrl_optimal_control: 'dp',
+  ctrl_kalman_filter: 'kalman',
+  ctrl_pid_control: 'pid',
+  ctrl_cybernetics: 'cybernetics',
+
+  // Electrical Engineering
+  ee_fourier_transform: 'fourier',
+
+  // Information Theory
+  info_shannon_entropy: 'entropy',
+  info_kl_divergence: 'kl',
+
+  // Physics
+  phys_boltzmann_distribution: 'boltzmann',
+  phys_diffusion_process: 'diffusion',
+  phys_hopfield_network: 'hopfield',
+
+  // Biology
+  bio_natural_selection: 'evolution',
+  bio_hebbian_learning: 'hebbian',
   bio_swarm_intelligence: 'swarm',
+
+  // Neuroscience
+  neuro_visual_cortex_cnn: 'visualcortex',
+  neuro_dopamine_td: 'dopamine',
+
+  // Mathematics
+  math_linear_algebra_nn: 'linalg',
+  math_universal_approximation: 'uat',
+  math_curse_dimensionality: 'curse',
+
+  // Statistics
   stat_bayesian_inference: 'bayesian',
+  stat_bias_variance_tradeoff: 'biasvar',
+  stat_maximum_likelihood: 'mle',
 };
 
 export function getSimId(seedId: string): string | undefined {

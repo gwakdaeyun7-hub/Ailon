@@ -1,55 +1,35 @@
 /**
- * Lab 탭 — 45개 학문원리 브라우저 + 인터랙티브 시뮬레이션
+ * Lab 탭 -- 45개 학문원리 시뮬레이션 전용 브라우저
  *
  * 2단 탭 구조:
  *  1) Super category (공학 / 자연과학 / 형식과학 / 응용과학)
  *  2) 카테고리 내 원리 목록 (horizontal scroll)
  *
- * 선택된 원리의 학문스낵 콘텐츠 + 시뮬레이션(있는 경우) 표시
+ * 시뮬레이션이 있는 원리: InteractiveSim 표시
+ * 시뮬레이션이 없는 원리: "시뮬레이션 준비 중" 빈 상태 표시
  */
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { View, Text, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { FlaskConical } from 'lucide-react-native';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
 import { InteractiveSim } from '@/components/snaps/InteractiveSim';
-import { SnapsContentRenderer } from '@/components/snaps/SnapsContentRenderer';
-import { FontFamily } from '@/lib/theme';
 import { SIMULATIONS } from '@/components/snaps/simulations';
 import {
   SUPER_CATEGORIES,
   getSuperCategoryEn,
-  getDisciplineEn,
   getPrinciplesByCategory,
   getSimId,
   type LabPrinciple,
 } from '@/lib/labPrinciples';
 
 // ---------------------------------------------------------------------------
-// CONNECTION_TYPE labels
-// ---------------------------------------------------------------------------
-
-const CONNECTION_LABELS: Record<string, { ko: string; en: string }> = {
-  direct_inspiration: { ko: '직접 영감', en: 'Direct Inspiration' },
-  structural_analogy: { ko: '구조적 유추', en: 'Structural Analogy' },
-  mathematical_foundation: { ko: '수학적 토대', en: 'Mathematical Foundation' },
-  conceptual_borrowing: { ko: '개념 차용', en: 'Conceptual Borrowing' },
-};
-
-const DIFFICULTY_LABELS: Record<string, { ko: string; en: string }> = {
-  beginner: { ko: '입문', en: 'Beginner' },
-  intermediate: { ko: '중급', en: 'Intermediate' },
-  advanced: { ko: '심화', en: 'Advanced' },
-};
-
-// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 export default function LabScreen() {
-  const { lang } = useLanguage();
+  const { lang, t } = useLanguage();
   const { colors } = useTheme();
   const isKo = lang === 'ko';
 
@@ -71,10 +51,6 @@ export default function LabScreen() {
   const simId = p ? getSimId(p.id) : undefined;
   const hasSim = simId != null && SIMULATIONS[simId] != null;
 
-  const content = p
-    ? (isKo ? p.contentKo : p.contentEn) || p.contentKo
-    : '';
-
   const handleCatPress = useCallback((idx: number) => setCatIdx(idx), []);
   const handlePrinciplePress = useCallback((idx: number) => setPrincipleIdx(idx), []);
 
@@ -82,7 +58,7 @@ export default function LabScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top']}>
-      {/* ── Header ── */}
+      {/* -- Header -- */}
       <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 }}>
         <Text style={{
           fontSize: 20,
@@ -90,11 +66,11 @@ export default function LabScreen() {
           color: colors.textPrimary,
           letterSpacing: -0.3,
         }}>
-          Lab
+          {t('lab.title')}
         </Text>
       </View>
 
-      {/* ── Super Category Tabs ── */}
+      {/* -- Super Category Tabs -- */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -127,7 +103,7 @@ export default function LabScreen() {
         })}
       </ScrollView>
 
-      {/* ── Principle Tabs ── */}
+      {/* -- Principle Tabs -- */}
       <ScrollView
         ref={principleScrollRef}
         horizontal
@@ -141,6 +117,10 @@ export default function LabScreen() {
       >
         {principles.map((item, idx) => {
           const active = idx === principleIdx;
+          const itemHasSim = (() => {
+            const sid = getSimId(item.id);
+            return sid != null && SIMULATIONS[sid] != null;
+          })();
           return (
             <Pressable
               key={item.id}
@@ -152,6 +132,9 @@ export default function LabScreen() {
                 borderBottomWidth: 2,
                 borderBottomColor: active ? colors.primary : 'transparent',
                 marginBottom: -1,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 4,
               }}
             >
               <Text
@@ -164,132 +147,68 @@ export default function LabScreen() {
               >
                 {item.principleName}
               </Text>
+              {itemHasSim && (
+                <View style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: 3,
+                  backgroundColor: colors.primary,
+                }} />
+              )}
             </Pressable>
           );
         })}
       </ScrollView>
 
-      {/* ── Content ── */}
+      {/* -- Content: Simulation only -- */}
       <ScrollView
         key={p.id}
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 60 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Discipline badge */}
-        <View style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: 6,
-          marginTop: 16,
-          marginBottom: 8,
-        }}>
-          <View style={{
-            paddingHorizontal: 8,
-            paddingVertical: 3,
-            backgroundColor: colors.surface,
-            borderWidth: 1,
-            borderColor: colors.border,
-          }}>
-            <Text style={{
-              fontSize: 10,
-              fontWeight: '700',
-              color: colors.textDim,
-              letterSpacing: 0.5,
-              textTransform: 'uppercase',
-            }}>
-              {isKo ? p.superCategory : getSuperCategoryEn(p.superCategory)}
-              {'  ·  '}
-              {isKo ? p.disciplineName : getDisciplineEn(p.discipline)}
-            </Text>
-          </View>
-
-          {/* Difficulty */}
-          <View style={{
-            paddingHorizontal: 6,
-            paddingVertical: 2,
-            backgroundColor: colors.surface,
-            borderWidth: 1,
-            borderColor: colors.border,
-          }}>
-            <Text style={{ fontSize: 9, fontWeight: '600', color: colors.textDim }}>
-              {DIFFICULTY_LABELS[p.difficulty]?.[isKo ? 'ko' : 'en'] || p.difficulty}
-            </Text>
-          </View>
-
-          {/* Connection type */}
-          <View style={{
-            paddingHorizontal: 6,
-            paddingVertical: 2,
-            backgroundColor: colors.surface,
-            borderWidth: 1,
-            borderColor: colors.border,
-          }}>
-            <Text style={{ fontSize: 9, fontWeight: '600', color: colors.textDim }}>
-              {CONNECTION_LABELS[p.connectionType]?.[isKo ? 'ko' : 'en'] || p.connectionType}
-            </Text>
-          </View>
-        </View>
-
         {/* Principle title */}
         <Text style={{
-          fontSize: 22,
+          fontSize: 18,
           fontWeight: '700',
-          fontFamily: FontFamily.serif,
           color: colors.textPrimary,
+          marginTop: 20,
           marginBottom: 16,
         }}>
           {p.principleName}
         </Text>
 
-        {/* Snaps content */}
-        {content ? (
-          <SnapsContentRenderer content={content} />
-        ) : null}
-
-        {/* Takeaway */}
-        {(isKo ? p.takeaway : p.takeawayEn || p.takeaway) ? (
+        {hasSim ? (
+          /* Simulation exists */
+          <InteractiveSim id={simId!} />
+        ) : (
+          /* Empty state: simulation not yet available */
           <View style={{
-            marginTop: 24,
-            padding: 14,
-            backgroundColor: colors.primaryLight,
-            borderWidth: 1,
-            borderColor: colors.primaryBorder,
+            flex: 1,
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingVertical: 80,
+            paddingHorizontal: 32,
           }}>
             <Text style={{
-              fontSize: 13,
+              fontSize: 15,
+              fontWeight: '600',
               color: colors.textPrimary,
+              textAlign: 'center',
+            }}>
+              {t('lab.sim_coming_soon')}
+            </Text>
+            <Text style={{
+              fontSize: 13,
+              color: colors.textDim,
+              marginTop: 8,
+              textAlign: 'center',
               lineHeight: 20,
             }}>
-              {isKo ? p.takeaway : (p.takeawayEn || p.takeaway)}
+              {t('lab.sim_coming_soon_desc')}
             </Text>
           </View>
-        ) : null}
-
-        {/* Simulation */}
-        {hasSim ? (
-          <View style={{ marginTop: 28 }}>
-            <View style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 6,
-              marginBottom: 8,
-            }}>
-              <FlaskConical size={14} color={colors.textDim} strokeWidth={2} />
-              <Text style={{
-                fontSize: 11,
-                fontWeight: '700',
-                letterSpacing: 1,
-                textTransform: 'uppercase',
-                color: colors.textDim,
-              }}>
-                {isKo ? '인터랙티브 시뮬레이션' : 'INTERACTIVE SIMULATION'}
-              </Text>
-            </View>
-            <InteractiveSim id={simId!} />
-          </View>
-        ) : null}
+        )}
       </ScrollView>
     </SafeAreaView>
   );
