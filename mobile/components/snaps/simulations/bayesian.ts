@@ -48,7 +48,7 @@ export function getBayesianSimulationHTML(isDark: boolean, lang: string): string
 '.preset:active{opacity:0.7}' +
 '.preset.active{border-color:var(--teal);color:var(--teal)}' +
 '.coin-seq{display:flex;flex-wrap:wrap;gap:3px;margin-top:6px}' +
-'.coin-badge{width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;font-family:monospace;border:2px solid var(--border)}' +
+'.coin-badge{width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;font-family:monospace;border:2px solid var(--border);border-radius:4px}' +
 '.coin-h{background:var(--tealLight);color:var(--teal);border-color:var(--teal)}' +
 '.coin-t{background:var(--surface);color:var(--accent);border-color:var(--accent)}' +
 '.tally{font-family:monospace;font-size:13px;color:var(--text);margin-top:8px;line-height:1.8}' +
@@ -56,7 +56,7 @@ export function getBayesianSimulationHTML(isDark: boolean, lang: string): string
 '.tally-h{color:var(--teal)}' +
 '.tally-t{color:var(--accent)}' +
 '.reveal-row{display:flex;align-items:center;gap:8px;margin-top:8px}' +
-'.reveal-btn{padding:14px 12px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:11px;font-weight:700;cursor:pointer}' +
+'.reveal-btn{padding:14px 12px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:11px;font-weight:700;cursor:pointer;border-radius:8px}' +
 '.reveal-btn:active{opacity:0.7}' +
 '.reveal-val{font-family:monospace;font-size:13px;font-weight:700;color:var(--accent)}' +
 '</style></head><body>' +

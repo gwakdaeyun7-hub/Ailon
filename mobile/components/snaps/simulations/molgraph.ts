@@ -47,7 +47,7 @@ export function getMolGraphSimulationHTML(isDark: boolean, lang: string): string
 '.stats .hi{color:var(--teal);font-weight:700}' +
 '.stats .warn{color:var(--accent);font-weight:700}' +
 '.preset-row{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}' +
-'.preset{flex:1;min-width:50px;padding:10px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:10px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.3px;min-height:44px;display:flex;align-items:center;justify-content:center}' +
+'.preset{flex:1;min-width:50px;padding:10px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:10px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.3px;min-height:44px;display:flex;align-items:center;justify-content:center;border-radius:8px}' +
 '.preset:active{opacity:0.7}' +
 '.preset.active{border-color:var(--teal);color:var(--teal)}' +
 '</style></head><body>' +

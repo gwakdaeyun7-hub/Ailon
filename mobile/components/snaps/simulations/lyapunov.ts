@@ -44,7 +44,7 @@ export function getLyapunovSimulationHTML(isDark: boolean, lang: string): string
 '.stats .red{color:var(--red);font-weight:700}' +
 '.stats .grn{color:var(--green);font-weight:700}' +
 '.preset-row{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}' +
-'.preset{flex:1;padding:14px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:11px;font-weight:700;text-align:center;cursor:pointer;min-width:70px;min-height:44px}' +
+'.preset{flex:1;padding:14px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:11px;font-weight:700;text-align:center;cursor:pointer;min-width:70px;min-height:44px;border-radius:8px}' +
 '.preset.active{border-color:var(--teal);color:var(--teal);background:var(--tealLight)}' +
 '.hint{font-size:10px;color:var(--text3);margin-top:6px}' +
 '</style></head><body>' +

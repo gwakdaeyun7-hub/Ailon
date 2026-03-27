@@ -46,7 +46,7 @@ export function getImitationSimulationHTML(isDark: boolean, lang: string): strin
 '.stats .red{color:var(--red);font-weight:700}' +
 '.stats .grn{color:var(--green);font-weight:700}' +
 '.preset-row{display:flex;gap:6px;margin-bottom:10px}' +
-'.preset{flex:1;padding:8px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:10px;font-weight:700;text-align:center;cursor:pointer}' +
+'.preset{flex:1;padding:8px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:10px;font-weight:700;text-align:center;cursor:pointer;border-radius:8px}' +
 '.preset.active{border-color:var(--teal);color:var(--teal);background:var(--tealLight)}' +
 '.toggle-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;min-height:44px}' +
 '.toggle-check{width:22px;height:22px;accent-color:var(--teal)}' +

@@ -42,7 +42,7 @@ export function getMPCSimulationHTML(isDark: boolean, lang: string): string {
 '.stats .hi{color:var(--teal);font-weight:700}' +
 '.stats .warn{color:var(--accent);font-weight:700}' +
 '.preset-row{display:flex;gap:6px;margin-bottom:10px}' +
-'.preset{flex:1;padding:14px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:11px;font-weight:700;text-align:center;cursor:pointer;min-height:44px}' +
+'.preset{flex:1;padding:14px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:11px;font-weight:700;text-align:center;cursor:pointer;min-height:44px;border-radius:8px}' +
 '.preset.active{border-color:var(--teal);color:var(--teal);background:var(--tealLight)}' +
 '.toggle-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;min-height:44px}' +
 '.toggle-check{width:22px;height:22px;accent-color:var(--teal)}' +
