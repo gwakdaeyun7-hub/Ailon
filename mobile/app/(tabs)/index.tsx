@@ -418,12 +418,10 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
             {/* F-Minimal: 콘텐츠 영역 */}
             {oneLine ? (
               <View style={{ paddingHorizontal: 20 }}>
-                {/* 1. One Line — left-border 강조 */}
-                <View style={{ marginTop: 16, borderLeftWidth: 2, borderLeftColor: colors.primary, paddingLeft: 14, paddingVertical: 4 }}>
-                  <Text style={{ fontSize: 16, fontWeight: '600', lineHeight: 26, color: colors.textPrimary }}>
-                    {oneLine}
-                  </Text>
-                </View>
+                {/* 1. One Line */}
+                <Text style={{ marginTop: 16, fontSize: 16, fontWeight: '600', lineHeight: 26, color: colors.textPrimary }}>
+                  {oneLine}
+                </Text>
 
                 {/* 2. Background — 본문 스타일 */}
                 {background ? (
