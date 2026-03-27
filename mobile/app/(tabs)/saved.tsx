@@ -30,6 +30,7 @@ import { useFeatureFlags } from '@/hooks/useFeatureFlags';
 import { useReadStats } from '@/hooks/useReadStats';
 import { HighlightedText } from '@/components/shared/HighlightedText';
 import { RelatedArticlesSection } from '@/components/shared/RelatedArticlesSection';
+import { TimelineSection } from '@/components/shared/TimelineSection';
 import {
   SOURCE_COLORS, CATEGORY_COLORS,
   getSourceName, getCategoryName, formatDate,
@@ -169,8 +170,9 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
   const toastAnimRef = useRef<Animated.CompositeAnimation | null>(null);
   const viewTrackedLink = useRef('');
 
-  // related_ids 조회
+  // related_ids / timeline_ids 조회
   const relatedIds = article.related_ids ?? [];
+  const timelineIds = article.timeline_ids ?? [];
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
@@ -451,6 +453,11 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
                 {/* Related Articles */}
                 {relatedIds.length > 0 && (
                   <RelatedArticlesSection relatedIds={relatedIds} />
+                )}
+
+                {/* Timeline */}
+                {timelineIds.length > 0 && (
+                  <TimelineSection timelineIds={timelineIds} />
                 )}
 
               </View>

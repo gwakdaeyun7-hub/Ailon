@@ -218,11 +218,21 @@ const SOURCE_NAMES = {
   wired_ai: "Wired AI", the_verge_ai: "The Verge AI", techcrunch_ai: "TechCrunch AI",
   mit_tech_review: "MIT Tech Review", venturebeat: "VentureBeat",
   deepmind_blog: "Google DeepMind", nvidia_blog: "NVIDIA AI",
-  huggingface_blog: "Hugging Face", aitimes: "AI\uD0C0\uC784\uC2A4",
-  geeknews: "GeekNews", zdnet_ai_editor: "ZDNet AI", yozm_ai: "\uC694\uC998IT",
+  huggingface_blog: "Hugging Face", geeknews: "GeekNews",
   the_decoder: "The Decoder", marktechpost: "MarkTechPost",
   arstechnica_ai: "Ars Technica AI", the_rundown_ai: "The Rundown AI",
 };
+
+const SOURCE_NAMES_I18N = {
+  aitimes: { ko: "AI\uD0C0\uC784\uC2A4", en: "AI Times" },
+  zdnet_ai_editor: { ko: "ZDNet AI \uC5D0\uB514\uD130", en: "ZDNet AI Editor" },
+  yozm_ai: { ko: "\uC694\uC998IT AI", en: "Yozm IT AI" },
+};
+
+function getSourceName(key, lang) {
+  if (SOURCE_NAMES_I18N[key]) return SOURCE_NAMES_I18N[key][lang] || SOURCE_NAMES_I18N[key].en;
+  return SOURCE_NAMES[key] || key;
+}
 
 const CATEGORY_COLORS = {
   research: "#7C3AED", models_products: "#0891B2", industry_business: "#D97706",
@@ -272,18 +282,23 @@ function getWhyImportant(a, lang) {
   return a.why_important || "";
 }
 
-function formatDate(str, lang) {
+function formatDate(str, lang, dateEstimated) {
   if (!str) return "";
   try {
+    let formatted = "";
     const m = str.match(/^(\d{4})\.(\d{2})\.(\d{2})/);
     if (m) {
-      if (lang === "en") return `${EN_MONTHS[parseInt(m[2], 10) - 1]} ${parseInt(m[3], 10)}, ${m[1]}`;
-      return `${m[1]}/${m[2]}/${m[3]}`;
+      formatted = lang === "en"
+        ? `${EN_MONTHS[parseInt(m[2], 10) - 1]} ${parseInt(m[3], 10)}, ${m[1]}`
+        : `${m[1]}/${m[2]}/${m[3]}`;
+    } else {
+      const d = new Date(str);
+      if (isNaN(d.getTime())) return "";
+      formatted = lang === "en"
+        ? `${EN_MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`
+        : `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
     }
-    const d = new Date(str);
-    if (isNaN(d.getTime())) return "";
-    if (lang === "en") return `${EN_MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
-    return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
+    return dateEstimated ? `~${formatted}` : formatted;
   } catch { return ""; }
 }
 
@@ -320,10 +335,10 @@ function buildArticleHTML(article, articleId, lang) {
   const tags = (lang === "en" && article.tags_en && article.tags_en.length) ? article.tags_en : (article.tags || []);
   const glossary = getGlossary(article, lang);
   const sourceColor = SOURCE_COLORS[article.source_key || ""] || "#5EEAD4";
-  const sourceName = SOURCE_NAMES[article.source_key || ""] || article.source_key || "";
+  const sourceName = getSourceName(article.source_key || "", lang);
   const catColor = CATEGORY_COLORS[article.category || ""] || "#666";
   const catName = catNames[article.category || ""] || "";
-  const date = formatDate(article.published, lang);
+  const date = formatDate(article.published, lang, article.date_estimated);
   const readMin = calcReadMin(oneLine, sections, whyImportant);
   const imgUrl = article.image_url || "";
   const ogImg = imgUrl || `https://${HOSTING_DOMAIN}/og-default.png`;
@@ -382,25 +397,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .card{max-width:480px;margin:16px auto;background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.06)}
 .thumb{width:100%;height:200px;object-fit:cover;display:block}
 .body{padding:20px}
-.meta{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:8px}
-.source-badge{padding:4px 8px;font-size:11px;font-weight:700;border-radius:8px;color:#000}
+.meta{display:flex;align-items:center;flex-wrap:wrap;gap:6px}
+.source-badge{padding:4px 8px;font-size:11px;font-weight:700;border-radius:8px}
 .date{font-size:11px;color:#000}
 .read-time{display:inline-flex;align-items:center;gap:3px;font-size:11px;color:#000}
 .read-time svg{vertical-align:middle}
 .cat-badge{padding:3px 8px;font-size:11px;font-weight:700;border-radius:8px;color:#000}
-h1{font-family:'Lora',serif;font-size:22px;font-weight:900;line-height:1.45;letter-spacing:-0.3px;margin-bottom:16px;color:#000}
-.one-line{background:#F0FDFA;border-radius:12px;padding:14px;margin-bottom:18px}
+h1{font-family:'Lora',serif;font-size:22px;font-weight:900;line-height:1.45;letter-spacing:-0.3px;margin-top:8px;color:#000}
+.one-line{margin-top:16px}
 .one-line p{font-size:16px;font-weight:600;color:#000;line-height:1.625}
-.background-text{font-size:14px;line-height:1.64;letter-spacing:0.2px;color:#000;margin-bottom:20px}
-.sections{margin-bottom:18px}
+.background-text{font-size:14px;line-height:1.64;letter-spacing:0.2px;color:#000;margin-top:20px}
+.sections{margin-top:24px}
 .section-subtitle{font-family:'Lora',serif;font-size:18px;font-weight:700;line-height:1.44;letter-spacing:-0.2px;color:#000;margin-bottom:10px}
 .section-content{font-size:15px;line-height:1.6;color:#000}
-.why{margin-bottom:18px}
+.why{margin-top:24px}
 .why-label{font-family:'Lora',serif;font-size:16px;font-weight:700;line-height:1.625;color:#000;margin-bottom:8px}
 .why-text{font-size:15px;line-height:1.73;letter-spacing:0.2px;color:#000}
-.tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:24px}
 .tag{display:inline-block;background:#F5F2EE;border-radius:14px;padding:3px 8px;font-size:10px;font-weight:600;color:#000}
-.glossary{margin-bottom:18px}
+.glossary{margin-top:24px}
 .glossary-toggle{font-size:11px;font-weight:600;letter-spacing:1.5px;color:#000;text-transform:uppercase;cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between}
 .glossary-toggle::-webkit-details-marker{display:none}
 .glossary-toggle::after{content:'';display:inline-block;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid #000;transition:transform 0.2s}
@@ -426,7 +441,7 @@ details[open] .glossary-toggle::after{transform:rotate(180deg)}
   ${imgUrl ? `<img class="thumb" src="${esc(imgUrl)}" alt="">` : ""}
   <div class="body">
     <div class="meta">
-      ${sourceName ? `<span class="source-badge" style="background:${esc(sourceColor)}18">${esc(sourceName)}</span>` : ""}
+      ${sourceName ? `<span class="source-badge" style="background:${esc(sourceColor)}18;color:${esc(sourceColor)}">${esc(sourceName)}</span>` : ""}
       ${date ? `<span class="date">${esc(date)}</span>` : ""}
       <span class="read-time"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${readMin}${lang === "ko" ? "\uBD84" : " min"}</span>
       ${catName ? `<span class="cat-badge" style="background:${esc(catColor)}18">${esc(catName)}</span>` : ""}
