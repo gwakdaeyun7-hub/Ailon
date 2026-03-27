@@ -5,6 +5,7 @@
  * - Upper canvas: original smooth signal overlaid with quantized staircase + level gridlines
  * - Lower canvas: quantization error (original - quantized) time series
  * - Bit depth slider (1-8 bits), signal type presets, dithering toggle
+ * - "Model Quantization Mode" toggle: relabels as weight quantization / precision loss
  * - Stats: SNR(dB), level count, theoretical SNR
  * - Dark/light theme, Korean/English bilingual
  */
@@ -24,8 +25,8 @@ export function getQuantizeSimulationHTML(isDark: boolean, lang: string): string
 '--accent:#F59E0B;--red:#F87171;--green:#4ADE80}' +
 '*{box-sizing:border-box;margin:0;padding:0}' +
 'body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);padding:0;-webkit-user-select:none;user-select:none;overflow-x:hidden}' +
-'.panel{border:2px solid var(--border);background:var(--card);margin-bottom:8px;padding:12px}' +
-'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card)}' +
+'.panel{border:2px solid var(--border);background:var(--card);margin-bottom:8px;padding:12px;border-radius:8px}' +
+'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card);border-radius:8px}' +
 '.label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}' +
 '.row{display:flex;align-items:center;gap:8px;margin-bottom:10px}' +
 '.row:last-child{margin-bottom:0}' +
@@ -33,15 +34,15 @@ export function getQuantizeSimulationHTML(isDark: boolean, lang: string): string
 '.ctrl-val{font-size:12px;font-family:monospace;color:var(--teal);min-width:50px;text-align:right;flex-shrink:0}' +
 'input[type=range]{flex:1;min-width:0;accent-color:var(--teal);height:20px}' +
 '.btn-row{display:flex;gap:6px;margin-top:4px}' +
-'.btn{flex:1;padding:10px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent}' +
+'.btn{flex:1;padding:10px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent;border-radius:8px}' +
 '.btn:active{opacity:0.7}' +
 '.btn-primary{background:var(--teal);border-color:var(--teal);color:#1A1816}' +
 '.btn-stop{background:var(--accent);border-color:var(--accent);color:#1A1816}' +
-'.stats{font-family:monospace;font-size:11px;line-height:2;color:var(--text2)}' +
+'.stats{font-family:monospace;font-size:11px;line-height:2;color:var(--text2);border-radius:8px}' +
 '.stats .hi{color:var(--teal);font-weight:700}' +
 '.stats .warn{color:var(--accent);font-weight:700}' +
 '.preset-row{display:flex;gap:6px;margin-bottom:8px}' +
-'.preset{flex:1;padding:12px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:10px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.3px}' +
+'.preset{flex:1;padding:12px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:10px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.3px;border-radius:8px}' +
 '.preset:active{opacity:0.7}' +
 '.preset.active{border-color:var(--teal);color:var(--teal)}' +
 '.opt-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;min-height:44px}' +
@@ -65,6 +66,9 @@ export function getQuantizeSimulationHTML(isDark: boolean, lang: string): string
 '<div class="preset-row" id="presetRow"></div>' +
 '<div class="opt-row"><input type="checkbox" class="opt-check" id="chkDither" onchange="onParam()">' +
 '<span class="opt-label" id="lbl-dither"></span></div>' +
+'<div class="btn-row">' +
+'<div class="btn" id="btnAI" onclick="toggleAI()"></div>' +
+'</div>' +
 '</div>' +
 
 // -- Buttons --
@@ -91,7 +95,12 @@ export function getQuantizeSimulationHTML(isDark: boolean, lang: string): string
 'cv1:"\\uC6D0\\uBCF8 + \\uC591\\uC790\\uD654 \\uC2E0\\uD638",cv2:"\\uC591\\uC790\\uD654 \\uC624\\uCC28",' +
 'snr:"SNR (\\uCE21\\uC815)",snrTheory:"SNR (\\uC774\\uB860)",levels:"\\uB808\\uBCA8 \\uC218",' +
 'bitDepth:"\\uBE44\\uD2B8 \\uC218",maxErr:"\\uCD5C\\uB300 \\uC624\\uCC28",' +
-'formula:"\\uC774\\uB860: 6.02N + 1.76 dB"},' +
+'formula:"\\uC774\\uB860: 6.02N + 1.76 dB",' +
+'aiOn:"\\uBAA8\\uB378 \\uC591\\uC790\\uD654 \\uBAA8\\uB4DC ON",aiOff:"\\uBAA8\\uB378 \\uC591\\uC790\\uD654 \\uBAA8\\uB4DC OFF",' +
+'aiBits:"\\uC591\\uC790\\uD654 \\uC218\\uC900",aiCv1:"\\uC6D0\\uBCF8 + \\uC591\\uC790\\uD654\\uB41C \\uAC00\\uC911\\uCE58",aiCv2:"\\uC815\\uBC00\\uB3C4 \\uC190\\uC2E4",' +
+'aiSnr:"\\uC815\\uD655\\uB3C4 \\uC720\\uC9C0\\uC728 (\\uCE21\\uC815)",aiSnrTheory:"\\uC815\\uD655\\uB3C4 \\uC720\\uC9C0\\uC728 (\\uC774\\uB860)",' +
+'aiMaxErr:"\\uCD5C\\uB300 \\uC815\\uBC00\\uB3C4 \\uC190\\uC2E4",' +
+'aiNote:"AI \\uAD00\\uC810: \\uBE44\\uD2B8 \\uC218 \\uC904\\uC774\\uBA74 \\uBAA8\\uB378 \\uD06C\\uAE30 \\uCD95\\uC18C + \\uCD94\\uB860 \\uC18D\\uB3C4 \\uD5A5\\uC0C1, but \\uC815\\uBC00\\uB3C4 \\uC190\\uC2E4. LLM \\uBC30\\uD3EC\\uC758 \\uD575\\uC2EC \\uAE30\\uC220"},' +
 'en:{sim:"SIGNAL QUANTIZATION",' +
 'ctrl:"CONTROLS",bits:"Bit Depth",' +
 'sine:"Sine",sawtooth:"Sawtooth",composite:"Composite",' +
@@ -101,13 +110,19 @@ export function getQuantizeSimulationHTML(isDark: boolean, lang: string): string
 'cv1:"Original + Quantized Signal",cv2:"Quantization Error",' +
 'snr:"SNR (measured)",snrTheory:"SNR (theoretical)",levels:"Levels",' +
 'bitDepth:"Bit Depth",maxErr:"Max Error",' +
-'formula:"Theory: 6.02N + 1.76 dB"}' +
+'formula:"Theory: 6.02N + 1.76 dB",' +
+'aiOn:"MODEL QUANTIZATION ON",aiOff:"MODEL QUANTIZATION OFF",' +
+'aiBits:"Quantization Level",aiCv1:"Original + Quantized Weights",aiCv2:"Precision Loss",' +
+'aiSnr:"Accuracy Retention (measured)",aiSnrTheory:"Accuracy Retention (theoretical)",' +
+'aiMaxErr:"Max Precision Loss",' +
+'aiNote:"AI perspective: Fewer bits = smaller model + faster inference, but precision loss. Key technique for LLM deployment"}' +
 '};' +
 'var T=L[LANG]||L.en;' +
 
 // -- State --
 'var bitDepth=3;var sigType="sine";var dithering=false;' +
 'var animating=false;var animId=null;var phase=0;' +
+'var aiMode=false;' +
 
 // -- Canvas DPR setup --
 'function setupCanvas(cv,h){' +
@@ -181,11 +196,14 @@ export function getQuantizeSimulationHTML(isDark: boolean, lang: string): string
 'ctx.strokeStyle=accentC;ctx.lineWidth=2;ctx.stroke();' +
 // legend
 'ctx.font="9px monospace";ctx.textAlign="right";' +
-'ctx.fillStyle=tealC;ctx.fillText(LANG==="ko"?"\\uC6D0\\uBCF8":"Original",w-6,14);' +
-'ctx.fillStyle=accentC;ctx.fillText(LANG==="ko"?"\\uC591\\uC790\\uD654":"Quantized",w-6,26);' +
+'var origLbl=aiMode?(LANG==="ko"?"\\uAC00\\uC911\\uCE58 \\uAC12":"Weight Values"):(LANG==="ko"?"\\uC6D0\\uBCF8":"Original");' +
+'var quantLbl=aiMode?(LANG==="ko"?"\\uC591\\uC790\\uD654\\uB41C \\uAC00\\uC911\\uCE58":"Quantized Weights"):(LANG==="ko"?"\\uC591\\uC790\\uD654":"Quantized");' +
+'ctx.fillStyle=tealC;ctx.fillText(origLbl,w-6,14);' +
+'ctx.fillStyle=accentC;ctx.fillText(quantLbl,w-6,26);' +
 // bit depth label
+'var bitLbl=aiMode?bitDepth+"bit \\u2192 "+(LANG==="ko"?"\\uC591\\uC790\\uD654 \\uB808\\uBCA8":"levels")+" "+levels:bitDepth+" bit \\u2192 "+levels+" levels";' +
 'ctx.fillStyle=text3C;ctx.textAlign="left";' +
-'ctx.fillText(bitDepth+" bit \\u2192 "+levels+" levels",6,14)}' +
+'ctx.fillText(bitLbl,6,14)}' +
 
 // -- Draw error canvas --
 'function drawError(){' +
@@ -257,12 +275,25 @@ export function getQuantizeSimulationHTML(isDark: boolean, lang: string): string
 
 'function onReset(){' +
 'if(animId)cancelAnimationFrame(animId);' +
-'animating=false;phase=0;bitDepth=3;sigType="sine";dithering=false;' +
+'animating=false;phase=0;bitDepth=3;sigType="sine";dithering=false;aiMode=false;' +
 'document.getElementById("slBits").value=3;' +
 'document.getElementById("chkDither").checked=false;' +
 'document.getElementById("btnRun").textContent=T.run;' +
 'document.getElementById("btnRun").className="btn btn-primary";' +
+'document.getElementById("btnAI").textContent=T.aiOff;' +
+'document.getElementById("lbl-bits").textContent=T.bits;' +
+'document.getElementById("lbl-cv1").textContent=T.cv1;' +
+'document.getElementById("lbl-cv2").textContent=T.cv2;' +
 'setPreset("sine");readParams();drawAll();updateStats();notifyHeight()}' +
+
+// -- AI Mode toggle --
+'function toggleAI(){' +
+'aiMode=!aiMode;' +
+'document.getElementById("btnAI").textContent=aiMode?T.aiOn:T.aiOff;' +
+'document.getElementById("lbl-bits").textContent=aiMode?T.aiBits:T.bits;' +
+'document.getElementById("lbl-cv1").textContent=aiMode?T.aiCv1:T.cv1;' +
+'document.getElementById("lbl-cv2").textContent=aiMode?T.aiCv2:T.cv2;' +
+'drawAll();updateStats();notifyHeight()}' +
 
 // -- Animation --
 'function animate(){' +
@@ -279,12 +310,14 @@ export function getQuantizeSimulationHTML(isDark: boolean, lang: string): string
 'var st=window._qStats||{maxErr:0,sumSq:0,sumSigSq:0,n:1};' +
 'var measuredSnr=-999;' +
 'if(st.sumSq>0&&st.sumSigSq>0){measuredSnr=10*Math.log10(st.sumSigSq/st.sumSq)}' +
-'var s="<span class=\\"hi\\">"+T.bitDepth+"</span>  "+bitDepth+"<br>";' +
+'var bitLabel=aiMode?["INT8","INT7","INT6","INT5","INT4","INT3","INT2","Binary"][8-bitDepth]||bitDepth+"bit":bitDepth+"";' +
+'var s="<span class=\\"hi\\">"+T.bitDepth+"</span>  "+bitLabel+(aiMode?" ("+bitDepth+"bit)":"")+"<br>";' +
 's+="<span class=\\"hi\\">"+T.levels+"</span>  "+levels+"<br>";' +
-'s+="<span class=\\"warn\\">"+T.snr+"</span>  "+(measuredSnr>-100?measuredSnr.toFixed(1):"--")+" dB<br>";' +
-'s+="<span class=\\"warn\\">"+T.snrTheory+"</span>  "+theorySnr.toFixed(1)+" dB<br>";' +
-'s+=""+T.maxErr+": "+st.maxErr.toFixed(4)+"<br>";' +
+'s+="<span class=\\"warn\\">"+(aiMode?T.aiSnr:T.snr)+"</span>  "+(measuredSnr>-100?measuredSnr.toFixed(1):"--")+" dB<br>";' +
+'s+="<span class=\\"warn\\">"+(aiMode?T.aiSnrTheory:T.snrTheory)+"</span>  "+theorySnr.toFixed(1)+" dB<br>";' +
+'s+=""+(aiMode?T.aiMaxErr:T.maxErr)+": "+st.maxErr.toFixed(4)+"<br>";' +
 's+="<br>"+T.formula;' +
+'if(aiMode){s+="<br><br><span class=\\"hi\\">"+T.aiNote+"</span>"}' +
 'box.innerHTML=s}' +
 
 // -- Height notification --
@@ -302,6 +335,7 @@ export function getQuantizeSimulationHTML(isDark: boolean, lang: string): string
 'document.getElementById("btnReset").textContent=T.reset;' +
 'document.getElementById("lbl-cv1").textContent=T.cv1;' +
 'document.getElementById("lbl-cv2").textContent=T.cv2;' +
+'document.getElementById("btnAI").textContent=T.aiOff;' +
 
 // -- Init --
 'readParams();drawAll();updateStats();' +

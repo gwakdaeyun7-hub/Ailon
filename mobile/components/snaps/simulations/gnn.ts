@@ -28,8 +28,8 @@ export function getGNNSimulationHTML(isDark: boolean, lang: string): string {
 '--accent:#F59E0B;--red:#F87171;--green:#4ADE80}' +
 '*{box-sizing:border-box;margin:0;padding:0}' +
 'body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);padding:0;-webkit-user-select:none;user-select:none;overflow-x:hidden}' +
-'.panel{border:2px solid var(--border);background:var(--card);margin-bottom:8px;padding:12px}' +
-'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card)}' +
+'.panel{border:2px solid var(--border);background:var(--card);margin-bottom:8px;padding:12px;border-radius:8px}' +
+'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card);border-radius:8px}' +
 '.label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}' +
 '.row{display:flex;align-items:center;gap:8px;margin-bottom:10px}' +
 '.row:last-child{margin-bottom:0}' +
@@ -37,15 +37,15 @@ export function getGNNSimulationHTML(isDark: boolean, lang: string): string {
 '.ctrl-val{font-size:12px;font-family:monospace;color:var(--teal);min-width:50px;text-align:right;flex-shrink:0}' +
 'input[type=range]{flex:1;min-width:0;accent-color:var(--teal);height:20px}' +
 '.btn-row{display:flex;gap:6px;margin-top:4px}' +
-'.btn{flex:1;padding:10px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent}' +
+'.btn{flex:1;padding:10px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent;border-radius:8px}' +
 '.btn:active{opacity:0.7}' +
 '.btn-primary{background:var(--teal);border-color:var(--teal);color:#1A1816}' +
 '.btn-stop{background:var(--accent);border-color:var(--accent);color:#1A1816}' +
-'.stats{font-family:monospace;font-size:11px;line-height:2;color:var(--text2)}' +
+'.stats{font-family:monospace;font-size:11px;line-height:2;color:var(--text2);border-radius:8px}' +
 '.stats .hi{color:var(--teal);font-weight:700}' +
 '.stats .warn{color:var(--accent);font-weight:700}' +
 '.preset-row{display:flex;gap:6px;margin-bottom:8px}' +
-'.preset{flex:1;padding:12px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:10px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.3px}' +
+'.preset{flex:1;padding:12px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:10px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.3px;border-radius:8px}' +
 '.preset:active{opacity:0.7}' +
 '.preset.active{border-color:var(--teal);color:var(--teal)}' +
 '</style></head><body>' +
@@ -77,6 +77,10 @@ export function getGNNSimulationHTML(isDark: boolean, lang: string): string {
 '<div class="btn" id="btnReset" onclick="onReset()"></div>' +
 '</div></div>' +
 
+// ── Adjacency Matrix Panel ──
+'<div class="panel"><div class="label" id="lbl-adj"></div>' +
+'<canvas id="cvAdj" height="180"></canvas></div>' +
+
 // ── Stats Panel ──
 '<div class="panel"><div class="label" id="lbl-stats"></div>' +
 '<div class="stats" id="statsBox"></div></div>' +
@@ -92,14 +96,18 @@ export function getGNNSimulationHTML(isDark: boolean, lang: string): string {
 'aggSum:"Sum",aggMean:"Mean",aggMax:"Max",' +
 'layer:"\\uB808\\uC774\\uC5B4",nodes:"\\uB178\\uB4DC",edges:"\\uC5E3\\uC9C0",selected:"\\uC120\\uD0DD\\uB428",' +
 'smoothing:"\\uACFC\\uB3C4 \\uD3C9\\uD65C\\uD654 \\uBC1C\\uC0DD \\u2014 \\uBAA8\\uB4E0 \\uB178\\uB4DC \\uC0C9\\uC0C1 \\uC720\\uC0AC",' +
-'tapHint:"\\uB178\\uB4DC\\uB97C \\uD0ED\\uD558\\uC5EC \\uC218\\uC6A9 \\uC601\\uC5ED \\uD655\\uC778"},' +
+'tapHint:"\\uB178\\uB4DC\\uB97C \\uD0ED\\uD558\\uC5EC \\uC218\\uC6A9 \\uC601\\uC5ED \\uD655\\uC778",' +
+'adj:"\\uC778\\uC811 \\uD589\\uB82C",' +
+'adjHint:"\\uC778\\uC811 \\uD589\\uB82C\\uC758 \\uC774\\uC6C3 \\uAD00\\uACC4 \\u2192 GNN\\uC758 \\uBA54\\uC2DC\\uC9C0 \\uC804\\uB2EC \\uACBD\\uB85C"},' +
 'en:{main:"GRAPH NEURAL NETWORK",graph:"GRAPH TYPE",ctrl:"CONTROLS",stats:"STATISTICS",' +
 'pre0:"Social Net",pre1:"Tree",pre2:"Grid",pre3:"Ring",' +
 'pass:"\\u27A1 Message Pass",auto:"\\u25B6 Auto Propagate",autoStop:"\\u25A0 Stop",reset:"\\u21BA Reset",' +
 'aggSum:"Sum",aggMean:"Mean",aggMax:"Max",' +
 'layer:"Layer",nodes:"Nodes",edges:"Edges",selected:"Selected",' +
 'smoothing:"Over-smoothing detected \\u2014 all node colors converging",' +
-'tapHint:"Tap a node to see receptive field"}' +
+'tapHint:"Tap a node to see receptive field",' +
+'adj:"ADJACENCY MATRIX",' +
+'adjHint:"Adjacency matrix neighbors \\u2192 GNN message passing paths"}' +
 '};' +
 'var T=L[LANG]||L.en;' +
 
@@ -115,9 +123,7 @@ export function getGNNSimulationHTML(isDark: boolean, lang: string): string {
 'var canvasW=300,canvasH=320;' +
 
 // ── Node color palette (HSL-based for blending) ──
-'var INIT_COLORS=["#EF4444","#F59E0B","#10B981","#3B82F6","#8B5CF6","#EC4899","#14B8A6","#F97316","#6366F1","#84CC16",' +
-'"#DC2626","#D97706","#059669","#2563EB","#7C3AED","#DB2777","#0D9488","#EA580C","#4F46E5","#65A30D",' +
-'"#EF4444","#F59E0B","#10B981","#3B82F6","#8B5CF6"];' +
+'var INIT_COLORS=["#5EEAD4","#F59E0B","#DC2626","#15803D","#78716C","#5EEAD4CC","#F59E0BCC","#DC2626CC"];' +
 
 // ── Graph generators ──
 'function makeSocial(){' +
@@ -126,10 +132,10 @@ export function getGNNSimulationHTML(isDark: boolean, lang: string): string {
 'var n1=6,n2=6;' +
 'for(var i=0;i<n1;i++){' +
 'var angle=i/n1*Math.PI*2;' +
-'nodes.push({x:0.3+Math.cos(angle)*0.15,y:0.5+Math.sin(angle)*0.15,color:INIT_COLORS[i],origColor:INIT_COLORS[i]})}' +
+'nodes.push({x:0.3+Math.cos(angle)*0.15,y:0.5+Math.sin(angle)*0.15,color:INIT_COLORS[i%INIT_COLORS.length],origColor:INIT_COLORS[i%INIT_COLORS.length]})}' +
 'for(var i=0;i<n2;i++){' +
 'var angle=i/n2*Math.PI*2;var ci=n1+i;' +
-'nodes.push({x:0.7+Math.cos(angle)*0.15,y:0.5+Math.sin(angle)*0.15,color:INIT_COLORS[ci],origColor:INIT_COLORS[ci]})}' +
+'nodes.push({x:0.7+Math.cos(angle)*0.15,y:0.5+Math.sin(angle)*0.15,color:INIT_COLORS[ci%INIT_COLORS.length],origColor:INIT_COLORS[ci%INIT_COLORS.length]})}' +
 // Intra-cluster edges
 'for(var i=0;i<n1;i++){for(var j=i+1;j<n1;j++){if(Math.random()<0.5)edges.push([i,j])}}' +
 'for(var i=0;i<n2;i++){for(var j=i+1;j<n2;j++){if(Math.random()<0.5)edges.push([n1+i,n1+j])}}' +
@@ -142,7 +148,7 @@ export function getGNNSimulationHTML(isDark: boolean, lang: string): string {
 'var positions=[[0.5,0.12],[0.3,0.35],[0.7,0.35],[0.15,0.58],[0.38,0.58],[0.62,0.58],[0.85,0.58],' +
 '[0.08,0.82],[0.22,0.82],[0.32,0.82],[0.44,0.82],[0.56,0.82],[0.68,0.82],[0.78,0.82],[0.92,0.82]];' +
 'for(var i=0;i<15;i++){' +
-'nodes.push({x:positions[i][0],y:positions[i][1],color:INIT_COLORS[i],origColor:INIT_COLORS[i]})}' +
+'nodes.push({x:positions[i][0],y:positions[i][1],color:INIT_COLORS[i%INIT_COLORS.length],origColor:INIT_COLORS[i%INIT_COLORS.length]})}' +
 'for(var i=0;i<7;i++){' +
 'var l=2*i+1,r=2*i+2;' +
 'if(l<15)edges.push([i,l]);if(r<15)edges.push([i,r])}}' +
@@ -152,7 +158,7 @@ export function getGNNSimulationHTML(isDark: boolean, lang: string): string {
 'var rows=4,cols=4;' +
 'for(var r=0;r<rows;r++){for(var c=0;c<cols;c++){' +
 'var idx=r*cols+c;' +
-'nodes.push({x:0.2+c*0.2,y:0.15+r*0.2,color:INIT_COLORS[idx],origColor:INIT_COLORS[idx]})}}' +
+'nodes.push({x:0.2+c*0.2,y:0.15+r*0.2,color:INIT_COLORS[idx%INIT_COLORS.length],origColor:INIT_COLORS[idx%INIT_COLORS.length]})}}' +
 'for(var r=0;r<rows;r++){for(var c=0;c<cols;c++){' +
 'var idx=r*cols+c;' +
 'if(c<cols-1)edges.push([idx,idx+1]);' +
@@ -163,7 +169,7 @@ export function getGNNSimulationHTML(isDark: boolean, lang: string): string {
 'var n=12;' +
 'for(var i=0;i<n;i++){' +
 'var angle=i/n*Math.PI*2-Math.PI/2;' +
-'nodes.push({x:0.5+Math.cos(angle)*0.32,y:0.5+Math.sin(angle)*0.32,color:INIT_COLORS[i],origColor:INIT_COLORS[i]})}' +
+'nodes.push({x:0.5+Math.cos(angle)*0.32,y:0.5+Math.sin(angle)*0.32,color:INIT_COLORS[i%INIT_COLORS.length],origColor:INIT_COLORS[i%INIT_COLORS.length]})}' +
 'for(var i=0;i<n;i++)edges.push([i,(i+1)%n])}' +
 
 'var graphGens=[makeSocial,makeTree,makeGrid,makeRing];' +
@@ -260,7 +266,7 @@ export function getGNNSimulationHTML(isDark: boolean, lang: string): string {
 'spawnParticles();' +
 // Apply new colors
 'for(var i=0;i<nodes.length;i++){nodes[i].color=newColors[i]}' +
-'drawGraph();updateStats();notifyHeight()}' +
+'drawGraph();drawAdj();updateStats();notifyHeight()}' +
 
 // ── Spawn particles on edges ──
 'function spawnParticles(){' +
@@ -341,6 +347,59 @@ export function getGNNSimulationHTML(isDark: boolean, lang: string): string {
 'ctx.fillText(T.tapHint,w/2,h-4);' +
 '}' +
 
+// ── Build adjacency matrix ──
+'function getAdj(){' +
+'var n=nodes.length;var adj=[];' +
+'for(var i=0;i<n;i++){adj[i]=[];for(var j=0;j<n;j++)adj[i][j]=0}' +
+'for(var e=0;e<edges.length;e++){adj[edges[e][0]][edges[e][1]]=1;adj[edges[e][1]][edges[e][0]]=1}' +
+'return adj}' +
+
+// ── Draw adjacency matrix heatmap ──
+'function drawAdj(){' +
+'var cv=document.getElementById("cvAdj");' +
+'var n=nodes.length;' +
+'var matH=Math.min(180,Math.max(100,n*12+34));' +
+'var dpr=window.devicePixelRatio||1;' +
+'var w=cv.parentElement.clientWidth-4;' +
+'cv.style.width=w+"px";cv.style.height=matH+"px";' +
+'cv.width=w*dpr;cv.height=matH*dpr;' +
+'var ctx=cv.getContext("2d");ctx.scale(dpr,dpr);' +
+'ctx.clearRect(0,0,w,matH);' +
+'var cs=getComputedStyle(document.documentElement);' +
+'var borderC=cs.getPropertyValue("--border").trim();' +
+'var tealC=cs.getPropertyValue("--teal").trim();' +
+'var text3C=cs.getPropertyValue("--text3").trim();' +
+'var surfaceC=cs.getPropertyValue("--surface").trim();' +
+'var adj=getAdj();' +
+'var pad=24;var matSize=Math.min(w-pad-10,matH-pad-10);' +
+'var cellSize=Math.floor(matSize/n);' +
+'if(cellSize<4)cellSize=4;' +
+'var mw=cellSize*n;' +
+'var offX=Math.floor((w-mw)/2+pad/2);' +
+'var offY=pad;' +
+// Row/col labels
+'ctx.fillStyle=text3C;ctx.font="8px monospace";ctx.textAlign="center";ctx.textBaseline="middle";' +
+'for(var i=0;i<n;i++){' +
+'ctx.fillText(i.toString(),offX+i*cellSize+cellSize/2,offY-9);' +
+'ctx.fillText(i.toString(),offX-12,offY+i*cellSize+cellSize/2)}' +
+// Matrix cells
+'for(var r=0;r<n;r++){for(var c=0;c<n;c++){' +
+'var val=adj[r][c];' +
+'var cx2=offX+c*cellSize;var cy2=offY+r*cellSize;' +
+'var isHighlight=r===selectedNode||c===selectedNode;' +
+'if(val>0){ctx.fillStyle=isHighlight?tealC:"rgba(94,234,212,0.5)"}' +
+'else{ctx.fillStyle=isHighlight?"rgba(94,234,212,0.08)":surfaceC}' +
+'ctx.fillRect(cx2,cy2,cellSize-1,cellSize-1)}}' +
+// Grid lines
+'ctx.strokeStyle=borderC;ctx.lineWidth=0.5;' +
+'for(var i=0;i<=n;i++){' +
+'ctx.beginPath();ctx.moveTo(offX+i*cellSize,offY);ctx.lineTo(offX+i*cellSize,offY+n*cellSize);ctx.stroke();' +
+'ctx.beginPath();ctx.moveTo(offX,offY+i*cellSize);ctx.lineTo(offX+n*cellSize,offY+i*cellSize);ctx.stroke()}' +
+// Annotation
+'ctx.fillStyle=text3C;ctx.font="9px -apple-system,sans-serif";ctx.textAlign="center";' +
+'ctx.fillText(T.adjHint,w/2,offY+n*cellSize+12);' +
+'}' +
+
 // ── Animation loop for force + particles ──
 'var layoutTimer=null;' +
 'function startLayout(){' +
@@ -375,7 +434,7 @@ export function getGNNSimulationHTML(isDark: boolean, lang: string): string {
 'var dx=nodes[i].x-cvp.x;var dy=nodes[i].y-cvp.y;' +
 'var d=Math.sqrt(dx*dx+dy*dy);' +
 'if(d<minD){minD=d;closest=i}}' +
-'if(closest>=0){dragging=closest;selectedNode=closest;drawGraph();updateStats();e.preventDefault()}' +
+'if(closest>=0){dragging=closest;selectedNode=closest;drawGraph();drawAdj();updateStats();e.preventDefault()}' +
 '},{passive:false});' +
 
 'cv.addEventListener("touchmove",function(e){' +
@@ -395,7 +454,7 @@ export function getGNNSimulationHTML(isDark: boolean, lang: string): string {
 'if(autoRunning)toggleAuto();' +
 'graphGens[idx]();layerCount=0;selectedNode=-1;particles=[];' +
 'if(layoutTimer){clearInterval(layoutTimer);layoutTimer=null}' +
-'startLayout();updateStats();notifyHeight()}' +
+'startLayout();drawAdj();updateStats();notifyHeight()}' +
 
 // ── Aggregation mode ──
 'function onAgg(idx){' +
@@ -407,7 +466,7 @@ export function getGNNSimulationHTML(isDark: boolean, lang: string): string {
 'if(autoRunning)toggleAuto();' +
 'graphGens[presetIdx]();layerCount=0;selectedNode=-1;particles=[];' +
 'if(layoutTimer){clearInterval(layoutTimer);layoutTimer=null}' +
-'startLayout();updateStats();notifyHeight()}' +
+'startLayout();drawAdj();updateStats();notifyHeight()}' +
 
 // ── Update stats ──
 'function updateStats(){' +
@@ -439,6 +498,7 @@ export function getGNNSimulationHTML(isDark: boolean, lang: string): string {
 'document.getElementById("lbl-graph").textContent=T.graph;' +
 'document.getElementById("lbl-ctrl").textContent=T.ctrl;' +
 'document.getElementById("lbl-stats").textContent=T.stats;' +
+'document.getElementById("lbl-adj").textContent=T.adj;' +
 'document.getElementById("pre0").textContent=T.pre0;' +
 'document.getElementById("pre1").textContent=T.pre1;' +
 'document.getElementById("pre2").textContent=T.pre2;' +
@@ -451,8 +511,8 @@ export function getGNNSimulationHTML(isDark: boolean, lang: string): string {
 'document.getElementById("btnReset").textContent=T.reset;' +
 
 // ── Init ──
-'makeSocial();startLayout();initTouch();updateStats();' +
-'window.addEventListener("resize",function(){drawGraph();notifyHeight()});' +
+'makeSocial();startLayout();initTouch();drawAdj();updateStats();' +
+'window.addEventListener("resize",function(){drawGraph();drawAdj();notifyHeight()});' +
 'setTimeout(notifyHeight,100);' +
 
 '</script></body></html>';

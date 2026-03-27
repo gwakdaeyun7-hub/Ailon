@@ -69,7 +69,8 @@
   - `swarm` — Swarm Intelligence (Boid): Separation/Alignment/Cohesion 토글, 실시간 군집 시뮬레이션
   - `bayesian` — Bayesian Inference: Beta 분포 Prior→Posterior 업데이트, 동전 던지기 인터랙션
   - `convex`, `bayesopt`, `dp`, `kalman`, `pid`, `cybernetics`, `mpc`, `lyapunov`, `fourier`, `nyquist`, `quantize`, `entropy`, `kl`, `channel`, `mutual`, `boltzmann`, `diffusion`, `hopfield`, `renorm`, `evolution`, `hebbian`, `visualcortex`, `dopamine`, `attention`, `predcoding`, `replay`, `molgraph`, `linalg`, `uat`, `curse`, `infogeo`, `gnn`, `manifold`, `biasvar`, `mle`, `bootstrap`, `mcmc`, `subsumption`, `imitation`, `epidemic`, `clinical`
-- **시뮬레이션 공통**: self-contained HTML/JS/Canvas, KO/EN 바이링구얼, dark/light 테마
+- **시뮬레이션 공통**: self-contained HTML/JS/Canvas, KO/EN 바이링구얼, dark/light 테마, 패널 borderRadius 8px 통일
+  - **AI Lens / AI Bridge** (11개 sim): 학문 원리↔AI 해석을 연결하는 토글 또는 주석. Tier 1(레이블/주석 추가 7개: visualcortex, predcoding, mle, entropy, kl, clinical, subsumption) + Tier 2(토글/모드 추가 4개: fourier, quantize, gd, gnn). 패턴: 기존 시뮬레이션 파라미터를 AI 용어로 재해석하는 듀얼 레이블·주석·모드 전환 (Boltzmann 패턴 참조)
 - **이전 모드 복원**: 기존 daily-principle 모드(usePrinciple() → 당일 원리 1개 표시)는 git commit `85173a6` 이전 tools.tsx로 복원 가능
 - **탭 아이콘**: FlaskConical (lucide), 라벨 `tab.lab`
 

@@ -25,8 +25,8 @@ export function getMLESimulationHTML(isDark: boolean, lang: string): string {
 '--accent:#F59E0B;--red:#F87171;--green:#4ADE80}' +
 '*{box-sizing:border-box;margin:0;padding:0}' +
 'body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);padding:0;-webkit-user-select:none;user-select:none;overflow-x:hidden}' +
-'.panel{border:2px solid var(--border);background:var(--card);margin-bottom:8px;padding:12px}' +
-'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card)}' +
+'.panel{border:2px solid var(--border);background:var(--card);margin-bottom:8px;padding:12px;border-radius:8px}' +
+'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card);border-radius:8px}' +
 '.label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}' +
 '.row{display:flex;align-items:center;gap:8px;margin-bottom:10px}' +
 '.row:last-child{margin-bottom:0}' +
@@ -34,12 +34,12 @@ export function getMLESimulationHTML(isDark: boolean, lang: string): string {
 '.ctrl-val{font-size:12px;font-family:monospace;color:var(--teal);min-width:50px;text-align:right;flex-shrink:0}' +
 'input[type=range]{flex:1;min-width:0;accent-color:var(--teal);height:20px}' +
 '.btn-row{display:flex;gap:6px;margin-top:4px}' +
-'.btn{flex:1;padding:10px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent;min-height:44px;display:flex;align-items:center;justify-content:center}' +
+'.btn{flex:1;padding:10px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent;min-height:44px;display:flex;align-items:center;justify-content:center;border-radius:8px}' +
 '.btn:active{opacity:0.7}' +
 '.btn-primary{background:var(--teal);border-color:var(--teal);color:#1A1816}' +
 '.btn-stop{background:var(--accent);border-color:var(--accent);color:#1A1816}' +
 '.btn-on{background:var(--tealLight);border-color:var(--teal);color:var(--teal)}' +
-'.stats{font-family:monospace;font-size:11px;line-height:2;color:var(--text2)}' +
+'.stats{font-family:monospace;font-size:11px;line-height:2;color:var(--text2);border-radius:8px}' +
 '.stats .hi{color:var(--teal);font-weight:700}' +
 '.stats .warn{color:var(--accent);font-weight:700}' +
 '.stats .rd{color:var(--red);font-weight:700}' +
@@ -72,6 +72,10 @@ export function getMLESimulationHTML(isDark: boolean, lang: string): string {
 '<div class="panel"><div class="label" id="lbl-stats"></div>' +
 '<div class="stats" id="statsBox"></div></div>' +
 
+// ── AI Bridge Annotation ──
+'<div class="panel" style="text-align:center;padding:10px">' +
+'<span style="font-size:11px;font-weight:700;color:var(--teal)" id="aiBridgeLabel"></span></div>' +
+
 '<script>' +
 'var LANG="' + lang + '";' +
 
@@ -79,22 +83,24 @@ export function getMLESimulationHTML(isDark: boolean, lang: string): string {
 'var L={' +
 'ko:{hist:"\\uB370\\uC774\\uD130 + \\uAC00\\uC6B0\\uC2DC\\uC548",params:"\\uD30C\\uB77C\\uBBF8\\uD130",' +
 'contour:"\\uD30C\\uB77C\\uBBF8\\uD130 \\uACF5\\uAC04 (\\uB85C\\uADF8\\uC6B0\\uB3C4)",' +
-'stats:"\\uD1B5\\uACC4",grad:"\\uACBD\\uC0AC\\uC0C1\\uC2B9",' +
+'stats:"\\uD1B5\\uACC4",grad:"\\uACBD\\uC0AC\\uC0C1\\uC2B9 (= \\uC5ED\\uC804\\uD30C)",' +
 'newData:"\\uC0C8 \\uB370\\uC774\\uD130",showTrue:"\\uCC38\\uAC12 \\uD45C\\uC2DC",hideTrue:"\\uCC38\\uAC12 \\uC228\\uAE30\\uAE30",' +
 'curMu:"\\uD604\\uC7AC \\u03BC",curSig:"\\uD604\\uC7AC \\u03C3",logL:"\\uB85C\\uADF8\\uC6B0\\uB3C4",' +
 'mleMu:"MLE \\u03BC\\u0302",mleSig:"MLE \\u03C3\\u0302",' +
 'trueMu:"\\uCC38 \\u03BC",trueSig:"\\uCC38 \\u03C3",' +
 'running:"\\uC0C1\\uC2B9 \\uC911...",stop:"\\uC815\\uC9C0",' +
-'dragHint:"\\uCE10\\uD22C\\uC5B4 \\uD50C\\uB86F\\uC744 \\uB4DC\\uB798\\uADF8\\uD558\\uC5EC \\u03BC,\\u03C3 \\uC870\\uC808"},' +
+'dragHint:"\\uCE10\\uD22C\\uC5B4 \\uD50C\\uB86F\\uC744 \\uB4DC\\uB798\\uADF8\\uD558\\uC5EC \\u03BC,\\u03C3 \\uC870\\uC808",' +
+'aiBridge:"\\uC2E0\\uACBD\\uB9DD\\uC758 Cross-Entropy Loss \\uCD5C\\uC18C\\uD654 = MLE\\uC640 \\uC218\\uD559\\uC801\\uC73C\\uB85C \\uB3D9\\uCE58. \\uACBD\\uC0AC \\uC0C1\\uC2B9 = \\uC5ED\\uC804\\uD30C\\uC758 \\uC6D0\\uB9AC"},' +
 'en:{hist:"DATA + GAUSSIAN",params:"PARAMETERS",' +
 'contour:"PARAMETER SPACE (LOG-LIKELIHOOD)",' +
-'stats:"STATISTICS",grad:"Gradient Ascent",' +
+'stats:"STATISTICS",grad:"Gradient Ascent (= Backprop)",' +
 'newData:"New Data",showTrue:"Show True",hideTrue:"Hide True",' +
 'curMu:"Current \\u03BC",curSig:"Current \\u03C3",logL:"Log-Likelihood",' +
 'mleMu:"MLE \\u03BC\\u0302",mleSig:"MLE \\u03C3\\u0302",' +
 'trueMu:"True \\u03BC",trueSig:"True \\u03C3",' +
 'running:"Ascending...",stop:"Stop",' +
-'dragHint:"Drag contour plot to adjust \\u03BC,\\u03C3"}' +
+'dragHint:"Drag contour plot to adjust \\u03BC,\\u03C3",' +
+'aiBridge:"Neural network\\u2019s Cross-Entropy Loss minimization = mathematically equivalent to MLE. Gradient ascent = backpropagation principle"}' +
 '};' +
 'var T=L[LANG]||L.en;' +
 
@@ -347,6 +353,7 @@ export function getMLESimulationHTML(isDark: boolean, lang: string): string {
 'document.getElementById("btnGrad").textContent=T.grad;' +
 'document.getElementById("btnNew").textContent=T.newData;' +
 'document.getElementById("btnReveal").textContent=T.showTrue;' +
+'document.getElementById("aiBridgeLabel").textContent=T.aiBridge;' +
 
 // ── Init ──
 'genData();curMu=0;curSig=1.0;syncSliders();drawAll();' +

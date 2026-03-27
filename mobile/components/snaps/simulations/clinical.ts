@@ -28,8 +28,8 @@ export function getClinicalSimulationHTML(isDark: boolean, lang: string): string
 '--accent:#F59E0B;--red:#F87171;--green:#4ADE80}' +
 '*{box-sizing:border-box;margin:0;padding:0}' +
 'body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);padding:0;-webkit-user-select:none;user-select:none;overflow-x:hidden}' +
-'.panel{border:2px solid var(--border);background:var(--card);margin-bottom:8px;padding:12px}' +
-'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card)}' +
+'.panel{border:2px solid var(--border);background:var(--card);margin-bottom:8px;padding:12px;border-radius:8px}' +
+'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card);border-radius:8px}' +
 '.label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}' +
 '.row{display:flex;align-items:center;gap:8px;margin-bottom:10px}' +
 '.row:last-child{margin-bottom:0}' +
@@ -37,17 +37,17 @@ export function getClinicalSimulationHTML(isDark: boolean, lang: string): string
 '.ctrl-val{font-size:12px;font-family:monospace;color:var(--teal);min-width:50px;text-align:right;flex-shrink:0}' +
 'input[type=range]{flex:1;min-width:0;accent-color:var(--teal);height:20px}' +
 '.btn-row{display:flex;gap:6px;margin-top:4px}' +
-'.btn{flex:1;padding:10px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent;min-height:44px;display:flex;align-items:center;justify-content:center}' +
+'.btn{flex:1;padding:10px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent;min-height:44px;display:flex;align-items:center;justify-content:center;border-radius:8px}' +
 '.btn:active{opacity:0.7}' +
 '.btn-primary{background:var(--teal);border-color:var(--teal);color:#1A1816}' +
 '.btn-stop{background:var(--accent);border-color:var(--accent);color:#1A1816}' +
-'.stats{font-family:monospace;font-size:11px;line-height:2;color:var(--text2)}' +
+'.stats{font-family:monospace;font-size:11px;line-height:2;color:var(--text2);border-radius:8px}' +
 '.stats .hi{color:var(--teal);font-weight:700}' +
 '.stats .warn{color:var(--accent);font-weight:700}' +
 '.stats .rd{color:var(--red);font-weight:700}' +
 '.stats .gn{color:var(--green);font-weight:700}' +
 '.seg-row{display:flex;gap:0;margin-bottom:10px}' +
-'.seg{flex:1;padding:10px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:11px;font-weight:700;text-align:center;cursor:pointer;min-height:44px;display:flex;align-items:center;justify-content:center}' +
+'.seg{flex:1;padding:10px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:11px;font-weight:700;text-align:center;cursor:pointer;min-height:44px;display:flex;align-items:center;justify-content:center;border-radius:8px}' +
 '.seg:first-child{border-right:none}' +
 '.seg:last-child{border-left:none}' +
 '.seg.active{border-color:var(--teal);background:var(--tealLight);color:var(--teal)}' +
@@ -76,11 +76,17 @@ export function getClinicalSimulationHTML(isDark: boolean, lang: string): string
 '<div class="seg active" id="segA5" onclick="setAlpha(0.05)">\\u03B1 = 0.05</div>' +
 '<div class="seg" id="segA10" onclick="setAlpha(0.10)">\\u03B1 = 0.10</div>' +
 '</div>' +
+'<div class="btn-row" style="margin-bottom:6px">' +
+'<div class="btn" id="btnAILens" onclick="toggleAILens()"></div>' +
+'</div>' +
 '<div class="btn-row">' +
 '<div class="btn" id="btnRand" onclick="randomize()"></div>' +
 '<div class="btn btn-primary" id="btnRun" onclick="runTrial()"></div>' +
 '<div class="btn" id="btn100" onclick="repeat100()"></div>' +
 '</div></div>' +
+
+// ── AI Lens Stats Annotation ──
+'<div class="panel" id="panelAIAnnotation" style="display:none"><div class="stats" id="aiAnnotationBox"></div></div>' +
 
 // ── Power Canvas (after repeat) ──
 '<div class="panel" id="panelPower" style="display:none"><div class="label" id="lbl-power"></div>' +
@@ -105,7 +111,11 @@ export function getClinicalSimulationHTML(isDark: boolean, lang: string): string
 'pValue:"p-\\uAC12",ci95:"95% \\uC2E0\\uB8B0\\uAD6C\\uAC04",' +
 'powerVal:"\\uAC80\\uC815\\uB825",typeI:"Type I \\uC624\\uB958",typeII:"Type II \\uC624\\uB958",' +
 'obsEffect:"\\uAD00\\uCC30 \\uD6A8\\uACFC",trueEffect:"\\uCC38 \\uD6A8\\uACFC(\\uC228\\uAE40)",' +
-'respRate:"\\uBC18\\uC751\\uB960",sigOf100:"\\uC720\\uC758 \\uBE44\\uC728",running:"\\uC2E4\\uD589 \\uC911..."},' +
+'respRate:"\\uBC18\\uC751\\uB960",sigOf100:"\\uC720\\uC758 \\uBE44\\uC728",running:"\\uC2E4\\uD589 \\uC911...",' +
+'aiLensOn:"AI Lens ON",aiLensOff:"AI Lens OFF",' +
+'treatmentAI:"\\uC0C8 \\uBAA8\\uB378",placeboAI:"\\uAE30\\uC874",' +
+'aiAnnotation:"AI \\uAD00\\uC810: \\uBAA8\\uB378 A vs B \\uBE44\\uAD50 = \\uC784\\uC0C1\\uC2DC\\uD5D8\\uC758 RCT\\uC640 \\uB3D9\\uC77C \\uC6D0\\uB9AC. p-hacking \\uC8FC\\uC758!",' +
+'pHackNote:"\\uD6A8\\uACFC=0\\uC5D0\\uC11C \\uBC18\\uBCF5 \\uBE44\\uAD50 \\uC2DC ~5%\\uAC00 \\uC720\\uC758 \\u2192 p-hacking"},' +
 'en:{trial:"TRIAL RESULTS",pval:"P-VALUE GAUGE",' +
 'ctrl:"CONTROLS",stats:"STATISTICS",power:"STATISTICAL POWER (100 TRIALS)",' +
 'effect:"Effect",nsize:"N/group",' +
@@ -116,11 +126,16 @@ export function getClinicalSimulationHTML(isDark: boolean, lang: string): string
 'pValue:"p-value",ci95:"95% CI",' +
 'powerVal:"Power",typeI:"Type I Error",typeII:"Type II Error",' +
 'obsEffect:"Obs. Effect",trueEffect:"True Effect (hidden)",' +
-'respRate:"Response Rate",sigOf100:"Sig. Rate",running:"Running..."}' +
+'respRate:"Response Rate",sigOf100:"Sig. Rate",running:"Running...",' +
+'aiLensOn:"AI Lens ON",aiLensOff:"AI Lens OFF",' +
+'treatmentAI:"New Model",placeboAI:"Baseline",' +
+'aiAnnotation:"AI perspective: Model A vs B comparison = same principle as clinical RCT. Beware p-hacking!",' +
+'pHackNote:"~5% significant at effect=0 with repeated comparisons \\u2192 p-hacking"}' +
 '};' +
 'var T=L[LANG]||L.en;' +
 
 // ── State ──
+'var aiLens=false;' +
 'var trueEffect=0.10;' + // 0-0.30
 'var sampleN=50;' +
 'var alpha=0.05;' +
@@ -232,9 +247,9 @@ export function getClinicalSimulationHTML(isDark: boolean, lang: string): string
 
 // Group labels
 'ctx.fillStyle=tealC;ctx.font="10px -apple-system,sans-serif";' +
-'ctx.fillText(T.treatment,x1+barW/2,h-pad.b+14);' +
+'ctx.fillText(aiLens?T.treatmentAI:T.treatment,x1+barW/2,h-pad.b+14);' +
 'ctx.fillStyle=text3C;' +
-'ctx.fillText(T.placebo,x2+barW/2,h-pad.b+14);' +
+'ctx.fillText(aiLens?T.placeboAI:T.placebo,x2+barW/2,h-pad.b+14);' +
 
 // Individual dots (patients)
 'var dotR=2;' +
@@ -405,6 +420,18 @@ export function getClinicalSimulationHTML(isDark: boolean, lang: string): string
 'drawAll();notifyHeight()}' +
 
 // ── Draw all ──
+'function toggleAILens(){' +
+'aiLens=!aiLens;' +
+'document.getElementById("btnAILens").textContent=aiLens?T.aiLensOn:T.aiLensOff;' +
+'document.getElementById("btnAILens").className=aiLens?"btn btn-primary":"btn";' +
+'var aiPanel=document.getElementById("panelAIAnnotation");' +
+'if(aiLens){aiPanel.style.display="block";' +
+'var note=T.aiAnnotation;' +
+'if(powerResults&&trueEffect<0.001){note+="<br><span class=\\"rd\\">"+T.pHackNote+"</span>"}' +
+'document.getElementById("aiAnnotationBox").innerHTML="<span class=\\"warn\\">"+note+"</span>"}' +
+'else{aiPanel.style.display="none"}' +
+'drawAll();notifyHeight()}' +
+
 'function drawAll(){drawTrial();drawPval();drawPower();updateStats()}' +
 
 // ── Update stats ──
@@ -412,8 +439,9 @@ export function getClinicalSimulationHTML(isDark: boolean, lang: string): string
 'var box=document.getElementById("statsBox");' +
 'var s=T.trueEffect+": <span class=\\"warn\\">"+(trueEffect*100).toFixed(0)+"%</span><br>";' +
 'if(trialRun){' +
+'var tLbl=aiLens?T.treatmentAI:T.treatment;var pLbl=aiLens?T.placeboAI:T.placebo;' +
 's+=T.obsEffect+": <span class=\\"hi\\">"+(((treatResult-placResult))*100).toFixed(1)+"%</span>";' +
-'s+=" ("+T.treatment+": "+(treatResult*100).toFixed(1)+"% / "+T.placebo+": "+(placResult*100).toFixed(1)+"%)<br>";' +
+'s+=" ("+tLbl+": "+(treatResult*100).toFixed(1)+"% / "+pLbl+": "+(placResult*100).toFixed(1)+"%)<br>";' +
 'var pCls=pValue<alpha?"gn":"rd";' +
 's+=T.pValue+": <span class=\\""+pCls+"\\">"+pValue.toFixed(4)+"</span>";' +
 's+=pValue<alpha?" \\u2714 "+T.sig:" \\u2718 "+T.notSig;s+="<br>";' +
@@ -422,6 +450,10 @@ export function getClinicalSimulationHTML(isDark: boolean, lang: string): string
 's+="<br><span class=\\"hi\\">"+T.powerVal+"</span>: "+powerResults.power+"/100 = <span class=\\"hi\\">"+powerResults.power+"%</span><br>";' +
 'if(powerResults.typeI!==null){s+=T.typeI+": <span class=\\"rd\\">"+powerResults.typeI+"%</span> (\\u03B1="+alpha+")<br>"}' +
 'if(powerResults.typeII!==null){s+=T.typeII+": <span class=\\"rd\\">"+powerResults.typeII+"%</span><br>"}}' +
+'if(aiLens){var aiPanel=document.getElementById("panelAIAnnotation");aiPanel.style.display="block";' +
+'var aNote=T.aiAnnotation;' +
+'if(powerResults&&trueEffect<0.001){aNote+="<br><span class=\\"rd\\">"+T.pHackNote+"</span>"}' +
+'document.getElementById("aiAnnotationBox").innerHTML="<span class=\\"warn\\">"+aNote+"</span>"}' +
 'box.innerHTML=s;notifyHeight()}' +
 
 // ── Height notification ──
@@ -440,6 +472,7 @@ export function getClinicalSimulationHTML(isDark: boolean, lang: string): string
 'document.getElementById("btnRand").textContent=T.rand;' +
 'document.getElementById("btnRun").textContent=T.run;' +
 'document.getElementById("btn100").textContent=T.repeat;' +
+'document.getElementById("btnAILens").textContent=T.aiLensOff;' +
 
 // ── Init ──
 'onSliders();drawAll();' +

@@ -26,8 +26,8 @@ export function getLinalgSimulationHTML(isDark: boolean, lang: string): string {
 '--accent:#F59E0B;--red:#F87171;--green:#4ADE80}' +
 '*{box-sizing:border-box;margin:0;padding:0}' +
 'body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);padding:0;-webkit-user-select:none;user-select:none;overflow-x:hidden}' +
-'.panel{border:2px solid var(--border);background:var(--card);margin-bottom:8px;padding:12px}' +
-'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card)}' +
+'.panel{border:2px solid var(--border);background:var(--card);margin-bottom:8px;padding:12px;border-radius:8px}' +
+'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card);border-radius:8px}' +
 '.label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}' +
 '.row{display:flex;align-items:center;gap:8px;margin-bottom:10px}' +
 '.row:last-child{margin-bottom:0}' +
@@ -35,7 +35,7 @@ export function getLinalgSimulationHTML(isDark: boolean, lang: string): string {
 '.ctrl-val{font-size:12px;font-family:monospace;color:var(--teal);min-width:42px;text-align:right;flex-shrink:0}' +
 'input[type=range]{flex:1;min-width:0;accent-color:var(--teal);height:20px}' +
 '.btn-row{display:flex;gap:6px;margin-top:4px;flex-wrap:wrap}' +
-'.btn{flex:1;padding:10px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:11px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.3px;-webkit-tap-highlight-color:transparent;min-width:54px}' +
+'.btn{flex:1;padding:10px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:11px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.3px;-webkit-tap-highlight-color:transparent;min-width:54px;border-radius:8px}' +
 '.btn:active{opacity:0.7}' +
 '.btn-primary{background:var(--teal);border-color:var(--teal);color:#1A1816}' +
 '.toggle-row{display:flex;gap:6px;margin-bottom:8px}' +
@@ -43,7 +43,7 @@ export function getLinalgSimulationHTML(isDark: boolean, lang: string): string {
 '.toggle:active{opacity:0.7}' +
 '.toggle.on{border-color:var(--teal);color:var(--teal);background:var(--tealLight)}' +
 '.matrix-display{font-family:monospace;font-size:13px;text-align:center;color:var(--text);margin-bottom:8px;line-height:1.8}' +
-'.stats{font-family:monospace;font-size:11px;line-height:2;color:var(--text2)}' +
+'.stats{font-family:monospace;font-size:11px;line-height:2;color:var(--text2);border-radius:8px}' +
 '.stats .hi{color:var(--teal);font-weight:700}' +
 '.stats .warn{color:var(--accent);font-weight:700}' +
 '</style></head><body>' +

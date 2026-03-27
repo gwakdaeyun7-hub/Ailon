@@ -26,8 +26,8 @@ export function getSubsumptionSimulationHTML(isDark: boolean, lang: string): str
 '--accent:#F59E0B;--red:#F87171;--green:#4ADE80}' +
 '*{box-sizing:border-box;margin:0;padding:0}' +
 'body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);padding:0;-webkit-user-select:none;user-select:none;overflow-x:hidden}' +
-'.panel{border:2px solid var(--border);background:var(--card);margin-bottom:8px;padding:12px}' +
-'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card)}' +
+'.panel{border:2px solid var(--border);background:var(--card);margin-bottom:8px;padding:12px;border-radius:8px}' +
+'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card);border-radius:8px}' +
 '.label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}' +
 '.row{display:flex;align-items:center;gap:8px;margin-bottom:10px}' +
 '.row:last-child{margin-bottom:0}' +
@@ -35,11 +35,11 @@ export function getSubsumptionSimulationHTML(isDark: boolean, lang: string): str
 '.ctrl-val{font-size:12px;font-family:monospace;color:var(--teal);min-width:40px;text-align:right;flex-shrink:0}' +
 'input[type=range]{flex:1;min-width:0;accent-color:var(--teal);height:20px}' +
 '.btn-row{display:flex;gap:6px;margin-top:4px}' +
-'.btn{flex:1;padding:10px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent}' +
+'.btn{flex:1;padding:10px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent;border-radius:8px}' +
 '.btn:active{opacity:0.7}' +
 '.btn-primary{background:var(--teal);border-color:var(--teal);color:#1A1816}' +
 '.btn-stop{background:var(--accent);border-color:var(--accent);color:#1A1816}' +
-'.stats{font-family:monospace;font-size:11px;line-height:2;color:var(--text2)}' +
+'.stats{font-family:monospace;font-size:11px;line-height:2;color:var(--text2);border-radius:8px}' +
 '.stats .hi{color:var(--teal);font-weight:700}' +
 '.stats .warn{color:var(--accent);font-weight:700}' +
 '.stats .red{color:var(--red);font-weight:700}' +
@@ -86,6 +86,9 @@ export function getSubsumptionSimulationHTML(isDark: boolean, lang: string): str
 '<div class="row"><span class="ctrl-name" id="lbl-speed"></span>' +
 '<input type="range" id="slSpeed" min="5" max="30" value="15" oninput="onParam()">' +
 '<span class="ctrl-val" id="valSpeed"></span></div>' +
+'<div class="btn-row" style="margin-bottom:6px">' +
+'<div class="btn" id="btnAILens" onclick="toggleAILens()"></div>' +
+'</div>' +
 '<div class="btn-row">' +
 '<div class="btn btn-primary" id="btnRun" onclick="onRun()"></div>' +
 '<div class="btn" id="btnAddObs" onclick="addRandomObs()"></div>' +
@@ -95,6 +98,7 @@ export function getSubsumptionSimulationHTML(isDark: boolean, lang: string): str
 // ── Stats ──
 '<div class="panel"><div class="label" id="lbl-stats"></div>' +
 '<div class="stats" id="statsBox"></div></div>' +
+'<div class="panel" id="panelAINote" style="display:none"><div class="stats" id="aiNoteBox"></div></div>' +
 
 '<script>' +
 'var LANG="' + lang + '";' +
@@ -107,7 +111,10 @@ export function getSubsumptionSimulationHTML(isDark: boolean, lang: string): str
 'addObs:"+ \\uC7A5\\uC560\\uBB3C",' +
 'activeLayer:"\\uD65C\\uC131 \\uB808\\uC774\\uC5B4",collisions:"\\uCDA9\\uB3CC",' +
 'goals:"\\uBAA9\\uD45C \\uB3C4\\uB2EC",time:"\\uC2DC\\uAC04",' +
-'tapHint:"\\uCE94\\uBC84\\uC2A4 \\uD130\\uCE58: \\uC7A5\\uC560\\uBB3C \\uCD94\\uAC00/\\uC81C\\uAC70, \\uAE38\\uAC8C \\uB204\\uB974\\uBA74 \\uBAA9\\uD45C \\uC774\\uB3D9"},' +
+'tapHint:"\\uCE94\\uBC84\\uC2A4 \\uD130\\uCE58: \\uC7A5\\uC560\\uBB3C \\uCD94\\uAC00/\\uC81C\\uAC70, \\uAE38\\uAC8C \\uB204\\uB974\\uBA74 \\uBAA9\\uD45C \\uC774\\uB3D9",' +
+'aiLensOn:"AI Lens ON",aiLensOff:"AI Lens OFF",' +
+'l0AI:"\\uC548\\uC804 \\uACC4\\uCE35 (Safety)",l1AI:"\\uD0D0\\uD5D8 (Explore)",l2AI:"\\uC791\\uC5C5 \\uC2E4\\uD589 (Task)",' +
+'aiNote:"\\uC6B0\\uC120\\uC21C\\uC704 \\uAE30\\uBC18 \\uC5B5\\uC81C = LLM Agent\\uC758 Safety > Tool > Task \\uAD6C\\uC870"},' +
 'en:{arena:"ARENA",layers:"LAYER STACK",' +
 'l0:"Avoid Obstacles",l1:"Wander",l2:"Seek Goal",' +
 'ctrl:"CONTROLS",range:"Sensor Range",speed:"Speed",' +
@@ -116,11 +123,15 @@ export function getSubsumptionSimulationHTML(isDark: boolean, lang: string): str
 'addObs:"+ Obstacle",' +
 'activeLayer:"Active Layer",collisions:"Collisions",' +
 'goals:"Goals Reached",time:"Time",' +
-'tapHint:"Tap: add/remove obstacle. Long-press: move goal"}' +
+'tapHint:"Tap: add/remove obstacle. Long-press: move goal",' +
+'aiLensOn:"AI Lens ON",aiLensOff:"AI Lens OFF",' +
+'l0AI:"Safety Layer",l1AI:"Exploration",l2AI:"Task Execution",' +
+'aiNote:"Priority-based suppression = LLM Agent: Safety > Tool > Task"}' +
 '};' +
 'var T=L[LANG]||L.en;' +
 
 // ── State ──
+'var aiLens=false;' +
 'var canvasW=300,canvasH=300;' +
 'var robot={x:50,y:50,angle:0,radius:12};' +
 'var goal={x:250,y:250};' +
@@ -315,7 +326,7 @@ export function getSubsumptionSimulationHTML(isDark: boolean, lang: string): str
 // ── Update stats ──
 'function updateStats(){' +
 'var box=document.getElementById("statsBox");' +
-'var layerNames=[T.l0,T.l1,T.l2];' +
+'var layerNames=aiLens?[T.l0AI,T.l1AI,T.l2AI]:[T.l0,T.l1,T.l2];' +
 'var aName=activeLayer>=0?layerNames[activeLayer]:"-";' +
 'var s="<span class=\\"hi\\">"+T.activeLayer+"</span> "+aName;' +
 's+="<br><span class=\\"red\\">"+T.collisions+"</span> "+collisions;' +
@@ -339,6 +350,18 @@ export function getSubsumptionSimulationHTML(isDark: boolean, lang: string): str
 'subsumptionStep();drawArena();updateStats();' +
 'animId=requestAnimationFrame(animate)}' +
 
+'function toggleAILens(){' +
+'aiLens=!aiLens;' +
+'document.getElementById("btnAILens").textContent=aiLens?T.aiLensOn:T.aiLensOff;' +
+'document.getElementById("btnAILens").className=aiLens?"btn btn-primary":"btn";' +
+'document.getElementById("lblL0").textContent=aiLens?T.l0AI:T.l0;' +
+'document.getElementById("lblL1").textContent=aiLens?T.l1AI:T.l1;' +
+'document.getElementById("lblL2").textContent=aiLens?T.l2AI:T.l2;' +
+'var aiPanel=document.getElementById("panelAINote");' +
+'if(aiLens){aiPanel.style.display="block";document.getElementById("aiNoteBox").innerHTML="<span class=\\"hi\\">"+T.aiNote+"</span>"}' +
+'else{aiPanel.style.display="none"}' +
+'updateStats();notifyHeight()}' +
+
 'function onRun(){' +
 'if(running){running=false;if(animId)cancelAnimationFrame(animId);' +
 'document.getElementById("btnRun").textContent=T.run;' +
@@ -360,6 +383,12 @@ export function getSubsumptionSimulationHTML(isDark: boolean, lang: string): str
 'running=false;if(animId)cancelAnimationFrame(animId);' +
 'document.getElementById("btnRun").textContent=T.run;' +
 'document.getElementById("btnRun").className="btn btn-primary";' +
+'aiLens=false;document.getElementById("btnAILens").textContent=T.aiLensOff;' +
+'document.getElementById("btnAILens").className="btn";' +
+'document.getElementById("lblL0").textContent=T.l0;' +
+'document.getElementById("lblL1").textContent=T.l1;' +
+'document.getElementById("lblL2").textContent=T.l2;' +
+'document.getElementById("panelAINote").style.display="none";' +
 'robot={x:50,y:50,angle:0,radius:12};' +
 'goal={x:canvasW-50,y:canvasH-50};' +
 'activeLayer=-1;collisions=0;goalsReached=0;simTime=0;wanderAngle=0;' +
@@ -416,6 +445,7 @@ export function getSubsumptionSimulationHTML(isDark: boolean, lang: string): str
 'document.getElementById("btnAddObs").textContent=T.addObs;' +
 'document.getElementById("btnReset").textContent=T.reset;' +
 'document.getElementById("hintTap").textContent=T.tapHint;' +
+'document.getElementById("btnAILens").textContent=T.aiLensOff;' +
 'var dim=setupCanvas(cvArena,300);canvasW=dim.w;canvasH=dim.h;' +
 'readParams();defaultObstacles();' +
 'goal={x:canvasW-50,y:canvasH-50};' +

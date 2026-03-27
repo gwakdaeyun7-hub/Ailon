@@ -7,6 +7,7 @@
  * - Frequency spectrum bar chart with tap-to-highlight
  * - Preset signals: Sine, Square, Triangle, Sawtooth
  * - Draw mode: freehand custom waveform
+ * - "AI Feature Mode" toggle: relabels as CNN filters / feature maps
  * - MSE error display
  * - Dark/light theme, Korean/English bilingual
  */
@@ -26,8 +27,8 @@ export function getFourierSimulationHTML(isDark: boolean, lang: string): string 
 '--accent:#F59E0B;--red:#F87171;--green:#4ADE80}' +
 '*{box-sizing:border-box;margin:0;padding:0}' +
 'body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);padding:0;-webkit-user-select:none;user-select:none;overflow-x:hidden}' +
-'.panel{border:2px solid var(--border);background:var(--card);margin-bottom:8px;padding:12px}' +
-'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card)}' +
+'.panel{border:2px solid var(--border);background:var(--card);margin-bottom:8px;padding:12px;border-radius:8px}' +
+'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card);border-radius:8px}' +
 '.label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}' +
 '.row{display:flex;align-items:center;gap:8px;margin-bottom:10px}' +
 '.row:last-child{margin-bottom:0}' +
@@ -35,15 +36,15 @@ export function getFourierSimulationHTML(isDark: boolean, lang: string): string 
 '.ctrl-val{font-size:12px;font-family:monospace;color:var(--teal);min-width:50px;text-align:right;flex-shrink:0}' +
 'input[type=range]{flex:1;min-width:0;accent-color:var(--teal);height:20px}' +
 '.btn-row{display:flex;gap:6px;margin-top:4px}' +
-'.btn{flex:1;padding:10px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent}' +
+'.btn{flex:1;padding:10px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent;border-radius:8px}' +
 '.btn:active{opacity:0.7}' +
 '.btn-primary{background:var(--teal);border-color:var(--teal);color:#1A1816}' +
 '.btn-stop{background:var(--accent);border-color:var(--accent);color:#1A1816}' +
 '.preset-row{display:flex;gap:6px;margin-bottom:8px}' +
-'.preset{flex:1;padding:12px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:10px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.3px}' +
+'.preset{flex:1;padding:12px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:10px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.3px;border-radius:8px}' +
 '.preset:active{opacity:0.7}' +
 '.preset.active{border-color:var(--teal);color:var(--teal)}' +
-'.stats{font-family:monospace;font-size:11px;line-height:2;color:var(--text2)}' +
+'.stats{font-family:monospace;font-size:11px;line-height:2;color:var(--text2);border-radius:8px}' +
 '.stats .hi{color:var(--teal);font-weight:700}' +
 '.stats .warn{color:var(--accent);font-weight:700}' +
 '.legend-row{display:flex;gap:12px;margin-top:6px;flex-wrap:wrap}' +
@@ -78,6 +79,9 @@ export function getFourierSimulationHTML(isDark: boolean, lang: string): string 
 '<div class="row"><span class="ctrl-name" id="cn-harm"></span>' +
 '<input type="range" id="slN" min="1" max="30" value="5" oninput="onSlider()">' +
 '<span class="ctrl-val" id="valN"></span></div>' +
+'<div class="btn-row">' +
+'<div class="btn" id="btnAI" onclick="toggleAI()"></div>' +
+'</div>' +
 '</div>' +
 
 // -- Stats Panel --
@@ -95,14 +99,22 @@ export function getFourierSimulationHTML(isDark: boolean, lang: string): string 
 'sine:"\\uC0AC\\uC778",square:"\\uC0AC\\uAC01\\uD30C",triangle:"\\uC0BC\\uAC01\\uD30C",sawtooth:"\\uD1B1\\uB2C8\\uD30C",draw:"\\uADF8\\uB9AC\\uAE30",' +
 'nHarm:"\\uACE0\\uC870\\uD30C",drawHint:"\\uCE94\\uBC84\\uC2A4 \\uC704\\uB97C \\uB4DC\\uB798\\uADF8\\uD558\\uC5EC \\uC0AC\\uC6A9\\uC790 \\uD30C\\uD615\\uC744 \\uADF8\\uB9AC\\uC138\\uC694",' +
 'energy:"\\uC5D0\\uB108\\uC9C0",tapBar:"\\uB9C9\\uB300\\uB97C \\uD0ED\\uD558\\uC5EC \\uAC1C\\uBCC4 \\uC131\\uBD84 \\uD655\\uC778",' +
-'highlighted:"\\uAC15\\uC870 \\uC131\\uBD84"},' +
+'highlighted:"\\uAC15\\uC870 \\uC131\\uBD84",' +
+'aiOn:"AI \\uD2B9\\uC9D5 \\uBAA8\\uB4DC ON",aiOff:"AI \\uD2B9\\uC9D5 \\uBAA8\\uB4DC OFF",' +
+'aiSpec:"\\uD2B9\\uC9D5 \\uB9F5",aiOrigSig:"\\uC785\\uB825 \\uB370\\uC774\\uD130",aiReconSig:"\\uD2B9\\uC9D5\\uC73C\\uB85C \\uBCF5\\uC6D0",' +
+'aiHarm:"\\uD544\\uD130 \\uC218(N)",aiNHarm:"\\uD544\\uD130",' +
+'aiNote:"AI \\uAD00\\uC810: Fourier \\uBD84\\uD574 = CNN\\uC758 \\uD2B9\\uC9D5 \\uCD94\\uCD9C. \\uAC01 \\uC8FC\\uD30C\\uC218 \\uC131\\uBD84 = \\uD559\\uC2B5\\uB41C \\uD544\\uD130\\uC758 \\uC751\\uB2F5"},' +
 'en:{wave:"WAVEFORM",spec:"FREQUENCY SPECTRUM",ctrl:"PARAMETERS",' +
 'stats:"STATISTICS",origSig:"Original Signal",reconSig:"Reconstructed",' +
 'harm:"Harmonics(N)",error:"Error(MSE)",' +
 'sine:"Sine",square:"Square",triangle:"Triangle",sawtooth:"Sawtooth",draw:"Draw",' +
 'nHarm:"Harmonics",drawHint:"Drag on canvas above to draw custom waveform",' +
 'energy:"Energy",tapBar:"Tap a bar to highlight that component",' +
-'highlighted:"Highlighted"}' +
+'highlighted:"Highlighted",' +
+'aiOn:"AI FEATURE MODE ON",aiOff:"AI FEATURE MODE OFF",' +
+'aiSpec:"Feature Map",aiOrigSig:"Input Data",aiReconSig:"Reconstructed from Features",' +
+'aiHarm:"Filters(N)",aiNHarm:"Filters",' +
+'aiNote:"AI perspective: Fourier decomposition = CNN feature extraction. Each frequency = learned filter response"}' +
 '};' +
 'var T=L[LANG]||L.en;' +
 
@@ -114,6 +126,7 @@ export function getFourierSimulationHTML(isDark: boolean, lang: string): string 
 'var drawMode=false;' +
 'var isDrawing=false;' +
 'var highlightK=-1;' + // tapped bar index (-1=none)
+'var aiMode=false;' +
 // DFT result
 'var freqRe=[];var freqIm=[];var freqMag=[];' +
 
@@ -234,9 +247,11 @@ export function getFourierSimulationHTML(isDark: boolean, lang: string): string 
 // x labels
 'ctx.fillStyle=textC;ctx.font="8px monospace";ctx.textAlign="center";' +
 'for(var k=1;k<=maxBars;k+=Math.max(1,Math.floor(maxBars/10))){' +
-'var bx=pad+(k-1)/maxBars*pw+1+barW/2;ctx.fillText(k+"",bx,h-pb+12)}' +
+'var bx=pad+(k-1)/maxBars*pw+1+barW/2;' +
+'var xLbl=aiMode?("F"+k):(""+k);' +
+'ctx.fillText(xLbl,bx,h-pb+12)}' +
 // N label
-'ctx.fillText("N="+nHarm,pad+pw/2,pt+10);' +
+'ctx.fillText((aiMode?"N=":"N=")+nHarm,pad+pw/2,pt+10);' +
 '}' +
 
 // -- Spectrum tap handler --
@@ -287,6 +302,16 @@ export function getFourierSimulationHTML(isDark: boolean, lang: string): string 
 'document.getElementById("valN").textContent="N="+nHarm;' +
 'highlightK=-1;drawWave();drawSpectrum();updateStats()}' +
 
+// -- AI Mode toggle --
+'function toggleAI(){' +
+'aiMode=!aiMode;' +
+'document.getElementById("btnAI").textContent=aiMode?T.aiOn:T.aiOff;' +
+'document.getElementById("lbl-spec").textContent=aiMode?T.aiSpec:T.spec;' +
+'document.getElementById("cn-harm").textContent=aiMode?T.aiHarm:T.harm;' +
+'document.getElementById("leg-orig").textContent=aiMode?T.aiOrigSig:T.origSig;' +
+'document.getElementById("leg-recon").textContent=aiMode?T.aiReconSig:T.reconSig;' +
+'drawWave();drawSpectrum();updateStats();notifyHeight()}' +
+
 // -- Stats --
 'function updateStats(){' +
 'var box=document.getElementById("statsBox");' +
@@ -294,11 +319,12 @@ export function getFourierSimulationHTML(isDark: boolean, lang: string): string 
 'var totalE=0;for(var k=0;k<N_SAMPLES;k++)totalE+=freqMag[k]*freqMag[k];' +
 'var partE=freqMag[0]*freqMag[0];for(var k=1;k<=nHarm&&k<N_SAMPLES/2;k++)partE+=2*freqMag[k]*freqMag[k];' +
 'var pct=totalE>0?(partE/totalE*100).toFixed(1):"100.0";' +
-'var s="<span class=\\"hi\\">"+T.nHarm+"</span> "+nHarm+" / 30<br>";' +
+'var s="<span class=\\"hi\\">"+(aiMode?T.aiNHarm:T.nHarm)+"</span> "+nHarm+" / 30<br>";' +
 's+=T.error+": <span class=\\"warn\\">"+mse.toFixed(6)+"</span><br>";' +
 's+=T.energy+": <span class=\\"hi\\">"+pct+"%</span><br>";' +
 'if(highlightK>0){s+=T.highlighted+": <span class=\\"warn\\">k="+highlightK+" (|X|="+freqMag[highlightK].toFixed(4)+")</span><br>"}' +
 's+="<br><span class=\\"warn\\">"+T.tapBar+"</span>";' +
+'if(aiMode){s+="<br><br><span class=\\"hi\\">"+T.aiNote+"</span>"}' +
 'box.innerHTML=s}' +
 
 // -- Height notification --
@@ -320,6 +346,7 @@ export function getFourierSimulationHTML(isDark: boolean, lang: string): string 
 'document.getElementById("leg-orig").textContent=T.origSig;' +
 'document.getElementById("leg-recon").textContent=T.reconSig;' +
 'document.getElementById("drawHint").textContent=T.drawHint;' +
+'document.getElementById("btnAI").textContent=T.aiOff;' +
 
 // -- Init --
 'document.getElementById("valN").textContent="N="+nHarm;' +

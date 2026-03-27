@@ -25,20 +25,20 @@ export function getVisualCortexSimulationHTML(isDark: boolean, lang: string): st
 '--accent:#F59E0B;--red:#F87171;--green:#4ADE80}' +
 '*{box-sizing:border-box;margin:0;padding:0}' +
 'body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);padding:0;-webkit-user-select:none;user-select:none;overflow-x:hidden}' +
-'.panel{border:2px solid var(--border);background:var(--card);margin-bottom:8px;padding:12px}' +
-'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card)}' +
+'.panel{border:2px solid var(--border);background:var(--card);margin-bottom:8px;padding:12px;border-radius:8px}' +
+'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card);border-radius:8px}' +
 '.label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}' +
 '.row{display:flex;align-items:center;gap:8px;margin-bottom:10px}' +
 '.row:last-child{margin-bottom:0}' +
 '.btn-row{display:flex;gap:6px;margin-top:4px}' +
-'.btn{flex:1;padding:10px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent}' +
+'.btn{flex:1;padding:10px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent;border-radius:8px}' +
 '.btn:active{opacity:0.7}' +
 '.btn-primary{background:var(--teal);border-color:var(--teal);color:#1A1816}' +
-'.stats{font-family:monospace;font-size:11px;line-height:2;color:var(--text2)}' +
+'.stats{font-family:monospace;font-size:11px;line-height:2;color:var(--text2);border-radius:8px}' +
 '.stats .hi{color:var(--teal);font-weight:700}' +
 '.stats .warn{color:var(--accent);font-weight:700}' +
 '.preset-row{display:flex;gap:6px;margin-bottom:8px}' +
-'.preset{flex:1;padding:12px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:10px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.3px}' +
+'.preset{flex:1;padding:12px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:10px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.3px;border-radius:8px}' +
 '.preset:active{opacity:0.7}' +
 '.preset.active{border-color:var(--teal);color:var(--teal)}' +
 '.kernel-box{display:inline-block;margin:4px;padding:2px;border:2px solid transparent;vertical-align:top}' +
@@ -68,27 +68,35 @@ export function getVisualCortexSimulationHTML(isDark: boolean, lang: string): st
 '<div class="panel"><div class="label" id="lbl-kernel"></div>' +
 '<div class="stats" id="kernelBox"></div></div>' +
 
+// ── AI Bridge Annotation ──
+'<div class="panel" style="text-align:center;padding:10px">' +
+'<span style="font-size:11px;font-weight:700;color:var(--teal)" id="aiBridgeLabel"></span></div>' +
+
 '<script>' +
 'var LANG="' + lang + '";' +
 
 // ── Labels ──
 'var L={' +
-'ko:{input:"\\uC785\\uB825 \\uC774\\uBBF8\\uC9C0 (8\\u00D78)",v1:"V1 \\u2014 \\uC5E3\\uC9C0 \\uAC10\\uC9C0",' +
-'v2:"V2 \\u2014 \\uD2B9\\uC9D5 \\uACB0\\uD569 + \\uC778\\uC2DD",kernel:"\\uD544\\uD130 \\uCEE4\\uB110",' +
+'ko:{input:"\\uC785\\uB825 \\uC774\\uBBF8\\uC9C0 (8\\u00D78)",v1:"V1 \\uB2E8\\uC21C\\uC138\\uD3EC = Conv Layer 1 \\u2014 \\uC5E3\\uC9C0 \\uAC10\\uC9C0",' +
+'v2:"V2 \\uBCF5\\uD569\\uC138\\uD3EC = Pooling \\u2014 \\uD2B9\\uC9D5 \\uACB0\\uD569 + \\uC778\\uC2DD",kernel:"\\uD544\\uD130 \\uCEE4\\uB110",' +
 'preV:"\\uC218\\uC9C1\\uC120",preC:"\\uCF54\\uB108",preX:"\\uC2ED\\uC790",preD:"\\uB300\\uAC01\\uC120",clear:"\\uC9C0\\uC6B0\\uAE30",' +
-'hori:"\\uC218\\uD3C9",vert:"\\uC218\\uC9C1",diagR:"\\uB300\\uAC01(\\\\)",diagL:"\\uB300\\uAC01(/)",' +
+'hori:"\\uC218\\uD3C9 = H-\\uD544\\uD130",vert:"\\uC218\\uC9C1 = V-\\uD544\\uD130",diagR:"\\uB300\\uAC01(\\\\)",diagL:"\\uB300\\uAC01(/)",' +
 'pool:"\\uD480\\uB9C1",recog:"\\uC778\\uC2DD",' +
 'edge:"\\uC5E3\\uC9C0",corner:"\\uCF54\\uB108",cross:"\\uC2ED\\uC790",blob:"\\uBE14\\uB86D",diag:"\\uB300\\uAC01\\uC120",none:"\\uC5C6\\uC74C",' +
 'tapFilter:"\\uD544\\uD130 \\uCD9C\\uB825\\uC744 \\uD0ED\\uD558\\uBA74 \\uCEE4\\uB110\\uC774 \\uD45C\\uC2DC\\uB429\\uB2C8\\uB2E4",' +
-'selFilter:"\\uC120\\uD0DD\\uB41C \\uD544\\uD130",drawHint:"\\uADF8\\uB9AC\\uB4DC\\uB97C \\uD0ED/\\uB4DC\\uB798\\uADF8\\uD558\\uC5EC \\uADF8\\uB9AC\\uC138\\uC694"},' +
-'en:{input:"INPUT IMAGE (8\\u00D78)",v1:"V1 \\u2014 EDGE DETECTION",' +
-'v2:"V2 \\u2014 FEATURE COMBINATION + RECOGNITION",kernel:"FILTER KERNEL",' +
+'selFilter:"\\uC120\\uD0DD\\uB41C \\uD544\\uD130",drawHint:"\\uADF8\\uB9AC\\uB4DC\\uB97C \\uD0ED/\\uB4DC\\uB798\\uADF8\\uD558\\uC5EC \\uADF8\\uB9AC\\uC138\\uC694",' +
+'aiBridge:"Hubel & Wiesel(1959): \\uC2DC\\uAC01 \\uD53C\\uC9C8 \\uB274\\uB7F0\\uC774 \\uD2B9\\uC815 \\uBC29\\uD5A5\\uC5D0 \\uC120\\uD0DD\\uC801\\uC73C\\uB85C \\uBC18\\uC751 \\u2192 CNN\\uC758 \\uC9C1\\uC811\\uC801 \\uC601\\uAC10",' +
+'orientLabel:"\\uBC29\\uD5A5 \\uC120\\uD0DD\\uC131 = \\uC5E3\\uC9C0 \\uAC80\\uCD9C \\uD544\\uD130"},' +
+'en:{input:"INPUT IMAGE (8\\u00D78)",v1:"V1 SIMPLE CELL = Conv Layer 1 \\u2014 EDGE DETECTION",' +
+'v2:"V2 COMPLEX CELL = Pooling \\u2014 FEATURE COMBINATION + RECOGNITION",kernel:"FILTER KERNEL",' +
 'preV:"Vert Line",preC:"Corner",preX:"Cross",preD:"Diagonal",clear:"Clear",' +
-'hori:"Horizontal",vert:"Vertical",diagR:"Diag(\\\\)",diagL:"Diag(/)",' +
+'hori:"Horiz = H-Filter",vert:"Vert = V-Filter",diagR:"Diag(\\\\)",diagL:"Diag(/)",' +
 'pool:"Pooling",recog:"Recognition",' +
 'edge:"Edge",corner:"Corner",cross:"Cross",blob:"Blob",diag:"Diagonal",none:"None",' +
 'tapFilter:"Tap a filter output to see the kernel",selFilter:"Selected Filter",' +
-'drawHint:"Tap/drag to draw on the grid"}' +
+'drawHint:"Tap/drag to draw on the grid",' +
+'aiBridge:"Hubel & Wiesel(1959): Visual cortex neurons respond selectively to orientations \\u2192 Direct inspiration for CNNs",' +
+'orientLabel:"Orientation Selectivity = Edge Detection Filter"}' +
 '};' +
 'var T=L[LANG]||L.en;' +
 
@@ -342,6 +350,7 @@ export function getVisualCortexSimulationHTML(isDark: boolean, lang: string): st
 'document.getElementById("pre2").textContent=T.preX;' +
 'document.getElementById("pre3").textContent=T.preD;' +
 'document.getElementById("preClear").textContent=T.clear;' +
+'document.getElementById("aiBridgeLabel").textContent=T.aiBridge;' +
 
 // ── Init ──
 'initGrid();compute();' +

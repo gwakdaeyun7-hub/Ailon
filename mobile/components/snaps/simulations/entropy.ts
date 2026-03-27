@@ -26,23 +26,23 @@ export function getEntropySimulationHTML(isDark: boolean, lang: string): string 
 '--accent:#F59E0B;--red:#F87171;--green:#4ADE80}' +
 '*{box-sizing:border-box;margin:0;padding:0}' +
 'body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);padding:0;-webkit-user-select:none;user-select:none;overflow-x:hidden}' +
-'.panel{border:2px solid var(--border);background:var(--card);margin-bottom:8px;padding:12px}' +
-'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card)}' +
+'.panel{border:2px solid var(--border);background:var(--card);margin-bottom:8px;padding:12px;border-radius:8px}' +
+'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card);border-radius:8px}' +
 '.label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}' +
 '.row{display:flex;align-items:center;gap:8px;margin-bottom:10px}' +
 '.row:last-child{margin-bottom:0}' +
 '.ctrl-name{font-size:12px;font-weight:600;color:var(--text);min-width:56px;flex-shrink:0}' +
 '.ctrl-val{font-size:12px;font-family:monospace;color:var(--teal);min-width:50px;text-align:right;flex-shrink:0}' +
 '.btn-row{display:flex;gap:6px;margin-top:4px}' +
-'.btn{flex:1;padding:10px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent}' +
+'.btn{flex:1;padding:10px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent;border-radius:8px}' +
 '.btn:active{opacity:0.7}' +
 '.btn-primary{background:var(--teal);border-color:var(--teal);color:#1A1816}' +
 '.btn-stop{background:var(--accent);border-color:var(--accent);color:#1A1816}' +
-'.stats{font-family:monospace;font-size:11px;line-height:2;color:var(--text2)}' +
+'.stats{font-family:monospace;font-size:11px;line-height:2;color:var(--text2);border-radius:8px}' +
 '.stats .hi{color:var(--teal);font-weight:700}' +
 '.stats .warn{color:var(--accent);font-weight:700}' +
 '.preset-row{display:flex;gap:6px;margin-bottom:8px}' +
-'.preset{flex:1;padding:12px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:10px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.3px}' +
+'.preset{flex:1;padding:12px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:10px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.3px;border-radius:8px}' +
 '.preset:active{opacity:0.7}' +
 '.preset.active{border-color:var(--teal);color:var(--teal)}' +
 '</style></head><body>' +
@@ -82,14 +82,22 @@ export function getEntropySimulationHTML(isDark: boolean, lang: string): string 
 'entropy:"\\uC100\\uB10C \\uC5D4\\uD2B8\\uB85C\\uD53C",prob:"\\uD655\\uB960",surprise:"\\uB180\\uB77C\\uC6C0",info:"\\uC815\\uBCF4\\uB7C9",' +
 'crossEntropy:"\\uAD50\\uCC28 \\uC5D4\\uD2B8\\uB85C\\uD53C",trueP:"\\uC2E4\\uC81C \\uBD84\\uD3EC(P)",modelQ:"\\uBAA8\\uB378 \\uBD84\\uD3EC(Q)",' +
 'avgSurprise:"\\uD3C9\\uADE0 \\uB180\\uB77C\\uC6C0",converges:"\\u2192 H\\uB85C \\uC218\\uB834",' +
-'dragTip:"\\uB9C9\\uB300 \\uB4DC\\uB798\\uADF8\\uB85C \\uD655\\uB960 \\uC870\\uC808"},' +
+'dragTip:"\\uB9C9\\uB300 \\uB4DC\\uB798\\uADF8\\uB85C \\uD655\\uB960 \\uC870\\uC808",' +
+'aiLens:"AI\\uC5D0\\uC11C: \\uD655\\uB960 \\uBD84\\uD3EC = \\uBAA8\\uB378 \\uC608\\uCE21, \\uD06C\\uB85C\\uC2A4 \\uC5D4\\uD2B8\\uB85C\\uD53C = \\uBD84\\uB958 \\uC190\\uC2E4 \\uD568\\uC218",' +
+'aiModelPred:"\\uBAA8\\uB378 \\uC608\\uCE21 \\uD655\\uB960",' +
+'aiTrueLabel:"\\uC815\\uB2F5 \\uBD84\\uD3EC",' +
+'barsAI:"AI \\uBD84\\uB958 \\uC190\\uC2E4 (\\uD06C\\uB85C\\uC2A4 \\uC5D4\\uD2B8\\uB85C\\uD53C)"},' +
 'en:{bars:"PROBABILITY DISTRIBUTION",ctrl:"CONTROLS",stats:"STATISTICS",trials:"TRIAL RESULTS",' +
 'coin:"Coin",die:"Die",certain:"Certain",uniform:"Uniform",' +
 'runTrials:"100 Trials",crossOn:"Cross-Entropy ON",crossOff:"Cross-Entropy OFF",reset:"\\u21BA Reset",' +
 'entropy:"Shannon Entropy",prob:"Probability",surprise:"Surprise",info:"Information",' +
 'crossEntropy:"Cross-Entropy",trueP:"True Dist(P)",modelQ:"Model Dist(Q)",' +
 'avgSurprise:"Avg Surprise",converges:"\\u2192 converges to H",' +
-'dragTip:"Drag bar tops to adjust probability"}' +
+'dragTip:"Drag bar tops to adjust probability",' +
+'aiLens:"In AI: probability distribution = model prediction, cross-entropy = classification loss",' +
+'aiModelPred:"Model Prediction",' +
+'aiTrueLabel:"True Label Dist",' +
+'barsAI:"AI CLASSIFICATION LOSS (CROSS-ENTROPY)"}' +
 '};' +
 'var T=L[LANG]||L.en;' +
 
@@ -97,7 +105,7 @@ export function getEntropySimulationHTML(isDark: boolean, lang: string): string 
 'var P=[0.25,0.25,0.25,0.25];' +
 'var Q=[0.25,0.25,0.25,0.25];' +
 'var showCross=false;' +
-'var COLORS=["#5EEAD4","#F59E0B","#4ADE80","#F87171","#A78BFA","#FB923C"];' +
+'var COLORS=["#5EEAD4","#F59E0B","#4ADE80","#F87171","#78716C","#DC2626"];' +
 'var LABELS=["A","B","C","D","E","F"];' +
 'var trialData=[];' +
 'var dragging=-1;var dragIsQ=false;' +
@@ -164,7 +172,7 @@ export function getEntropySimulationHTML(isDark: boolean, lang: string): string 
 'ctx.strokeRect(x,by,barW,bh);' +
 // label
 'ctx.fillStyle=textC;ctx.font="11px -apple-system,sans-serif";ctx.textAlign="center";' +
-'ctx.fillText(LABELS[i],x+barW/2,h-pb+14);' +
+'ctx.fillText(showCross?"C"+(i+1):LABELS[i],x+barW/2,h-pb+14);' +
 // probability text
 'ctx.fillStyle=text3C;ctx.font="9px monospace";' +
 'ctx.fillText(P[i].toFixed(2),x+barW/2,by-4);' +
@@ -183,9 +191,9 @@ export function getEntropySimulationHTML(isDark: boolean, lang: string): string 
 // legend for cross-entropy mode
 'if(showCross){' +
 'ctx.fillStyle=tealC;ctx.font="10px -apple-system,sans-serif";ctx.textAlign="left";' +
-'ctx.fillRect(pad+4,pt+4,10,10);ctx.fillStyle=text3C;ctx.fillText(T.trueP,pad+18,pt+13);' +
-'ctx.fillStyle=accentC;ctx.globalAlpha=0.5;ctx.fillRect(pad+90,pt+4,10,10);ctx.globalAlpha=1;' +
-'ctx.fillStyle=text3C;ctx.fillText(T.modelQ,pad+104,pt+13)}' +
+'ctx.fillRect(pad+4,pt+4,10,10);ctx.fillStyle=text3C;ctx.fillText(T.trueP+" / "+T.aiTrueLabel,pad+18,pt+13);' +
+'ctx.fillStyle=accentC;ctx.globalAlpha=0.5;ctx.fillRect(pad+4,pt+20,10,10);ctx.globalAlpha=1;' +
+'ctx.fillStyle=text3C;ctx.fillText(T.modelQ+" / "+T.aiModelPred,pad+18,pt+29)}' +
 '}' +
 
 // ── Draw trials mini-graph ──
@@ -299,6 +307,7 @@ export function getEntropySimulationHTML(isDark: boolean, lang: string): string 
 'showCross=!showCross;' +
 'document.getElementById("btnCross").textContent=showCross?T.crossOff:T.crossOn;' +
 'document.getElementById("btnCross").className=showCross?"btn btn-stop":"btn";' +
+'document.getElementById("lbl-bars").textContent=showCross?T.barsAI:T.bars;' +
 // reset Q to uniform
 'Q=[];for(var i=0;i<P.length;i++)Q.push(1/P.length);' +
 'drawBars();updateStats();notifyHeight()}' +
@@ -310,6 +319,7 @@ export function getEntropySimulationHTML(isDark: boolean, lang: string): string 
 'document.getElementById("trialsPanel").style.display="none";' +
 'document.getElementById("btnCross").textContent=T.crossOn;' +
 'document.getElementById("btnCross").className="btn";' +
+'document.getElementById("lbl-bars").textContent=T.bars;' +
 'for(var i=0;i<4;i++){document.getElementById("pre"+i).className=(i===3)?"preset active":"preset"}' +
 'drawBars();updateStats();notifyHeight()}' +
 
@@ -322,7 +332,8 @@ export function getEntropySimulationHTML(isDark: boolean, lang: string): string 
 'var surp=P[i]>0.0001?-log2(P[i]):0;' +
 's+=LABELS[i]+": p="+P[i].toFixed(3)+", "+T.surprise+"="+surp.toFixed(2)+" bits<br>"}' +
 'if(showCross){var HCross=crossEntropy(P,Q);' +
-'s+="<br><span class=\\"warn\\">"+T.crossEntropy+"</span> H(P,Q) = "+HCross.toFixed(4)+" bits"}' +
+'s+="<br><span class=\\"warn\\">"+T.crossEntropy+"</span> H(P,Q) = "+HCross.toFixed(4)+" bits";' +
+'s+="<br><br><span style=\\"font-size:10px;color:var(--teal);font-style:italic\\">"+T.aiLens+"</span>"}' +
 'if(!showCross&&trialData.length===0){s+="<br>"+T.dragTip}' +
 'box.innerHTML=s}' +
 

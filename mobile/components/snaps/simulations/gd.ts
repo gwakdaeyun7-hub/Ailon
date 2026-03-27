@@ -26,8 +26,8 @@ export function getGDSimulationHTML(isDark: boolean, lang: string): string {
 '--accent:#F59E0B;--red:#F87171;--green:#4ADE80}' +
 '*{box-sizing:border-box;margin:0;padding:0}' +
 'body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);padding:0;-webkit-user-select:none;user-select:none;overflow-x:hidden}' +
-'.panel{border:2px solid var(--border);background:var(--card);margin-bottom:8px;padding:12px}' +
-'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card)}' +
+'.panel{border:2px solid var(--border);background:var(--card);margin-bottom:8px;padding:12px;border-radius:8px}' +
+'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card);border-radius:8px}' +
 '.label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}' +
 '.row{display:flex;align-items:center;gap:8px;margin-bottom:10px}' +
 '.row:last-child{margin-bottom:0}' +
@@ -35,13 +35,13 @@ export function getGDSimulationHTML(isDark: boolean, lang: string): string {
 '.ctrl-val{font-size:12px;font-family:monospace;color:var(--teal);min-width:50px;text-align:right;flex-shrink:0}' +
 '.ctrl-hint{font-size:10px;color:var(--text3);margin-top:-6px;margin-bottom:8px;padding-left:60px}' +
 'input[type=range]{flex:1;min-width:0;accent-color:var(--teal);height:20px}' +
-'select{width:100%;padding:8px 10px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;font-weight:600;-webkit-appearance:none;appearance:none}' +
+'select{width:100%;padding:8px 10px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;font-weight:600;-webkit-appearance:none;appearance:none;border-radius:8px}' +
 '.btn-row{display:flex;gap:6px;margin-top:4px}' +
-'.btn{flex:1;padding:10px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent}' +
+'.btn{flex:1;padding:10px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent;border-radius:8px}' +
 '.btn:active{opacity:0.7}' +
 '.btn-primary{background:var(--teal);border-color:var(--teal);color:#1A1816}' +
 '.btn-stop{background:var(--accent);border-color:var(--accent);color:#1A1816}' +
-'.stats{font-family:monospace;font-size:11px;line-height:2;color:var(--text2)}' +
+'.stats{font-family:monospace;font-size:11px;line-height:2;color:var(--text2);border-radius:8px}' +
 '.stats .hi{color:var(--teal);font-weight:700}' +
 '.stats .warn{color:var(--accent);font-weight:700}' +
 '.stats .gn{color:var(--green);font-weight:700}' +
@@ -80,6 +80,7 @@ export function getGDSimulationHTML(isDark: boolean, lang: string): string {
 '<div class="panel"><div class="btn-row">' +
 '<div class="btn btn-primary" id="btnRun" onclick="onRun()"></div>' +
 '<div class="btn" id="btnStep" onclick="onStep()"></div>' +
+'<div class="btn" id="btnGrad" onclick="toggleGrad()"></div>' +
 '<div class="btn" id="btnReset" onclick="onReset()"></div>' +
 '</div></div>' +
 
@@ -103,7 +104,9 @@ export function getGDSimulationHTML(isDark: boolean, lang: string): string {
 'vanilla:"Vanilla GD",momentum:"Momentum",adam:"Adam",' +
 'pos:"\\uC704\\uCE58",fval:"\\uD568\\uC218\\uAC12",iterN:"\\uBC18\\uBCF5",' +
 'tapHint:"\\uD0ED\\uD558\\uC5EC \\uC2DC\\uC791\\uC810\\uC744 \\uC124\\uC815\\uD558\\uC138\\uC694",' +
-'waiting:"\\uD30C\\uB77C\\uBBF8\\uD130\\uB97C \\uC870\\uC808\\uD558\\uACE0 \\uC2E4\\uD589\\uC744 \\uB20C\\uB7EC\\uBCF4\\uC138\\uC694"},' +
+'waiting:"\\uD30C\\uB77C\\uBBF8\\uD130\\uB97C \\uC870\\uC808\\uD558\\uACE0 \\uC2E4\\uD589\\uC744 \\uB20C\\uB7EC\\uBCF4\\uC138\\uC694",' +
+'gradOn:"\\uADF8\\uB798\\uB514\\uC5B8\\uD2B8 ON",gradOff:"\\uADF8\\uB798\\uB514\\uC5B8\\uD2B8 OFF",' +
+'gradHint:"\\uD654\\uC0B4\\uD45C = \\uAC00\\uC7A5 \\uAC00\\uD30C\\uB978 \\uD558\\uAC15 \\uBC29\\uD5A5 (\\uADF8\\uB798\\uB514\\uC5B8\\uD2B8). \\uBAA8\\uB4E0 \\uB525\\uB7EC\\uB2DD \\uD559\\uC2B5\\uC758 \\uC218\\uD559\\uC801 \\uAE30\\uBC18"},' +
 'en:{func:"OBJECTIVE FUNCTION",contour:"CONTOUR PLOT",params:"PARAMETERS",' +
 'lr:"Learn Rate",beta:"Momentum",iter:"Iterations",speed:"Anim Speed",' +
 'run:"\\u25B6 Run",pause:"\\u23F8 Pause",step:"\\u23ED Step",reset:"\\u21BA Reset",' +
@@ -113,7 +116,9 @@ export function getGDSimulationHTML(isDark: boolean, lang: string): string {
 'vanilla:"Vanilla GD",momentum:"Momentum",adam:"Adam",' +
 'pos:"Pos",fval:"f(x,y)",iterN:"Iter",' +
 'tapHint:"Tap to set starting point",' +
-'waiting:"Adjust parameters and press Run"}' +
+'waiting:"Adjust parameters and press Run",' +
+'gradOn:"Gradient ON",gradOff:"Gradient OFF",' +
+'gradHint:"Arrows = steepest descent direction (gradient). Mathematical foundation of all deep learning"}' +
 '};' +
 'var T=L[LANG]||L.en;' +
 
@@ -136,6 +141,7 @@ export function getGDSimulationHTML(isDark: boolean, lang: string): string {
 // Adam state
 'var ax,ay,am_x=0,am_y=0,av_x=0,av_y=0;var aTrail=[];var aHist=[];' +
 'var contourCache=null;' +
+'var showGrad=false;' +
 
 // ── DOM refs ────────────────────────────────────────────────────────
 'var cvContour=document.getElementById("cvContour");' +
@@ -155,6 +161,7 @@ export function getGDSimulationHTML(isDark: boolean, lang: string): string {
 'document.getElementById("hint-beta").textContent=T.hintBeta;' +
 'document.getElementById("btnRun").textContent=T.run;' +
 'document.getElementById("btnStep").textContent=T.step;' +
+'document.getElementById("btnGrad").textContent=T.gradOff;' +
 'document.getElementById("btnReset").textContent=T.reset;' +
 
 // ── Legend ───────────────────────────────────────────────────────────
@@ -284,6 +291,30 @@ export function getGDSimulationHTML(isDark: boolean, lang: string): string {
 'ctx.fillStyle=color;ctx.fillRect(toX(p[0])-5,toY(p[1])-5,10,10);' +
 'ctx.strokeStyle=isDk?"rgba(255,255,255,0.5)":"rgba(0,0,0,0.4)";ctx.lineWidth=1;ctx.strokeRect(toX(p[0])-5,toY(p[1])-5,10,10)}' +
 'drawPos(vTrail,tealC);drawPos(mTrail,accentC);drawPos(aTrail,greenC);' +
+// gradient arrows
+'if(showGrad&&iteration>0){' +
+'function drawGradArrow(trail,color){' +
+'if(trail.length===0)return;' +
+'var p=trail[trail.length-1];' +
+'var g=grad(curFunc.fn,p[0],p[1]);' +
+'var gm=Math.sqrt(g[0]*g[0]+g[1]*g[1]);' +
+'if(gm<1e-6)return;' +
+'var scale=Math.min(40,gm*8);' +
+'var dx=-g[0]/gm*scale;var dy=g[1]/gm*scale;' +
+'var px=toX(p[0]);var py=toY(p[1]);' +
+'var ex=px+dx;var ey=py+dy;' +
+'ctx.strokeStyle=color;ctx.lineWidth=2.5;ctx.globalAlpha=0.9;' +
+'ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(ex,ey);ctx.stroke();' +
+// arrowhead
+'var aLen=8;var aAng=Math.PI/6;' +
+'var ang=Math.atan2(ey-py,ex-px);' +
+'ctx.beginPath();' +
+'ctx.moveTo(ex,ey);' +
+'ctx.lineTo(ex-aLen*Math.cos(ang-aAng),ey-aLen*Math.sin(ang-aAng));' +
+'ctx.moveTo(ex,ey);' +
+'ctx.lineTo(ex-aLen*Math.cos(ang+aAng),ey-aLen*Math.sin(ang+aAng));' +
+'ctx.stroke();ctx.globalAlpha=1}' +
+'drawGradArrow(vTrail,tealC);drawGradArrow(mTrail,accentC);drawGradArrow(aTrail,greenC)}' +
 // start position marker (cross)
 'if(iteration===0||vTrail.length>0){' +
 'var sx=toX(startX),sy=toY(startY);' +
@@ -374,6 +405,7 @@ export function getGDSimulationHTML(isDark: boolean, lang: string): string {
 's+="<span class=\\"warn\\">"+T.momentum+"</span> ("+mp[0].toFixed(2)+","+mp[1].toFixed(2)+") f="+fn(mp[0],mp[1]).toFixed(2)+"<br>";' +
 's+="<span class=\\"gn\\">"+T.adam+"</span> ("+ap[0].toFixed(2)+","+ap[1].toFixed(2)+") f="+fn(ap[0],ap[1]).toFixed(2)+"<br>";' +
 's+=T.iterN+": "+iteration+"/"+maxIter;' +
+'if(showGrad){s+="<br><br><span style=\\"font-size:10px;color:var(--teal);font-style:italic\\">"+T.gradHint+"</span>"}' +
 'box.innerHTML=s}' +
 
 // ── Optimizer step ──────────────────────────────────────────────────
@@ -450,7 +482,17 @@ export function getGDSimulationHTML(isDark: boolean, lang: string): string {
 'ax=startX;ay=startY;am_x=0;am_y=0;av_x=0;av_y=0;aTrail=[];aHist=[]}' +
 'gdStep();drawContour();drawConv();updateStats();notifyHeight()}' +
 
-'function onReset(){animating=false;resetState()}' +
+'function onReset(){animating=false;showGrad=false;' +
+'document.getElementById("btnGrad").textContent=T.gradOff;' +
+'document.getElementById("btnGrad").className="btn";' +
+'resetState()}' +
+
+// ── Gradient toggle ─────────────────────────────────────────────────
+'function toggleGrad(){' +
+'showGrad=!showGrad;' +
+'document.getElementById("btnGrad").textContent=showGrad?T.gradOn:T.gradOff;' +
+'document.getElementById("btnGrad").className=showGrad?"btn btn-primary":"btn";' +
+'drawContour();updateStats();notifyHeight()}' +
 
 // ── Height notification ─────────────────────────────────────────────
 'function notifyHeight(){' +

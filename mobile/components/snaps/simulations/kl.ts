@@ -27,8 +27,8 @@ export function getKLSimulationHTML(isDark: boolean, lang: string): string {
 '--accent:#F59E0B;--red:#F87171;--green:#4ADE80}' +
 '*{box-sizing:border-box;margin:0;padding:0}' +
 'body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);padding:0;-webkit-user-select:none;user-select:none;overflow-x:hidden}' +
-'.panel{border:2px solid var(--border);background:var(--card);margin-bottom:8px;padding:12px}' +
-'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card)}' +
+'.panel{border:2px solid var(--border);background:var(--card);margin-bottom:8px;padding:12px;border-radius:8px}' +
+'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card);border-radius:8px}' +
 '.label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}' +
 '.row{display:flex;align-items:center;gap:8px;margin-bottom:10px}' +
 '.row:last-child{margin-bottom:0}' +
@@ -38,15 +38,15 @@ export function getKLSimulationHTML(isDark: boolean, lang: string): string {
 'input[type=range]{flex:1;min-width:0;accent-color:var(--teal);height:20px}' +
 'input.slider-q{accent-color:var(--accent)}' +
 '.btn-row{display:flex;gap:6px;margin-top:4px}' +
-'.btn{flex:1;padding:10px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent}' +
+'.btn{flex:1;padding:10px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent;border-radius:8px}' +
 '.btn:active{opacity:0.7}' +
 '.btn-primary{background:var(--teal);border-color:var(--teal);color:#1A1816}' +
 '.btn-stop{background:var(--accent);border-color:var(--accent);color:#1A1816}' +
 '.preset-row{display:flex;gap:6px;margin-bottom:8px}' +
-'.preset{flex:1;padding:12px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:10px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.3px}' +
+'.preset{flex:1;padding:12px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:10px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.3px;border-radius:8px}' +
 '.preset:active{opacity:0.7}' +
 '.preset.active{border-color:var(--teal);color:var(--teal)}' +
-'.stats{font-family:monospace;font-size:11px;line-height:2;color:var(--text2)}' +
+'.stats{font-family:monospace;font-size:11px;line-height:2;color:var(--text2);border-radius:8px}' +
 '.stats .hi{color:var(--teal);font-weight:700}' +
 '.stats .warn{color:var(--accent);font-weight:700}' +
 '.stats .red{color:var(--red);font-weight:700}' +
@@ -89,6 +89,10 @@ export function getKLSimulationHTML(isDark: boolean, lang: string): string {
 '<div class="btn btn-primary" id="btnGauss" onclick="setMode(0)"></div>' +
 '<div class="btn" id="btnDisc" onclick="setMode(1)"></div>' +
 '</div>' +
+// AI Lens toggle
+'<div class="btn-row" style="margin-bottom:10px">' +
+'<div class="btn" id="btnAILens" onclick="toggleAILens()"></div>' +
+'</div>' +
 // Presets
 '<div class="preset-row">' +
 '<div class="preset active" id="pre0" onclick="onPreset(0)"></div>' +
@@ -117,6 +121,9 @@ export function getKLSimulationHTML(isDark: boolean, lang: string): string {
 '</div>' +
 '</div>' +
 
+// -- AI Lens Stats Annotation --
+'<div class="panel" id="panelAIAnnotation" style="display:none"><div class="stats" id="aiAnnotationBox"></div></div>' +
+
 '<script>' +
 'var LANG="' + lang + '";' +
 
@@ -130,7 +137,11 @@ export function getKLSimulationHTML(isDark: boolean, lang: string): string {
 'slP:"\\uBD84\\uD3EC P \\uD30C\\uB77C\\uBBF8\\uD130",slQ:"\\uBD84\\uD3EC Q \\uD30C\\uB77C\\uBBF8\\uD130",' +
 'asymNote:"KL(P\\u2016Q) \\u2260 KL(Q\\u2016P) \\u2014 KL \\uBC1C\\uC0B0\\uC740 \\uBE44\\uB300\\uCE6D\\uC785\\uB2C8\\uB2E4!",' +
 'sameNote:"P = Q \\u2192 KL = 0",' +
-'discHint:"\\uB9C9\\uB300 \\uB4DC\\uB798\\uADF8\\uD558\\uC5EC \\uBD84\\uD3EC \\uC870\\uC815"},' +
+'discHint:"\\uB9C9\\uB300 \\uB4DC\\uB798\\uADF8\\uD558\\uC5EC \\uBD84\\uD3EC \\uC870\\uC815",' +
+'aiLensOn:"AI Lens ON",aiLensOff:"AI Lens OFF",' +
+'distPAI:"\\uBD84\\uD3EC P(True)",distQAI:"\\uBD84\\uD3EC Q(Model)",' +
+'asymNoteAI:"Forward KL(P\\u2016Q): \\uBAA8\\uB4DC \\uCEE4\\uBC84\\uB9C1 (VAE). Reverse KL(Q\\u2016P): \\uBAA8\\uB4DC \\uCD94\\uAD6C (\\uC815\\uCC45 \\uCD5C\\uC801\\uD654)",' +
+'aiAnnotation:"AI\\uC5D0\\uC11C: KL \\uBC1C\\uC0B0 = \\uBAA8\\uB378\\uC774 \\uC815\\uB2F5 \\uBD84\\uD3EC\\uB97C \\uC5BC\\uB9C8\\uB098 \\uC798 \\uADFC\\uC0AC\\uD558\\uB294\\uC9C0\\uC758 \\uCC99\\uB3C4"},' +
 'en:{dist:"DISTRIBUTIONS",ctrl:"PARAMETERS",distP:"Distribution P",distQ:"Distribution Q",' +
 'diff:"Difference",asym:"Asymmetric",jsLbl:"JS Div.",' +
 'muP:"Mean",sigP:"Std",muQ:"Mean",sigQ:"Std",' +
@@ -139,12 +150,16 @@ export function getKLSimulationHTML(isDark: boolean, lang: string): string {
 'slP:"Distribution P",slQ:"Distribution Q",' +
 'asymNote:"KL(P\\u2016Q) \\u2260 KL(Q\\u2016P) \\u2014 KL divergence is asymmetric!",' +
 'sameNote:"P = Q \\u2192 KL = 0",' +
-'discHint:"Drag bars to adjust distribution"}' +
+'discHint:"Drag bars to adjust distribution",' +
+'aiLensOn:"AI Lens ON",aiLensOff:"AI Lens OFF",' +
+'distPAI:"P(True)",distQAI:"Q(Model)",' +
+'asymNoteAI:"Forward KL(P\\u2016Q): mode-covering (VAE). Reverse KL(Q\\u2016P): mode-seeking (policy optimization)",' +
+'aiAnnotation:"In AI: KL divergence = measure of how well model approximates the true distribution"}' +
 '};' +
 'var T=L[LANG]||L.en;' +
 
 // -- State --
-'var mode=0;' + // 0=gaussian, 1=discrete
+'var mode=0;var aiLens=false;' + // 0=gaussian, 1=discrete
 'var muP=0,sigP=1.0,muQ=1.0,sigQ=1.0;' +
 'var activePreset=0;' +
 // discrete mode: 4-bar distributions
@@ -235,8 +250,8 @@ export function getKLSimulationHTML(isDark: boolean, lang: string): string {
 'for(var i=0;i<=N;i++){if(i===0)ctx.moveTo(toX(qPts[i].x),toY(qPts[i].yq));else ctx.lineTo(toX(qPts[i].x),toY(qPts[i].yq))}ctx.stroke();ctx.setLineDash([]);' +
 // P/Q mean markers
 'ctx.fillStyle=tealC;ctx.font="10px -apple-system,sans-serif";ctx.textAlign="center";' +
-'ctx.fillText("P",toX(muP),pt+10);' +
-'ctx.fillStyle=accC;ctx.fillText("Q",toX(muQ),pt+10);' +
+'ctx.fillText(aiLens?"P(True)":"P",toX(muP),pt+10);' +
+'ctx.fillStyle=accC;ctx.fillText(aiLens?"Q(Model)":"Q",toX(muQ),pt+10);' +
 '}else{' +
 
 // --- Discrete mode ---
@@ -288,8 +303,13 @@ export function getKLSimulationHTML(isDark: boolean, lang: string): string {
 // asymmetry note
 'var note=document.getElementById("asymNote");' +
 'var diff=Math.abs(klpq-klqp);' +
-'if(diff<0.001){note.innerHTML="<span class=\\"hi\\">"+T.sameNote+"</span>"}' +
+'if(aiLens){note.innerHTML="<span class=\\"warn\\">"+T.asymNoteAI+"</span>"}' +
+'else if(diff<0.001){note.innerHTML="<span class=\\"hi\\">"+T.sameNote+"</span>"}' +
 'else{note.innerHTML="<span class=\\"warn\\">"+T.asymNote+"</span>"}' +
+// AI annotation panel
+'var aiPanel=document.getElementById("panelAIAnnotation");' +
+'if(aiLens){aiPanel.style.display="block";document.getElementById("aiAnnotationBox").innerHTML="<span class=\\"hi\\">"+T.aiAnnotation+"</span>"}' +
+'else{aiPanel.style.display="none"}' +
 '}' +
 
 // -- Slider update --
@@ -316,6 +336,15 @@ export function getKLSimulationHTML(isDark: boolean, lang: string): string {
 'row.style.display=m===0?"flex":"none"}' +
 'document.getElementById("sl-p").style.display=m===0?"block":"none";' +
 'document.getElementById("sl-q").style.display=m===0?"block":"none";' +
+'drawDist();updateKL();notifyHeight()}' +
+
+// -- AI Lens toggle --
+'function toggleAILens(){' +
+'aiLens=!aiLens;' +
+'document.getElementById("btnAILens").textContent=aiLens?T.aiLensOn:T.aiLensOff;' +
+'document.getElementById("btnAILens").className=aiLens?"btn btn-primary":"btn";' +
+'document.getElementById("leg-p").textContent=aiLens?T.distPAI:T.distP;' +
+'document.getElementById("leg-q").textContent=aiLens?T.distQAI:T.distQ;' +
 'drawDist();updateKL();notifyHeight()}' +
 
 // -- Presets --
@@ -401,6 +430,7 @@ export function getKLSimulationHTML(isDark: boolean, lang: string): string {
 'document.getElementById("sl-p").textContent=T.slP;' +
 'document.getElementById("sl-q").textContent=T.slQ;' +
 'document.getElementById("btnSwap").textContent=T.swap;' +
+'document.getElementById("btnAILens").textContent=T.aiLensOff;' +
 
 // -- Init values --
 'document.getElementById("valMuP").textContent=muP.toFixed(1);' +
