@@ -34,7 +34,7 @@ export function getMPCSimulationHTML(isDark: boolean, lang: string): string {
 '.ctrl-val{font-size:12px;font-family:monospace;color:var(--teal);min-width:40px;text-align:right;flex-shrink:0}' +
 'input[type=range]{flex:1;min-width:0;accent-color:var(--teal);height:20px}' +
 '.btn-row{display:flex;gap:6px;margin-top:4px}' +
-'.btn{flex:1;padding:10px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent}' +
+'.btn{flex:1;padding:14px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent}' +
 '.btn:active{opacity:0.7}' +
 '.btn-primary{background:var(--teal);border-color:var(--teal);color:#1A1816}' +
 '.btn-stop{background:var(--accent);border-color:var(--accent);color:#1A1816}' +
@@ -42,7 +42,7 @@ export function getMPCSimulationHTML(isDark: boolean, lang: string): string {
 '.stats .hi{color:var(--teal);font-weight:700}' +
 '.stats .warn{color:var(--accent);font-weight:700}' +
 '.preset-row{display:flex;gap:6px;margin-bottom:10px}' +
-'.preset{flex:1;padding:8px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:11px;font-weight:700;text-align:center;cursor:pointer}' +
+'.preset{flex:1;padding:14px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:11px;font-weight:700;text-align:center;cursor:pointer;min-height:44px}' +
 '.preset.active{border-color:var(--teal);color:var(--teal);background:var(--tealLight)}' +
 '.toggle-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;min-height:44px}' +
 '.toggle-check{width:22px;height:22px;accent-color:var(--teal)}' +
@@ -83,8 +83,10 @@ export function getMPCSimulationHTML(isDark: boolean, lang: string): string {
 '<div class="row"><span class="ctrl-name" id="lbl-weight"></span>' +
 '<input type="range" id="slW" min="0" max="100" value="50" oninput="onParam()">' +
 '<span class="ctrl-val" id="valW"></span></div>' +
-'<div class="toggle-row"><input type="checkbox" class="toggle-check" id="chkDist" onchange="onParam()">' +
-'<span class="toggle-label" id="lbl-dist"></span></div>' +
+'<div style="display:flex;justify-content:space-between;margin:-6px 0 10px;padding:0 72px 0 72px;font-size:10px;color:var(--text3)">' +
+'<span id="lbl-wL"></span><span id="lbl-wR"></span></div>' +
+'<div class="toggle-row"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" class="toggle-check" id="chkDist" onchange="onParam()">' +
+'<span class="toggle-label" id="lbl-dist"></span></label></div>' +
 '<div class="btn-row">' +
 '<div class="btn" id="btnStep" onclick="onStep()"></div>' +
 '<div class="btn btn-primary" id="btnAuto" onclick="onAuto()"></div>' +
@@ -100,12 +102,12 @@ export function getMPCSimulationHTML(isDark: boolean, lang: string): string {
 'var L={' +
 'ko:{sim:"MPC \\uC2DC\\uBBAC\\uB808\\uC774\\uC158",graph:"\\uCD94\\uC801 \\uADF8\\uB798\\uD504",' +
 'ctrl:"\\uC81C\\uC5B4",path:"\\uACBD\\uB85C \\uD504\\uB9AC\\uC14B",' +
-'horizon:"\\uC608\\uCE21 \\uD638\\uB77C\\uC774\\uC98C N",weight:"\\uCD94\\uC801/\\uBD80\\uB4DC\\uB7EC\\uC6C0",' +
+'horizon:"\\uC608\\uCE21 \\uAD6C\\uAC04 N",weight:"\\uCD94\\uC801/\\uBD80\\uB4DC\\uB7EC\\uC6C0",' +
 'dist:"\\uC678\\uB780 \\uCD94\\uAC00",stats:"\\uD1B5\\uACC4",' +
 'step:"\\u25B6 \\uC2A4\\uD15D",auto:"\\u25B6 \\uC790\\uB3D9",stop:"\\u23F8 \\uC815\\uC9C0",reset:"\\u21BA \\uB9AC\\uC14B",' +
-'ref:"\\uAE30\\uC900 \\uACBD\\uB85C",veh:"\\uCC28\\uB7C9",pred:"\\uC608\\uCE21 \\uD638\\uB77C\\uC774\\uC98C",' +
+'ref:"\\uAE30\\uC900 \\uACBD\\uB85C",veh:"\\uCC28\\uB7C9",pred:"\\uC608\\uCE21 \\uAD6C\\uAC04",' +
 'err:"\\uCD94\\uC801 \\uC624\\uCC28",steer:"\\uC870\\uD5A5\\uAC01",' +
-'trackErr:"\\uCD94\\uC801 \\uC624\\uCC28",steerAng:"\\uC870\\uD5A5\\uAC01",horizLen:"\\uD638\\uB77C\\uC774\\uC98C",' +
+'trackErr:"\\uCD94\\uC801 \\uC624\\uCC28",steerAng:"\\uC870\\uD5A5\\uAC01",horizLen:"\\uAD6C\\uAC04",' +
 'tracking:"\\uCD94\\uC801",smooth:"\\uBD80\\uB4DC\\uB7EC\\uC6C0"},' +
 'en:{sim:"MPC SIMULATION",graph:"TRACKING GRAPH",' +
 'ctrl:"CONTROLS",path:"REFERENCE PATH",' +
@@ -379,6 +381,8 @@ export function getMPCSimulationHTML(isDark: boolean, lang: string): string {
 'document.getElementById("lbl-path").textContent=T.path;' +
 'document.getElementById("lbl-horizon").textContent=T.horizon;' +
 'document.getElementById("lbl-weight").textContent=T.weight;' +
+'document.getElementById("lbl-wL").textContent=T.tracking;' +
+'document.getElementById("lbl-wR").textContent=T.smooth;' +
 'document.getElementById("lbl-dist").textContent=T.dist;' +
 'document.getElementById("lbl-stats").textContent=T.stats;' +
 'document.getElementById("btnStep").textContent=T.step;' +

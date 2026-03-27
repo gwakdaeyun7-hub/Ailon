@@ -5,7 +5,9 @@
  * - Circular feedback loop diagram with 6 blocks and animated signal particles
  * - Time-series graph showing output converging to reference
  * - 3 scenario tabs: Thermostat, Robot Arm, Neural Net
- * - Break Feedback toggle, Delay slider, Run/Reset controls
+ * - Gain K slider with endpoint labels (Slow/Excess), Delay slider
+ * - Break Feedback toggle, Run/Reset controls
+ * - Stats: error (e) and control signal (u) real-time display
  * - Dark/light theme, Korean/English bilingual
  */
 
@@ -25,15 +27,15 @@ export function getCyberneticsSimulationHTML(isDark: boolean, lang: string): str
 '*{box-sizing:border-box;margin:0;padding:0}' +
 'body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);padding:0;-webkit-user-select:none;user-select:none;overflow-x:hidden}' +
 '.panel{border:2px solid var(--border);background:var(--card);margin-bottom:8px;padding:12px}' +
-'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card)}' +
+'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card);touch-action:none}' +
 '.label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}' +
 '.row{display:flex;align-items:center;gap:8px;margin-bottom:10px}' +
 '.row:last-child{margin-bottom:0}' +
-'.ctrl-name{font-size:12px;font-weight:600;color:var(--text);min-width:56px;flex-shrink:0}' +
+'.ctrl-name{font-size:12px;font-weight:600;color:var(--text);min-width:72px;flex-shrink:0}' +
 '.ctrl-val{font-size:12px;font-family:monospace;color:var(--teal);min-width:50px;text-align:right;flex-shrink:0}' +
 'input[type=range]{flex:1;min-width:0;accent-color:var(--teal);height:20px}' +
 '.btn-row{display:flex;gap:6px;margin-top:4px}' +
-'.btn{flex:1;padding:10px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent}' +
+'.btn{flex:1;padding:14px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent}' +
 '.btn:active{opacity:0.7}' +
 '.btn-primary{background:var(--teal);border-color:var(--teal);color:#1A1816}' +
 '.btn-stop{background:var(--accent);border-color:var(--accent);color:#1A1816}' +
@@ -42,9 +44,9 @@ export function getCyberneticsSimulationHTML(isDark: boolean, lang: string): str
 '.stats .hi{color:var(--teal);font-weight:700}' +
 '.stats .warn{color:var(--accent);font-weight:700}' +
 '.preset-row{display:flex;gap:6px;margin-bottom:8px}' +
-'.preset{flex:1;padding:12px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:10px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.3px}' +
+'.preset{flex:1;padding:14px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:11px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.3px;min-height:44px}' +
 '.preset:active{opacity:0.7}' +
-'.preset.active{border-color:var(--teal);color:var(--teal)}' +
+'.preset.active{border-color:var(--teal);color:var(--teal);background:var(--tealLight)}' +
 '</style></head><body>' +
 
 // ── Scenario Tabs ──
@@ -67,6 +69,11 @@ export function getCyberneticsSimulationHTML(isDark: boolean, lang: string): str
 '<div class="row"><span class="ctrl-name" id="lblDelay"></span>' +
 '<input type="range" id="slDelay" min="0" max="50" value="0" oninput="onDelay()">' +
 '<span class="ctrl-val" id="valDelay"></span></div>' +
+'<div class="row"><span class="ctrl-name" id="lblGain"></span>' +
+'<input type="range" id="slGain" min="1" max="50" value="8" oninput="onGain()">' +
+'<span class="ctrl-val" id="valGain"></span></div>' +
+'<div style="display:flex;justify-content:space-between;margin:-6px 0 10px;padding:0 72px 0 72px;font-size:10px;color:var(--text3)">' +
+'<span id="lbl-gL"></span><span id="lbl-gR"></span></div>' +
 '<div class="btn-row">' +
 '<div class="btn btn-primary" id="btnRun" onclick="toggleRun()"></div>' +
 '<div class="btn" id="btnBreak" onclick="toggleBreak()"></div>' +
@@ -90,7 +97,7 @@ export function getCyberneticsSimulationHTML(isDark: boolean, lang: string): str
 'output:"\\uCD9C\\uB825\\uAC12",reference:"\\uBAA9\\uD45C\\uAC12",ms:"ms",' +
 'thRef:"25\\u00B0C",thCtrl:"\\uD788\\uD130",thPlant:"\\uBC29",thSensor:"\\uC628\\uB3C4\\uACC4",' +
 'rbRef:"\\uBAA9\\uD45C \\uC704\\uCE58",rbCtrl:"\\uBAA8\\uD130 \\uB4DC\\uB77C\\uC774\\uBC84",rbPlant:"\\uD314",rbSensor:"\\uC778\\uCF54\\uB354",' +
-'nnRef:"0 (\\uC190\\uC2E4 \\uCD5C\\uC18C\\uD654)",nnCtrl:"\\uC635\\uD2F0\\uB9C8\\uC774\\uC800",nnPlant:"\\uAC00\\uC911\\uCE58",nnSensor:"\\uAC80\\uC99D \\uC190\\uC2E4"},' +
+'nnRef:"0 (\\uC190\\uC2E4 \\uCD5C\\uC18C\\uD654)",nnCtrl:"\\uC635\\uD2F0\\uB9C8\\uC774\\uC800",nnPlant:"\\uAC00\\uC911\\uCE58",nnSensor:"\\uAC80\\uC99D \\uC190\\uC2E4",gain:"\\uAC8C\\uC778 K",slow:"\\uB290\\uB9BC",excess:"\\uACFC\\uC789",errE:"\\uC624\\uCC28 e",ctrlU:"\\uC81C\\uC5B4 u"},' +
 'en:{scenario:"SCENARIO",graph:"RESPONSE GRAPH",ctrl:"CONTROLS",stats:"STATISTICS",' +
 'delay:"Delay",run:"Run",stop:"Stop",reset:"\\u21BA Reset",' +
 'breakFb:"Break Feedback",connectFb:"Connect Feedback",' +
@@ -101,12 +108,12 @@ export function getCyberneticsSimulationHTML(isDark: boolean, lang: string): str
 'output:"Output",reference:"Reference",ms:"ms",' +
 'thRef:"25\\u00B0C",thCtrl:"Heater",thPlant:"Room",thSensor:"Thermometer",' +
 'rbRef:"Target Pos",rbCtrl:"Motor Driver",rbPlant:"Arm",rbSensor:"Encoder",' +
-'nnRef:"0 (min loss)",nnCtrl:"Optimizer",nnPlant:"Weights",nnSensor:"Val Loss"}' +
+'nnRef:"0 (min loss)",nnCtrl:"Optimizer",nnPlant:"Weights",nnSensor:"Val Loss",gain:"Gain K",slow:"Slow",excess:"Excess",errE:"Error e",ctrlU:"Control u"}' +
 '};' +
 'var T=L[LANG]||L.en;' +
 
 // ── State ──
-'var scenario=0;var feedbackBroken=false;var delaySteps=0;' +
+'var scenario=0;var feedbackBroken=false;var delaySteps=0;var gainK=0.08;' +
 'var output=0,reference=1;var outputHistory=[];' +
 'var delayBuffer=[];' +
 'var running=false,animId=null;var tStep=0;' +
@@ -281,7 +288,7 @@ export function getCyberneticsSimulationHTML(isDark: boolean, lang: string): str
 // if feedback broken, sensor reads 0
 'if(feedbackBroken)sensed=0;' +
 'var error=reference-sensed;' +
-'var control=error*sc.gain;' +
+'var control=error*gainK;' +
 'output=output*sc.inertia+control;' +
 'outputHistory.push(output);' +
 'if(outputHistory.length>400)outputHistory=outputHistory.slice(-200);' +
@@ -317,19 +324,30 @@ export function getCyberneticsSimulationHTML(isDark: boolean, lang: string): str
 'document.getElementById("valDelay").textContent=delaySteps*10+T.ms;' +
 'delayBuffer=[];notifyHeight()}' +
 
+'function onGain(){' +
+'gainK=+document.getElementById("slGain").value/100;' +
+'document.getElementById("valGain").textContent=gainK.toFixed(2);' +
+'notifyHeight()}' +
+
 'function doReset(){' +
 'running=false;if(animId)cancelAnimationFrame(animId);' +
 'document.getElementById("btnRun").textContent=T.run;' +
 'document.getElementById("btnRun").className="btn btn-primary";' +
 'output=0;outputHistory=[];delayBuffer=[];tStep=0;particleT=0;' +
+'gainK=SCENARIOS[scenario].gain;' +
+'document.getElementById("slGain").value=Math.round(gainK*100);' +
+'document.getElementById("valGain").textContent=gainK.toFixed(2);' +
 'drawLoop();drawGraph();updateStats();notifyHeight()}' +
 
 // ── Stats ──
 'function updateStats(){' +
 'var box=document.getElementById("statsBox");' +
-'var err=Math.abs(reference-output);' +
+'var err=reference-output;' +
+'var ctrl=err*gainK;' +
 'var s="<span class=\\"hi\\">"+T.reference+"</span> "+reference.toFixed(2);' +
 's+=" &nbsp;|&nbsp; <span class=\\"hi\\">"+T.output+"</span> "+output.toFixed(3);' +
+'s+="<br><span class=\\"hi\\">"+T.errE+"</span> "+err.toFixed(3);' +
+'s+=" &nbsp;|&nbsp; <span class=\\"hi\\">"+T.ctrlU+"</span> "+ctrl.toFixed(4);' +
 'if(feedbackBroken)s+="<br><span class=\\"warn\\">"+T.broken+"</span>";' +
 'else if(delaySteps>10)s+="<br><span class=\\"warn\\">"+T.delayWarn+"</span>";' +
 'box.innerHTML=s}' +
@@ -352,6 +370,10 @@ export function getCyberneticsSimulationHTML(isDark: boolean, lang: string): str
 'document.getElementById("btnRun").textContent=T.run;' +
 'document.getElementById("btnBreak").textContent=T.breakFb;' +
 'document.getElementById("btnReset").textContent=T.reset;' +
+'document.getElementById("lblGain").textContent=T.gain;' +
+'document.getElementById("valGain").textContent=gainK.toFixed(2);' +
+'document.getElementById("lbl-gL").textContent=T.slow;' +
+'document.getElementById("lbl-gR").textContent=T.excess;' +
 
 // ── Init ──
 'drawLoop();drawGraph();updateStats();' +

@@ -138,7 +138,7 @@ subject to:
 x(k+1) = f(x(k), u(k))
 x(k) in X, u(k) in U
 
-Here, ||x||^2_Q means x^T Q x. The Q matrix assigns different weights to each state variable, so that errors in more important variables contribute more heavily to the cost -- a weighted sum of squares. R penalizes control input magnitude, and P is the terminal cost ensuring stability at the horizon's end. The dynamics model acts as an equality constraint, while X and U reflect physical limits (valve positions, motor torque limits, etc.) as inequality constraints.
+This cost function is the sum of three penalties. The first term penalizes "how far from the target" (larger Q means more aggressive tracking), the second penalizes "how much control effort was used" (larger R means smoother control), and the third term P is a terminal cost ensuring stability at the horizon's end. The model f(x,u) acts as a dynamics constraint, while X and U enforce physical limits such as valve positions or motor torque.
 
 In traditional MPC, when the model is linear this problem becomes a quadratic program (QP) that efficient solvers can handle in real time. This distinction from learned nonlinear models, discussed later, is important.
 
@@ -148,38 +148,30 @@ The most fundamental tradeoff in MPC is the **length of the prediction horizon N
 
 - **Long N**: Looking far ahead avoids myopic decisions. However, computational cost increases sharply and predictions further into the future accumulate model errors, degrading reliability
 - **Short N**: Computation is fast and model error accumulation is low, but the algorithm fails to anticipate distant constraint violations or unfavorable situations
-- **Q vs. R balance**: Increasing Q makes target tracking aggressive but inputs rough. Increasing R makes inputs smooth but target tracking sluggish. A "precision vs. smoothness" tradeoff tuned differently for each application
+- **Q vs. R balance**: Like a navigation system choosing between "turn the wheel immediately at the slightest deviation" (Q-dominant) and "only turn the wheel gently" (R-dominant) -- precision versus smoothness
 
-Why only the first action is executed and the rest discarded becomes clear in this context. The model is imperfect, so predictions degrade with distance, and new measurements enable better plans. The name **receding horizon** refers to this structure where the prediction window's endpoint slides forward one step at each time step.
-
-One of MPC's theoretical advantages is that **recursive feasibility** can be proven. With appropriate terminal cost P and terminal constraints, if a solution exists at the current time step, the existence of a solution at the next time step is guaranteed. This provides the theoretical basis for MPC's preference in safety-critical systems.
+**Receding horizon** works like car headlights. Headlights always illuminate 100 meters ahead, but as the car moves forward, the illuminated zone shifts forward too. MPC's prediction window slides one step forward at each time step in exactly the same way. Since the model is imperfect, a new plan based on fresh measurements is always better than the old one.
 
 ## Connections to Modern AI
 
-MPC's paradigm of "predict the future with an internal model, plan optimal actions, execute only the first, and replan" has been explicitly adopted by some modern AI algorithms.
+MPC's paradigm of "predict with an internal model, plan optimal actions, execute only the first, and replan" appears in various forms in modern AI.
 
-**MBRL algorithms that explicitly borrow the MPC structure:**
+**MBRL algorithms explicitly borrowing MPC:**
 
-- **PETS and TD-MPC**: Chua et al.'s (2018) PETS (Probabilistic Ensemble Trajectory Sampling) is the most direct application of MPC to MBRL. It learns an environment model with an ensemble of neural networks, searches for the optimal action sequence using CEM (Cross-Entropy Method) at each step, and executes only the first action. While traditional MPC uses QP solvers for linear models, learned nonlinear models make gradient-based optimization unstable, so **sampling-based optimization** such as CEM or MPPI (Model Predictive Path Integral) is used instead. Hansen et al.'s (2022) TD-MPC combines this with a learned value function to improve planning efficiency. The key difference from control engineering MPC is that the model is learned from data rather than derived from physics, and this difference creates the problem of **compounding model error** -- small errors snowball over long rollouts
-- **Dreamer**: Hafner et al. (2020) used an RSSM (Recurrent State-Space Model)-based world model that learns environment dynamics in latent space. Image reconstruction serves as an auxiliary learning signal; the core is optimizing policy by imagining future trajectories within the learned latent model. Performing trial-and-error inside the model rather than the real environment achieves **sample efficiency**. Since Dreamer learns the policy itself within the model rather than replanning at each step in MPC fashion, it is closer to the Dyna pattern than to MPC
+- **PETS and TD-MPC**: Chua et al.'s (2018) PETS learns an environment model with ensemble neural networks, searches for the optimal action sequence via CEM at each step, and executes only the first action. Learned nonlinear models use sampling-based optimization (CEM, MPPI) instead of QP solvers. Hansen et al.'s (2022) TD-MPC adds a learned value function for efficiency. The key difference is that the model is learned from data, creating the problem of **compounding model error**
+- **Dreamer**: Hafner et al. (2020) learns a latent-space world model and optimizes policy by imagining future trajectories within it, achieving **sample efficiency**. However, since it learns the policy itself rather than replanning each step, it is closer to the Dyna pattern than to MPC
 
-**Model-based planning structurally similar to MPC:**
+**Structurally similar independent implementations:**
 
-- **MuZero**: DeepMind's Schrittwieser et al. (2020) demonstrated model-based planning in its most refined form. It builds a model in a **learned latent space** rather than observation space and performs Monte Carlo Tree Search (MCTS) on top. The pattern of "simulate the future with a model and select the best action" is shared with MPC, but MCTS operates in discrete trees with UCB (Upper Confidence Bound) for exploration-exploitation balance, which is mathematically different from MPC's continuous optimization. The MuZero paper does not cite MPC as a direct inspiration, so this is more accurately viewed as **independent implementation of the same intuition** rather than direct inheritance
-
-**Structural similarities sharing the same intuition independently:**
-
-- **Tree search in LLM reasoning**: Models like OpenAI's o1 family internally explore multiple reasoning paths during generation and select the best -- the same "plan then act" pattern as MPC simulating multiple control sequences and choosing the optimal action. However, this resemblance derives from the general structure of search-based decision-making, not directly from MPC
-- **Autoregressive generation and replanning**: The way LLMs generate tokens one at a time, re-evaluating full context at each step, structurally mirrors MPC's "execute only the first action and replan"
+- **MuZero**: Schrittwieser et al. (2020) performs MCTS in a learned latent space. The "simulate the future and select the best action" pattern is shared, but discrete tree search is mathematically different from MPC's continuous optimization, and the paper does not cite MPC, making this an independent implementation
+- **Autoregressive generation in LLMs**: Generating tokens one at a time while re-evaluating full context at each step superficially resembles MPC's replanning, but LLMs do not discard previous tokens or solve an explicit optimization at each step -- a similarity of pattern, not mechanism
 
 ## Limitations and Weaknesses
 
-Despite MPC's paradigmatic power, fundamental limitations exist.
+Despite MPC's power, fundamental limitations exist.
 
-- **Model accuracy dependence**: MPC is only as good as its model. For learned world models, small errors compound over long rollouts, producing actions disconnected from reality
-- **Real-time computational cost**: Solving an optimization problem at every time step creates bottlenecks in fast-cycle systems. For example, in drone flight requiring 10ms control cycles, if optimization exceeds 10ms, control is delayed
-- **Sim-to-real gap**: When controlling real robots with world models learned in simulation, factors like friction, air resistance, and sensor noise degrade performance. **Domain randomization** (randomly varying simulation physics parameters to increase robustness) helps reduce this gap, but fully bridging it remains difficult
-- **Horizon myopia**: Long N increases computational cost and accumulates model error. Short N leads to myopic decisions. In MBRL this manifests as rollout length; in game AI, as tree search depth -- the same tradeoff
+- **Model accuracy dependence**: MPC is only as good as its model. Think of weather forecasting -- tomorrow's forecast is fairly accurate, but a 10-day forecast is rarely reliable. Each time step's small prediction error becomes the next step's initial condition error, snowballing over the rollout. When models learned in simulation control real robots, friction and sensor noise widen this gap further
+- **Real-time computational cost**: Solving an optimization problem at every time step creates bottlenecks in fast systems like drone flight requiring 10ms control cycles
 
 ## Glossary
 
@@ -197,6 +189,3 @@ Recursive feasibility - the property that if an optimization solution exists at 
 
 Sim-to-real gap - the phenomenon where policies or models learned in simulators show degraded performance in real environments
 
-Domain randomization - a technique that randomly varies simulation physics parameters to increase robustness to real-world conditions
-
-Sampling-based optimization - an optimization approach like CEM or MPPI that generates many candidate sequences and selects those with lowest cost, used when gradient-based optimization is unstable with learned nonlinear models

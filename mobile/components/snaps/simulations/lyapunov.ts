@@ -26,15 +26,15 @@ export function getLyapunovSimulationHTML(isDark: boolean, lang: string): string
 '*{box-sizing:border-box;margin:0;padding:0}' +
 'body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);padding:0;-webkit-user-select:none;user-select:none;overflow-x:hidden}' +
 '.panel{border:2px solid var(--border);background:var(--card);margin-bottom:8px;padding:12px}' +
-'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card)}' +
+'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card);touch-action:none}' +
 '.label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}' +
 '.row{display:flex;align-items:center;gap:8px;margin-bottom:10px}' +
 '.row:last-child{margin-bottom:0}' +
-'.ctrl-name{font-size:12px;font-weight:600;color:var(--text);min-width:56px;flex-shrink:0}' +
+'.ctrl-name{font-size:12px;font-weight:600;color:var(--text);min-width:72px;flex-shrink:0}' +
 '.ctrl-val{font-size:12px;font-family:monospace;color:var(--teal);min-width:50px;text-align:right;flex-shrink:0}' +
 'input[type=range]{flex:1;min-width:0;accent-color:var(--teal);height:20px}' +
 '.btn-row{display:flex;gap:6px;margin-top:4px}' +
-'.btn{flex:1;padding:10px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent}' +
+'.btn{flex:1;padding:14px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent}' +
 '.btn:active{opacity:0.7}' +
 '.btn-primary{background:var(--teal);border-color:var(--teal);color:#1A1816}' +
 '.btn-stop{background:var(--accent);border-color:var(--accent);color:#1A1816}' +
@@ -44,7 +44,7 @@ export function getLyapunovSimulationHTML(isDark: boolean, lang: string): string
 '.stats .red{color:var(--red);font-weight:700}' +
 '.stats .grn{color:var(--green);font-weight:700}' +
 '.preset-row{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}' +
-'.preset{flex:1;padding:8px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:10px;font-weight:700;text-align:center;cursor:pointer;min-width:70px}' +
+'.preset{flex:1;padding:14px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:11px;font-weight:700;text-align:center;cursor:pointer;min-width:70px;min-height:44px}' +
 '.preset.active{border-color:var(--teal);color:var(--teal);background:var(--tealLight)}' +
 '.hint{font-size:10px;color:var(--text3);margin-top:6px}' +
 '</style></head><body>' +
@@ -205,6 +205,11 @@ export function getLyapunovSimulationHTML(isDark: boolean, lang: string): string
 'ctx.beginPath();ctx.ellipse(canvasW/2,canvasH/2,srx,sry,0,0,Math.PI*2);ctx.fill();' +
 'ctx.globalAlpha=0.4;ctx.beginPath();ctx.ellipse(canvasW/2,canvasH/2,srx,sry,0,0,Math.PI*2);ctx.stroke();' +
 'ctx.globalAlpha=1}' +
+// V value labels on select level curves
+'ctx.fillStyle=tealC;ctx.font="8px monospace";ctx.textAlign="left";ctx.globalAlpha=0.5;' +
+'for(var li=0;li<levels.length;li+=2){var lr=Math.sqrt(levels[li]);var lrx=lr/SCALE*canvasW/2;' +
+'if(canvasW/2+lrx+30<canvasW)ctx.fillText("V="+levels[li],canvasW/2+lrx+3,canvasH/2-2)}' +
+'ctx.globalAlpha=1;' +
 
 // vector field (arrow grid)
 'var GRID=14;' +
@@ -419,6 +424,9 @@ export function getLyapunovSimulationHTML(isDark: boolean, lang: string): string
 'document.getElementById("hintTap").textContent=T.tapHint;' +
 'readParams();' +
 'var dim=setupCanvas(document.getElementById("cvPhase"),300);canvasW=dim.w;canvasH=dim.h;' +
+// Place 2 default initial points so canvas isn't empty on load
+'particles.push({x:1.8,y:0.5,trail:[{x:1.8,y:0.5}],vHist:[lyapV(1.8,0.5)]});' +
+'particles.push({x:-0.7,y:-1.2,trail:[{x:-0.7,y:-1.2}],vHist:[lyapV(-0.7,-1.2)]});' +
 'drawPhase();drawVt();updateStats();' +
 'window.addEventListener("resize",function(){' +
 'var dim=setupCanvas(document.getElementById("cvPhase"),300);canvasW=dim.w;canvasH=dim.h;' +
