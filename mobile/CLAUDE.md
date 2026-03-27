@@ -144,13 +144,12 @@
 ### Styling
 - **NativeWind** (TailwindCSS for RN) with dark-first theme
 - **colors.ts**: Light (white bg, black text) / Dark (teal/cyan accent), ~50 color tokens (21개 dead token 제거 후)
-- **theme.ts**: Spacing, font sizes, all radius=0 (pixel art/brutalist), cardShadow 제거(elevation 0), pixelShadow(offset 3px), Lora serif font + 4 pixel fonts, MIN_TOUCH_TARGET=44
-- **Pixel Fonts**: `pixel: 'PressStart2P_400Regular'` (EN headings), `pixelBody: 'Silkscreen_400Regular'` (EN small), `pixelBold: 'Silkscreen_700Bold'` (EN bold small), `pixelKo: 'DotGothic16_400Regular'` (KO pixel)
+- **theme.ts**: Spacing, font sizes, soft borderRadius (8~16), subtle cardShadow (elevation 2~4), Lora serif font, MIN_TOUCH_TARGET=44
 - Primary: Teal (#5EEAD4 light/dark 통일), Accent: Orange (#B45309 light, #F59E0B dark)
 - Light Text: 모든 텍스트 #000000 검정 통일 (textPrimary/textSecondary/textDim 동일값)
 
 ### Design Principles
-- **Pixel Art / Brutalist** — borderRadius 전부 0, borderWidth 2px flat borders, cardShadow 제거 (그림자 없음), pixelShadow(offset 3) 선택적 사용. 모든 컴포넌트에 적용
+- **부드럽고 모던한 톤** — 적절한 borderRadius(8~16), 미묘한 그림자(subtle shadow)로 깊이감 부여, 부드러운 곡선과 여백으로 친근한 느낌. 딱딱하거나 날카로운 요소 지양
 - **깔끔, 간단하게** — 불필요한 장식 요소, 과도한 애니메이션, 복잡한 중첩 레이아웃 지양. 콘텐츠가 곧 디자인
 - **AI가 만든 티를 내지 않기** — 그라데이션 남발, 뉴모피즘, 글로우 이펙트, 과도한 아이콘 장식 등 제네릭 AI 앱 패턴 금지
 - **가독성 > 장식** — 타이포그래피 계층(크기·굵기·색상)으로 정보 구조를 만들 것. 배경색·보더·그림자는 최소한으로

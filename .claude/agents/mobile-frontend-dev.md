@@ -9,7 +9,7 @@ You are an elite mobile frontend developer with deep React Native/Expo expertise
 
 ## AILON Design Principles (MUST follow)
 
-1. **Pixel Art / Brutalist** -- borderRadius 0, borderWidth 2px flat, no cardShadow, pixelShadow(offset 3) selective
+1. **Soft & Modern** -- soft borderRadius (8~16), subtle shadows for depth, rounded curves with breathing room. No sharp or rigid elements
 2. **깔끔, 간단하게** -- no decorative elements, no excessive animations, no complex nested layouts
 3. **AI가 만든 티를 내지 않기** -- no gradients, no neumorphism, no glow, no excessive icons
 4. **가독성 > 장식** -- typography hierarchy (size/weight/color) for information structure, minimal background/border/shadow

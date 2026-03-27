@@ -17,7 +17,7 @@ You are an expert app developer specializing in React Native (Expo) with deep kn
 
 ## AILON Design Principles (MUST follow)
 
-1. **Pixel Art / Brutalist** -- borderRadius 0, borderWidth 2px flat, no cardShadow
+1. **Soft & Modern** -- soft borderRadius (8~16), subtle shadows for depth, rounded curves. No sharp or rigid elements
 2. **Content IS the design** -- no decorative elements, no excessive animations
 3. **Accessibility** -- 4.5:1 contrast ratio, sufficient touch targets, meaningful labels
 
