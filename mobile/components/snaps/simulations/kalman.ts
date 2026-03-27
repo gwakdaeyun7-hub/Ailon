@@ -31,14 +31,14 @@ export function getKalmanSimulationHTML(isDark: boolean, lang: string): string {
 '.label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}' +
 '.row{display:flex;align-items:center;gap:8px;margin-bottom:10px}' +
 '.row:last-child{margin-bottom:0}' +
-'.ctrl-name{font-size:12px;font-weight:600;color:var(--text);min-width:56px;flex-shrink:0}' +
+'.ctrl-name{font-size:12px;font-weight:600;color:var(--text);min-width:72px;flex-shrink:0}' +
 '.ctrl-val{font-size:12px;font-family:monospace;color:var(--teal);min-width:50px;text-align:right;flex-shrink:0}' +
 'input[type=range]{flex:1;min-width:0;accent-color:var(--teal);height:20px}' +
 '.btn-row{display:flex;gap:6px;margin-top:4px}' +
-'.btn{flex:1;padding:10px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent}' +
+'.btn{flex:1;padding:14px 8px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent}' +
 '.btn:active{opacity:0.7}' +
 '.btn-primary{background:var(--teal);border-color:var(--teal);color:#1A1816}' +
-'.btn-stop{background:var(--accent);border-color:var(--accent);color:#1A1816}' +
+'.btn-stop{background:var(--accent);border-color:var(--accent);color:var(--bg)}' +
 '.stats{font-family:monospace;font-size:11px;line-height:2;color:var(--text2)}' +
 '.stats .hi{color:var(--teal);font-weight:700}' +
 '.stats .warn{color:var(--accent);font-weight:700}' +
@@ -48,10 +48,10 @@ export function getKalmanSimulationHTML(isDark: boolean, lang: string): string {
 '.legend-dot{width:8px;height:8px;flex-shrink:0}' +
 '.toggle-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}' +
 '.toggle-label{font-size:12px;font-weight:600;color:var(--text)}' +
-'.toggle-box{width:40px;height:22px;border:2px solid var(--border);background:var(--surface);position:relative;cursor:pointer;-webkit-tap-highlight-color:transparent}' +
+'.toggle-box{width:44px;height:24px;border:2px solid var(--border);background:var(--surface);position:relative;cursor:pointer;-webkit-tap-highlight-color:transparent}' +
 '.toggle-box.on{background:var(--red);border-color:var(--red)}' +
-'.toggle-knob{width:14px;height:14px;background:var(--text);position:absolute;top:2px;left:2px;transition:left 0.15s}' +
-'.toggle-box.on .toggle-knob{left:20px;background:#fff}' +
+'.toggle-knob{width:16px;height:16px;background:var(--text);position:absolute;top:2px;left:2px;transition:left 0.15s}' +
+'.toggle-box.on .toggle-knob{left:22px;background:var(--bg)}' +
 '</style></head><body>' +
 
 // -- Tracking Canvas Panel --
@@ -147,7 +147,7 @@ export function getKalmanSimulationHTML(isDark: boolean, lang: string): string {
 'function mat4add(A,B){var C=new Array(16);for(var i=0;i<16;i++)C[i]=A[i]+B[i];return C}' +
 'function mat4T(A){var C=new Array(16);for(var i=0;i<4;i++)for(var j=0;j<4;j++)C[i*4+j]=A[j*4+i];return C}' +
 // 2x2 inverse for innovation covariance
-'function inv2(a,b,c,d){var det=a*d-b*c;if(Math.abs(det)<1e-12)det=1e-12;return[d/det,-b/det,-c/det,a/det]}' +
+'function inv2(a,b,c,d){var det=a*d-b*c;if(Math.abs(det)<1e-12)det=(det>=0?1:-1)*1e-12;return[d/det,-b/det,-c/det,a/det]}' +
 
 // -- True trajectory (Lissajous-like) --
 'function truePos(t){' +
@@ -209,7 +209,7 @@ export function getKalmanSimulationHTML(isDark: boolean, lang: string): string {
 // Kalman predict
 'kalmanPredict();' +
 // Kalman update (only if GPS on)
-'if(!gpsOff){lastK=kalmanUpdate(gx,gy)}' +
+'if(!gpsOff){lastK=kalmanUpdate(gx,gy)}else{lastK={k0:0,k1:0}}' +
 // Store histories
 'trueHist.push({x:trueX,y:trueY});' +
 'gpsHist.push({x:gx,y:gy});' +
