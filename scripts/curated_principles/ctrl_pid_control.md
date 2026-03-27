@@ -24,9 +24,9 @@ u(t) = Kp * e(t) + Ki * integral(e(tau) dtau, 0, t) + Kd * de(t)/dt
 
 여기서 e(t) = r(t) - y(t)이며, r(t)는 목표값(설정점), y(t)는 현재 시스템 출력이다. 이 차이가 **오차 신호**(error signal)다.
 
-1. **P항 -- 비례(Proportional)**: Kp * e(t). 현재 오차에 정비례하는 교정력을 낸다. Kp를 키우면 반응이 빨라지지만 진동이 생길 수 있다. P항만으로는 **정상 상태 오차**(steady-state error)를 제거할 수 없다. 오차가 0이 되면 교정력도 0이 되므로, 외란이 있는 한 오차가 완전히 사라지지 않는다.
+1. **P항 -- 비례(Proportional)**: Kp * e(t). 현재 오차에 정비례하는 교정력을 낸다. Kp를 키우면 반응이 빨라지지만 진동이 생길 수 있다. P항만으로는 **정상 상태 오차**(steady-state error)를 제거할 수 없다. 경사면 위의 공을 스프링으로 당기는 것과 같다 — 오차가 줄면 교정력도 줄어, 외란과 균형을 이루는 지점에서 멈춘다. 유한한 Kp에서는 교정력을 만들 만큼의 잔류 오차가 항상 남으며, 외란이 이 간격을 더 벌린다.
 
-2. **I항 -- 적분(Integral)**: Ki * integral(e(tau) dtau, 0, t). 과거 오차를 시간에 걸쳐 누적한다. 작은 오차라도 오래 지속되면 적분값이 커져서 교정력이 증가하며, P항이 남긴 정상 상태 오차를 제거한다. 그러나 제어 출력이 작동기의 한계(포화)에 도달한 상태에서 오차가 계속 쌓이면 적분값이 과도하게 커지는 **적분 와인드업**(integral windup)이 발생한다. 실무에서는 적분값에 상한을 두거나 출력이 포화 상태일 때 적분을 멈추는 anti-windup 기법을 쓴다.
+2. **I항 -- 적분(Integral)**: Ki * integral(e(tau) dtau, 0, t). 과거 오차를 시간에 걸쳐 누적한다. 작은 오차라도 오래 지속되면 적분값이 커져서 교정력이 증가하며, P항이 남긴 정상 상태 오차를 제거한다. 그러나 제어 출력이 작동기의 한계(포화)에 도달한 상태에서 오차가 계속 쌓이면 적분값이 과도하게 커지는 **적분 와인드업**(integral windup)이 발생한다. 한쪽으로 감긴 용수철이 상황 역전 후에도 과도하게 풀리는 것과 같다. 실무에서는 적분값에 상한을 두거나 출력이 포화 상태일 때 적분을 멈추는 anti-windup 기법을 쓴다.
 
 3. **D항 -- 미분(Derivative)**: Kd * de(t)/dt. 오차의 변화 속도를 본다. 오차가 빠르게 줄어들면 교정력을 줄여서 **오버슈트**(overshoot)를 방지한다. 미래를 "예측"하는 효과가 있다. 그러나 D항은 측정 잡음에 극도로 민감하여, 실무에서는 D항 앞에 저역 통과 필터를 두어 잡음을 걸러낸다.
 
@@ -34,9 +34,9 @@ u(t) = Kp * e(t) + Ki * integral(e(tau) dtau, 0, t) + Kd * de(t)/dt
 
 ## 사이버네틱스: 피드백이라는 보편 원리
 
-PID 제어는 더 넓은 지적 운동의 일부였다. Norbert Wiener는 1948년 저서 *Cybernetics*에서 **피드백**을 기계, 생물, 사회 시스템을 관통하는 보편 원리로 제시했다. 생물의 체온 조절이든, 건물의 온도 조절기든, 시장의 가격 조정이든, 모두 "출력을 측정하고, 목표와 비교하고, 차이를 줄이는 방향으로 입력을 조정한다"는 같은 구조를 공유한다.
+PID 제어는 더 넓은 지적 운동의 일부였다. Norbert Wiener는 1948년 저서 Cybernetics에서 **피드백**을 기계, 생물, 사회 시스템을 관통하는 보편 원리로 제시했다. 체온 조절, 온도 조절기, 시장 가격 조정 모두 "출력을 측정하고, 목표와 비교하고, 차이를 줄이는 방향으로 입력을 조정한다"는 같은 구조를 공유한다.
 
-사이버네틱스는 AI의 두 번째 기원이라 할 수 있다. 첫 번째 기원이 Turing(1936, 1950)의 계산 이론과 기호적 추론이라면, 사이버네틱스는 감각-운동 피드백과 적응의 관점에서 지능에 접근했다. McCulloch와 Pitts(1943)의 신경망 모델도 사이버네틱스가 명명되기 전부터 같은 지적 흐름에 속해 있었다. 그러나 1960년대에 사이버네틱스와 인공지능은 지적으로 분리되었고, 강화학습과 로보틱스에서 최근 두 전통이 재합류하고 있다.
+사이버네틱스는 AI의 두 번째 지적 기원이다. Turing(1936, 1950)의 계산/기호 추론이 첫 번째라면, 사이버네틱스는 피드백과 적응의 관점에서 지능에 접근했다. 1960년대에 두 전통이 분리되었으나, 강화학습과 로보틱스에서 최근 재합류하고 있다.
 
 ## 제어 이론에서 AI 최적화로: 구조적 대응
 
@@ -45,8 +45,8 @@ PID 제어와 신경망 최적화 사이에는 주목할 만한 구조적 대응
 **구조적 유사성 (유사 패턴의 독립적 출현):**
 
 - P항(현재 오차 비례 교정) --> SGD의 학습률 * 그래디언트: 현재 손실 함수의 기울기에 비례하여 가중치를 조정한다. 학습률 eta가 Kp에 대응한다
-- I항(과거 오차 누적) --> SGD 모멘텀: Polyak(1964)의 모멘텀은 과거 그래디언트를 지수적으로 감쇠하며 누적한 것이다. 일관된 방향으로 오차가 쌓이면 가속하는 I항의 역할과 구조적으로 같다
-- D항(오차 변화율 감쇠) --> Adam의 2차 모멘트: Adam(Kingma & Ba, 2015)의 v_hat이 그래디언트 제곱의 이동 평균으로 실효 학습률을 적응적으로 조절하여 큰 변화를 억제하는 것은, D항의 안정화 역할과 부분적으로 유사하다
+- I항(과거 오차 누적) --> SGD 모멘텀: Polyak(1964)의 모멘텀은 과거 그래디언트를 지수적으로 감쇠하며 누적한 것이다. 일관된 방향으로 오차가 쌓이면 가속하는 I항과 구조적으로 유사하다. 다만 I항이 모든 과거를 동등하게 누적하는 반면, 모멘텀은 지수 감쇠로 오래된 값을 잊어 와인드업을 부분적으로 피한다
+- D항(오차 변화율 감쇠) --> Adam의 2차 모멘트: Adam(Kingma & Ba, 2015)의 v_hat은 그래디언트 제곱의 이동 평균(분산 추정)으로 큰 변화를 억제한다. D항(시간 미분)과 수학적 메커니즘은 다르지만 안정화 역할이 유사하다
 - 적분 와인드업 --> 그래디언트 폭발: RNN에서 그래디언트가 BPTT를 통해 폭발적으로 커지는 것은 누적 과잉으로 시스템이 불안정해진다는 점에서 적분 와인드업과 유사하다. 그래디언트 클리핑이 anti-windup에 대응한다
 
 **피드백 원리의 현대적 반향:**
@@ -61,7 +61,7 @@ PID 튜닝의 본질은 세 가지 목표 사이의 타협이다.
 - **안정성**: 진동을 줄이려면 Kp를 낮추거나 Kd를 높여야 하지만, 반응이 느려진다
 - **정확성**: Ki를 높이면 정상 상태 오차가 사라지지만, 와인드업 위험과 오버슈트가 커진다
 
-이 삼각관계는 신경망 학습에서도 정확히 반복된다. 학습률을 높이면 빠르지만 발산 위험이 있고, 모멘텀을 키우면 지역 최솟값을 넘을 수 있지만 오버슈트가 생기며, 학습률 감쇠를 적용하면 안정적으로 수렴하지만 탐색이 조기에 좁아질 수 있다. 서로 다른 도메인에서 같은 형태의 타협이 나타나는 것은, 피드백 기반 조정 시스템이 공유하는 근본적 제약이다.
+이 삼각관계는 신경망 학습에서도 유사한 형태로 나타난다. 학습률을 높이면 빠르지만 발산 위험이 있고, 모멘텀을 키우면 지역 최솟값을 넘을 수 있지만 오버슈트가 생기며, 학습률 감쇠를 적용하면 안정적으로 수렴하지만 탐색이 조기에 좁아질 수 있다. 서로 다른 도메인에서 같은 형태의 타협이 나타나는 것은, 피드백 기반 조정 시스템이 공유하는 근본적 제약이다.
 
 ## 한계와 약점
 
@@ -109,9 +109,9 @@ u(t) = Kp * e(t) + Ki * integral(e(tau) dtau, 0, t) + Kd * de(t)/dt
 
 Here, e(t) = r(t) - y(t), where r(t) is the target value and y(t) is the current system output. This difference is the **error signal**.
 
-1. **P-term -- Proportional**: Kp * e(t). Produces corrective force proportional to current error. Increasing Kp speeds response but may cause oscillation. The P-term alone cannot eliminate **steady-state error** -- when error reaches zero, corrective force also vanishes, so under disturbances the error never fully disappears.
+1. **P-term -- Proportional**: Kp * e(t). Produces corrective force proportional to current error. Increasing Kp speeds response but may cause oscillation. The P-term alone cannot eliminate **steady-state error**. Think of pulling a ball on a slope with a spring -- as error shrinks, so does the corrective force, and the ball settles where spring tension balances the slope. With finite Kp, some residual error always remains; disturbances widen the gap further.
 
-2. **I-term -- Integral**: Ki * integral(e(tau) dtau, 0, t). Accumulates past errors over time. Even small persistent errors cause the integral to grow, eliminating the steady-state error left by the P-term. But when control output reaches the actuator's physical limit (saturation) and errors continue accumulating one-directionally, **integral windup** occurs -- overcorrection even after the situation reverses. In practice, engineers use anti-windup techniques like clamping.
+2. **I-term -- Integral**: Ki * integral(e(tau) dtau, 0, t). Accumulates past errors over time. Even small persistent errors cause the integral to grow, eliminating the steady-state error left by the P-term. But when control output reaches the actuator's physical limit (saturation) and errors continue accumulating one-directionally, **integral windup** occurs -- like a spring wound too far in one direction that overcorrects violently when the situation reverses. In practice, engineers use anti-windup techniques like clamping.
 
 3. **D-term -- Derivative**: Kd * de(t)/dt. Monitors the rate of error change. When error decreases rapidly, it reduces corrective force to prevent **overshoot**. It effectively "anticipates" the future. However, it is extremely sensitive to measurement noise, requiring a low-pass filter in practice.
 
@@ -119,9 +119,9 @@ These three terms interact in a characteristic way: P drives the initial respons
 
 ## Cybernetics: Feedback as a Universal Principle
 
-PID control was part of a broader intellectual movement. Norbert Wiener, in his 1948 book *Cybernetics*, presented **feedback** as a universal principle spanning mechanical, biological, and social systems. Whether biological thermoregulation, a building's thermostat, or market price adjustment, all share the structure: "measure the output, compare it with the target, and adjust the input to reduce the difference."
+PID control was part of a broader intellectual movement. Norbert Wiener, in his 1948 book Cybernetics, presented **feedback** as a universal principle spanning mechanical, biological, and social systems. Thermoregulation, thermostats, and market price adjustment all share the structure: "measure the output, compare with the target, adjust the input to reduce the difference."
 
-Cybernetics can be called AI's second origin. If the first was Turing's (1936, 1950) computation theory, cybernetics approached intelligence from sensorimotor feedback and adaptation. McCulloch and Pitts' (1943) neural network model was part of the same intellectual current even before cybernetics was formally named. However, in the 1960s, cybernetics and AI intellectually separated, and only recently have the two traditions reconverged through reinforcement learning and robotics.
+Cybernetics is AI's second intellectual origin. If Turing's (1936, 1950) computation theory was the first, cybernetics approached intelligence through feedback and adaptation. The two traditions separated in the 1960s, but have recently reconverged through reinforcement learning and robotics.
 
 ## From Control Theory to AI Optimization: Structural Correspondences
 
@@ -130,8 +130,8 @@ Notable structural correspondences exist between PID control and neural network 
 **Structural similarities (independent emergence of similar patterns):**
 
 - P-term --> SGD's learning rate * gradient: weights adjusted proportionally to the current loss gradient. Learning rate eta corresponds to Kp
-- I-term --> SGD momentum: Polyak's (1964) momentum accumulates past gradients with exponential decay. When errors consistently point the same direction, it accelerates -- structurally the same as the I-term
-- D-term --> Adam's second moment: Adam's (Kingma & Ba, 2015) v_hat tracks a moving average of squared gradients and adaptively adjusts the effective learning rate, dampening large changes in a way that partially resembles the D-term's stabilizing role
+- I-term --> SGD momentum: Polyak's (1964) momentum accumulates past gradients with exponential decay. When errors consistently point the same direction, it accelerates -- structurally similar to the I-term. However, unlike pure integration, momentum's exponential decay naturally forgets old values, partially avoiding windup
+- D-term --> Adam's second moment: Adam's (Kingma & Ba, 2015) v_hat tracks a moving average of squared gradients (variance estimation), dampening large changes. The mathematical mechanism differs from the D-term (time derivative), but the stabilizing role is similar
 - Integral windup --> Gradient explosion: RNN gradients exploding through BPTT resembles integral windup in that excessive accumulation destabilizes the system. Gradient clipping corresponds to anti-windup
 
 **Modern echoes of the feedback principle:**
@@ -146,7 +146,7 @@ The essence of PID tuning is the compromise among three goals:
 - **Stability**: Reducing oscillation requires lowering Kp or raising Kd, but response slows
 - **Accuracy**: Raising Ki eliminates steady-state error, but increases windup risk and overshoot
 
-This triangle repeats precisely in neural network training. Raising the learning rate is faster but risks divergence; increasing momentum can escape local minima but causes overshoot; learning rate decay stabilizes late-stage convergence but risks premature narrowing of exploration. The same compromise across different domains reflects a fundamental constraint of feedback-based adjustment systems.
+This triangle appears in similar form in neural network training. Raising the learning rate is faster but risks divergence; increasing momentum can escape local minima but causes overshoot; learning rate decay stabilizes late-stage convergence but risks premature narrowing of exploration. The same compromise across different domains reflects a fundamental constraint of feedback-based adjustment systems.
 
 ## Limitations and Weaknesses
 
