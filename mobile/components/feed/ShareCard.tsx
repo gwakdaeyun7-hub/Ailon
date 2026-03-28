@@ -165,7 +165,7 @@ export const ShareCard = React.forwardRef<View, ShareCardProps>(
             alignItems: 'center',
             justifyContent: 'space-between',
           }}>
-            <Text style={{ fontSize: 14, fontWeight: '800', color: C.primary, letterSpacing: 1 }}>
+            <Text style={{ fontSize: 14, fontWeight: '800', color: C.textPrimary, letterSpacing: 1 }}>
               AILON
             </Text>
             <Text style={{ fontSize: 11, color: C.textDim }}>
