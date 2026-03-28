@@ -12,7 +12,7 @@ export function useShareLink() {
     async (articleId: string, title: string, oneLine: string, lang?: string) => {
       const langParam = lang ? `?lang=${lang}` : '';
       const url = `https://${SHARE_DOMAIN}/article/${articleId}${langParam}`;
-      const message = `${title}\n${oneLine}\n\n${url}`;
+      const message = `${url}\n\n${title}\n${oneLine}`;
 
       try {
         await Share.share(
