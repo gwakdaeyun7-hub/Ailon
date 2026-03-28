@@ -119,6 +119,12 @@ cd ../functions && firebase deploy --only functions
 - **Goal-driven execution**: Define verifiable success criteria, loop until verified
 - **Do NOT add inline components to index.tsx** — 이미 ~1300줄, `guard-index-bloat.sh` hook이 자동 차단. `components/feed/`로 추출할 것
 - **UI는 깔끔하고 미니멀하게** — 장식보다 콘텐츠, AI 앱 같은 제네릭한 디자인 금지. 상세 원칙은 `mobile/CLAUDE.md` Design Principles 참조
+- **독립 작업은 병렬로** — 의존성 없는 작업이 여러 개면 직렬화하지 말고 병렬 실행할 것:
+  - 독립적인 tool call은 한 메시지에 동시 호출 (예: 여러 파일 읽기, lint + test 동시)
+  - 서로 무관한 bash 명령은 개별 Bash call로 병렬 실행
+  - 대규모 조사/수정이 필요한 독립 하위 작업은 Agent로 위임하여 컨텍스트 윈도우 보호
+  - 다음 단계를 블로킹하지 않는 작업은 백그라운드로 실행
+  - 직렬이 필요한 경우: 이전 결과에 의존할 때만
 
 ## Hooks (`.claude/hooks/`)
 
