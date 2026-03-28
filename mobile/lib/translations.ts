@@ -263,12 +263,6 @@ const translations: Record<string, Record<Language, string>> = {
   'domain.Dev': { ko: '개발도구', en: 'Dev Tools' },
   'domain.Others': { ko: '기타', en: 'Others' },
 
-
-  // ─── 타임라인 ───
-  'modal.timeline': { ko: '관련 타임라인', en: 'Related Timeline' },
-  'timeline.past': { ko: '이전 기사', en: 'Past Articles' },
-  'timeline.no_data': { ko: '타임라인 없음', en: 'No timeline' },
-
   // ─── 관련 기사 ───
   'modal.related': { ko: '관련 기사', en: 'Related Articles' },
 

@@ -57,7 +57,6 @@ import { DailyBriefingCard } from '@/components/briefing/DailyBriefingCard';
 import type { ScrollView as ScrollViewType } from 'react-native';
 
 import { RelatedArticlesSection } from '@/components/shared/RelatedArticlesSection';
-import { TimelineSection } from '@/components/shared/TimelineSection';
 import { HighlightedText, termKey } from '@/components/shared/HighlightedText';
 import { useGlossaryDB } from '@/hooks/useGlossaryDB';
 import { useFeatureFlags } from '@/hooks/useFeatureFlags';
@@ -222,7 +221,6 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
   // articles 컬렉션에서 related_ids 조회 (daily_news에는 없음)
   const { article: fullArticle } = useArticle(article.article_id ?? null);
   const relatedIds = fullArticle?.related_ids ?? [];
-  const timelineIds = fullArticle?.timeline_ids ?? [];
   // M12: Toast animation ref for cleanup
   const toastAnimRef = useRef<Animated.CompositeAnimation | null>(null);
 
@@ -513,11 +511,6 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
                 {/* Related Articles */}
                 {relatedIds.length > 0 && (
                   <RelatedArticlesSection relatedIds={relatedIds} />
-                )}
-
-                {/* Timeline */}
-                {timelineIds.length > 0 && (
-                  <TimelineSection timelineIds={timelineIds} />
                 )}
 
               </View>

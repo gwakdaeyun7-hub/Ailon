@@ -15,7 +15,6 @@
 - **Interactions**: Like/dislike (ReactionBar), comments (CommentSheet modal), share (웹 공유 링크 useShareLink + 텍스트 폴백), bookmark. 소셜 기능(좋아요 숫자, 댓글)은 Firestore feature flag(`app_config/social_features`)로 조건부 표시
 - **Glossary Highlighting**: Auto-detects terms in text, tap for definition popup (HighlightedText)
 - **Related Articles**: Horizontal carousel in summary modal (RelatedArticlesSection)
-- **Timeline**: Vertical timeline of past coverage (TimelineSection)
 - **Pull-to-refresh**, skeleton loading, batch stats fetching
 
 ### Tab 2: Snaps (snaps.tsx ~267 lines) — 45개 학문원리 텍스트 브라우저
@@ -80,7 +79,7 @@
 - Real-time sync from `users/{uid}/bookmarks` subcollection
 - **AI 요약 모달**: 뉴스 카드 탭 시 ArticleSummaryModal 바텀 시트 표시 (saved.tsx 내 인라인 컴포넌트, index.tsx SummaryModalContent와 동일 디자인)
   - `useArticle(articleId)` 훅으로 `articles/{article_id}` 컬렉션에서 fetch
-  - 바텀 시트 디자인: 썸네일 이미지, 소스 뱃지+날짜+읽기시간(Clock)+카테고리 행, HighlightedText(용어집 하이라이팅), 용어집 아코디언, Related Articles, Timeline, 하단 액션 바(좋아요/댓글/공유(웹 공유 링크 useShareLink)), Toast, CommentSheet 통합
+  - 바텀 시트 디자인: 썸네일 이미지, 소스 뱃지+날짜+읽기시간(Clock)+카테고리 행, HighlightedText(용어집 하이라이팅), 용어집 아코디언, Related Articles, 하단 액션 바(좋아요/댓글/공유(웹 공유 링크 useShareLink)), Toast, CommentSheet 통합
   - 다국어(ko/en) 자동 분기 (articleHelpers.ts 공용 헬퍼 사용)
   - articleId 없는 이전 북마크: 안내 메시지 + 원문 링크 제공
 - **날짜 표시**: 상단 배지 행에 `· 날짜` 형태로 표시 (footer에서 이동)
@@ -108,7 +107,6 @@
 - **BookmarkButton**: Toggle bookmark with filled/stroke icon
 - **HighlightedText**: Auto glossary term detection + definition modal
 - **RelatedArticlesSection**: Horizontal card carousel (entity/cluster matching)
-- **TimelineSection**: Vertical timeline with past article links
 - **DailyBriefingCard**: 접힌 상태(TTS + 라벨) / 펼친 상태(도메인 도넛 차트 + 태그 클라우드 + 연구 기사 7일 스파크라인 + 브리핑 전문). 도넛 차트는 topic_cluster_id 기반 도메인 분포(Top 5 + Others) 표시, 도메인 팔레트(NLP/Vision/ML/Robotics/Multimodal/Business/Infra/Regulation/Audio/Security/Science/Dev/Others). 핫토픽은 lang별 hot_topics/hot_topics_en 분기 (EN 없으면 KO 폴백)
 - **ShareCard**: 오프스크린 렌더링 → react-native-view-shot 캡처 → expo-sharing 공유. 텍스트 폴백 내장 (현재 미사용 — index.tsx/saved.tsx 모두 useShareLink로 전환)
 - **SideDrawer**: Animated left panel (82% width, max 320px)
