@@ -524,18 +524,30 @@ def fetch_source(source_config: dict) -> list[dict]:
     try:
         # content_image 소스: 원본 XML을 먼저 가져와서 이중 인코딩 이미지 복구 준비
         raw_content_images: dict[str, str] = {}
+        _chrome_ua = _FALLBACK_HEADERS["User-Agent"]
         if rss_image_field == "content_image":
+            feed = None
+            # Phase 1: requests.get으로 원본 XML 가져오기 (이미지 복구용)
             try:
-                resp = requests.get(rss_url, headers={"User-Agent": "Mozilla/5.0"}, timeout=15)
+                resp = requests.get(rss_url, headers={"User-Agent": _chrome_ua}, timeout=15)
                 resp.raise_for_status()
                 raw_xml = resp.text
+                print(f"    [RSS] {name}: raw XML fetch OK (HTTP {resp.status_code}, {len(raw_xml)} bytes)")
                 raw_content_images = _extract_content_encoded_images(raw_xml)
                 feed = feedparser.parse(raw_xml)
-            except Exception:
-                # 원본 XML 가져오기 실패 시 기존 방식 폴백
-                feed = feedparser.parse(rss_url, agent="Mozilla/5.0")
+                # Phase 2: entries가 0이면 feedparser direct로 재시도
+                if not feed.entries:
+                    print(f"    [RSS] {name}: raw XML parsed 0 entries, feedparser direct fallback")
+                    feed = feedparser.parse(rss_url, agent=_chrome_ua)
+            except Exception as e:
+                # 원본 XML 가져오기 실패 시 feedparser direct 폴백
+                print(f"    [RSS] {name}: raw XML fetch failed ({e}), feedparser direct fallback")
+                feed = feedparser.parse(rss_url, agent=_chrome_ua)
+            # Phase 3: 여전히 0 entries면 WARNING 로그
+            if not feed.entries:
+                print(f"  [WARNING] {name}: 0 entries after all fetch attempts (URL: {rss_url})")
         else:
-            feed = feedparser.parse(rss_url, agent="Mozilla/5.0")
+            feed = feedparser.parse(rss_url, agent=_chrome_ua)
 
         for entry in feed.entries:
             if len(articles) >= max_items:
