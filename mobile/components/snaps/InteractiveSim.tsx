@@ -24,7 +24,7 @@ interface InteractiveSimProps {
 export function InteractiveSim({ id }: InteractiveSimProps) {
   const { isDark, colors } = useTheme();
   const { lang } = useLanguage();
-  const [height, setHeight] = useState(960);
+  const [height, setHeight] = useState(1200);
 
   const simFactory = SIMULATIONS[id];
 

@@ -24,7 +24,7 @@ export function getMPCSimulationHTML(isDark: boolean, lang: string): string {
 '--border:#302B28;--surface:#211D1B;--teal:#5EEAD4;--tealLight:#112525;' +
 '--accent:#F59E0B;--red:#F87171;--green:#4ADE80}' +
 '*{box-sizing:border-box;margin:0;padding:0}' +
-'body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);padding:0 0 16px 0;-webkit-user-select:none;user-select:none;overflow-x:hidden}' +
+'body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);padding:0;margin:0;-webkit-user-select:none;user-select:none}' +
 '.panel{border:2px solid var(--border);background:var(--card);margin-bottom:8px;padding:12px;border-radius:8px}' +
 'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card);border-radius:8px;touch-action:none}' +
 '.label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}' +
@@ -50,7 +50,7 @@ export function getMPCSimulationHTML(isDark: boolean, lang: string): string {
 '.legend-row{display:flex;gap:12px;margin-top:6px;flex-wrap:wrap}' +
 '.legend-item{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2)}' +
 '.legend-dot{width:8px;height:8px;flex-shrink:0}' +
-'</style></head><body>' +
+'</style></head><body><div id="wrap" style="padding:0 0 60px 0">' +
 
 // ── Main Canvas ──
 '<div class="panel"><div class="label" id="lbl-sim"></div>' +
@@ -96,6 +96,7 @@ export function getMPCSimulationHTML(isDark: boolean, lang: string): string {
 // ── Stats ──
 '<div class="panel"><div class="label" id="lbl-stats"></div>' +
 '<div class="stats" id="statsBox"></div></div>' +
+'</div>' +
 
 '<script>' +
 'var LANG="' + lang + '";' +
@@ -371,7 +372,9 @@ export function getMPCSimulationHTML(isDark: boolean, lang: string): string {
 
 // ── Height notification ──
 'function notifyHeight(){' +
-'var h=Math.max(document.body.scrollHeight,document.body.offsetHeight,document.documentElement.scrollHeight)+40;' +
+'var w=document.getElementById("wrap");if(!w)return;' +
+'var h=Math.max(w.scrollHeight,w.offsetHeight,Math.ceil(w.getBoundingClientRect().height));' +
+'h+=80;' +
 'try{window.ReactNativeWebView.postMessage(JSON.stringify({type:"height",value:h}))}catch(e){}}' +
 
 // ── Init labels ──
@@ -400,6 +403,9 @@ export function getMPCSimulationHTML(isDark: boolean, lang: string): string {
 'if(!running){drawMain();drawGraph()}notifyHeight()});' +
 'setTimeout(notifyHeight,100);' +
 'setTimeout(notifyHeight,500);' +
+'setTimeout(notifyHeight,1500);' +
+'var _hi=setInterval(notifyHeight,300);setTimeout(function(){clearInterval(_hi)},3000);' +
+'try{new ResizeObserver(function(){notifyHeight()}).observe(document.getElementById("wrap"))}catch(e){}' +
 
 '</script></body></html>';
 }

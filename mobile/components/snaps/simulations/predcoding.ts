@@ -28,25 +28,26 @@ export function getPredCodingSimulationHTML(isDark: boolean, lang: string): stri
 '*{box-sizing:border-box;margin:0;padding:0}' +
 'body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);padding:0;-webkit-user-select:none;user-select:none;overflow-x:hidden}' +
 '.panel{border:2px solid var(--border);background:var(--card);margin-bottom:8px;padding:12px;border-radius:8px}' +
-'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card);border-radius:8px}' +
+'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card);border-radius:8px;touch-action:none}' +
 '.label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}' +
 '.row{display:flex;align-items:center;gap:8px;margin-bottom:10px}' +
 '.row:last-child{margin-bottom:0}' +
-'.ctrl-name{font-size:12px;font-weight:600;color:var(--text);min-width:56px;flex-shrink:0}' +
+'.ctrl-name{font-size:12px;font-weight:600;color:var(--text);min-width:72px;flex-shrink:0}' +
 '.ctrl-val{font-size:12px;font-family:monospace;color:var(--teal);min-width:50px;text-align:right;flex-shrink:0}' +
+'.ctrl-hint{display:flex;justify-content:space-between;font-size:10px;color:var(--text3);padding:0 48px 0 80px;margin-top:-6px}' +
 'input[type=range]{flex:1;min-width:0;accent-color:var(--teal);height:20px}' +
 '.btn-row{display:flex;gap:6px;margin-top:4px}' +
-'.btn{flex:1;padding:10px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent;border-radius:8px}' +
+'.btn{flex:1;padding:14px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent;border-radius:8px}' +
 '.btn:active{opacity:0.7}' +
 '.btn-primary{background:var(--teal);border-color:var(--teal);color:#1A1816}' +
-'.btn-stop{background:var(--accent);border-color:var(--accent);color:#1A1816}' +
+'.btn-stop{background:var(--accent);border-color:var(--accent);color:var(--bg)}' +
 '.stats{font-family:monospace;font-size:11px;line-height:2;color:var(--text2);border-radius:8px}' +
 '.stats .hi{color:var(--teal);font-weight:700}' +
 '.stats .warn{color:var(--accent);font-weight:700}' +
-'.preset-row{display:flex;gap:6px;margin-bottom:8px}' +
-'.preset{flex:1;padding:12px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:10px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.3px;border-radius:8px}' +
+'.preset-row{display:flex;gap:6px;margin-bottom:10px}' +
+'.preset{flex:1;padding:14px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:11px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.3px;border-radius:8px;min-height:44px}' +
 '.preset:active{opacity:0.7}' +
-'.preset.active{border-color:var(--teal);color:var(--teal)}' +
+'.preset.active{border-color:var(--teal);color:var(--teal);background:var(--tealLight)}' +
 '@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}' +
 '.shake{animation:shake 0.3s ease-in-out}' +
 '</style></head><body>' +
@@ -57,7 +58,7 @@ export function getPredCodingSimulationHTML(isDark: boolean, lang: string): stri
 
 // ── Hierarchy Diagram Canvas ──
 '<div class="panel"><div class="label" id="lbl-hier"></div>' +
-'<canvas id="cvHier" height="150"></canvas></div>' +
+'<canvas id="cvHier" height="180"></canvas></div>' +
 
 // ── Error Time Series Canvas ──
 '<div class="panel"><div class="label" id="lbl-err"></div>' +
@@ -77,6 +78,7 @@ export function getPredCodingSimulationHTML(isDark: boolean, lang: string): stri
 '<div class="row"><span class="ctrl-name" id="lblLR"></span>' +
 '<input type="range" id="slLR" min="5" max="50" value="20" oninput="onParam()">' +
 '<span class="ctrl-val" id="valLR"></span></div>' +
+'<div class="ctrl-hint"><span id="lblLRS"></span><span id="lblLRF"></span></div>' +
 
 // Buttons
 '<div class="btn-row">' +
@@ -101,7 +103,7 @@ export function getPredCodingSimulationHTML(isDark: boolean, lang: string): stri
 'var L={' +
 'ko:{seq:"\\uC2DC\\uD000\\uC2A4 \\uD0C0\\uC784\\uB77C\\uC778",hier:"\\uACC4\\uCE35 \\uBAA8\\uB378",' +
 'err:"\\uC608\\uCE21 \\uC624\\uCC28 (= AI Loss) \\uADF8\\uB798\\uD504",ctrl:"\\uD30C\\uB77C\\uBBF8\\uD130",stats:"\\uD1B5\\uACC4",' +
-'lr:"\\uD559\\uC2B5\\uB960",step:"\\uD55C \\uB2E8\\uACC4",auto:"\\u25B6 \\uC790\\uB3D9",autoStop:"\\u25A0 \\uC815\\uC9C0",' +
+'lr:"\\uD559\\uC2B5\\uB960",lrS:"\\uB290\\uB9BC",lrF:"\\uBE60\\uB984",step:"\\uD55C \\uB2E8\\uACC4",auto:"\\u25B6 \\uC790\\uB3D9",autoStop:"\\u25A0 \\uC815\\uC9C0",' +
 'surprise:"\\uC11C\\uD504\\uB77C\\uC774\\uC988!",reset:"\\u21BA \\uB9AC\\uC14B",' +
 'accuracy:"\\uC608\\uCE21 \\uC815\\uD655\\uB3C4",prediction:"\\uD604\\uC7AC \\uC608\\uCE21",' +
 'actual:"\\uC2E4\\uC81C \\uAC12",surpriseLevel:"\\uB180\\uB77C\\uC6C0 \\uC218\\uC900",' +
@@ -113,7 +115,7 @@ export function getPredCodingSimulationHTML(isDark: boolean, lang: string): stri
 'predErrorAI:"\\uC608\\uCE21 \\uC624\\uCC28 (= AI \\uC190\\uC2E4)"},' +
 'en:{seq:"SEQUENCE TIMELINE",hier:"HIERARCHY MODEL",' +
 'err:"PREDICTION ERROR (= AI LOSS) GRAPH",ctrl:"PARAMETERS",stats:"STATISTICS",' +
-'lr:"Learn Rate",step:"Step",auto:"\\u25B6 Auto",autoStop:"\\u25A0 Stop",' +
+'lr:"Learn Rate",lrS:"Slow",lrF:"Fast",step:"Step",auto:"\\u25B6 Auto",autoStop:"\\u25A0 Stop",' +
 'surprise:"Surprise!",reset:"\\u21BA Reset",' +
 'accuracy:"Prediction Accuracy",prediction:"Current Prediction",' +
 'actual:"Actual",surpriseLevel:"Surprise Level",' +
@@ -139,7 +141,7 @@ export function getPredCodingSimulationHTML(isDark: boolean, lang: string): stri
 'var currentPred="";var lastActual="";var lastError=0;var lastCorrect=false;' +
 'var autoTimer=null;var autoRunning=false;' +
 // n-gram model: maps context -> {symbol: count}
-'var model={};var ctxLen=2;' +
+'var model={};var ctxLen=2;var predProbs={};' +
 
 // ── Canvas DPR setup ──
 'function setupCanvas(cv,h){' +
@@ -151,12 +153,14 @@ export function getPredCodingSimulationHTML(isDark: boolean, lang: string): stri
 
 // ── Predict next ──
 'function predict(){' +
+'predProbs={};' +
 'if(history.length<ctxLen){currentPred=pattern[0];return}' +
 'var ctx2=history.slice(-ctxLen).join(",");' +
 'var counts=model[ctx2];' +
 'if(!counts){currentPred=pattern[0];return}' +
+'var total=0;for(var k in counts)total+=counts[k];' +
 'var best="";var bestC=0;' +
-'for(var k in counts){if(counts[k]>bestC){bestC=counts[k];best=k}}' +
+'for(var k in counts){predProbs[k]=counts[k]/total;if(counts[k]>bestC){bestC=counts[k];best=k}}' +
 'currentPred=best}' +
 
 // ── Update model ──
@@ -172,16 +176,19 @@ export function getPredCodingSimulationHTML(isDark: boolean, lang: string): stri
 'var idx=stepCount%pattern.length;' +
 'var actual=pattern[idx];' +
 'predict();' +
-'var error=currentPred!==actual?1:0;' +
-'lastCorrect=error===0;lastActual=actual;lastError=error;' +
-'if(!error)correctCount++;' +
-'totalErrors+=error;' +
+'var isRight=currentPred===actual;' +
+'var pA=predProbs[actual]||0;' +
+'var surprise=pA>0?-Math.log(pA)/Math.LN2:3.0;' +
+'surprise=Math.min(surprise,3.0);' +
+'lastCorrect=isRight;lastActual=actual;lastError=surprise;' +
+'if(isRight)correctCount++;' +
+'if(!isRight)totalErrors++;' +
 'updateModel(actual);' +
 'history.push(actual);' +
 'predictions.push(currentPred);' +
-'errors.push(error);' +
+'errors.push(surprise);' +
 'stepCount++;' +
-'predict();' + // update prediction for display
+'predict();' +
 'drawAll();notifyHeight()}' +
 
 // ── Surprise: inject unexpected symbol ──
@@ -191,12 +198,18 @@ export function getPredCodingSimulationHTML(isDark: boolean, lang: string): stri
 'if(pool.length===0)pool=["X"];' +
 'var actual=pool[Math.floor(Math.random()*pool.length)];' +
 'predict();' +
-'var error=currentPred!==actual?1:0;' +
-'lastCorrect=error===0;lastActual=actual;lastError=error;' +
-'if(!error)correctCount++;' +
-'totalErrors+=error;' +
-'history.push(actual);predictions.push(currentPred);errors.push(error);' +
+'var isRight=currentPred===actual;' +
+'var pA=predProbs[actual]||0;' +
+'var surprise=pA>0?-Math.log(pA)/Math.LN2:3.0;' +
+'surprise=Math.min(surprise,3.0);' +
+'lastCorrect=isRight;lastActual=actual;lastError=surprise;' +
+'if(isRight)correctCount++;' +
+'if(!isRight)totalErrors++;' +
+'updateModel(actual);' +
+'history.push(actual);predictions.push(currentPred);errors.push(surprise);' +
 'stepCount++;predict();' +
+'var hp=document.getElementById("cvHier").parentElement;' +
+'hp.classList.add("shake");setTimeout(function(){hp.classList.remove("shake")},300);' +
 'drawAll();notifyHeight()}' +
 
 // ── Auto play ──
@@ -274,7 +287,7 @@ export function getPredCodingSimulationHTML(isDark: boolean, lang: string): stri
 // ── Draw hierarchy ──
 'function drawHier(){' +
 'var cv=document.getElementById("cvHier");' +
-'var dim=setupCanvas(cv,150);var w=dim.w,h=dim.h;' +
+'var dim=setupCanvas(cv,180);var w=dim.w,h=dim.h;' +
 'var ctx=cv.getContext("2d");ctx.clearRect(0,0,w,h);' +
 'var cs=getComputedStyle(document.documentElement);' +
 'var borderC=cs.getPropertyValue("--border").trim();' +
@@ -303,11 +316,11 @@ export function getPredCodingSimulationHTML(isDark: boolean, lang: string): stri
 'ctx.fillText(T.sensory+(lastActual?" ["+lastActual+"]":""),w/2,botY+boxH/2+4);' +
 
 // prediction error arrow (bottom -> top) — thickness based on error
-'var errMag=lastError;' +
+'var errMag=Math.min(lastError/3,1);' +
 'var arrowX=w/2;' +
 'var arrowBot=botY-4;var arrowTop=topY+boxH+4;' +
 'var arrowW=2+errMag*6;' +
-'var arrowCol=errMag>0.5?redC:greenC;' +
+'var arrowCol=errMag>0.3?redC:greenC;' +
 
 'ctx.strokeStyle=arrowCol;ctx.lineWidth=arrowW;' +
 'ctx.beginPath();ctx.moveTo(arrowX,arrowBot);ctx.lineTo(arrowX,arrowTop+10);ctx.stroke();' +
@@ -317,7 +330,7 @@ export function getPredCodingSimulationHTML(isDark: boolean, lang: string): stri
 
 // error label
 'ctx.fillStyle=arrowCol;ctx.font="bold 10px -apple-system,sans-serif";ctx.textAlign="left";' +
-'ctx.fillText(T.predErrorAI+": "+(errMag>0.5?"\\u2717":"\\u2713"),arrowX+12,(arrowBot+arrowTop)/2+4);' +
+'ctx.fillText(T.predError+" "+lastError.toFixed(1)+" bits",arrowX+12,(arrowBot+arrowTop)/2+4);' +
 
 // prediction arrow going down (top -> bottom) on the left side
 'var predArrowX=w/2-boxW/2+20;' +
@@ -325,8 +338,13 @@ export function getPredCodingSimulationHTML(isDark: boolean, lang: string): stri
 'ctx.beginPath();ctx.moveTo(predArrowX,topY+boxH+4);ctx.lineTo(predArrowX,botY-4);ctx.stroke();ctx.setLineDash([]);' +
 'ctx.fillStyle=tealC;ctx.beginPath();' +
 'ctx.moveTo(predArrowX-5,botY-8);ctx.lineTo(predArrowX,botY-1);ctx.lineTo(predArrowX+5,botY-8);ctx.fill();' +
-'ctx.font="9px -apple-system,sans-serif";ctx.textAlign="right";' +
-'ctx.fillText(currentPred||"?",predArrowX-6,(arrowBot+arrowTop)/2+4)}' +
+'ctx.font="9px monospace";ctx.textAlign="right";' +
+'var pks=Object.keys(predProbs);' +
+'if(pks.length>0){pks.sort(function(a,b){return predProbs[b]-predProbs[a]});' +
+'for(var pi=0;pi<Math.min(pks.length,3);pi++){' +
+'ctx.fillStyle=SHAPE_COLORS[pks[pi]]||tealC;' +
+'ctx.fillText(pks[pi]+":"+(predProbs[pks[pi]]*100).toFixed(0)+"%",predArrowX-6,(arrowBot+arrowTop)/2-6+pi*12)}}' +
+'else{ctx.fillStyle=tealC;ctx.fillText(currentPred||"?",predArrowX-6,(arrowBot+arrowTop)/2+4)}}' +
 
 // ── Draw error graph ──
 'function drawErr(){' +
@@ -348,7 +366,7 @@ export function getPredCodingSimulationHTML(isDark: boolean, lang: string): stri
 
 // y labels
 'ctx.fillStyle=text3C;ctx.font="9px monospace";ctx.textAlign="right";' +
-'ctx.fillText("1.0",pad-4,pt+6);ctx.fillText("0",pad-4,h-pb+4);' +
+'ctx.fillText("3",pad-4,pt+6);ctx.fillText("0",pad-4,h-pb+4);' +
 
 'if(errors.length<2)return;' +
 
@@ -360,15 +378,15 @@ export function getPredCodingSimulationHTML(isDark: boolean, lang: string): stri
 'var showN=Math.min(errors.length,60);var startI=errors.length-showN;' +
 'for(var i=startI;i<errors.length;i++){' +
 'var x=pad+(i-startI)/(showN-1)*gW;' +
-'var y=pt+(1-errors[i])*gH;' +
-'ctx.fillStyle=errors[i]>0.5?redC:tealC;' +
+'var y=pt+(1-errors[i]/3)*gH;' +
+'ctx.fillStyle=errors[i]>1?redC:tealC;' +
 'ctx.globalAlpha=0.4;ctx.beginPath();ctx.arc(x,y,2.5,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1}' +
 
 // running average line
 'ctx.strokeStyle=accentC;ctx.lineWidth=2;ctx.beginPath();' +
 'for(var i=startI;i<errors.length;i++){' +
 'var x=pad+(i-startI)/(showN-1)*gW;' +
-'var y=pt+(1-runAvg[i])*gH;' +
+'var y=pt+(1-runAvg[i]/3)*gH;' +
 'if(i===startI)ctx.moveTo(x,y);else ctx.lineTo(x,y)}ctx.stroke();' +
 
 // legend
@@ -388,8 +406,8 @@ export function getPredCodingSimulationHTML(isDark: boolean, lang: string): stri
 'if(lastActual)s+=" | "+T.actual+": <span class=\\"warn\\">"+lastActual+"</span>";' +
 's+="<br>";' +
 's+=T.totalSteps+": "+stepCount+" | "+T.totalErrors+": <span class=\\"warn\\">"+totalErrors+"</span><br>";' +
-'if(lastError>0.5)s+=T.surpriseLevel+": <span class=\\"warn\\">\\u26A0 HIGH</span>";' +
-'else if(stepCount>0)s+=T.surpriseLevel+": <span class=\\"hi\\">\\u2713 LOW</span>";' +
+'if(lastError>1.5)s+=T.surpriseLevel+": <span class=\\"warn\\">\\u26A0 "+lastError.toFixed(1)+" bits</span>";' +
+'else if(stepCount>0)s+=T.surpriseLevel+": <span class=\\"hi\\">\\u2713 "+lastError.toFixed(1)+" bits</span>";' +
 'box.innerHTML=s}' +
 
 // ── Preset ──
@@ -429,6 +447,8 @@ export function getPredCodingSimulationHTML(isDark: boolean, lang: string): stri
 'document.getElementById("btnAuto").textContent=T.auto;' +
 'document.getElementById("btnSurprise").textContent=T.surprise;' +
 'document.getElementById("btnReset").textContent=T.reset;' +
+'document.getElementById("lblLRS").textContent=T.lrS;' +
+'document.getElementById("lblLRF").textContent=T.lrF;' +
 'document.getElementById("aiLabel").textContent=T.aiConn;' +
 
 // ── Init ──
