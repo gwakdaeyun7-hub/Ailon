@@ -25,23 +25,23 @@ export function getGDSimulationHTML(isDark: boolean, lang: string): string {
 '--border:#302B28;--surface:#211D1B;--teal:#5EEAD4;--tealLight:#112525;' +
 '--accent:#F59E0B;--red:#F87171;--green:#4ADE80}' +
 '*{box-sizing:border-box;margin:0;padding:0}' +
-'body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);padding:0;-webkit-user-select:none;user-select:none;overflow-x:hidden}' +
-'.panel{border:2px solid var(--border);background:var(--card);margin-bottom:8px;padding:12px;border-radius:8px}' +
-'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card);touch-action:none;border-radius:8px}' +
+'body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);padding:0 6px;-webkit-user-select:none;user-select:none;overflow-x:hidden}' +
+'.panel{border:2px solid var(--border);background:var(--card);margin-bottom:8px;padding:12px;border-radius:8px;overflow:hidden}' +
+'canvas{width:100%;display:block;background:var(--card);touch-action:none;border-radius:6px}' +
 '.label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}' +
 '.row{display:flex;align-items:center;gap:8px;margin-bottom:10px}' +
 '.row:last-child{margin-bottom:0}' +
-'.ctrl-name{font-size:12px;font-weight:600;color:var(--text);min-width:72px;flex-shrink:0}' +
-'.ctrl-val{font-size:12px;font-family:monospace;color:var(--teal);min-width:50px;text-align:right;flex-shrink:0}' +
-'.ctrl-hint{font-size:10px;color:var(--text3);margin-top:-6px;margin-bottom:8px;padding-left:80px}' +
+'.ctrl-name{font-size:12px;font-weight:600;color:var(--text);min-width:40px;flex-shrink:0}' +
+'.ctrl-val{font-size:12px;font-family:monospace;color:var(--teal);min-width:44px;text-align:right;flex-shrink:0;white-space:nowrap}' +
+'.ctrl-hint{font-size:10px;color:var(--text3);margin-top:-6px;margin-bottom:8px;padding-left:48px}' +
 'input[type=range]{flex:1;min-width:0;accent-color:var(--teal);height:20px}' +
 'select{width:100%;padding:8px 10px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;font-weight:600;-webkit-appearance:none;appearance:none;border-radius:8px}' +
 '.btn-row{display:flex;gap:6px;margin-top:4px}' +
-'.btn{flex:1;padding:14px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent;border-radius:8px}' +
+'.btn{flex:1;padding:10px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent;border-radius:8px;min-width:0;overflow:hidden;min-height:44px;display:flex;align-items:center;justify-content:center}' +
 '.btn:active{opacity:0.7}' +
 '.btn-primary{background:var(--teal);border-color:var(--teal);color:#1A1816}' +
 '.btn-stop{background:var(--accent);border-color:var(--accent);color:#1A1816}' +
-'.stats{font-family:monospace;font-size:11px;line-height:2;color:var(--text2);border-radius:8px}' +
+'.stats{font-family:monospace;font-size:11px;line-height:2;color:var(--text2);border-radius:8px;overflow-wrap:break-word;word-break:break-word}' +
 '.stats .hi{color:var(--teal);font-weight:700}' +
 '.stats .warn{color:var(--accent);font-weight:700}' +
 '.stats .gn{color:var(--green);font-weight:700}' +
@@ -56,6 +56,8 @@ export function getGDSimulationHTML(isDark: boolean, lang: string): string {
 '<div class="panel"><div class="label" id="lbl-contour"></div>' +
 '<div id="legendBox" class="legend-row"></div>' +
 '<canvas id="cvContour" height="280"></canvas></div>' +
+
+'<div id="divWarn" style="max-height:0;overflow:hidden;transition:max-height 150ms ease;margin-bottom:8px"></div>' +
 
 '<div class="panel"><div class="label" id="lbl-params"></div>' +
 '<div class="row"><span class="ctrl-name" id="lbl-lr"></span>' +
@@ -106,7 +108,8 @@ export function getGDSimulationHTML(isDark: boolean, lang: string): string {
 'tapHint:"\\uD0ED\\uD558\\uC5EC \\uC2DC\\uC791\\uC810\\uC744 \\uC124\\uC815\\uD558\\uC138\\uC694",' +
 'waiting:"\\uD30C\\uB77C\\uBBF8\\uD130\\uB97C \\uC870\\uC808\\uD558\\uACE0 \\uC2E4\\uD589\\uC744 \\uB20C\\uB7EC\\uBCF4\\uC138\\uC694",' +
 'gradOn:"\\uADF8\\uB798\\uB514\\uC5B8\\uD2B8 ON",gradOff:"\\uADF8\\uB798\\uB514\\uC5B8\\uD2B8 OFF",' +
-'gradHint:"\\uD654\\uC0B4\\uD45C = \\uAC00\\uC7A5 \\uAC00\\uD30C\\uB978 \\uD558\\uAC15 \\uBC29\\uD5A5 (\\uADF8\\uB798\\uB514\\uC5B8\\uD2B8). \\uBAA8\\uB4E0 \\uB525\\uB7EC\\uB2DD \\uD559\\uC2B5\\uC758 \\uC218\\uD559\\uC801 \\uAE30\\uBC18"},' +
+'gradHint:"\\uD654\\uC0B4\\uD45C = \\uAC00\\uC7A5 \\uAC00\\uD30C\\uB978 \\uD558\\uAC15 \\uBC29\\uD5A5 (\\uADF8\\uB798\\uB514\\uC5B8\\uD2B8). \\uBAA8\\uB4E0 \\uB525\\uB7EC\\uB2DD \\uD559\\uC2B5\\uC758 \\uC218\\uD559\\uC801 \\uAE30\\uBC18",' +
+'diverged:"\\uBC1C\\uC0B0",warnDiv1:"{n} \\uBC1C\\uC0B0 \\u2014 \\uD559\\uC2B5\\uB960\\uC744 \\uB0AE\\uCDB0\\uBCF4\\uC138\\uC694",warnDivN:"{n}\\uAC1C \\uBC1C\\uC0B0 \\u2014 \\uD559\\uC2B5\\uB960\\uC744 \\uB0AE\\uCDB0\\uBCF4\\uC138\\uC694"},' +
 'en:{func:"OBJECTIVE FUNCTION",contour:"CONTOUR PLOT",params:"PARAMETERS",' +
 'lr:"Learn Rate",beta:"Momentum",iter:"Iterations",speed:"Anim Speed",' +
 'run:"\\u25B6 Run",pause:"\\u23F8 Pause",step:"\\u23ED Step",reset:"\\u21BA Reset",' +
@@ -118,7 +121,8 @@ export function getGDSimulationHTML(isDark: boolean, lang: string): string {
 'tapHint:"Tap to set starting point",' +
 'waiting:"Adjust parameters and press Run",' +
 'gradOn:"Gradient ON",gradOff:"Gradient OFF",' +
-'gradHint:"Arrows = steepest descent direction (gradient). Mathematical foundation of all deep learning"}' +
+'gradHint:"Arrows = steepest descent direction (gradient). Mathematical foundation of all deep learning",' +
+'diverged:"DIVERGED",warnDiv1:"{n} diverged \\u2014 try a lower learning rate",warnDivN:"{n} diverged \\u2014 try a lower learning rate"}' +
 '};' +
 'var T=L[LANG]||L.en;' +
 
@@ -142,6 +146,7 @@ export function getGDSimulationHTML(isDark: boolean, lang: string): string {
 'var ax,ay,am_x=0,am_y=0,av_x=0,av_y=0;var aTrail=[];var aHist=[];' +
 'var contourCache=null;' +
 'var showGrad=false;' +
+'var vDiverged=false,mDiverged=false,aDiverged=false;' +
 
 // ── DOM refs ────────────────────────────────────────────────────────
 'var cvContour=document.getElementById("cvContour");' +
@@ -273,6 +278,8 @@ export function getGDSimulationHTML(isDark: boolean, lang: string): string {
 // axis lines
 'ctx.strokeStyle=borderC;ctx.lineWidth=1;' +
 'ctx.beginPath();ctx.moveTo(pad,pad);ctx.lineTo(pad,h-pad);ctx.lineTo(w-pad,h-pad);ctx.stroke();' +
+// clip region for trails/positions/arrows
+'ctx.save();ctx.beginPath();ctx.rect(pad,pad,pw,ph);ctx.clip();' +
 // draw trails: Vanilla (teal), Momentum (accent), Adam (green)
 'function drawTrail(trail,color){' +
 'if(trail.length<2)return;' +
@@ -315,6 +322,24 @@ export function getGDSimulationHTML(isDark: boolean, lang: string): string {
 'ctx.lineTo(ex-aLen*Math.cos(ang+aAng),ey-aLen*Math.sin(ang+aAng));' +
 'ctx.stroke();ctx.globalAlpha=1}' +
 'drawGradArrow(vTrail,tealC);drawGradArrow(mTrail,accentC);drawGradArrow(aTrail,greenC)}' +
+// end clip region
+'ctx.restore();' +
+// edge indicators for off-bounds optimizers
+'function drawOffBound(trail,color){' +
+'if(trail.length===0)return;' +
+'var p=trail[trail.length-1];var ox=p[0],oy=p[1];' +
+'if(ox>=lo&&ox<=hi&&oy>=lo&&oy<=hi)return;' +
+'var cx=Math.max(lo,Math.min(hi,ox));var cy=Math.max(lo,Math.min(hi,oy));' +
+'var px=toX(cx),py=toY(cy);' +
+'var ddx=toX(ox)-px,ddy=toY(oy)-py;' +
+'var dm=Math.sqrt(ddx*ddx+ddy*ddy);if(dm<1)return;' +
+'ddx/=dm;ddy/=dm;' +
+'ctx.fillStyle=color;ctx.globalAlpha=0.9;ctx.beginPath();' +
+'ctx.moveTo(px+ddx*7,py+ddy*7);' +
+'ctx.lineTo(px-ddy*4,py+ddx*4);' +
+'ctx.lineTo(px+ddy*4,py-ddx*4);' +
+'ctx.closePath();ctx.fill();ctx.globalAlpha=1}' +
+'drawOffBound(vTrail,tealC);drawOffBound(mTrail,accentC);drawOffBound(aTrail,greenC);' +
 // start position marker (cross)
 'if(iteration===0||vTrail.length>0){' +
 'var sx=toX(startX),sy=toY(startY);' +
@@ -364,7 +389,7 @@ export function getGDSimulationHTML(isDark: boolean, lang: string): string {
 // find y range across all 3
 'var allVals=vHist.concat(mHist).concat(aHist);' +
 'var eMin=Infinity,eMax=-Infinity;' +
-'for(var i=0;i<allVals.length;i++){var v=allVals[i];if(isFinite(v)){if(v<eMin)eMin=v;if(v>eMax)eMax=v}}' +
+'var CAP=1e4;for(var i=0;i<allVals.length;i++){var v=allVals[i];if(isFinite(v)){v=Math.max(-CAP,Math.min(CAP,v));if(v<eMin)eMin=v;if(v>eMax)eMax=v}}' +
 'if(!isFinite(eMin)){eMin=0;eMax=1}' +
 'var eRange=eMax-eMin||1;eMin-=eRange*0.05;eMax+=eRange*0.05;eRange=eMax-eMin;' +
 // clip helper
@@ -395,48 +420,68 @@ export function getGDSimulationHTML(isDark: boolean, lang: string): string {
 'ctx.fillText("Adam",pad+122,h-4)' +
 '}' +
 
+// ── Divergence warning ──────────────────────────────────────────────
+'function updateWarn(){' +
+'var w=document.getElementById("divWarn");' +
+'var dv=[];if(vDiverged)dv.push(T.vanilla);if(mDiverged)dv.push(T.momentum);if(aDiverged)dv.push(T.adam);' +
+'if(dv.length===0){w.style.maxHeight="0";return}' +
+'var msg=dv.length===1?T.warnDiv1.replace("{n}",dv[0]):T.warnDivN.replace("{n}",dv.length);' +
+'w.innerHTML="<div style=\\"padding:8px 12px;background:var(--surface);border-radius:8px;font-size:11px;color:var(--accent);font-weight:600\\">"+msg+"</div>";' +
+'w.style.maxHeight="40px"}' +
+
 // ── Update stats ────────────────────────────────────────────────────
 'function updateStats(){' +
 'var box=document.getElementById("statsBox");' +
 'if(vTrail.length===0){box.innerHTML=T.waiting;return}' +
 'var fn=curFunc.fn;' +
 'var vp=vTrail[vTrail.length-1],mp=mTrail[mTrail.length-1],ap=aTrail[aTrail.length-1];' +
-'var s="<span class=\\"hi\\">"+T.vanilla+"</span> ("+vp[0].toFixed(2)+","+vp[1].toFixed(2)+") f="+fn(vp[0],vp[1]).toFixed(2)+"<br>";' +
-'s+="<span class=\\"warn\\">"+T.momentum+"</span> ("+mp[0].toFixed(2)+","+mp[1].toFixed(2)+") f="+fn(mp[0],mp[1]).toFixed(2)+"<br>";' +
-'s+="<span class=\\"gn\\">"+T.adam+"</span> ("+ap[0].toFixed(2)+","+ap[1].toFixed(2)+") f="+fn(ap[0],ap[1]).toFixed(2)+"<br>";' +
+'var s="<span class=\\"hi\\">"+T.vanilla+"</span> ";' +
+'if(vDiverged){s+="<span class=\\"warn\\">"+T.diverged+"</span><br>"}' +
+'else{s+="("+vp[0].toFixed(2)+","+vp[1].toFixed(2)+") f="+fn(vp[0],vp[1]).toFixed(2)+"<br>"}' +
+'s+="<span class=\\"warn\\">"+T.momentum+"</span> ";' +
+'if(mDiverged){s+="<span class=\\"warn\\">"+T.diverged+"</span><br>"}' +
+'else{s+="("+mp[0].toFixed(2)+","+mp[1].toFixed(2)+") f="+fn(mp[0],mp[1]).toFixed(2)+"<br>"}' +
+'s+="<span class=\\"gn\\">"+T.adam+"</span> ";' +
+'if(aDiverged){s+="<span class=\\"warn\\">"+T.diverged+"</span><br>"}' +
+'else{s+="("+ap[0].toFixed(2)+","+ap[1].toFixed(2)+") f="+fn(ap[0],ap[1]).toFixed(2)+"<br>"}' +
 's+=T.iterN+": "+iteration+"/"+maxIter;' +
 'if(showGrad){s+="<br><br><span style=\\"font-size:10px;color:var(--teal);font-style:italic\\">"+T.gradHint+"</span>"}' +
 'box.innerHTML=s}' +
 
 // ── Optimizer step ──────────────────────────────────────────────────
 'function gdStep(){' +
-'if(iteration>=maxIter){done=true;return}' +
+'if(iteration>=maxIter||(vDiverged&&mDiverged&&aDiverged)){done=true;return}' +
 'var fn=curFunc.fn;' +
+'var DL=(curFunc.bounds[1]-curFunc.bounds[0])*3;' +
 // Vanilla GD
-'var gv=grad(fn,vx,vy);vx-=lr*gv[0];vy-=lr*gv[1];' +
+'if(!vDiverged){var gv=grad(fn,vx,vy);vx-=lr*gv[0];vy-=lr*gv[1];' +
 'vTrail.push([vx,vy]);vHist.push(fn(vx,vy));' +
+'if(Math.abs(vx)>DL||Math.abs(vy)>DL)vDiverged=true}' +
 // Momentum
-'var gm=grad(fn,mx,my);mvx=beta*mvx+gm[0];mvy=beta*mvy+gm[1];mx-=lr*mvx;my-=lr*mvy;' +
+'if(!mDiverged){var gm=grad(fn,mx,my);mvx=beta*mvx+gm[0];mvy=beta*mvy+gm[1];mx-=lr*mvx;my-=lr*mvy;' +
 'mTrail.push([mx,my]);mHist.push(fn(mx,my));' +
+'if(Math.abs(mx)>DL||Math.abs(my)>DL)mDiverged=true}' +
 // Adam
-'var ga=grad(fn,ax,ay);var t=iteration+1;' +
+'if(!aDiverged){var ga=grad(fn,ax,ay);var t=iteration+1;' +
 'am_x=0.9*am_x+0.1*ga[0];am_y=0.9*am_y+0.1*ga[1];' +
 'av_x=0.999*av_x+0.001*ga[0]*ga[0];av_y=0.999*av_y+0.001*ga[1]*ga[1];' +
 'var mhx=am_x/(1-Math.pow(0.9,t));var mhy=am_y/(1-Math.pow(0.9,t));' +
 'var vhx=av_x/(1-Math.pow(0.999,t));var vhy=av_y/(1-Math.pow(0.999,t));' +
 'ax-=lr*mhx/(Math.sqrt(vhx)+1e-8);ay-=lr*mhy/(Math.sqrt(vhy)+1e-8);' +
 'aTrail.push([ax,ay]);aHist.push(fn(ax,ay));' +
-'iteration++}' +
+'if(Math.abs(ax)>DL||Math.abs(ay)>DL)aDiverged=true}' +
+'iteration++;updateWarn()}' +
 
 // ── Reset state ─────────────────────────────────────────────────────
 'function resetState(){' +
 'readParams();iteration=0;done=false;animating=false;' +
+'vDiverged=false;mDiverged=false;aDiverged=false;' +
 'vx=startX;vy=startY;vTrail=[];vHist=[];' +
 'mx=startX;my=startY;mvx=0;mvy=0;mTrail=[];mHist=[];' +
 'ax=startX;ay=startY;am_x=0;am_y=0;av_x=0;av_y=0;aTrail=[];aHist=[];' +
 'document.getElementById("btnRun").textContent=T.run;' +
 'document.getElementById("btnRun").className="btn btn-primary";' +
-'drawContour();drawConv();updateStats();notifyHeight()}' +
+'updateWarn();drawContour();drawConv();updateStats();notifyHeight()}' +
 
 // ── Animation loop ──────────────────────────────────────────────────
 'function animate(){' +
