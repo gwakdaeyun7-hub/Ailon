@@ -31,11 +31,11 @@ export function getNyquistSimulationHTML(isDark: boolean, lang: string): string 
 '.label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}' +
 '.row{display:flex;align-items:center;gap:8px;margin-bottom:10px}' +
 '.row:last-child{margin-bottom:0}' +
-'.ctrl-name{font-size:12px;font-weight:600;color:var(--text);min-width:56px;flex-shrink:0}' +
+'.ctrl-name{font-size:12px;font-weight:600;color:var(--text);min-width:72px;flex-shrink:0}' +
 '.ctrl-val{font-size:12px;font-family:monospace;color:var(--teal);min-width:50px;text-align:right;flex-shrink:0}' +
 'input[type=range]{flex:1;min-width:0;accent-color:var(--teal);height:20px}' +
 '.btn-row{display:flex;gap:6px;margin-top:4px}' +
-'.btn{flex:1;padding:10px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent;border-radius:8px}' +
+'.btn{flex:1;padding:14px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent;border-radius:8px}' +
 '.btn:active{opacity:0.7}' +
 '.btn-primary{background:var(--teal);border-color:var(--teal);color:#1A1816}' +
 '.btn-stop{background:var(--accent);border-color:var(--accent);color:#1A1816}' +
@@ -44,10 +44,10 @@ export function getNyquistSimulationHTML(isDark: boolean, lang: string): string 
 '.stats .warn{color:var(--accent);font-weight:700}' +
 '.stats .bad{color:var(--red);font-weight:700}' +
 '.stats .good{color:var(--green);font-weight:700}' +
-'.preset-row{display:flex;gap:6px;margin-bottom:8px}' +
-'.preset{flex:1;padding:12px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:10px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.3px;border-radius:8px}' +
+'.preset-row{display:flex;gap:6px;margin-bottom:10px}' +
+'.preset{flex:1;padding:14px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:11px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.3px;min-height:44px;border-radius:8px}' +
 '.preset:active{opacity:0.7}' +
-'.preset.active{border-color:var(--teal);color:var(--teal)}' +
+'.preset.active{border-color:var(--teal);color:var(--teal);background:var(--tealLight)}' +
 '.opt-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;min-height:44px}' +
 '.opt-check{width:20px;height:20px;accent-color:var(--teal)}' +
 '.opt-label{font-size:11px;font-weight:600;color:var(--text2)}' +
@@ -100,8 +100,8 @@ export function getNyquistSimulationHTML(isDark: boolean, lang: string): string 
 'cv1:"\\uC6D0\\uBCF8 \\uC5F0\\uC18D \\uC2E0\\uD638",cv2:"\\uC0D8\\uD50C \\uD3EC\\uC778\\uD2B8",cv3:"\\uBCF5\\uC6D0 \\uC2E0\\uD638",' +
 'ratio:"fs/f \\uBE44\\uC728",nyqFreq:"\\uB098\\uC774\\uD034\\uC2A4\\uD2B8 \\uC8FC\\uD30C\\uC218",' +
 'status:"\\uC0C1\\uD0DC",ok:"\\uC815\\uC0C1",aliasing:"\\uC5D0\\uC77C\\uB9AC\\uC5B4\\uC2F1",' +
-'aliasWarn:"fs < 2f \\u2014 \\uBCF5\\uC6D0 \\uC2E0\\uD638\\uAC00 \\uC6D0\\uBCF8\\uACFC \\uB2E4\\uB985\\uB2C8\\uB2E4",' +
-'okMsg:"fs \\u2265 2f \\u2014 \\uC815\\uD655\\uD55C \\uBCF5\\uC6D0 \\uAC00\\uB2A5"},' +
+'aliasWarn:"fs < 2fmax \\u2014 \\uBCF5\\uC6D0 \\uC2E0\\uD638\\uAC00 \\uC6D0\\uBCF8\\uACFC \\uB2E4\\uB985\\uB2C8\\uB2E4",' +
+'okMsg:"fs \\u2265 2fmax \\u2014 \\uC815\\uD655\\uD55C \\uBCF5\\uC6D0 \\uAC00\\uB2A5"},' +
 'en:{sim:"NYQUIST SAMPLING THEOREM",' +
 'ctrl:"CONTROLS",freq:"Signal Freq",fs:"Sample Rate",' +
 'sine:"Sine",composite:"Composite",' +
@@ -111,14 +111,15 @@ export function getNyquistSimulationHTML(isDark: boolean, lang: string): string 
 'cv1:"Original Continuous Signal",cv2:"Sample Points",cv3:"Reconstructed Signal",' +
 'ratio:"fs/f Ratio",nyqFreq:"Nyquist Freq",' +
 'status:"Status",ok:"OK",aliasing:"ALIASING",' +
-'aliasWarn:"fs < 2f \\u2014 Reconstructed signal differs from original",' +
-'okMsg:"fs \\u2265 2f \\u2014 Faithful reconstruction"}' +
+'aliasWarn:"fs < 2fmax \\u2014 Reconstructed signal differs from original",' +
+'okMsg:"fs \\u2265 2fmax \\u2014 Faithful reconstruction"}' +
 '};' +
 'var T=L[LANG]||L.en;' +
 
 // -- State --
 'var sigFreq=3;var sampleRate=20;var sigType="sine";' +
 'var showNyq=true;var animating=false;var animId=null;var phase=0;' +
+'function getFmax(){return sigType==="composite"?sigFreq*2.3:sigFreq}' +
 
 // -- Canvas DPR setup --
 'function setupCanvas(cv,h){' +
@@ -165,8 +166,9 @@ export function getNyquistSimulationHTML(isDark: boolean, lang: string): string 
 // Nyquist limit indicator
 'if(showNyq){' +
 'ctx.fillStyle=text3C;ctx.font="9px monospace";ctx.textAlign="right";' +
-'ctx.fillText("f = "+sigFreq+" Hz",w-6,14);' +
-'ctx.fillText("2f = "+(sigFreq*2)+" Hz",w-6,26)}}' +
+'var fm=getFmax();ctx.fillText("f = "+sigFreq+" Hz",w-6,14);' +
+'ctx.fillText((sigType==="composite"?"fmax = "+fm.toFixed(1):"2f = "+(sigFreq*2))+" Hz",w-6,26);' +
+'if(sigType==="composite")ctx.fillText("2fmax = "+(fm*2).toFixed(1)+" Hz",w-6,38)}}' +
 
 // -- Draw sample points (canvas 2) --
 'function drawSamples(){' +
@@ -185,7 +187,7 @@ export function getNyquistSimulationHTML(isDark: boolean, lang: string): string 
 // sample points
 'var duration=2;' +
 'var dt=1/sampleRate;' +
-'var isAlias=sampleRate<sigFreq*2;' +
+'var fmax=getFmax();var isAlias=sampleRate<fmax*2;' +
 'var dotColor=isAlias?redC:accentC;' +
 'for(var t0=0;t0<duration;t0+=dt){' +
 'var px=(t0/duration)*w;' +
@@ -200,9 +202,9 @@ export function getNyquistSimulationHTML(isDark: boolean, lang: string): string 
 'ctx.fillStyle=dotColor;ctx.beginPath();ctx.arc(px,y,4,0,Math.PI*2);ctx.fill()}' +
 // Nyquist limit marker on rate label
 'if(showNyq){' +
-'var nyqRate=sigFreq*2;' +
+'var nyqRate=fmax*2;var nStr=nyqRate%1?nyqRate.toFixed(1):nyqRate;' +
 'ctx.fillStyle=redC;ctx.font="9px monospace";ctx.textAlign="right";' +
-'ctx.fillText("fs = "+sampleRate+" Hz | 2f = "+nyqRate+" Hz",w-6,14)}}' +
+'ctx.fillText("fs = "+sampleRate+" Hz | 2fmax = "+nStr+" Hz",w-6,14)}}' +
 
 // -- Draw reconstructed signal (canvas 3) --
 'function drawReconstructed(){' +
@@ -215,7 +217,7 @@ export function getNyquistSimulationHTML(isDark: boolean, lang: string): string 
 'var tealC=cs.getPropertyValue("--teal").trim();' +
 'var borderC=cs.getPropertyValue("--border").trim();' +
 'var midY=h/2;' +
-'var isAlias=sampleRate<sigFreq*2;' +
+'var fmax=getFmax();var isAlias=sampleRate<fmax*2;' +
 // axis
 'ctx.strokeStyle=borderC;ctx.lineWidth=1;ctx.setLineDash([3,3]);' +
 'ctx.beginPath();ctx.moveTo(0,midY);ctx.lineTo(w,midY);ctx.stroke();ctx.setLineDash([]);' +
@@ -316,11 +318,12 @@ export function getNyquistSimulationHTML(isDark: boolean, lang: string): string 
 // -- Stats --
 'function updateStats(){' +
 'var box=document.getElementById("statsBox");' +
-'var ratio=(sampleRate/sigFreq).toFixed(2);' +
-'var nyqF=sigFreq*2;' +
+'var fmax=getFmax();' +
+'var ratio=(sampleRate/fmax).toFixed(2);' +
+'var nyqF=fmax*2;var nyqStr=nyqF%1?nyqF.toFixed(1):nyqF;' +
 'var isAlias=sampleRate<nyqF;' +
-'var s="<span class=\\"hi\\">"+T.ratio+"</span>  "+ratio+"<br>";' +
-'s+="<span class=\\"hi\\">"+T.nyqFreq+"</span>  "+nyqF+" Hz<br>";' +
+'var s="<span class=\\"hi\\">fs/fmax</span>  "+ratio+"<br>";' +
+'s+="<span class=\\"hi\\">"+T.nyqFreq+"</span>  "+nyqStr+" Hz<br>";' +
 'if(isAlias){' +
 's+="<span class=\\"bad\\">"+T.status+": "+T.aliasing+"</span><br>";' +
 's+="<span class=\\"bad\\">"+T.aliasWarn+"</span>"}' +
