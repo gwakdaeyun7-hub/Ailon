@@ -30,18 +30,21 @@ export function getRenormSimulationHTML(isDark: boolean, lang: string): string {
 '*{box-sizing:border-box;margin:0;padding:0}' +
 'body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);padding:0;-webkit-user-select:none;user-select:none;overflow-x:hidden}' +
 '.panel{border:2px solid var(--border);background:var(--card);margin-bottom:8px;padding:12px;border-radius:8px}' +
-'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card);border-radius:8px}' +
+'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card);border-radius:8px;touch-action:none}' +
 '.label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}' +
 '.row{display:flex;align-items:center;gap:8px;margin-bottom:10px}' +
 '.row:last-child{margin-bottom:0}' +
-'.ctrl-name{font-size:12px;font-weight:600;color:var(--text);min-width:56px;flex-shrink:0}' +
+'.ctrl-name{font-size:12px;font-weight:600;color:var(--text);min-width:72px;flex-shrink:0}' +
 '.ctrl-val{font-size:12px;font-family:monospace;color:var(--teal);min-width:50px;text-align:right;flex-shrink:0}' +
 'input[type=range]{flex:1;min-width:0;accent-color:var(--teal);height:20px}' +
 '.btn-row{display:flex;gap:6px;margin-top:4px}' +
-'.btn{flex:1;padding:10px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent;min-height:44px;display:flex;align-items:center;justify-content:center;border-radius:8px}' +
+'.btn{flex:1;padding:14px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent;min-height:44px;display:flex;align-items:center;justify-content:center;border-radius:8px}' +
 '.btn:active{opacity:0.7}' +
 '.btn-primary{background:var(--teal);border-color:var(--teal);color:#1A1816}' +
-'.btn-stop{background:var(--accent);border-color:var(--accent);color:#1A1816}' +
+'.btn-stop{background:var(--accent);border-color:var(--accent);color:var(--bg)}' +
+'.preset-row{display:flex;gap:6px;margin-bottom:10px}' +
+'.preset{flex:1;padding:14px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:11px;font-weight:700;text-align:center;cursor:pointer;min-height:44px;border-radius:8px;display:flex;align-items:center;justify-content:center}' +
+'.preset.active{border-color:var(--teal);color:var(--teal);background:var(--tealLight)}' +
 '.stats{font-family:monospace;font-size:11px;line-height:2;color:var(--text2);border-radius:8px}' +
 '.stats .hi{color:var(--teal);font-weight:700}' +
 '.stats .warn{color:var(--accent);font-weight:700}' +
@@ -59,6 +62,11 @@ export function getRenormSimulationHTML(isDark: boolean, lang: string): string {
 
 // ── Controls Panel ──
 '<div class="panel"><div class="label" id="lbl-ctrl"></div>' +
+'<div class="label" id="lbl-preset" style="margin-top:4px"></div>' +
+'<div class="preset-row">' +
+'<div class="preset" id="preLow" onclick="setPreset(0)"></div>' +
+'<div class="preset active" id="preCrit" onclick="setPreset(1)"></div>' +
+'<div class="preset" id="preHigh" onclick="setPreset(2)"></div></div>' +
 '<div class="row"><span class="ctrl-name" id="lbl-temp"></span>' +
 '<input type="range" id="slTemp" min="0" max="500" value="227" oninput="onTemp()">' +
 '<span class="ctrl-val" id="valTemp"></span></div>' +
@@ -89,7 +97,8 @@ export function getRenormSimulationHTML(isDark: boolean, lang: string): string {
 'tempLabel:"\\uC628\\uB3C4",mag:"\\uC790\\uD654 M",energy:"\\uC5D0\\uB108\\uC9C0 E",' +
 'scale:"\\uC2A4\\uCF00\\uC77C",gridSize:"\\uACA9\\uC790 \\uD06C\\uAE30",' +
 'phase:"\\uC704\\uC0C1",ordered:"\\uC815\\uB82C",critical:"\\uC784\\uACC4",disordered:"\\uBB34\\uC9C8\\uC11C",' +
-'mcSteps:"MC \\uC2A4\\uD15D"},' +
+'mcSteps:"MC \\uC2A4\\uD15D",' +
+'preset:"\\uC628\\uB3C4 \\uD504\\uB9AC\\uC14B",preLow:"\\uB0AE\\uC74C (0.5)",preCrit:"\\uC784\\uACC4 Tc",preHigh:"\\uB192\\uC74C (4.0)"},' +
 'en:{grid:"ISING MODEL",ctrl:"CONTROLS",' +
 'temp:"Temp",stats:"STATISTICS",' +
 'animate:"\\u25B6 Simulate",stop:"\\u25A0 Stop",' +
@@ -98,7 +107,8 @@ export function getRenormSimulationHTML(isDark: boolean, lang: string): string {
 'tempLabel:"Temperature",mag:"Magnetization M",energy:"Energy E",' +
 'scale:"Scale",gridSize:"Grid Size",' +
 'phase:"Phase",ordered:"ORDERED",critical:"CRITICAL",disordered:"DISORDERED",' +
-'mcSteps:"MC Steps"}' +
+'mcSteps:"MC Steps",' +
+'preset:"TEMP PRESET",preLow:"Low (0.5)",preCrit:"Critical Tc",preHigh:"High (4.0)"}' +
 '};' +
 'var T=L[LANG]||L.en;' +
 
@@ -248,18 +258,33 @@ export function getRenormSimulationHTML(isDark: boolean, lang: string): string {
 'function onTemp(){' +
 'temperature=+document.getElementById("slTemp").value/100;' +
 'document.getElementById("valTemp").textContent=temperature.toFixed(2);' +
-'drawAll()}' +
+'updPresetUI(-1);drawAll()}' +
 
 'function syncTemp(){' +
 'document.getElementById("slTemp").value=Math.round(temperature*100);' +
 'document.getElementById("valTemp").textContent=temperature.toFixed(2)}' +
 
 // ── Full reset ──
+'function updPresetUI(idx){' +
+'["preLow","preCrit","preHigh"].forEach(function(id,i){' +
+'document.getElementById(id).className="preset"+(i===idx?" active":"")})}' +
+
 'function fullReset(){' +
 'stopAnimate();' +
 'history=[];scaleLevel=0;mcSteps=0;' +
-'temperature=2.27;syncTemp();' +
+'temperature=2.27;syncTemp();updPresetUI(1);' +
 'initGrid(BASE,false);' +
+'for(var i=0;i<50;i++)mcSweep();mcSteps=0;' +
+'drawAll();notifyHeight()}' +
+
+// ── Temperature presets ──
+'var PRESETS=[0.5,2.27,4.0];' +
+'function setPreset(idx){' +
+'stopAnimate();temperature=PRESETS[idx];syncTemp();updPresetUI(idx);' +
+'history=[];scaleLevel=0;mcSteps=0;' +
+'initGrid(BASE,false);' +
+'var eq=idx===0?200:idx===1?50:10;' +
+'for(var i=0;i<eq;i++)mcSweep();mcSteps=0;' +
 'drawAll();notifyHeight()}' +
 
 // ── Phase detection ──
@@ -279,7 +304,7 @@ export function getRenormSimulationHTML(isDark: boolean, lang: string): string {
 'var phase=getPhase();' +
 'var phaseLabel=phase==="ordered"?T.ordered:phase==="critical"?T.critical:T.disordered;' +
 'var phaseClass=phase==="ordered"?"phase-ord":phase==="critical"?"phase-crit":"phase-dis";' +
-'s="<span class=\\"hi\\">"+T.tempLabel+"</span>: "+temperature.toFixed(2);' +
+'var s="<span class=\\"hi\\">"+T.tempLabel+"</span>: "+temperature.toFixed(2);' +
 'if(Math.abs(temperature-2.27)<0.15){s+=" <span class=\\"warn\\">\\u2248 Tc</span>"}' +
 's+="<br>";' +
 's+=T.mag+": <span class=\\"hi\\">"+M.toFixed(4)+"</span> (|M|="+Math.abs(M).toFixed(4)+")<br>";' +
@@ -303,12 +328,16 @@ export function getRenormSimulationHTML(isDark: boolean, lang: string): string {
 'document.getElementById("btnCoarse").textContent=T.coarse;' +
 'document.getElementById("btnResetScale").textContent=T.resetScale;' +
 'document.getElementById("btnReset").textContent=T.reset;' +
+'document.getElementById("lbl-preset").textContent=T.preset;' +
+'document.getElementById("preLow").textContent=T.preLow;' +
+'document.getElementById("preCrit").textContent=T.preCrit;' +
+'document.getElementById("preHigh").textContent=T.preHigh;' +
 
 // ── Init ──
 'initGrid(BASE,false);' +
 'syncTemp();' +
-// Pre-run some MC steps for visual appeal
-'for(var i=0;i<20;i++)mcSweep();mcSteps=0;' +
+// Pre-run MC steps at Tc for visual appeal (fractal clusters)
+'for(var i=0;i<50;i++)mcSweep();mcSteps=0;' +
 'drawAll();' +
 'window.addEventListener("resize",function(){drawAll();notifyHeight()});' +
 'setTimeout(notifyHeight,100);' +

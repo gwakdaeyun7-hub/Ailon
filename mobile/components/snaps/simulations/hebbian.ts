@@ -6,7 +6,7 @@
  * - Connection width/opacity reflects weight (0–1)
  * - Tap a neuron to fire it (yellow glow, activation spreads via strong connections)
  * - Hebbian update: dw = eta * a_i * a_j when both active within 500ms
- * - Anti-Hebbian decay: w *= 0.995 per frame (forgetting)
+ * - Anti-Hebbian decay: w *= 0.9985 per frame (forgetting, toggleable)
  * - Pattern mode: auto-fire 1-3-5 to strengthen specific connections
  * - Learning rate slider, weight display toggle, clear button
  * - Dark/light theme, Korean/English bilingual
@@ -28,18 +28,18 @@ export function getHebbianSimulationHTML(isDark: boolean, lang: string): string 
 '*{box-sizing:border-box;margin:0;padding:0}' +
 'body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);padding:0;-webkit-user-select:none;user-select:none;overflow-x:hidden}' +
 '.panel{border:2px solid var(--border);background:var(--card);margin-bottom:8px;padding:12px;border-radius:8px}' +
-'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card);border-radius:8px}' +
+'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card);border-radius:8px;touch-action:none}' +
 '.label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}' +
 '.row{display:flex;align-items:center;gap:8px;margin-bottom:10px}' +
 '.row:last-child{margin-bottom:0}' +
-'.ctrl-name{font-size:12px;font-weight:600;color:var(--text);min-width:56px;flex-shrink:0}' +
+'.ctrl-name{font-size:12px;font-weight:600;color:var(--text);min-width:72px;flex-shrink:0}' +
 '.ctrl-val{font-size:12px;font-family:monospace;color:var(--teal);min-width:50px;text-align:right;flex-shrink:0}' +
 'input[type=range]{flex:1;min-width:0;accent-color:var(--teal);height:20px}' +
 '.btn-row{display:flex;gap:6px;margin-top:4px}' +
-'.btn{flex:1;padding:10px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent;border-radius:8px}' +
+'.btn{flex:1;padding:14px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent;border-radius:8px}' +
 '.btn:active{opacity:0.7}' +
 '.btn-primary{background:var(--teal);border-color:var(--teal);color:#1A1816}' +
-'.btn-stop{background:var(--accent);border-color:var(--accent);color:#1A1816}' +
+'.btn-stop{background:var(--accent);border-color:var(--accent);color:var(--bg)}' +
 '.stats{font-family:monospace;font-size:11px;line-height:2;color:var(--text2);border-radius:8px}' +
 '.stats .hi{color:var(--teal);font-weight:700}' +
 '.stats .warn{color:var(--accent);font-weight:700}' +
@@ -58,9 +58,14 @@ export function getHebbianSimulationHTML(isDark: boolean, lang: string): string 
 '<div class="row"><span class="ctrl-name" id="lblEta"></span>' +
 '<input type="range" id="slEta" min="1" max="20" value="5" oninput="onParam()">' +
 '<span class="ctrl-val" id="valEta"></span></div>' +
+'<div style="display:flex;justify-content:space-between;margin:-6px 0 10px;padding:0 80px 0 80px;font-size:10px;color:var(--text3)">' +
+'<span id="lbl-etaL"></span><span id="lbl-etaR"></span></div>' +
 '<div class="toggle-row">' +
-'<input type="checkbox" class="toggle-check" id="chkShow" onchange="onParam()">' +
-'<span class="toggle-label" id="lblShow"></span></div>' +
+'<label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" class="toggle-check" id="chkShow" onchange="onParam()">' +
+'<span class="toggle-label" id="lblShow"></span></label></div>' +
+'<div class="toggle-row">' +
+'<label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" class="toggle-check" id="chkDecay" checked onchange="onParam()">' +
+'<span class="toggle-label" id="lblDecay"></span></label></div>' +
 '<div class="btn-row">' +
 '<div class="btn btn-primary" id="btnPattern" onclick="startPattern()"></div>' +
 '<div class="btn" id="btnClear" onclick="clearWeights()"></div>' +
@@ -82,19 +87,23 @@ export function getHebbianSimulationHTML(isDark: boolean, lang: string): string 
 'tap:"\\uB274\\uB7F0\\uC744 \\uD0ED\\uD558\\uC5EC \\uBC1C\\uD654\\uC2DC\\uD0A4\\uC138\\uC694",' +
 'neuron:"\\uB274\\uB7F0",synapse:"\\uC2DC\\uB0C5\\uC2A4",fire:"\\uBC1C\\uD654",' +
 'totalW:"\\uCD1D \\uC5F0\\uACB0 \\uAC15\\uB3C4",strongest:"\\uAC00\\uC7A5 \\uAC15\\uD55C \\uC30D",' +
-'weakest:"\\uAC00\\uC7A5 \\uC57D\\uD55C \\uC30D",patRunning:"\\uD328\\uD134 \\uBAA8\\uB4DC \\uC2E4\\uD589 \\uC911"},' +
+'weakest:"\\uAC00\\uC7A5 \\uC57D\\uD55C \\uC30D",patRunning:"\\uD328\\uD134 \\uBAA8\\uB4DC \\uC2E4\\uD589 \\uC911",' +
+'decay:"\\uAC10\\uC1E0",etaL:"\\uB290\\uB9BC",etaR:"\\uBE60\\uB984",' +
+'saturated:"\\u26A0 \\uD3EC\\uD654 \\u2014 \\uC815\\uADDC\\uD654(Oja) \\uD544\\uC694"},' +
 'en:{net:"HEBBIAN NETWORK",ctrl:"PARAMETERS",stats:"STATISTICS",' +
 'eta:"Rate(\\u03B7)",show:"Show Weights",' +
 'pattern:"Pattern (1-3-5)",clear:"Clear",stop:"Stop",' +
 'tap:"Tap a neuron to fire it",' +
 'neuron:"Neuron",synapse:"Synapse",fire:"Fire",' +
 'totalW:"Total Strength",strongest:"Strongest Pair",' +
-'weakest:"Weakest Pair",patRunning:"Pattern mode running"}' +
+'weakest:"Weakest Pair",patRunning:"Pattern mode running",' +
+'decay:"Decay",etaL:"Slow",etaR:"Fast",' +
+'saturated:"\\u26A0 Saturated \\u2014 Oja normalization needed"}' +
 '};' +
 'var T=L[LANG]||L.en;' +
 
 // ── State ──
-'var N=6,eta=0.05,showW=false;' +
+'var N=6,eta=0.05,showW=false,decayOn=true;' +
 'var nodes=[],weights=[],activations=[],fireTimes=[];' +
 'var connFlash=[];' + // brief green/red flash on connections
 'var patternTimer=null;' +
@@ -150,7 +159,7 @@ export function getHebbianSimulationHTML(isDark: boolean, lang: string): string 
 'if(activations[i]<0.01)activations[i]=0}' +
 // decay weights
 'for(var k=0;k<weights.length;k++){' +
-'weights[k].w*=0.9985;' +
+'if(decayOn)weights[k].w*=0.9985;' +
 'if(weights[k].w<0.01)weights[k].w=0.01;' +
 'if(connFlash[k]>0)connFlash[k]--}' +
 'drawNetwork();updateStats();' +
@@ -204,14 +213,22 @@ export function getHebbianSimulationHTML(isDark: boolean, lang: string): string 
 'ctx.fillText(""+(i+1),n.x,n.y)}}' +
 
 // ── Touch handler ──
-'document.getElementById("cvNet").addEventListener("click",function(ev){' +
+'var lastTap=0;' +
+'function onTapNet(ex,ey){' +
 'var cv=document.getElementById("cvNet");' +
 'var rect=cv.getBoundingClientRect();' +
-'var sx=(ev.clientX-rect.left)/(rect.width)*netW;' +
-'var sy=(ev.clientY-rect.top)/(rect.height)*netH;' +
+'var sx=(ex-rect.left)/(rect.width)*netW;' +
+'var sy=(ey-rect.top)/(rect.height)*netH;' +
 'for(var i=0;i<N;i++){' +
 'var dx=nodes[i].x-sx,dy=nodes[i].y-sy;' +
-'if(Math.sqrt(dx*dx+dy*dy)<24){fireNeuron(i);break}}});' +
+'if(Math.sqrt(dx*dx+dy*dy)<24){fireNeuron(i);break}}}' +
+'var cvEl=document.getElementById("cvNet");' +
+'cvEl.addEventListener("touchstart",function(ev){' +
+'ev.preventDefault();var now=Date.now();if(now-lastTap<300)return;lastTap=now;' +
+'var t=ev.touches[0];onTapNet(t.clientX,t.clientY)},{passive:false});' +
+'cvEl.addEventListener("click",function(ev){' +
+'var now=Date.now();if(now-lastTap<300)return;lastTap=now;' +
+'onTapNet(ev.clientX,ev.clientY)});' +
 
 // ── Pattern mode ──
 'var patStep=0;' +
@@ -247,12 +264,14 @@ export function getHebbianSimulationHTML(isDark: boolean, lang: string): string 
 's+="<span class=\\"hi\\">"+T.strongest+"</span> "+maxPair+" ("+maxW.toFixed(3)+")\\n<br>";' +
 's+="<span class=\\"warn\\">"+T.weakest+"</span> "+minPair+" ("+minW.toFixed(3)+")";' +
 'if(patternTimer)s+="<br><span class=\\"warn\\">"+T.patRunning+"</span>";' +
+'if(!decayOn&&maxW>0.9)s+="<br><span class=\\"warn\\">"+T.saturated+"</span>";' +
 'box.innerHTML=s}' +
 
 // ── Param change ──
 'function onParam(){' +
 'eta=+document.getElementById("slEta").value/100;' +
 'showW=document.getElementById("chkShow").checked;' +
+'decayOn=document.getElementById("chkDecay").checked;' +
 'document.getElementById("valEta").textContent=eta.toFixed(2);' +
 'notifyHeight()}' +
 
@@ -271,6 +290,9 @@ export function getHebbianSimulationHTML(isDark: boolean, lang: string): string 
 'document.getElementById("btnClear").textContent=T.clear;' +
 'document.getElementById("btnStopPat").textContent=T.stop;' +
 'document.getElementById("hint-tap").textContent=T.tap;' +
+'document.getElementById("lblDecay").textContent=T.decay;' +
+'document.getElementById("lbl-etaL").textContent=T.etaL;' +
+'document.getElementById("lbl-etaR").textContent=T.etaR;' +
 
 // ── Init ──
 'onParam();initNetwork();loop();' +

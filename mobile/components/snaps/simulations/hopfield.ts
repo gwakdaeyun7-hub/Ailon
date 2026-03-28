@@ -29,25 +29,26 @@ export function getHopfieldSimulationHTML(isDark: boolean, lang: string): string
 '*{box-sizing:border-box;margin:0;padding:0}' +
 'body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);padding:0;-webkit-user-select:none;user-select:none;overflow-x:hidden}' +
 '.panel{border:2px solid var(--border);background:var(--card);margin-bottom:8px;padding:12px;border-radius:8px}' +
-'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card);border-radius:8px}' +
+'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card);border-radius:8px;touch-action:none}' +
 '.label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}' +
 '.row{display:flex;align-items:center;gap:8px;margin-bottom:10px}' +
 '.row:last-child{margin-bottom:0}' +
-'.ctrl-name{font-size:12px;font-weight:600;color:var(--text);min-width:56px;flex-shrink:0}' +
+'.ctrl-name{font-size:12px;font-weight:600;color:var(--text);min-width:72px;flex-shrink:0}' +
 '.ctrl-val{font-size:12px;font-family:monospace;color:var(--teal);min-width:50px;text-align:right;flex-shrink:0}' +
 'input[type=range]{flex:1;min-width:0;accent-color:var(--teal);height:20px}' +
 '.btn-row{display:flex;gap:6px;margin-top:4px}' +
-'.btn{flex:1;padding:10px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent;border-radius:8px}' +
+'.btn{flex:1;padding:14px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent;border-radius:8px}' +
 '.btn:active{opacity:0.7}' +
 '.btn-primary{background:var(--teal);border-color:var(--teal);color:#1A1816}' +
-'.btn-stop{background:var(--accent);border-color:var(--accent);color:#1A1816}' +
+'.btn-stop{background:var(--accent);border-color:var(--accent);color:var(--bg)}' +
 '.stats{font-family:monospace;font-size:11px;line-height:2;color:var(--text2);border-radius:8px}' +
 '.stats .hi{color:var(--teal);font-weight:700}' +
 '.stats .warn{color:var(--accent);font-weight:700}' +
-'.preset-row{display:flex;gap:6px;margin-bottom:8px}' +
-'.preset{flex:1;padding:12px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:10px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.3px;border-radius:8px}' +
+'.stats .err{color:var(--red);font-weight:700}' +
+'.preset-row{display:flex;gap:6px;margin-bottom:10px}' +
+'.preset{flex:1;padding:14px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:11px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.3px;border-radius:8px;min-height:44px}' +
 '.preset:active{opacity:0.7}' +
-'.preset.active{border-color:var(--teal);color:var(--teal)}' +
+'.preset.active{border-color:var(--teal);color:var(--teal);background:var(--tealLight)}' +
 '.thumb-row{display:flex;gap:8px;margin-bottom:8px}' +
 '.thumb-box{text-align:center}' +
 '.thumb-label{font-size:9px;font-weight:700;color:var(--text3);margin-top:2px}' +
@@ -71,6 +72,16 @@ export function getHopfieldSimulationHTML(isDark: boolean, lang: string): string
 '<div class="preset" id="preT" onclick="loadPattern(1)">T</div>' +
 '<div class="preset" id="preX" onclick="loadPattern(2)">X</div>' +
 '</div>' +
+'<div class="row">' +
+'<div class="ctrl-name" id="lbl-corruptPct"></div>' +
+'<input type="range" id="rngCorrupt" min="10" max="80" step="5" value="30" oninput="onCorruptPctChange(this.value)">' +
+'<div class="ctrl-val" id="valCorrupt">30%</div>' +
+'</div>' +
+'<div class="row">' +
+'<div class="ctrl-name" id="lbl-patterns"></div>' +
+'<input type="range" id="rngPatterns" min="3" max="15" step="1" value="3" oninput="onPatternsChange(this.value)">' +
+'<div class="ctrl-val" id="valPatterns">3 / 7</div>' +
+'</div>' +
 '<div class="btn-row">' +
 '<div class="btn" id="btnCorrupt" onclick="corrupt()"></div>' +
 '<div class="btn btn-primary" id="btnStep" onclick="recallStep()"></div>' +
@@ -90,23 +101,29 @@ export function getHopfieldSimulationHTML(isDark: boolean, lang: string): string
 'ko:{grid:"\\uD648\\uD544\\uB4DC \\uB124\\uD2B8\\uC6CC\\uD06C",' +
 'energy:"\\uC5D0\\uB108\\uC9C0 \\uD50C\\uB86F",ctrl:"\\uCEE8\\uD2B8\\uB864",' +
 'stats:"\\uD1B5\\uACC4",' +
-'corrupt:"30% \\uC190\\uC0C1",step:"\\uC2A4\\uD15D",' +
+'corrupt:"\\uC190\\uC0C1",step:"\\uC2A4\\uD15D",' +
 'auto:"\\uC790\\uB3D9",reset:"\\u21BA \\uB9AC\\uC14B",' +
 'stored:"\\uC800\\uC7A5 \\uD328\\uD134",energyVal:"\\uC5D0\\uB108\\uC9C0",' +
 'iter:"\\uBC18\\uBCF5",converged:"\\uC218\\uB834",' +
 'notConverged:"\\uBBF8\\uC218\\uB834",hamming:"\\uD574\\uBC0D \\uAC70\\uB9AC",' +
 'closest:"\\uAC00\\uC7A5 \\uAC00\\uAE4C\\uC6B4",tapFlip:"\\uC140 \\uD0ED\\uD558\\uC5EC \\uBC18\\uC804",' +
-'running:"\\uBCF5\\uC6D0 \\uC911..."},' +
+'running:"\\uBCF5\\uC6D0 \\uC911...",' +
+'corruptPct:"\\uC190\\uC0C1 %",patterns:"\\uD328\\uD134 \\uC218",' +
+'capacity:"\\uC6A9\\uB7C9",overCap:"\\uC6A9\\uB7C9 \\uCD08\\uACFC!",' +
+'spurious:"\\uD5C8\\uC704 \\uAE30\\uC5B5"},' +
 'en:{grid:"HOPFIELD NETWORK",' +
 'energy:"ENERGY PLOT",ctrl:"CONTROLS",' +
 'stats:"STATISTICS",' +
-'corrupt:"Corrupt 30%",step:"Step",' +
+'corrupt:"Corrupt",step:"Step",' +
 'auto:"Auto",reset:"\\u21BA Reset",' +
 'stored:"Stored",energyVal:"Energy",' +
 'iter:"Iterations",converged:"Converged",' +
 'notConverged:"Not converged",hamming:"Hamming Dist",' +
 'closest:"Closest",tapFlip:"Tap cell to flip",' +
-'running:"Recalling..."}' +
+'running:"Recalling...",' +
+'corruptPct:"Corrupt %",patterns:"Patterns",' +
+'capacity:"Capacity",overCap:"Over capacity!",' +
+'spurious:"Spurious state"}' +
 '};' +
 'var T=L[LANG]||L.en;' +
 
@@ -151,7 +168,30 @@ export function getHopfieldSimulationHTML(isDark: boolean, lang: string): string
 '-1,+1,-1,-1,-1,+1,-1,' +
 '+1,-1,-1,-1,-1,-1,+1];' +
 
-'var PATTERNS=[PAT_A,PAT_T,PAT_X];' +
+'var BASE_PATTERNS=[PAT_A,PAT_T,PAT_X];' +
+'var PATTERNS=BASE_PATTERNS.slice();' +
+'var extraPatterns=[];' +
+'var corruptPct=30;' +
+'var patternCount=3;' +
+'var CAPACITY=Math.round(0.138*NN);' + // ≈ 7
+
+// ── Generate random pattern ──
+'function genRandomPat(){var p=[];for(var i=0;i<NN;i++)p.push(Math.random()<0.5?1:-1);return p}' +
+
+// ── Slider handlers ──
+'function onCorruptPctChange(v){corruptPct=parseInt(v);document.getElementById("valCorrupt").textContent=v+"%"}' +
+
+'function onPatternsChange(v){' +
+'stopAuto();patternCount=parseInt(v);' +
+'while(extraPatterns.length<patternCount-3){extraPatterns.push(genRandomPat())}' +
+'PATTERNS=BASE_PATTERNS.slice().concat(extraPatterns.slice(0,patternCount-3));' +
+'buildWeights();' +
+'var cs=getComputedStyle(document.documentElement);' +
+'var el=document.getElementById("valPatterns");' +
+'el.textContent=patternCount+" / "+CAPACITY;' +
+'el.style.color=patternCount>CAPACITY?cs.getPropertyValue("--red").trim():cs.getPropertyValue("--teal").trim();' +
+'energyHistory=[computeEnergy()];iterations=0;isConverged=false;' +
+'drawAll();notifyHeight()}' +
 
 // ── Hebbian weight matrix: w_ij = (1/P) * sum_p (xi_p * xj_p), w_ii = 0 ──
 'function buildWeights(){' +
@@ -177,8 +217,8 @@ export function getHopfieldSimulationHTML(isDark: boolean, lang: string): string
 // ── Closest pattern ──
 'function closestPattern(){' +
 'var minD=NN+1;var minIdx=-1;' +
-'for(var p=0;p<PATTERNS.length;p++){' +
-'var d=hamming(state,PATTERNS[p]);' +
+'for(var p=0;p<BASE_PATTERNS.length;p++){' +
+'var d=hamming(state,BASE_PATTERNS[p]);' +
 'if(d<minD){minD=d;minIdx=p}}' +
 'return{idx:minIdx,dist:minD}}' +
 
@@ -231,7 +271,7 @@ export function getHopfieldSimulationHTML(isDark: boolean, lang: string): string
 'var tealC=cs.getPropertyValue("--teal").trim();' +
 'var surfaceC=cs.getPropertyValue("--surface").trim();' +
 'var borderC=cs.getPropertyValue("--border").trim();' +
-'for(var p=0;p<PATTERNS.length;p++){' +
+'for(var p=0;p<BASE_PATTERNS.length;p++){' +
 'var div=document.createElement("div");div.className="thumb-box";' +
 'var cv=document.createElement("canvas");' +
 'var sz=7;var cs2=6;cv.width=sz*cs2;cv.height=sz*cs2;' +
@@ -239,7 +279,7 @@ export function getHopfieldSimulationHTML(isDark: boolean, lang: string): string
 'cv.style.border="2px solid "+borderC;' +
 'var ctx=cv.getContext("2d");' +
 'for(var r=0;r<sz;r++){for(var c=0;c<sz;c++){' +
-'ctx.fillStyle=PATTERNS[p][r*sz+c]===1?tealC:surfaceC;' +
+'ctx.fillStyle=BASE_PATTERNS[p][r*sz+c]===1?tealC:surfaceC;' +
 'ctx.fillRect(c*cs2,r*cs2,cs2,cs2);' +
 'ctx.strokeStyle=borderC;ctx.lineWidth=0.5;ctx.strokeRect(c*cs2,r*cs2,cs2,cs2)}}' +
 'div.appendChild(cv);' +
@@ -328,7 +368,7 @@ export function getHopfieldSimulationHTML(isDark: boolean, lang: string): string
 // ── Corrupt 30% ──
 'function corrupt(){' +
 'stopAuto();' +
-'var nFlip=Math.round(NN*0.3);' +
+'var nFlip=Math.round(NN*corruptPct/100);' +
 'var indices=[];for(var i=0;i<NN;i++)indices.push(i);' +
 'for(var i=NN-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var tmp=indices[i];indices[i]=indices[j];indices[j]=tmp}' +
 'for(var i=0;i<nFlip;i++){state[indices[i]]*=-1}' +
@@ -396,12 +436,19 @@ export function getHopfieldSimulationHTML(isDark: boolean, lang: string): string
 'var s="<span class=\\"hi\\">"+T.energyVal+"</span> "+E.toFixed(1)+"<br>";' +
 's+=T.iter+": <span class=\\"hi\\">"+iterations+"</span><br>";' +
 's+=isConverged?"<span class=\\"hi\\">\\u2714 "+T.converged+"</span><br>":"<span class=\\"warn\\">"+T.notConverged+"</span><br>";' +
-'s+="<br>";' +
-'for(var p=0;p<PATTERNS.length;p++){' +
-'var d=hamming(state,PATTERNS[p]);' +
+// capacity line
+'s+=T.capacity+": ";' +
+'if(patternCount>CAPACITY){s+="<span class=\\"err\\">"+patternCount+" / "+CAPACITY+" \\u26A0 "+T.overCap+"</span>"}' +
+'else{s+="<span class=\\"hi\\">"+patternCount+" / "+CAPACITY+"</span>"}' +
+'s+="<br><br>";' +
+'for(var p=0;p<BASE_PATTERNS.length;p++){' +
+'var d=hamming(state,BASE_PATTERNS[p]);' +
 'var marker=p===cl.idx?"\\u2192 ":"&nbsp;&nbsp;";' +
 's+=marker+PATTERN_NAMES[p]+": <span class=\\"warn\\">"+d+"</span> / "+NN+"<br>"}' +
-'s+="<br>"+T.closest+": <span class=\\"hi\\">"+PATTERN_NAMES[cl.idx]+"</span> ("+T.hamming+": "+cl.dist+")";' +
+'s+="<br>"+T.closest+": ";' +
+'if(isConverged&&cl.dist>Math.floor(NN*0.3)){s+="<span class=\\"err\\">"+T.spurious+"</span>"}' +
+'else{s+="<span class=\\"hi\\">"+PATTERN_NAMES[cl.idx]+"</span>"}' +
+'s+=" ("+T.hamming+": "+cl.dist+")";' +
 'box.innerHTML=s}' +
 
 // ── Height notification ──
@@ -418,6 +465,8 @@ export function getHopfieldSimulationHTML(isDark: boolean, lang: string): string
 'document.getElementById("btnStep").textContent=T.step;' +
 'document.getElementById("btnAuto").textContent=T.auto;' +
 'document.getElementById("btnReset").textContent=T.reset;' +
+'document.getElementById("lbl-corruptPct").textContent=T.corruptPct;' +
+'document.getElementById("lbl-patterns").textContent=T.patterns;' +
 
 // ── Init ──
 'buildWeights();' +

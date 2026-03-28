@@ -27,18 +27,18 @@ export function getEvolutionSimulationHTML(isDark: boolean, lang: string): strin
 '*{box-sizing:border-box;margin:0;padding:0}' +
 'body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);padding:0;-webkit-user-select:none;user-select:none;overflow-x:hidden}' +
 '.panel{border:2px solid var(--border);background:var(--card);margin-bottom:8px;padding:12px;border-radius:8px}' +
-'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card);border-radius:8px}' +
+'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card);border-radius:8px;touch-action:none}' +
 '.label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}' +
 '.row{display:flex;align-items:center;gap:8px;margin-bottom:10px}' +
 '.row:last-child{margin-bottom:0}' +
-'.ctrl-name{font-size:12px;font-weight:600;color:var(--text);min-width:56px;flex-shrink:0}' +
+'.ctrl-name{font-size:12px;font-weight:600;color:var(--text);min-width:72px;flex-shrink:0}' +
 '.ctrl-val{font-size:12px;font-family:monospace;color:var(--teal);min-width:50px;text-align:right;flex-shrink:0}' +
 'input[type=range]{flex:1;min-width:0;accent-color:var(--teal);height:20px}' +
 '.btn-row{display:flex;gap:6px;margin-top:4px}' +
-'.btn{flex:1;padding:10px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent;border-radius:8px}' +
+'.btn{flex:1;padding:14px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent;border-radius:8px}' +
 '.btn:active{opacity:0.7}' +
 '.btn-primary{background:var(--teal);border-color:var(--teal);color:#1A1816}' +
-'.btn-stop{background:var(--accent);border-color:var(--accent);color:#1A1816}' +
+'.btn-stop{background:var(--accent);border-color:var(--accent);color:var(--bg)}' +
 '.stats{font-family:monospace;font-size:11px;line-height:2;color:var(--text2);border-radius:8px}' +
 '.stats .hi{color:var(--teal);font-weight:700}' +
 '.stats .warn{color:var(--accent);font-weight:700}' +
@@ -63,6 +63,8 @@ export function getEvolutionSimulationHTML(isDark: boolean, lang: string): strin
 '<div class="row"><span class="ctrl-name" id="lblSel"></span>' +
 '<input type="range" id="slSel" min="30" max="70" value="50" oninput="onParam()">' +
 '<span class="ctrl-val" id="valSel"></span></div>' +
+'<div style="display:flex;justify-content:space-between;margin:-6px 0 10px;padding:0 72px 0 72px;font-size:10px;color:var(--text3)">' +
+'<span id="lbl-selL"></span><span id="lbl-selR"></span></div>' +
 '<div class="toggle-row">' +
 '<input type="checkbox" class="toggle-check" id="chkPred" onchange="onParam()">' +
 '<span class="toggle-label" id="lblPred"></span></div>' +
@@ -81,20 +83,20 @@ export function getEvolutionSimulationHTML(isDark: boolean, lang: string): strin
 
 // ── Labels ──
 'var L={' +
-'ko:{arena:"\\uC790\\uC5F0\\uC120\\uD0DD \\uC544\\uB808\\uB098",hist:"\\uC801\\uD569\\uB3C4 \\uBD84\\uD3EC",ctrl:"\\uD30C\\uB77C\\uBBF8\\uD130",stats:"\\uD1B5\\uACC4",' +
+'ko:{arena:"\\uC790\\uC5F0\\uC120\\uD0DD \\uC544\\uB808\\uB098",hist:"\\uC138\\uB300\\uBCC4 \\uC801\\uD569\\uB3C4",ctrl:"\\uD30C\\uB77C\\uBBF8\\uD130",stats:"\\uD1B5\\uACC4",' +
 'mut:"\\uB3CC\\uC5F0\\uBCC0\\uC774\\uC728",sel:"\\uC120\\uD0DD \\uC555\\uB825",pred:"\\uD3EC\\uC2DD\\uC790 \\uCD94\\uAC00",' +
 'run:"\\uC138\\uB300 \\uC2E4\\uD589",skip:"10\\uC138\\uB300 \\uAC74\\uB108\\uB6F0\\uAE30",reset:"\\u21BA \\uB9AC\\uC14B",' +
 'gen:"\\uC138\\uB300",meanFit:"\\uD3C9\\uADE0 \\uC801\\uD569\\uB3C4",maxFit:"\\uCD5C\\uB300 \\uC801\\uD569\\uB3C4",' +
 'avgSpd:"\\uD3C9\\uADE0 \\uC18D\\uB3C4",avgSz:"\\uD3C9\\uADE0 \\uD06C\\uAE30",avgSns:"\\uD3C9\\uADE0 \\uAC10\\uC9C0\\uBC94\\uC704",' +
 'food:"\\uBA39\\uC774",creature:"\\uAC1C\\uCCB4",predator:"\\uD3EC\\uC2DD\\uC790",' +
-'running:"\\uC2DC\\uBBAC\\uB808\\uC774\\uC158 \\uC911...",topPct:"\\uC0C1\\uC704"},' +
-'en:{arena:"NATURAL SELECTION ARENA",hist:"FITNESS DISTRIBUTION",ctrl:"PARAMETERS",stats:"STATISTICS",' +
+'running:"\\uC2DC\\uBBAC\\uB808\\uC774\\uC158 \\uC911...",topPct:"\\uC0C1\\uC704",diversity:"\\uC720\\uC804\\uC790 \\uB2E4\\uC591\\uC131",selStrong:"\\uAC15",selWeak:"\\uC57D"},' +
+'en:{arena:"NATURAL SELECTION ARENA",hist:"FITNESS OVER GENERATIONS",ctrl:"PARAMETERS",stats:"STATISTICS",' +
 'mut:"Mutation",sel:"Selection",pred:"Add Predator",' +
 'run:"Run Generation",skip:"Skip 10 Gen",reset:"\\u21BA Reset",' +
 'gen:"Generation",meanFit:"Mean Fitness",maxFit:"Max Fitness",' +
 'avgSpd:"Avg Speed",avgSz:"Avg Size",avgSns:"Avg Sense",' +
 'food:"Food",creature:"Creature",predator:"Predator",' +
-'running:"Simulating...",topPct:"Top"}' +
+'running:"Simulating...",topPct:"Top",diversity:"Gene Diversity",selStrong:"Strong",selWeak:"Weak"}' +
 '};' +
 'var T=L[LANG]||L.en;' +
 
@@ -223,7 +225,7 @@ export function getEvolutionSimulationHTML(isDark: boolean, lang: string): strin
 'for(var i=0;i<POP;i++){' +
 'var p1=pick(),p2=pick();' +
 // crossover
-'var cut=Math.floor(Math.random()*3);' +
+'var cut=Math.floor(Math.random()*2)+1;' +
 'var child=[];' +
 'for(var g=0;g<3;g++){child.push(g<cut?p1.genes[g]:p2.genes[g])}' +
 // mutation
@@ -324,6 +326,12 @@ export function getEvolutionSimulationHTML(isDark: boolean, lang: string): strin
 's+=T.avgSpd+": "+(spdSum/POP).toFixed(2)+"<br>";' +
 's+=T.avgSz+": "+(szSum/POP).toFixed(1)+"<br>";' +
 's+=T.avgSns+": "+(snsSum/POP).toFixed(1)+"<br>";' +
+'var ms=spdSum/POP,mz=szSum/POP,mn=snsSum/POP;' +
+'var vs=0,vz=0,vn=0;' +
+'for(var i=0;i<creatures.length;i++){vs+=Math.pow(creatures[i].speed-ms,2);vz+=Math.pow(creatures[i].size-mz,2);vn+=Math.pow(creatures[i].sense-mn,2)}' +
+'var cvS=ms>0?Math.sqrt(vs/POP)/ms:0,cvZ=mz>0?Math.sqrt(vz/POP)/mz:0,cvN=mn>0?Math.sqrt(vn/POP)/mn:0;' +
+'var divPct=Math.min(100,((cvS+cvZ+cvN)/3)*200);' +
+'s+="<span class=\\"hi\\">"+T.diversity+"</span> "+divPct.toFixed(0)+"%<br>";' +
 'box.innerHTML=s}' +
 
 // ── Param change ──
@@ -360,6 +368,8 @@ export function getEvolutionSimulationHTML(isDark: boolean, lang: string): strin
 'document.getElementById("btnRun").textContent=T.run;' +
 'document.getElementById("btnSkip").textContent=T.skip;' +
 'document.getElementById("btnReset").textContent=T.reset;' +
+'document.getElementById("lbl-selL").textContent=T.selStrong;' +
+'document.getElementById("lbl-selR").textContent=T.selWeak;' +
 
 // ── Init sliders ──
 'onParam();drawHist();' +
