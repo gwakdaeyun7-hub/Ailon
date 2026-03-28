@@ -26,21 +26,21 @@ export function getVisualCortexSimulationHTML(isDark: boolean, lang: string): st
 '*{box-sizing:border-box;margin:0;padding:0}' +
 'body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);padding:0;-webkit-user-select:none;user-select:none;overflow-x:hidden}' +
 '.panel{border:2px solid var(--border);background:var(--card);margin-bottom:8px;padding:12px;border-radius:8px}' +
-'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card);border-radius:8px}' +
+'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card);border-radius:8px;touch-action:none}' +
 '.label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}' +
 '.row{display:flex;align-items:center;gap:8px;margin-bottom:10px}' +
 '.row:last-child{margin-bottom:0}' +
 '.btn-row{display:flex;gap:6px;margin-top:4px}' +
-'.btn{flex:1;padding:10px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent;border-radius:8px}' +
+'.btn{flex:1;padding:14px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent;border-radius:8px}' +
 '.btn:active{opacity:0.7}' +
 '.btn-primary{background:var(--teal);border-color:var(--teal);color:#1A1816}' +
 '.stats{font-family:monospace;font-size:11px;line-height:2;color:var(--text2);border-radius:8px}' +
 '.stats .hi{color:var(--teal);font-weight:700}' +
 '.stats .warn{color:var(--accent);font-weight:700}' +
 '.preset-row{display:flex;gap:6px;margin-bottom:8px}' +
-'.preset{flex:1;padding:12px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:10px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.3px;border-radius:8px}' +
+'.preset{flex:1;padding:14px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:11px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.3px;min-height:44px;border-radius:8px}' +
 '.preset:active{opacity:0.7}' +
-'.preset.active{border-color:var(--teal);color:var(--teal)}' +
+'.preset.active{border-color:var(--teal);color:var(--teal);background:var(--tealLight)}' +
 '.kernel-box{display:inline-block;margin:4px;padding:2px;border:2px solid transparent;vertical-align:top}' +
 '.kernel-box.selected{border-color:var(--teal)}' +
 '</style></head><body>' +
@@ -134,8 +134,18 @@ export function getVisualCortexSimulationHTML(isDark: boolean, lang: string): st
 'function(){initGrid();for(var i=0;i<GRID;i++){grid[i][i]=255;if(i+1<GRID)grid[i][i+1]=255}}' +
 '];' +
 
-'function onPreset(idx){PRESETS[idx]();compute();drawAll();notifyHeight()}' +
-'function clearGrid(){initGrid();compute();drawAll();notifyHeight()}' +
+'function onPreset(idx){PRESETS[idx]();compute();drawAll();' +
+'document.getElementById("pre0").className="preset"+(idx===0?" active":"");' +
+'document.getElementById("pre1").className="preset"+(idx===1?" active":"");' +
+'document.getElementById("pre2").className="preset"+(idx===2?" active":"");' +
+'document.getElementById("pre3").className="preset"+(idx===3?" active":"");' +
+'document.getElementById("preClear").className="preset";notifyHeight()}' +
+'function clearGrid(){initGrid();compute();drawAll();' +
+'document.getElementById("pre0").className="preset";' +
+'document.getElementById("pre1").className="preset";' +
+'document.getElementById("pre2").className="preset";' +
+'document.getElementById("pre3").className="preset";' +
+'document.getElementById("preClear").className="preset active";notifyHeight()}' +
 
 // ── 2D Convolution ──
 'function convolve(img,kernel,inSz){' +
@@ -311,7 +321,12 @@ export function getVisualCortexSimulationHTML(isDark: boolean, lang: string): st
 'var t=ev.touches?ev.touches[0]:ev;' +
 'var g=gridCoord(t,cvIn);if(!g)return;' +
 'isDragging=true;drawVal=grid[g.r][g.c]>0?0:255;' +
-'grid[g.r][g.c]=drawVal;compute();drawAll()}' +
+'grid[g.r][g.c]=drawVal;compute();drawAll();' +
+'document.getElementById("pre0").className="preset";' +
+'document.getElementById("pre1").className="preset";' +
+'document.getElementById("pre2").className="preset";' +
+'document.getElementById("pre3").className="preset";' +
+'document.getElementById("preClear").className="preset"}' +
 
 'function onMove(ev){' +
 'if(!isDragging)return;ev.preventDefault();' +
@@ -353,7 +368,8 @@ export function getVisualCortexSimulationHTML(isDark: boolean, lang: string): st
 'document.getElementById("aiBridgeLabel").textContent=T.aiBridge;' +
 
 // ── Init ──
-'initGrid();compute();' +
+'initGrid();PRESETS[0]();compute();' +
+'document.getElementById("pre0").className="preset active";' +
 'setTimeout(function(){' +
 'cvIn=document.getElementById("cvInput");' +
 'cvIn.addEventListener("mousedown",onDown);' +

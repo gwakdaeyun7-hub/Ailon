@@ -29,21 +29,24 @@ export function getDopamineSimulationHTML(isDark: boolean, lang: string): string
 '*{box-sizing:border-box;margin:0;padding:0}' +
 'body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);padding:0;-webkit-user-select:none;user-select:none;overflow-x:hidden}' +
 '.panel{border:2px solid var(--border);background:var(--card);margin-bottom:8px;padding:12px;border-radius:8px}' +
-'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card);border-radius:8px}' +
+'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card);border-radius:8px;touch-action:none}' +
 '.label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}' +
 '.row{display:flex;align-items:center;gap:8px;margin-bottom:10px}' +
 '.row:last-child{margin-bottom:0}' +
-'.ctrl-name{font-size:12px;font-weight:600;color:var(--text);min-width:56px;flex-shrink:0}' +
+'.ctrl-name{font-size:12px;font-weight:600;color:var(--text);min-width:72px;flex-shrink:0}' +
 '.ctrl-val{font-size:12px;font-family:monospace;color:var(--teal);min-width:50px;text-align:right;flex-shrink:0}' +
 'input[type=range]{flex:1;min-width:0;accent-color:var(--teal);height:20px}' +
 '.btn-row{display:flex;gap:6px;margin-top:4px}' +
-'.btn{flex:1;padding:10px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent;border-radius:8px}' +
+'.btn{flex:1;padding:14px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent;border-radius:8px}' +
 '.btn:active{opacity:0.7}' +
 '.btn-primary{background:var(--teal);border-color:var(--teal);color:#1A1816}' +
-'.btn-stop{background:var(--accent);border-color:var(--accent);color:#1A1816}' +
+'.btn-stop{background:var(--accent);border-color:var(--accent);color:var(--bg)}' +
 '.stats{font-family:monospace;font-size:11px;line-height:2;color:var(--text2);border-radius:8px}' +
 '.stats .hi{color:var(--teal);font-weight:700}' +
 '.stats .warn{color:var(--accent);font-weight:700}' +
+'.preset-row{display:flex;gap:6px;margin-bottom:10px}' +
+'.preset{flex:1;padding:14px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:11px;font-weight:700;text-align:center;cursor:pointer;min-height:44px;border-radius:8px}' +
+'.preset.active{border-color:var(--teal);color:var(--teal);background:var(--tealLight)}' +
 '</style></head><body>' +
 
 // ── Dopamine Response Canvas ──
@@ -56,9 +59,22 @@ export function getDopamineSimulationHTML(isDark: boolean, lang: string): string
 
 // ── Controls Panel ──
 '<div class="panel"><div class="label" id="lbl-ctrl"></div>' +
+'<div class="label" id="lbl-presets" style="margin-top:4px"></div>' +
+'<div class="preset-row">' +
+'<div class="preset" id="pre1" onclick="runPreset(1)"></div>' +
+'<div class="preset" id="pre2" onclick="runPreset(2)"></div>' +
+'<div class="preset" id="pre3" onclick="runPreset(3)"></div>' +
+'</div>' +
 '<div class="row"><span class="ctrl-name" id="lblAlpha"></span>' +
 '<input type="range" id="slAlpha" min="10" max="50" value="20" oninput="onParam()">' +
 '<span class="ctrl-val" id="valAlpha"></span></div>' +
+'<div style="display:flex;justify-content:space-between;margin:-6px 0 10px;padding:0 80px 0 80px;font-size:10px;color:var(--text3)">' +
+'<span id="lbl-aL"></span><span id="lbl-aR"></span></div>' +
+'<div class="row"><span class="ctrl-name" id="lblGamma"></span>' +
+'<input type="range" id="slGamma" min="50" max="99" value="95" oninput="onParam()">' +
+'<span class="ctrl-val" id="valGamma"></span></div>' +
+'<div style="display:flex;justify-content:space-between;margin:-6px 0 10px;padding:0 80px 0 80px;font-size:10px;color:var(--text3)">' +
+'<span id="lbl-gL"></span><span id="lbl-gR"></span></div>' +
 '<div class="btn-row">' +
 '<div class="btn btn-primary" id="btnTrial" onclick="runTrial()"></div>' +
 '<div class="btn" id="btnOmit" onclick="runOmit()"></div>' +
@@ -87,7 +103,11 @@ export function getDopamineSimulationHTML(isDark: boolean, lang: string): string
 'before:"\\uD559\\uC2B5 \\uC804",during:"\\uD559\\uC2B5 \\uC911",after:"\\uD559\\uC2B5 \\uC644\\uB8CC",' +
 'omitted:"\\uBCF4\\uC0C1 \\uC0DD\\uB7B5\\uB428",surprised:"\\uC608\\uC0C1\\uBC16 \\uBCF4\\uC0C1",' +
 'posRPE:"+RPE (\\uC608\\uC0C1\\uBCF4\\uB2E4 \\uC88B\\uC74C)",negRPE:"-RPE (\\uC608\\uC0C1\\uBCF4\\uB2E4 \\uB098\\uC068)",' +
-'noRPE:"RPE=0 (\\uC608\\uC0C1\\uB300\\uB85C)",lastEvent:"\\uB9C8\\uC9C0\\uB9C9 \\uC774\\uBCA4\\uD2B8"},' +
+'noRPE:"RPE=0 (\\uC608\\uC0C1\\uB300\\uB85C)",lastEvent:"\\uB9C8\\uC9C0\\uB9C9 \\uC774\\uBCA4\\uD2B8",' +
+'presets:"\\uC2DC\\uB098\\uB9AC\\uC624",gamma:"\\uD560\\uC778\\uC728(\\u03B3)",' +
+'pre1:"\\uD328\\uD134 1: \\uCCAB \\uBCF4\\uC0C1",pre2:"\\uD328\\uD134 2: \\uD559\\uC2B5 \\uC644\\uB8CC",pre3:"\\uD328\\uD134 3: \\uBCF4\\uC0C1 \\uC0DD\\uB7B5",' +
+'alphaL:"\\uB290\\uB9BC",alphaR:"\\uBE60\\uB984",gammaL:"\\uADFC\\uC2DC\\uC548",gammaR:"\\uC7A5\\uAE30",' +
+'ghostLabel:"\\u2591 \\uCCAB \\uC2DC\\uD589 RPE"},' +
 'en:{dopa:"DOPAMINE RESPONSE (RPE)",val:"VALUE FUNCTION V(t)",ctrl:"PARAMETERS",stats:"STATISTICS",' +
 'alpha:"Rate(\\u03B1)",trial:"Trial (Cue\\u2192Reward)",' +
 'omit:"Omit Reward",surprise:"Surprise Reward",reset:"\\u21BA Reset",' +
@@ -97,13 +117,17 @@ export function getDopamineSimulationHTML(isDark: boolean, lang: string): string
 'before:"Before Learning",during:"Learning",after:"Learned",' +
 'omitted:"Reward Omitted",surprised:"Surprise Reward",' +
 'posRPE:"+RPE (better than expected)",negRPE:"-RPE (worse than expected)",' +
-'noRPE:"RPE=0 (as expected)",lastEvent:"Last Event"}' +
+'noRPE:"RPE=0 (as expected)",lastEvent:"Last Event",' +
+'presets:"SCENARIOS",gamma:"Discount(\\u03B3)",' +
+'pre1:"Pattern 1: First",pre2:"Pattern 2: Learned",pre3:"Pattern 3: Omit",' +
+'alphaL:"Slow",alphaR:"Fast",gammaL:"Short",gammaR:"Long",' +
+'ghostLabel:"\\u2591 Trial 1 RPE"}' +
 '};' +
 'var T=L[LANG]||L.en;' +
 
 // ── TD Learning State ──
 'var STEPS=8;' + // timesteps: 0=pre, 1=cue, 2..6=gap, 7=reward
-'var gamma=0.95,alpha=0.2;' +
+'var gamma=0.95,alpha=0.2;var activePreset=0;' +
 'var V=[];' + // value estimates at each timestep
 'var dopamine=[];' + // RPE at each timestep (last trial)
 'var trialCount=0;' +
@@ -207,7 +231,21 @@ export function getDopamineSimulationHTML(isDark: boolean, lang: string): string
 // draw bars
 'var maxAbs=0.2;' +
 'for(var t=0;t<STEPS;t++){var av=Math.abs(dopamine[t]||0);if(av>maxAbs)maxAbs=av}' +
+// include ghost (first trial) in scale
+'if(dopaHistory.length>5&&dopaHistory[0]){for(var gt=0;gt<STEPS;gt++){var gv=Math.abs(dopaHistory[0][gt]||0);if(gv>maxAbs)maxAbs=gv}}' +
 'maxAbs=Math.max(maxAbs,0.2)*1.2;' +
+// ghost overlay: faded first-trial RPE bars for comparison
+'if(dopaHistory.length>5&&dopaHistory[0]){' +
+'ctx.globalAlpha=0.15;' +
+'for(var gt=0;gt<STEPS;gt++){' +
+'var gd=dopaHistory[0][gt]||0;' +
+'var gh=Math.abs(gd)/maxAbs*(ph/2);' +
+'var gx=pad+gt*barW+barW*0.15;' +
+'var gbw=barW*0.7;' +
+'if(gd>0){ctx.fillStyle=greenC;ctx.fillRect(gx,midY-gh,gbw,gh)}' +
+'else if(gd<0){ctx.fillStyle=redC;ctx.fillRect(gx,midY,gbw,gh)}}' +
+'ctx.globalAlpha=1}' +
+// current bars
 'for(var t=0;t<STEPS;t++){' +
 'var d=dopamine[t]||0;' +
 'var barH=Math.abs(d)/maxAbs*(ph/2);' +
@@ -237,7 +275,8 @@ export function getDopamineSimulationHTML(isDark: boolean, lang: string): string
 // RPE legend
 'ctx.font="9px -apple-system,sans-serif";ctx.textAlign="left";' +
 'ctx.fillStyle=greenC;ctx.fillRect(pad,h-pb+22,10,8);ctx.fillStyle=textC;ctx.fillText("+RPE",pad+14,h-pb+30);' +
-'ctx.fillStyle=redC;ctx.fillRect(pad+60,h-pb+22,10,8);ctx.fillStyle=textC;ctx.fillText("-RPE",pad+74,h-pb+30)}' +
+'ctx.fillStyle=redC;ctx.fillRect(pad+60,h-pb+22,10,8);ctx.fillStyle=textC;ctx.fillText("-RPE",pad+74,h-pb+30);' +
+'if(dopaHistory.length>5){ctx.fillStyle=textC;ctx.globalAlpha=0.4;ctx.fillText(T.ghostLabel,pad+120,h-pb+30);ctx.globalAlpha=1}}' +
 
 // ── Draw V(t) curve ──
 'function drawVal(){' +
@@ -293,7 +332,7 @@ export function getDopamineSimulationHTML(isDark: boolean, lang: string): string
 'if(trialCount===0){box.innerHTML="<span style=\\"color:var(--text3)\\">"+T.trial+"</span>";return}' +
 'var s="<span class=\\"hi\\">"+T.trialN+"</span> "+trialCount+"<br>";' +
 // phase
-'var phase=trialCount<3?T.before:trialCount<8?T.during:T.after;' +
+'var phase=trialCount===0?T.before:trialCount<8?T.during:T.after;' +
 's+="<span class=\\"hi\\">"+T.phase+"</span> "+phase+"<br>";' +
 // last event
 's+=T.lastEvent+": <span class=\\"warn\\">"+lastEvent+"</span><br>";' +
@@ -312,11 +351,42 @@ export function getDopamineSimulationHTML(isDark: boolean, lang: string): string
 // ── Param change ──
 'function onParam(){' +
 'alpha=+document.getElementById("slAlpha").value/100;' +
+'gamma=+document.getElementById("slGamma").value/100;' +
 'document.getElementById("valAlpha").textContent=alpha.toFixed(2);' +
-'notifyHeight()}' +
+'document.getElementById("valGamma").textContent=gamma.toFixed(2);' +
+'clearActivePreset();notifyHeight()}' +
 
 // ── Reset ──
-'function onReset(){initTD();drawAll();notifyHeight()}' +
+'function onReset(){initTD();activePreset=0;clearActivePreset();drawAll();notifyHeight()}' +
+
+// ── Preset helpers ──
+'function clearActivePreset(){' +
+'var ps=document.querySelectorAll(".preset");' +
+'for(var i=0;i<ps.length;i++)ps[i].classList.remove("active")}' +
+
+'function setActivePreset(n){' +
+'clearActivePreset();activePreset=n;' +
+'var el=document.getElementById("pre"+n);if(el)el.classList.add("active")}' +
+
+// ── Preset scenarios (Schultz's 3 patterns) ──
+'function runPreset(n){' +
+'initTD();' +
+'if(n===1){' + // Pattern 1: First Reward — 1 trial from blank state
+'runTrial();setActivePreset(1)}' +
+'else if(n===2){' + // Pattern 2: Learned — 15 silent trials, show final
+'for(var i=0;i<15;i++){' +
+'var r=[];for(var t=0;t<STEPS;t++)r.push(0);r[7]=1;' +
+'dopamine=[];' +
+'for(var t=0;t<STEPS;t++){var nV=(t<STEPS-1)?V[t+1]:0;var d=r[t]+gamma*nV-V[t];dopamine.push(d);V[t]+=alpha*d}' +
+'trialCount++;dopaHistory.push(dopamine.slice())}' +
+'lastEvent=T.after;drawAll();setActivePreset(2);notifyHeight()}' +
+'else if(n===3){' + // Pattern 3: Learn 15 trials then omit
+'for(var i=0;i<15;i++){' +
+'var r=[];for(var t=0;t<STEPS;t++)r.push(0);r[7]=1;' +
+'dopamine=[];' +
+'for(var t=0;t<STEPS;t++){var nV=(t<STEPS-1)?V[t+1]:0;var d=r[t]+gamma*nV-V[t];dopamine.push(d);V[t]+=alpha*d}' +
+'trialCount++;dopaHistory.push(dopamine.slice())}' +
+'runOmit();setActivePreset(3)}}' +
 
 // ── Height notification ──
 'function notifyHeight(){' +
@@ -329,10 +399,19 @@ export function getDopamineSimulationHTML(isDark: boolean, lang: string): string
 'document.getElementById("lbl-ctrl").textContent=T.ctrl;' +
 'document.getElementById("lbl-stats").textContent=T.stats;' +
 'document.getElementById("lblAlpha").textContent=T.alpha;' +
+'document.getElementById("lblGamma").textContent=T.gamma;' +
 'document.getElementById("btnTrial").textContent=T.trial;' +
 'document.getElementById("btnOmit").textContent=T.omit;' +
 'document.getElementById("btnSurprise").textContent=T.surprise;' +
 'document.getElementById("btnReset").textContent=T.reset;' +
+'document.getElementById("lbl-presets").textContent=T.presets;' +
+'document.getElementById("pre1").textContent=T.pre1;' +
+'document.getElementById("pre2").textContent=T.pre2;' +
+'document.getElementById("pre3").textContent=T.pre3;' +
+'document.getElementById("lbl-aL").textContent=T.alphaL;' +
+'document.getElementById("lbl-aR").textContent=T.alphaR;' +
+'document.getElementById("lbl-gL").textContent=T.gammaL;' +
+'document.getElementById("lbl-gR").textContent=T.gammaR;' +
 
 // ── Init ──
 'onParam();initTD();drawAll();' +

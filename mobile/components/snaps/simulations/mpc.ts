@@ -26,7 +26,7 @@ export function getMPCSimulationHTML(isDark: boolean, lang: string): string {
 '*{box-sizing:border-box;margin:0;padding:0}' +
 'body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);padding:0;-webkit-user-select:none;user-select:none;overflow-x:hidden}' +
 '.panel{border:2px solid var(--border);background:var(--card);margin-bottom:8px;padding:12px;border-radius:8px}' +
-'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card);border-radius:8px}' +
+'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card);border-radius:8px;touch-action:none}' +
 '.label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}' +
 '.row{display:flex;align-items:center;gap:8px;margin-bottom:10px}' +
 '.row:last-child{margin-bottom:0}' +
@@ -83,7 +83,7 @@ export function getMPCSimulationHTML(isDark: boolean, lang: string): string {
 '<div class="row"><span class="ctrl-name" id="lbl-weight"></span>' +
 '<input type="range" id="slW" min="0" max="100" value="50" oninput="onParam()">' +
 '<span class="ctrl-val" id="valW"></span></div>' +
-'<div style="display:flex;justify-content:space-between;margin:-6px 0 10px;padding:0 72px 0 72px;font-size:10px;color:var(--text3)">' +
+'<div style="display:flex;justify-content:space-between;margin:-4px 0 10px;padding:0 48px 0 80px;font-size:10px;color:var(--text3)">' +
 '<span id="lbl-wL"></span><span id="lbl-wR"></span></div>' +
 '<div class="toggle-row"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" class="toggle-check" id="chkDist" onchange="onParam()">' +
 '<span class="toggle-label" id="lbl-dist"></span></label></div>' +

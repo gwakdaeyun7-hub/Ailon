@@ -30,26 +30,26 @@ export function getMolGraphSimulationHTML(isDark: boolean, lang: string): string
 '*{box-sizing:border-box;margin:0;padding:0}' +
 'body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);padding:0;-webkit-user-select:none;user-select:none;overflow-x:hidden}' +
 '.panel{border:2px solid var(--border);background:var(--card);margin-bottom:8px;padding:12px;border-radius:8px}' +
-'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card);border-radius:8px}' +
+'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card);border-radius:8px;touch-action:none}' +
 '.label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}' +
 '.row{display:flex;align-items:center;gap:8px;margin-bottom:10px}' +
 '.row:last-child{margin-bottom:0}' +
-'.ctrl-name{font-size:12px;font-weight:600;color:var(--text);min-width:56px;flex-shrink:0}' +
+'.ctrl-name{font-size:12px;font-weight:600;color:var(--text);min-width:72px;flex-shrink:0}' +
 '.ctrl-val{font-size:12px;font-family:monospace;color:var(--teal);min-width:50px;text-align:right;flex-shrink:0}' +
 'input[type=range]{flex:1;min-width:0;accent-color:var(--teal);height:20px}' +
 '.btn-row{display:flex;gap:6px;margin-top:4px}' +
-'.btn{flex:1;padding:10px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent;min-height:44px;display:flex;align-items:center;justify-content:center;border-radius:8px}' +
+'.btn{flex:1;padding:14px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent;min-height:44px;display:flex;align-items:center;justify-content:center;border-radius:8px}' +
 '.btn:active{opacity:0.7}' +
 '.btn-primary{background:var(--teal);border-color:var(--teal);color:#1A1816}' +
-'.btn-stop{background:var(--accent);border-color:var(--accent);color:#1A1816}' +
+'.btn-stop{background:var(--accent);border-color:var(--accent);color:var(--bg)}' +
 '.btn-on{background:var(--tealLight);border-color:var(--teal);color:var(--teal)}' +
 '.stats{font-family:monospace;font-size:11px;line-height:2;color:var(--text2);border-radius:8px}' +
 '.stats .hi{color:var(--teal);font-weight:700}' +
 '.stats .warn{color:var(--accent);font-weight:700}' +
-'.preset-row{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}' +
-'.preset{flex:1;min-width:50px;padding:10px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:10px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.3px;min-height:44px;display:flex;align-items:center;justify-content:center;border-radius:8px}' +
+'.preset-row{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}' +
+'.preset{flex:1;min-width:50px;padding:14px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:11px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.3px;min-height:44px;display:flex;align-items:center;justify-content:center;border-radius:8px}' +
 '.preset:active{opacity:0.7}' +
-'.preset.active{border-color:var(--teal);color:var(--teal)}' +
+'.preset.active{border-color:var(--teal);color:var(--teal);background:var(--tealLight)}' +
 '</style></head><body>' +
 
 // ── Graph Canvas Panel ──
@@ -84,14 +84,16 @@ export function getMolGraphSimulationHTML(isDark: boolean, lang: string): string
 'nodes:"\\uB178\\uB4DC",edges:"\\uC5E3\\uC9C0",selected:"\\uC120\\uD0DD\\uB428",' +
 'element:"\\uC6D0\\uC18C",degree:"\\uCC28\\uC218",hops:"\\uBA54\\uC2DC\\uC9C0 \\uD328\\uC2F1 \\uD6C5",' +
 'neighbors:"\\uC774\\uC6C3",none:"\\uC5C6\\uC74C",tapHint:"\\uC6D0\\uC790\\uB97C \\uD0ED\\uD558\\uC5EC \\uC120\\uD0DD",' +
-'featureOn:"\\uD53C\\uCC98 \\uC228\\uAE30\\uAE30",dragHint:"\\uB4DC\\uB798\\uADF8\\uD558\\uC5EC \\uBC30\\uCE58 \\uBCC0\\uACBD"},' +
+'featureOn:"\\uD53C\\uCC98 \\uC228\\uAE30\\uAE30",dragHint:"\\uB4DC\\uB798\\uADF8\\uD558\\uC5EC \\uBC30\\uCE58 \\uBCC0\\uACBD",' +
+'oversmooth:"\\uBAA8\\uB4E0 \\uB178\\uB4DC \\uB3C4\\uB2EC \\u2014 \\uACFC\\uC789 \\uC2A4\\uBB34\\uB529 \\uC601\\uC5ED!",receptive:"\\uC218\\uC6A9 \\uC601\\uC5ED"},' +
 'en:{graph:"MOLECULAR GRAPH",adj:"ADJACENCY MATRIX",ctrl:"CONTROLS",' +
 'stats:"STATISTICS",' +
 'msgPass:"Message Pass",feature:"Features",reset:"\\u21BA Reset",' +
 'nodes:"Nodes",edges:"Edges",selected:"Selected",' +
 'element:"Element",degree:"Degree",hops:"Msg-Pass Hops",' +
 'neighbors:"Neighbors",none:"None",tapHint:"Tap atom to select",' +
-'featureOn:"Hide Features",dragHint:"Drag to rearrange"}' +
+'featureOn:"Hide Features",dragHint:"Drag to rearrange",' +
+'oversmooth:"All nodes reached \\u2014 oversmoothing zone!",receptive:"Receptive field"}' +
 '};' +
 'var T=L[LANG]||L.en;' +
 
@@ -209,12 +211,13 @@ export function getMolGraphSimulationHTML(isDark: boolean, lang: string): string
 'var selectedAtom=-1;' +
 'var msgHops=0;' +
 'var msgReach=[];' + // set of atom indices reached by message passing
+'var hopMap={};' + // atomIdx → hop number (0=selected)
 'var showFeatures=false;' +
 'var dragIdx=-1;var dragging=false;' +
 
 // ── Load molecule ──
 'function loadMol(key){' +
-'curMol=key;selectedAtom=-1;msgHops=0;msgReach=[];' +
+'curMol=key;selectedAtom=-1;msgHops=0;msgReach=[];hopMap={};' +
 'var mol=MOLECULES[key];' +
 'atoms=mol.atoms.map(function(a){return{el:a.el,x:a.x,y:a.y}});' +
 'bonds=mol.bonds.map(function(b){return{i:b[0],j:b[1],order:b[2]}});' +
@@ -240,13 +243,13 @@ export function getMolGraphSimulationHTML(isDark: boolean, lang: string): string
 'function messagePass(){' +
 'if(selectedAtom<0)return;' +
 'msgHops++;' +
-'if(msgHops===1){msgReach=[selectedAtom]}' +
+'if(msgHops===1){msgReach=[selectedAtom];hopMap={};hopMap[selectedAtom]=0}' +
 // BFS expand by 1 hop
 'var newReach=msgReach.slice();' +
 'for(var k=0;k<msgReach.length;k++){' +
 'var nb=getNeighbors(msgReach[k]);' +
 'for(var j=0;j<nb.length;j++){' +
-'if(newReach.indexOf(nb[j])<0)newReach.push(nb[j])}}' +
+'if(newReach.indexOf(nb[j])<0){newReach.push(nb[j]);hopMap[nb[j]]=msgHops}}}' +
 'msgReach=newReach;' +
 'drawAll();notifyHeight()}' +
 
@@ -304,8 +307,10 @@ export function getMolGraphSimulationHTML(isDark: boolean, lang: string): string
 'var isSelected=i===selectedAtom;' +
 'var isNeighbor=selectedAtom>=0&&getNeighbors(selectedAtom).indexOf(i)>=0;' +
 
-// Glow for message reach
-'if(inReach2){ctx.fillStyle=tealC;ctx.globalAlpha=0.2;' +
+// Glow for message reach — opacity by hop distance
+'if(inReach2){var hop=hopMap[i]||0;var maxH=msgHops||1;' +
+'var glowA=0.35-hop*0.07;if(glowA<0.08)glowA=0.08;' +
+'ctx.fillStyle=tealC;ctx.globalAlpha=glowA;' +
 'ctx.beginPath();ctx.arc(x,y,R+6,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1}' +
 
 // Atom circle
@@ -400,7 +405,7 @@ export function getMolGraphSimulationHTML(isDark: boolean, lang: string): string
 
 // ── Reset ──
 'function onReset(){' +
-'selectedAtom=-1;msgHops=0;msgReach=[];showFeatures=false;' +
+'selectedAtom=-1;msgHops=0;msgReach=[];hopMap={};showFeatures=false;' +
 'document.getElementById("btnFeature").textContent=T.feature;' +
 'document.getElementById("btnFeature").className="btn";' +
 'loadMol(curMol)}' +
@@ -420,7 +425,8 @@ export function getMolGraphSimulationHTML(isDark: boolean, lang: string): string
 's+=T.neighbors+": "+nb.map(function(n2){return atoms[n2].el+n2}).join(", ")+"<br>"}' +
 'else{s+=T.selected+": "+T.none+"<br>"}' +
 's+=T.hops+": <span class=\\"hi\\">"+msgHops+"</span>";' +
-'if(msgReach.length>0){s+=" ("+msgReach.length+"/"+atoms.length+" reached)"}' +
+'if(msgReach.length>0){s+=" &nbsp; "+T.receptive+": <span class=\\"hi\\">"+msgReach.length+"/"+atoms.length+"</span>"}' +
+'if(msgReach.length>0&&msgReach.length===atoms.length){s+="<br><span class=\\"warn\\">"+T.oversmooth+"</span>"}' +
 'box.innerHTML=s}' +
 
 // ── Tap / Drag handling on graph canvas ──
@@ -456,7 +462,7 @@ export function getMolGraphSimulationHTML(isDark: boolean, lang: string): string
 'if(dragging&&!hasMoved&&dragIdx>=0){' +
 // Tap — select atom
 'selectedAtom=dragIdx===selectedAtom?-1:dragIdx;' +
-'msgHops=0;msgReach=[];' +
+'msgHops=0;msgReach=[];hopMap={};' +
 'drawAll()}' +
 'dragging=false;dragIdx=-1}' +
 
