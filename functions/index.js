@@ -450,7 +450,8 @@ details[open] .glossary-toggle svg{transform:rotate(180deg)}
     <h1>${esc(title)}</h1>
     ${oneLine ? `<div class="one-line"><p>${esc(oneLine)}</p></div>` : ""}
     ${background ? `<div class="background-text">${esc(background)}</div>` : ""}
-    ${sections.length ? `<div class="divider"></div><div class="sections">${sectionsHTML}</div>` : ""}
+    ${oneLine ? `<div class="divider"></div>` : ""}
+    ${sections.length ? `<div class="sections">${sectionsHTML}</div>` : ""}
     ${whyImportant ? `<div class="divider"></div><div class="why"><div class="why-label">${esc(l.whyImportant)}</div><div class="why-text">${esc(whyImportant)}</div></div>` : ""}
     ${tags.length ? `<div class="tags">${tagsHTML}</div>` : ""}
     ${glossaryHTML}

@@ -11,7 +11,7 @@
 - **Daily Briefing**: AI-generated 2-3 min briefing card with TTS playback (expo-speech)
 - **Categories**: Horizontal scroll tab chips (research / models_products / industry_business), Top 20 per category. 섹션 헤더 텍스트 없이 탭 칩만 표시
 - **Sources**: 22 source sections, Korean sources (AI타임스, GeekNews, ZDNet AI, 요즘IT) in separate tabs. 섹션 헤더 텍스트 없이 구분선만 표시
-- **Article Card**: display_title, one_line, sections (소제목+내용 2-4개), why_important, background, tags, glossary, "Read Original" button (openArticle → expo-web-browser In-App Browser). 요약 모달: F-Minimal 디자인 (소스 뱃지+날짜+읽기시간(Clock)+카테고리, 세리프 제목, One Line 16pt(장식 없음), 소제목+내용 sections 15pt(배경 없음), 세리프 소제목 textSecondary, 태그 pill, 원문 버튼 textPrimary 테두리). 기존 Firestore key_points 데이터는 폴백 렌더링 지원
+- **Article Card**: display_title, one_line, sections (소제목+내용 2-4개), why_important, background, tags, glossary, "Read Original" button (openArticle → expo-web-browser In-App Browser). 요약 모달: F-Minimal 디자인 (소스 뱃지+읽기시간(Clock)+날짜(우측), 배경↔본문 구분선, 세리프 제목, One Line 16pt(장식 없음), 소제목+내용 sections 15pt(배경 없음), 본문↔왜중요해요 구분선, 세리프 소제목 textSecondary, 태그 pill, 원문 버튼 textPrimary 테두리). 기존 Firestore key_points 데이터는 폴백 렌더링 지원
 - **Interactions**: Like/dislike (ReactionBar), comments (CommentSheet modal), share (웹 공유 링크 useShareLink + 텍스트 폴백), bookmark. 소셜 기능(좋아요 숫자, 댓글)은 Firestore feature flag(`app_config/social_features`)로 조건부 표시
 - **Glossary Highlighting**: Auto-detects terms in text, tap for definition popup (HighlightedText)
 - **Related Articles**: Horizontal carousel in summary modal (RelatedArticlesSection)
@@ -79,7 +79,7 @@
 - Real-time sync from `users/{uid}/bookmarks` subcollection
 - **AI 요약 모달**: 뉴스 카드 탭 시 ArticleSummaryModal 바텀 시트 표시 (saved.tsx 내 인라인 컴포넌트, index.tsx SummaryModalContent와 동일 디자인)
   - `useArticle(articleId)` 훅으로 `articles/{article_id}` 컬렉션에서 fetch
-  - 바텀 시트 디자인: 썸네일 이미지, 소스 뱃지+날짜+읽기시간(Clock)+카테고리 행, HighlightedText(용어집 하이라이팅), 용어집 아코디언, Related Articles, 하단 액션 바(좋아요/댓글/공유(웹 공유 링크 useShareLink)), Toast, CommentSheet 통합
+  - 바텀 시트 디자인: 썸네일 이미지, 소스 뱃지+읽기시간(Clock)+날짜(우측) 행, HighlightedText(용어집 하이라이팅), 용어집 아코디언, Related Articles, 하단 액션 바(좋아요/댓글/공유(웹 공유 링크 useShareLink)), Toast, CommentSheet 통합
   - 다국어(ko/en) 자동 분기 (articleHelpers.ts 공용 헬퍼 사용)
   - articleId 없는 이전 북마크: 안내 메시지 + 원문 링크 제공
 - **날짜 표시**: 상단 배지 행에 `· 날짜` 형태로 표시 (footer에서 이동)

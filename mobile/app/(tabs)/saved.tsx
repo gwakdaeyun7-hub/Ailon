@@ -31,8 +31,8 @@ import { useReadStats } from '@/hooks/useReadStats';
 import { HighlightedText } from '@/components/shared/HighlightedText';
 import { RelatedArticlesSection } from '@/components/shared/RelatedArticlesSection';
 import {
-  SOURCE_COLORS, CATEGORY_COLORS,
-  getSourceName, getCategoryName, formatDate,
+  SOURCE_COLORS,
+  getSourceName, formatDate,
   getLocalizedTitle, getLocalizedOneLine, getLocalizedSections,
   getLocalizedWhyImportant, getLocalizedBackground, getLocalizedGlossary,
 } from '@/lib/articleHelpers';
@@ -300,7 +300,7 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
               />
             ) : null}
 
-            {/* 소스 뱃지 + 날짜 + 카테고리 + 북마크 */}
+            {/* F-Minimal: 소스 뱃지 + 읽기시간 + 날짜(right) */}
             <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', paddingHorizontal: 20, paddingTop: 20, gap: 6 }}>
               {(() => {
                 const sk = article.source_key || article.source;
@@ -311,34 +311,11 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
                   </View>
                 );
               })()}
-              <Text style={{ fontSize: 11, color: colors.textDim }}>{formatDate(article.published, lang, article.date_estimated)}</Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
                 <Clock size={11} color={colors.textDim} strokeWidth={2} />
                 <Text style={{ fontSize: 11, color: colors.textDim }}>{readMin}{lang === 'ko' ? '분' : ' min'}</Text>
               </View>
-              {article.category ? (
-                <View style={{ backgroundColor: `${CATEGORY_COLORS[article.category] || colors.textDim}18`, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
-                  <Text style={{ fontSize: 11, fontWeight: '700', color: colors.textPrimary }}>{getCategoryName(article.category, t)}</Text>
-                </View>
-              ) : null}
-              <View style={{ marginLeft: 'auto' }}>
-                <Pressable
-                  onPress={handleToggleBookmark}
-                  accessibilityLabel={bookmarked ? t('bookmark.remove') : t('bookmark.add')}
-                  accessibilityRole="button"
-                  style={({ pressed }) => ({
-                    minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center',
-                    opacity: pressed ? 0.7 : 1,
-                  })}
-                >
-                  <Bookmark
-                    size={18}
-                    color={bookmarked ? colors.bookmarkActiveColor : colors.textSecondary}
-                    fill="none"
-                    strokeWidth={2}
-                  />
-                </Pressable>
-              </View>
+              <Text style={{ fontSize: 11, color: colors.textDim, marginLeft: 'auto' }}>{formatDate(article.published, lang, article.date_estimated)}</Text>
             </View>
 
             {/* 제목 — 세리프 22px, weight 900 */}
@@ -369,6 +346,9 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
                   </Text>
                 ) : null}
 
+                {/* 구분선: 배경 ↔ 요약 본문 */}
+                <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginTop: 24 }} />
+
                 {/* 3. Sections — 소제목 + 내용 블록 (레거시 key_points 폴백 포함) */}
                 {sections.length > 0 && (
                   <View style={{ marginTop: 24 }}>
@@ -388,6 +368,9 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
                     ))}
                   </View>
                 )}
+
+                {/* 구분선: 요약 본문 ↔ 왜 중요해요 */}
+                {whyImportant ? <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginTop: 24 }} /> : null}
 
                 {/* 4. Why Important — 세리프 소제목 */}
                 {whyImportant ? (
