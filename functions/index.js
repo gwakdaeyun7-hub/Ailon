@@ -251,7 +251,7 @@ const LABELS = {
 const EN_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 function esc(s) {
-  return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
 
 function getTitle(a, lang) {
@@ -373,6 +373,7 @@ function buildArticleHTML(article, articleId, lang) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light only">
 <title>${esc(title)} — AILON</title>
 <meta property="og:type" content="article">
 <meta property="og:title" content="${esc(title)}">
@@ -390,19 +391,20 @@ function buildArticleHTML(article, articleId, lang) {
 <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;700;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
+:root{color-scheme:light only}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F5F5F4;color:#000;min-height:100vh}
 .header{background:#fff;border-bottom:1px solid #E7E5E4;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
-.logo{font-size:18px;font-weight:800;color:#5EEAD4;letter-spacing:1.5px}
-.header-btn{background:#5EEAD4;color:#000;font-weight:700;font-size:12px;padding:8px 16px;border-radius:8px;text-decoration:none}
+.logo{font-size:18px;font-weight:800;color:#000;letter-spacing:1.5px}
+.header-btn{background:transparent;border:1.5px solid #000;color:#000;font-weight:700;font-size:12px;padding:8px 16px;border-radius:8px;text-decoration:none}
 .card{max-width:480px;margin:16px auto;background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.06)}
 .thumb{width:100%;height:200px;object-fit:cover;display:block}
 .body{padding:20px}
 .meta{display:flex;align-items:center;flex-wrap:wrap;gap:6px}
 .source-badge{padding:4px 8px;font-size:11px;font-weight:700;border-radius:8px}
-.date{font-size:11px;color:#000}
+.date{font-size:11px;color:#000;margin-left:auto}
 .read-time{display:inline-flex;align-items:center;gap:3px;font-size:11px;color:#000}
 .read-time svg{vertical-align:middle}
-.cat-badge{padding:3px 8px;font-size:11px;font-weight:700;border-radius:8px;color:#000}
+.divider{height:1px;background:#E7E5E4;margin-top:24px}
 h1{font-family:'Lora',serif;font-size:22px;font-weight:900;line-height:1.45;letter-spacing:-0.3px;margin-top:8px;color:#000}
 .one-line{margin-top:16px}
 .one-line p{font-size:16px;font-weight:600;color:#000;line-height:1.625}
@@ -427,9 +429,9 @@ details[open] .glossary-toggle svg{transform:rotate(180deg)}
 .original-btn span{font-size:15px;font-weight:700;color:#000}
 .original-btn svg{flex-shrink:0}
 .footer{border-top:1px solid #E7E5E4;padding:16px 20px;display:flex;align-items:center;justify-content:space-between}
-.footer-logo{font-size:14px;font-weight:800;color:#5EEAD4;letter-spacing:1px}
+.footer-logo{font-size:14px;font-weight:800;color:#000;letter-spacing:1px}
 .footer-sub{font-size:11px;color:#999}
-.cta{display:block;text-align:center;background:#5EEAD4;color:#000;font-weight:700;font-size:15px;padding:14px;border-radius:0 0 20px 20px;text-decoration:none}
+.cta{display:block;text-align:center;background:transparent;border-top:1.5px solid #E7E5E4;color:#000;font-weight:700;font-size:15px;padding:14px;border-radius:0 0 20px 20px;text-decoration:none}
 </style>
 </head>
 <body>
@@ -438,19 +440,18 @@ details[open] .glossary-toggle svg{transform:rotate(180deg)}
   <a class="header-btn" href="ailon://article/${esc(articleId)}">${esc(l.openApp)}</a>
 </div>
 <div class="card">
-  ${imgUrl ? `<img class="thumb" src="${esc(imgUrl)}" alt="">` : ""}
+  ${imgUrl ? `<img class="thumb" src="${esc(imgUrl)}" alt="${esc(title)}" onerror="this.style.display='none'">` : ""}
   <div class="body">
     <div class="meta">
       ${sourceName ? `<span class="source-badge" style="background:${esc(sourceColor)}18;color:${esc(sourceColor)}">${esc(sourceName)}</span>` : ""}
-      ${date ? `<span class="date">${esc(date)}</span>` : ""}
       <span class="read-time"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${readMin}${lang === "ko" ? "\uBD84" : " min"}</span>
-      ${catName ? `<span class="cat-badge" style="background:${esc(catColor)}18">${esc(catName)}</span>` : ""}
+      ${date ? `<span class="date">${esc(date)}</span>` : ""}
     </div>
     <h1>${esc(title)}</h1>
     ${oneLine ? `<div class="one-line"><p>${esc(oneLine)}</p></div>` : ""}
     ${background ? `<div class="background-text">${esc(background)}</div>` : ""}
-    ${sections.length ? `<div class="sections">${sectionsHTML}</div>` : ""}
-    ${whyImportant ? `<div class="why"><div class="why-label">${esc(l.whyImportant)}</div><div class="why-text">${esc(whyImportant)}</div></div>` : ""}
+    ${sections.length ? `<div class="divider"></div><div class="sections">${sectionsHTML}</div>` : ""}
+    ${whyImportant ? `<div class="divider"></div><div class="why"><div class="why-label">${esc(l.whyImportant)}</div><div class="why-text">${esc(whyImportant)}</div></div>` : ""}
     ${tags.length ? `<div class="tags">${tagsHTML}</div>` : ""}
     ${glossaryHTML}
     ${article.link ? `<a class="original-btn" href="${esc(article.link)}"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg><span>${esc(l.readOriginal)}</span></a>` : ""}
@@ -478,10 +479,10 @@ function build404HTML(lang) {
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#fff;color:#000;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
 .wrap{text-align:center;max-width:360px}
-.logo{font-size:28px;font-weight:800;color:#5EEAD4;letter-spacing:2px;margin-bottom:24px}
+.logo{font-size:28px;font-weight:800;color:#000;letter-spacing:2px;margin-bottom:24px}
 h1{font-size:18px;font-weight:700;margin-bottom:12px}
 p{font-size:14px;color:#666;margin-bottom:24px;line-height:1.5}
-.btn{display:inline-block;background:#5EEAD4;color:#000;font-weight:700;font-size:14px;padding:12px 28px;border:2px solid #000;text-decoration:none}
+.btn{display:inline-block;background:transparent;color:#000;font-weight:700;font-size:14px;padding:12px 28px;border:2px solid #000;text-decoration:none}
 </style>
 </head>
 <body>
@@ -515,7 +516,7 @@ exports.articlePage = onRequest(
       }
 
       const html = buildArticleHTML(doc.data(), articleId, lang);
-      res.set("Cache-Control", "public, max-age=3600, s-maxage=86400");
+      res.set("Cache-Control", "public, max-age=300, s-maxage=3600");
       res.status(200).send(html);
     } catch (err) {
       console.error("articlePage error:", err);
