@@ -24,7 +24,7 @@ export function getMPCSimulationHTML(isDark: boolean, lang: string): string {
 '--border:#302B28;--surface:#211D1B;--teal:#5EEAD4;--tealLight:#112525;' +
 '--accent:#F59E0B;--red:#F87171;--green:#4ADE80}' +
 '*{box-sizing:border-box;margin:0;padding:0}' +
-'body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);padding:0;-webkit-user-select:none;user-select:none;overflow-x:hidden}' +
+'body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);padding:0 0 16px 0;-webkit-user-select:none;user-select:none;overflow-x:hidden}' +
 '.panel{border:2px solid var(--border);background:var(--card);margin-bottom:8px;padding:12px;border-radius:8px}' +
 'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card);border-radius:8px;touch-action:none}' +
 '.label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}' +
@@ -83,7 +83,7 @@ export function getMPCSimulationHTML(isDark: boolean, lang: string): string {
 '<div class="row"><span class="ctrl-name" id="lbl-weight"></span>' +
 '<input type="range" id="slW" min="0" max="100" value="50" oninput="onParam()">' +
 '<span class="ctrl-val" id="valW"></span></div>' +
-'<div style="display:flex;justify-content:space-between;margin:-4px 0 10px;padding:0 48px 0 80px;font-size:10px;color:var(--text3)">' +
+'<div style="display:flex;justify-content:space-between;margin:-4px 0 10px;padding:0 48px 0 80px;font-size:11px;color:var(--text3)">' +
 '<span id="lbl-wL"></span><span id="lbl-wR"></span></div>' +
 '<div class="toggle-row"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" class="toggle-check" id="chkDist" onchange="onParam()">' +
 '<span class="toggle-label" id="lbl-dist"></span></label></div>' +
@@ -108,7 +108,7 @@ export function getMPCSimulationHTML(isDark: boolean, lang: string): string {
 'ref:"\\uAE30\\uC900 \\uACBD\\uB85C",veh:"\\uCC28\\uB7C9",pred:"\\uC608\\uCE21 \\uAD6C\\uAC04",' +
 'err:"\\uCD94\\uC801 \\uC624\\uCC28",steer:"\\uC870\\uD5A5\\uAC01",' +
 'trackErr:"\\uCD94\\uC801 \\uC624\\uCC28",steerAng:"\\uC870\\uD5A5\\uAC01",horizLen:"\\uAD6C\\uAC04",' +
-'tracking:"\\uCD94\\uC801",smooth:"\\uBD80\\uB4DC\\uB7EC\\uC6C0"},' +
+'tracking:"\\uCD94\\uC801 (Q)",smooth:"\\uBD80\\uB4DC\\uB7EC\\uC6C0 (R)"},' +
 'en:{sim:"MPC SIMULATION",graph:"TRACKING GRAPH",' +
 'ctrl:"CONTROLS",path:"REFERENCE PATH",' +
 'horizon:"Horizon N",weight:"Track / Smooth",' +
@@ -117,7 +117,7 @@ export function getMPCSimulationHTML(isDark: boolean, lang: string): string {
 'ref:"Reference",veh:"Vehicle",pred:"Prediction",' +
 'err:"Track Error",steer:"Steering",' +
 'trackErr:"Track Error",steerAng:"Steer Angle",horizLen:"Horizon",' +
-'tracking:"Track",smooth:"Smooth"}' +
+'tracking:"Track (Q)",smooth:"Smooth (R)"}' +
 '};' +
 'var T=L[LANG]||L.en;' +
 
@@ -316,7 +316,7 @@ export function getMPCSimulationHTML(isDark: boolean, lang: string): string {
 'var lastErr=history.length>0?history[history.length-1].err:0;' +
 'var s="<span class=\\"hi\\">"+T.trackErr+"</span> "+lastErr.toFixed(1)+"px";' +
 's+=" &nbsp;|&nbsp; <span class=\\"warn\\">"+T.steerAng+"</span> "+(steerAngle*57.3).toFixed(1)+"\\u00B0";' +
-'s+="<br><span class=\\"hi\\">"+T.horizLen+"</span> N="+horizonN;' +
+'s+="<br><span class=\\"hi\\">"+T.horizLen+"</span> N="+horizonN+" &nbsp;|&nbsp; Q:R = "+Math.round(wTrack*100)+":"+Math.round((1-wTrack)*100);' +
 'box.innerHTML=s}' +
 
 // ── Read params ──
@@ -371,7 +371,7 @@ export function getMPCSimulationHTML(isDark: boolean, lang: string): string {
 
 // ── Height notification ──
 'function notifyHeight(){' +
-'var h=document.body.scrollHeight+20;' +
+'var h=Math.max(document.body.scrollHeight,document.body.offsetHeight,document.documentElement.scrollHeight)+40;' +
 'try{window.ReactNativeWebView.postMessage(JSON.stringify({type:"height",value:h}))}catch(e){}}' +
 
 // ── Init labels ──
@@ -399,6 +399,7 @@ export function getMPCSimulationHTML(isDark: boolean, lang: string): string {
 'var dim=setupCanvas(cvMain,300);canvasW=dim.w;canvasH=dim.h;' +
 'if(!running){drawMain();drawGraph()}notifyHeight()});' +
 'setTimeout(notifyHeight,100);' +
+'setTimeout(notifyHeight,500);' +
 
 '</script></body></html>';
 }

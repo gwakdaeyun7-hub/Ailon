@@ -24,7 +24,7 @@ interface InteractiveSimProps {
 export function InteractiveSim({ id }: InteractiveSimProps) {
   const { isDark, colors } = useTheme();
   const { lang } = useLanguage();
-  const [height, setHeight] = useState(820);
+  const [height, setHeight] = useState(960);
 
   const simFactory = SIMULATIONS[id];
 
@@ -32,7 +32,7 @@ export function InteractiveSim({ id }: InteractiveSimProps) {
     try {
       const data = JSON.parse(event.nativeEvent.data);
       if (data.type === 'height' && typeof data.value === 'number') {
-        setHeight(Math.max(400, Math.min(1400, data.value)));
+        setHeight(Math.max(400, Math.min(1800, data.value)));
       }
     } catch {}
   }, []);
