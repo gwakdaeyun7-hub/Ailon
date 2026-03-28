@@ -28,30 +28,30 @@ export function getKLSimulationHTML(isDark: boolean, lang: string): string {
 '*{box-sizing:border-box;margin:0;padding:0}' +
 'body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);padding:0;-webkit-user-select:none;user-select:none;overflow-x:hidden}' +
 '.panel{border:2px solid var(--border);background:var(--card);margin-bottom:8px;padding:12px;border-radius:8px}' +
-'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card);border-radius:8px}' +
+'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card);border-radius:8px;touch-action:none}' +
 '.label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}' +
 '.row{display:flex;align-items:center;gap:8px;margin-bottom:10px}' +
 '.row:last-child{margin-bottom:0}' +
-'.ctrl-name{font-size:12px;font-weight:600;color:var(--text);min-width:56px;flex-shrink:0}' +
+'.ctrl-name{font-size:12px;font-weight:600;color:var(--text);min-width:72px;flex-shrink:0}' +
 '.ctrl-val{font-size:12px;font-family:monospace;color:var(--teal);min-width:50px;text-align:right;flex-shrink:0}' +
 '.ctrl-val-q{font-size:12px;font-family:monospace;color:var(--accent);min-width:50px;text-align:right;flex-shrink:0}' +
 'input[type=range]{flex:1;min-width:0;accent-color:var(--teal);height:20px}' +
 'input.slider-q{accent-color:var(--accent)}' +
 '.btn-row{display:flex;gap:6px;margin-top:4px}' +
-'.btn{flex:1;padding:10px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent;border-radius:8px}' +
+'.btn{flex:1;padding:14px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent;border-radius:8px}' +
 '.btn:active{opacity:0.7}' +
 '.btn-primary{background:var(--teal);border-color:var(--teal);color:#1A1816}' +
 '.btn-stop{background:var(--accent);border-color:var(--accent);color:#1A1816}' +
-'.preset-row{display:flex;gap:6px;margin-bottom:8px}' +
-'.preset{flex:1;padding:12px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:10px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.3px;border-radius:8px}' +
+'.preset-row{display:flex;gap:6px;margin-bottom:10px}' +
+'.preset{flex:1;padding:14px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:11px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.3px;min-height:44px;border-radius:8px}' +
 '.preset:active{opacity:0.7}' +
-'.preset.active{border-color:var(--teal);color:var(--teal)}' +
+'.preset.active{border-color:var(--teal);color:var(--teal);background:var(--tealLight)}' +
 '.stats{font-family:monospace;font-size:11px;line-height:2;color:var(--text2);border-radius:8px}' +
 '.stats .hi{color:var(--teal);font-weight:700}' +
 '.stats .warn{color:var(--accent);font-weight:700}' +
 '.stats .red{color:var(--red);font-weight:700}' +
 '.kl-display{display:flex;gap:12px;margin-bottom:8px}' +
-'.kl-box{flex:1;border:2px solid var(--border);padding:10px 8px;text-align:center}' +
+'.kl-box{flex:1;border:2px solid var(--border);padding:10px 8px;text-align:center;border-radius:8px}' +
 '.kl-label{font-size:10px;font-weight:700;color:var(--text3);letter-spacing:0.5px;margin-bottom:4px}' +
 '.kl-value{font-size:18px;font-weight:800;font-family:monospace}' +
 '.kl-value.teal{color:var(--teal)}' +
@@ -99,6 +99,8 @@ export function getKLSimulationHTML(isDark: boolean, lang: string): string {
 '<div class="preset" id="pre1" onclick="onPreset(1)"></div>' +
 '<div class="preset" id="pre2" onclick="onPreset(2)"></div>' +
 '</div>' +
+// Discrete hint
+'<div id="discHintBox" style="display:none;font-size:11px;color:var(--text3);text-align:center;padding:8px 0"></div>' +
 // P sliders
 '<div class="section-label" id="sl-p"></div>' +
 '<div class="row"><span class="ctrl-name">' + '\u03BC' + '<sub>P</sub></span>' +
@@ -190,7 +192,18 @@ export function getKLSimulationHTML(isDark: boolean, lang: string): string {
 'if(p[i]>1e-10&&q[i]>1e-10)kl+=p[i]*Math.log(p[i]/q[i])}return kl}' +
 
 // -- JS Divergence --
-'function jsDiv(klPQ,klQP){return(klPQ+klQP)/2}' +
+'function jsGauss(mu1,sig1,mu2,sig2){' +
+'var lo=Math.min(mu1-4*sig1,mu2-4*sig2);var hi=Math.max(mu1+4*sig1,mu2+4*sig2);' +
+'var N=200;var dx=(hi-lo)/N;var s=0;' +
+'for(var i=0;i<=N;i++){var x=lo+dx*i;' +
+'var p=gaussPDF(x,mu1,sig1);var q=gaussPDF(x,mu2,sig2);var m=(p+q)/2;' +
+'if(p>1e-15&&m>1e-15)s+=p*Math.log(p/m)*dx;' +
+'if(q>1e-15&&m>1e-15)s+=q*Math.log(q/m)*dx}' +
+'return s*0.5}' +
+'function jsDisc(p,q){var s=0;' +
+'for(var i=0;i<p.length;i++){var m=(p[i]+q[i])/2;' +
+'if(p[i]>1e-10&&m>1e-10)s+=0.5*p[i]*Math.log(p[i]/m);' +
+'if(q[i]>1e-10&&m>1e-10)s+=0.5*q[i]*Math.log(q[i]/m)}return s}' +
 
 // -- Normalize discrete dist --
 'function normDist(d){var s=0;for(var i=0;i<d.length;i++)s+=d[i];' +
@@ -296,7 +309,7 @@ export function getKLSimulationHTML(isDark: boolean, lang: string): string {
 'klpq=klDiscrete(discP,discQ);' +
 'klqp=klDiscrete(discQ,discP);' +
 '}' +
-'js=jsDiv(klpq,klqp);' +
+'js=mode===0?jsGauss(muP,sigP,muQ,sigQ):jsDisc(discP,discQ);' +
 'document.getElementById("klPQ").textContent=klpq.toFixed(3);' +
 'document.getElementById("klQP").textContent=klqp.toFixed(3);' +
 'document.getElementById("jsDiv").textContent=js.toFixed(3);' +
@@ -336,6 +349,8 @@ export function getKLSimulationHTML(isDark: boolean, lang: string): string {
 'row.style.display=m===0?"flex":"none"}' +
 'document.getElementById("sl-p").style.display=m===0?"block":"none";' +
 'document.getElementById("sl-q").style.display=m===0?"block":"none";' +
+'document.getElementById("discHintBox").style.display=m===1?"block":"none";' +
+'document.getElementById("discHintBox").textContent=T.discHint;' +
 'drawDist();updateKL();notifyHeight()}' +
 
 // -- AI Lens toggle --

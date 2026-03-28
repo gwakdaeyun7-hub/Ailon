@@ -27,24 +27,24 @@ export function getEntropySimulationHTML(isDark: boolean, lang: string): string 
 '*{box-sizing:border-box;margin:0;padding:0}' +
 'body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);padding:0;-webkit-user-select:none;user-select:none;overflow-x:hidden}' +
 '.panel{border:2px solid var(--border);background:var(--card);margin-bottom:8px;padding:12px;border-radius:8px}' +
-'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card);border-radius:8px}' +
+'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card);border-radius:8px;touch-action:none}' +
 '.label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}' +
 '.row{display:flex;align-items:center;gap:8px;margin-bottom:10px}' +
 '.row:last-child{margin-bottom:0}' +
-'.ctrl-name{font-size:12px;font-weight:600;color:var(--text);min-width:56px;flex-shrink:0}' +
+'.ctrl-name{font-size:12px;font-weight:600;color:var(--text);min-width:72px;flex-shrink:0}' +
 '.ctrl-val{font-size:12px;font-family:monospace;color:var(--teal);min-width:50px;text-align:right;flex-shrink:0}' +
 '.btn-row{display:flex;gap:6px;margin-top:4px}' +
-'.btn{flex:1;padding:10px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent;border-radius:8px}' +
+'.btn{flex:1;padding:14px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent;border-radius:8px}' +
 '.btn:active{opacity:0.7}' +
 '.btn-primary{background:var(--teal);border-color:var(--teal);color:#1A1816}' +
 '.btn-stop{background:var(--accent);border-color:var(--accent);color:#1A1816}' +
 '.stats{font-family:monospace;font-size:11px;line-height:2;color:var(--text2);border-radius:8px}' +
 '.stats .hi{color:var(--teal);font-weight:700}' +
 '.stats .warn{color:var(--accent);font-weight:700}' +
-'.preset-row{display:flex;gap:6px;margin-bottom:8px}' +
-'.preset{flex:1;padding:12px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:10px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.3px;border-radius:8px}' +
+'.preset-row{display:flex;gap:6px;margin-bottom:10px}' +
+'.preset{flex:1;padding:14px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:11px;font-weight:700;text-align:center;cursor:pointer;min-height:44px;border-radius:8px}' +
 '.preset:active{opacity:0.7}' +
-'.preset.active{border-color:var(--teal);color:var(--teal)}' +
+'.preset.active{border-color:var(--teal);color:var(--teal);background:var(--tealLight)}' +
 '</style></head><body>' +
 
 // ── Bar Chart Canvas ──
@@ -86,6 +86,7 @@ export function getEntropySimulationHTML(isDark: boolean, lang: string): string 
 'aiLens:"AI\\uC5D0\\uC11C: \\uD655\\uB960 \\uBD84\\uD3EC = \\uBAA8\\uB378 \\uC608\\uCE21, \\uD06C\\uB85C\\uC2A4 \\uC5D4\\uD2B8\\uB85C\\uD53C = \\uBD84\\uB958 \\uC190\\uC2E4 \\uD568\\uC218",' +
 'aiModelPred:"\\uBAA8\\uB378 \\uC608\\uCE21 \\uD655\\uB960",' +
 'aiTrueLabel:"\\uC815\\uB2F5 \\uBD84\\uD3EC",' +
+'klNote:"\\uD559\\uC2B5 = \\uC774 \\uACA9\\uCC28\\uB97C \\uC904\\uC774\\uB294 \\uACFC\\uC815",' +
 'barsAI:"AI \\uBD84\\uB958 \\uC190\\uC2E4 (\\uD06C\\uB85C\\uC2A4 \\uC5D4\\uD2B8\\uB85C\\uD53C)"},' +
 'en:{bars:"PROBABILITY DISTRIBUTION",ctrl:"CONTROLS",stats:"STATISTICS",trials:"TRIAL RESULTS",' +
 'coin:"Coin",die:"Die",certain:"Certain",uniform:"Uniform",' +
@@ -97,6 +98,7 @@ export function getEntropySimulationHTML(isDark: boolean, lang: string): string 
 'aiLens:"In AI: probability distribution = model prediction, cross-entropy = classification loss",' +
 'aiModelPred:"Model Prediction",' +
 'aiTrueLabel:"True Label Dist",' +
+'klNote:"learning = reducing this gap",' +
 'barsAI:"AI CLASSIFICATION LOSS (CROSS-ENTROPY)"}' +
 '};' +
 'var T=L[LANG]||L.en;' +
@@ -286,7 +288,7 @@ export function getEntropySimulationHTML(isDark: boolean, lang: string): string 
 'for(var i=0;i<4;i++){document.getElementById("pre"+i).className=(i===idx)?"preset active":"preset"}' +
 'if(idx===0){P=[0.5,0.5];Q=[0.5,0.5]}' +
 'else if(idx===1){P=[1/6,1/6,1/6,1/6,1/6,1/6];Q=[1/6,1/6,1/6,1/6,1/6,1/6]}' +
-'else if(idx===2){P=[1,0.001,0.001,0.001];normalize(P);P[0]=0.997;P[1]=0.001;P[2]=0.001;P[3]=0.001;Q=[0.25,0.25,0.25,0.25]}' +
+'else if(idx===2){P=[0.997,0.001,0.001,0.001];Q=[0.25,0.25,0.25,0.25]}' +
 'else{P=[0.25,0.25,0.25,0.25];Q=[0.25,0.25,0.25,0.25]}' +
 'drawBars();updateStats();notifyHeight()}' +
 
@@ -331,8 +333,10 @@ export function getEntropySimulationHTML(isDark: boolean, lang: string): string 
 'for(var i=0;i<P.length;i++){' +
 'var surp=P[i]>0.0001?-log2(P[i]):0;' +
 's+=LABELS[i]+": p="+P[i].toFixed(3)+", "+T.surprise+"="+surp.toFixed(2)+" bits<br>"}' +
-'if(showCross){var HCross=crossEntropy(P,Q);' +
+'if(showCross){var HCross=crossEntropy(P,Q);var dKL=HCross-H;' +
 's+="<br><span class=\\"warn\\">"+T.crossEntropy+"</span> H(P,Q) = "+HCross.toFixed(4)+" bits";' +
+'s+="<br>D<sub>KL</sub>(P||Q) = "+dKL.toFixed(4)+" bits";' +
+'s+="<br><span style=\\"font-size:10px;color:var(--text3)\\">H(P,Q) = H(P) + D<sub>KL</sub> \\u2192 "+T.klNote+"</span>";' +
 's+="<br><br><span style=\\"font-size:10px;color:var(--teal);font-style:italic\\">"+T.aiLens+"</span>"}' +
 'if(!showCross&&trialData.length===0){s+="<br>"+T.dragTip}' +
 'box.innerHTML=s}' +

@@ -27,15 +27,15 @@ export function getChannelSimulationHTML(isDark: boolean, lang: string): string 
 '*{box-sizing:border-box;margin:0;padding:0}' +
 'body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);padding:0;-webkit-user-select:none;user-select:none;overflow-x:hidden}' +
 '.panel{border:2px solid var(--border);background:var(--card);margin-bottom:8px;padding:12px;border-radius:8px}' +
-'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card);border-radius:8px}' +
+'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card);border-radius:8px;touch-action:none}' +
 '.label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}' +
 '.row{display:flex;align-items:center;gap:8px;margin-bottom:10px}' +
 '.row:last-child{margin-bottom:0}' +
-'.ctrl-name{font-size:12px;font-weight:600;color:var(--text);min-width:56px;flex-shrink:0}' +
+'.ctrl-name{font-size:12px;font-weight:600;color:var(--text);min-width:72px;flex-shrink:0}' +
 '.ctrl-val{font-size:12px;font-family:monospace;color:var(--teal);min-width:50px;text-align:right;flex-shrink:0}' +
 'input[type=range]{flex:1;min-width:0;accent-color:var(--teal);height:20px}' +
 '.btn-row{display:flex;gap:6px;margin-top:4px}' +
-'.btn{flex:1;padding:10px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent;border-radius:8px}' +
+'.btn{flex:1;padding:14px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent;border-radius:8px}' +
 '.btn:active{opacity:0.7}' +
 '.btn-primary{background:var(--teal);border-color:var(--teal);color:#1A1816}' +
 '.btn-stop{background:var(--accent);border-color:var(--accent);color:#1A1816}' +
@@ -72,7 +72,7 @@ export function getChannelSimulationHTML(isDark: boolean, lang: string): string 
 
 // Transmission Rate
 '<div class="row"><span class="ctrl-name" id="lblRate"></span>' +
-'<input type="range" id="slRate" min="1" max="100" value="20" oninput="onParam()">' +
+'<input type="range" id="slRate" min="1" max="100" value="10" oninput="onParam()">' +
 '<span class="ctrl-val" id="valRate"></span></div>' +
 
 // Buttons
@@ -114,7 +114,7 @@ export function getChannelSimulationHTML(isDark: boolean, lang: string): string 
 'var T=L[LANG]||L.en;' +
 
 // ── State ──
-'var bandwidth=5;var sigPower=50;var noisePower=10;var txRate=20;' +
+'var bandwidth=5;var sigPower=50;var noisePower=10;var txRate=10;' +
 'var totalSent=0;var totalErrors=0;' +
 'var bits=[];' + // animated bits: {x,corrupted,phase}
 'var animFrame=null;var animating=false;' +
@@ -139,9 +139,9 @@ export function getChannelSimulationHTML(isDark: boolean, lang: string): string 
 // ── Compute BER based on rate vs capacity ──
 'function computeBER(){' +
 'var C=computeC();' +
-'if(txRate<=C)return 0.001;' +
+'if(txRate<=C)return 0;' +
 'var excess=txRate/C-1;' +
-'return Math.min(0.5,0.001+excess*0.3)}' +
+'return Math.min(0.5,excess*0.3)}' +
 
 // ── Draw pipeline ──
 'function drawPipe(){' +
@@ -267,9 +267,15 @@ export function getChannelSimulationHTML(isDark: boolean, lang: string): string 
 'ctx.lineTo(x,y)}' +
 'ctx.lineTo(pad+gW,h-pb);ctx.closePath();ctx.fill();ctx.globalAlpha=1;' +
 
-// danger zone: above capacity
-'ctx.fillStyle=redC;ctx.globalAlpha=0.04;' +
-'ctx.fillRect(pad,pt,gW,gH);ctx.globalAlpha=1;' +
+// danger zone: above capacity curve only
+'ctx.fillStyle=redC;ctx.globalAlpha=0.06;ctx.beginPath();' +
+'ctx.moveTo(pad,pt);' +
+'for(var i=0;i<=100;i++){' +
+'var snrDB=i/100*maxSNR;var snrLin=Math.pow(10,snrDB/10);' +
+'var C=bandwidth*Math.log(1+snrLin)/Math.LN2;' +
+'var x=pad+(snrDB/maxSNR)*gW;var y=pt+(1-C/maxC)*gH;' +
+'ctx.lineTo(x,y)}' +
+'ctx.lineTo(pad+gW,pt);ctx.closePath();ctx.fill();ctx.globalAlpha=1;' +
 
 // current position marker
 'var curSNR=computeSNR_dB();var curC=computeC();' +
@@ -341,8 +347,8 @@ export function getChannelSimulationHTML(isDark: boolean, lang: string): string 
 'noisePower=+document.getElementById("slNoise").value;' +
 'txRate=+document.getElementById("slRate").value;' +
 'document.getElementById("valBW").textContent=bandwidth+" "+T.hz;' +
-'document.getElementById("valSig").textContent=sigPower;' +
-'document.getElementById("valNoise").textContent=noisePower;' +
+'document.getElementById("valSig").textContent=sigPower+" mW";' +
+'document.getElementById("valNoise").textContent=noisePower+" mW";' +
 'document.getElementById("valRate").textContent=txRate+" "+T.bps;' +
 'drawAll();notifyHeight()}' +
 
@@ -358,7 +364,7 @@ export function getChannelSimulationHTML(isDark: boolean, lang: string): string 
 'var box=document.getElementById("statsBox");' +
 'var C=computeC();var snrDB=computeSNR_dB();var ber=computeBER();' +
 'var overCap=txRate>C;' +
-'s="<span class=\\"hi\\">"+T.capacity+"</span> C = B\\u00D7log\\u2082(1+S/N) = <span class=\\"hi\\">"+C.toFixed(2)+" "+T.bps+"</span><br>";' +
+'var s="<span class=\\"hi\\">"+T.capacity+"</span> C = B\\u00D7log\\u2082(1+S/N) = <span class=\\"hi\\">"+C.toFixed(2)+" "+T.bps+"</span><br>";' +
 's+=T.snr+": <span class=\\"hi\\">"+snrDB.toFixed(1)+" "+T.db+"</span>";' +
 's+=" | "+T.txRate+": "+(overCap?"<span class=\\"warn\\">":"<span class=\\"hi\\">")+txRate+" "+T.bps+"</span><br>";' +
 's+=T.ber+": "+(ber>0.01?"<span class=\\"warn\\">":"<span class=\\"hi\\">")+ber.toFixed(4)+"</span>";' +
