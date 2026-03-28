@@ -63,6 +63,10 @@ export function getImitationSimulationHTML(isDark: boolean, lang: string): strin
 '<canvas id="cvMain" height="300"></canvas>' +
 '<div class="hint" id="hintDraw"></div></div>' +
 
+// ── Deviation Graph ──
+'<div class="panel"><div class="label" id="lbl-dev"></div>' +
+'<canvas id="cvDev" height="100"></canvas></div>' +
+
 // ── Controls ──
 '<div class="panel"><div class="label" id="lbl-ctrl"></div>' +
 '<div class="label" id="lbl-envPre" style="margin-top:4px"></div>' +
@@ -70,9 +74,16 @@ export function getImitationSimulationHTML(isDark: boolean, lang: string): strin
 '<div class="preset active" id="preCorridor" onclick="setEnv(0)"></div>' +
 '<div class="preset" id="preSCurve" onclick="setEnv(1)"></div>' +
 '<div class="preset" id="preObsCourse" onclick="setEnv(2)"></div>' +
+'<div class="preset" id="preFork" onclick="setEnv(3)"></div>' +
 '</div>' +
 '<div class="toggle-row"><input type="checkbox" class="toggle-check" id="chkDagger" onchange="onParam()">' +
 '<span class="toggle-label" id="lbl-dagger">DAgger</span></div>' +
+'<div class="row"><span class="ctrl-name" id="lbl-kn"></span>' +
+'<input type="range" id="slK" min="1" max="15" value="5" oninput="onParam()">' +
+'<span class="ctrl-val" id="valK">5</span></div>' +
+'<div class="row"><span class="ctrl-name" id="lbl-noise"></span>' +
+'<input type="range" id="slNoise" min="0" max="50" value="0" oninput="onParam()">' +
+'<span class="ctrl-val" id="valNoise">0</span></div>' +
 '<div class="btn-row">' +
 '<div class="btn btn-primary" id="btnTrain" onclick="onTrain()"></div>' +
 '<div class="btn btn-primary" id="btnTest" onclick="onTest()"></div>' +
@@ -100,7 +111,10 @@ export function getImitationSimulationHTML(isDark: boolean, lang: string): strin
 'demoMode:"\\uB370\\uBAA8 \\uBAA8\\uB4DC",testing:"\\uD14C\\uC2A4\\uD2B8 \\uC911",learning:"\\uD559\\uC2B5 \\uC911",' +
 'trained:"\\uD559\\uC2B5 \\uC644\\uB8CC",notTrained:"\\uBBF8\\uD559\\uC2B5",' +
 'success:"\\uC131\\uACF5!",fail:"\\uC2E4\\uD328",' +
-'hintDraw:"\\uCE94\\uBC84\\uC2A4\\uB97C \\uB4DC\\uB798\\uADF8\\uD558\\uC5EC \\uC804\\uBB38\\uAC00 \\uACBD\\uB85C\\uB97C \\uADF8\\uB9AC\\uC138\\uC694 (\\uCD08\\uB85D\\u2192\\uBE68\\uAC04)"},' +
+'hintDraw:"\\uCE94\\uBC84\\uC2A4\\uB97C \\uB4DC\\uB798\\uADF8\\uD558\\uC5EC \\uC804\\uBB38\\uAC00 \\uACBD\\uB85C\\uB97C \\uADF8\\uB9AC\\uC138\\uC694 (\\uCD08\\uB85D\\u2192\\uBE68\\uAC04)",' +
+'kn:"K \\uC774\\uC6C3",noise:"\\uB178\\uC774\\uC988",fork:"\\uBD84\\uAE30\\uC810",' +
+'dev:"\\uD3B8\\uCC28",devTime:"\\uC2DC\\uAC04",avgDev:"\\uD3C9\\uADE0",peakDev:"\\uCD5C\\uB300",' +
+'multiWarn:"\\u26A0 \\uB2E4\\uBAA8\\uB2EC \\uD3C9\\uADE0\\uD654"},' +
 'en:{env:"ENVIRONMENT",ctrl:"CONTROLS",envPre:"ENVIRONMENT PRESET",' +
 'corridor:"Corridor",scurve:"S-Curve",obscourse:"Obstacles",' +
 'dagger:"DAgger (Interactive Correction)",' +
@@ -112,7 +126,10 @@ export function getImitationSimulationHTML(isDark: boolean, lang: string): strin
 'demoMode:"DEMO MODE",testing:"TESTING",learning:"LEARNING",' +
 'trained:"TRAINED",notTrained:"NOT TRAINED",' +
 'success:"SUCCESS!",fail:"FAILED",' +
-'hintDraw:"Drag on canvas to draw expert path (green \\u2192 red)"}' +
+'hintDraw:"Drag on canvas to draw expert path (green \\u2192 red)",' +
+'kn:"K Neighbors",noise:"Noise",fork:"Fork",' +
+'dev:"DEVIATION",devTime:"Time",avgDev:"Avg",peakDev:"Peak",' +
+'multiWarn:"\\u26A0 Multimodal Avg"}' +
 '};' +
 'var T=L[LANG]||L.en;' +
 
@@ -134,6 +151,8 @@ export function getImitationSimulationHTML(isDark: boolean, lang: string): strin
 'var mode="demo";' + // "demo" | "test"
 'var sparkles=[];' +
 'var isDrawing=false;' +
+'var noiseLevel=0;' +
+'var deviations=[];' +
 
 // ── Environments ──
 'function buildEnv(){' +
@@ -156,14 +175,24 @@ export function getImitationSimulationHTML(isDark: boolean, lang: string): strin
 // S-curve barriers
 'walls.push({x:canvasW*0.3,y:0,w:th,h:canvasH*0.55});' +
 'walls.push({x:canvasW*0.6,y:canvasH*0.45,w:th,h:canvasH*0.55})}' +
-'else{' + // Obstacle course
+'else if(envType===2){' + // Obstacle course
 'startPt={x:30,y:canvasH/2};goalPt={x:canvasW-30,y:canvasH/2};' +
 'walls.push({x:0,y:0,w:canvasW,h:15});' +
 'walls.push({x:0,y:canvasH-15,w:canvasW,h:15});' +
 'walls.push({x:canvasW*0.2,y:canvasH*0.15,w:20,h:canvasH*0.45});' +
 'walls.push({x:canvasW*0.4,y:canvasH*0.4,w:20,h:canvasH*0.45});' +
 'walls.push({x:canvasW*0.6,y:canvasH*0.1,w:20,h:canvasH*0.4});' +
-'walls.push({x:canvasW*0.75,y:canvasH*0.5,w:20,h:canvasH*0.35})}}' +
+'walls.push({x:canvasW*0.75,y:canvasH*0.5,w:20,h:canvasH*0.35})}' +
+'else{' + // Fork — multimodal averaging demo
+'startPt={x:25,y:canvasH/2};goalPt={x:canvasW-25,y:canvasH/2};' +
+'var cw=Math.floor(canvasW*0.38);' +
+'var ct=Math.floor(canvasH*0.35);var cb=Math.floor(canvasH*0.65);' +
+'var ft=Math.floor(canvasH*0.43);var fb=Math.floor(canvasH*0.57);' +
+'walls.push({x:0,y:0,w:canvasW,h:20});' + // top boundary
+'walls.push({x:0,y:canvasH-20,w:canvasW,h:20});' + // bottom boundary
+'walls.push({x:0,y:20,w:cw,h:ct-20});' + // upper corridor wall
+'walls.push({x:0,y:cb,w:cw,h:canvasH-20-cb});' + // lower corridor wall
+'walls.push({x:cw,y:ft,w:Math.floor(canvasW*0.35),h:fb-ft})}}' + // fork divider
 
 // ── Check wall collision ──
 'function hitsWall(x,y,r){' +
@@ -366,11 +395,11 @@ export function getImitationSimulationHTML(isDark: boolean, lang: string): strin
 'function onTest(){' +
 'if(!isTrained)return;' +
 'if(agentRunning){agentRunning=false;if(animId)cancelAnimationFrame(animId);' +
-'mode="demo";updateBadge();draw();updateStats();return}' +
+'mode="demo";updateBadge();draw();updateStats();drawDevGraph();return}' +
 'mode="test";updateBadge();' +
 'agentPos={x:startPt.x,y:startPt.y};' +
 'agentTrail=[{x:agentPos.x,y:agentPos.y}];' +
-'sparkles=[];' +
+'sparkles=[];deviations=[];' +
 'agentRunning=true;' +
 'agentStep()}' +
 
@@ -397,14 +426,26 @@ export function getImitationSimulationHTML(isDark: boolean, lang: string): strin
 'if(cd>0){nx=agentPos.x+(dir.dx*0.6+cdx/cd*0.4)*speed;' +
 'ny=agentPos.y+(dir.dy*0.6+cdy/cd*0.4)*speed}}}' +
 
+// Add noise (distribution shift visualization)
+'if(noiseLevel>0){var nl=noiseLevel*0.06;' +
+'nx+=(Math.random()-0.5)*nl*2;ny+=(Math.random()-0.5)*nl*2}' +
+
 // wall collision check
 'if(hitsWall(nx,ny,6)){' +
 // fail
 'agentRunning=false;testResults.push(false);' +
-'mode="demo";updateBadge();draw();updateStats();return}' +
+'mode="demo";updateBadge();draw();updateStats();drawDevGraph();return}' +
 
 'agentPos.x=nx;agentPos.y=ny;' +
 'agentTrail.push({x:nx,y:ny});' +
+
+// Track deviation from nearest demo point
+'var minD=1e9;' +
+'for(var di2=0;di2<demos.length;di2++){var dpts=demos[di2].points;' +
+'for(var pi=0;pi<dpts.length;pi++){' +
+'var ex=dpts[pi].x-nx;var ey=dpts[pi].y-ny;' +
+'var ed=Math.sqrt(ex*ex+ey*ey);if(ed<minD)minD=ed}}' +
+'deviations.push(minD);' +
 
 // check goal reached
 'var gdx=goalPt.x-agentPos.x;var gdy=goalPt.y-agentPos.y;' +
@@ -415,15 +456,49 @@ export function getImitationSimulationHTML(isDark: boolean, lang: string): strin
 'sparkles.push({x:goalPt.x+(Math.random()-0.5)*40,' +
 'y:goalPt.y+(Math.random()-0.5)*40,' +
 'r:2+Math.random()*4,a:0.5+Math.random()*0.5})}' +
-'mode="demo";updateBadge();draw();updateStats();return}' +
+'mode="demo";updateBadge();draw();updateStats();drawDevGraph();return}' +
 
 // timeout (too many steps)
 'if(agentTrail.length>1000){' +
 'agentRunning=false;testResults.push(false);' +
-'mode="demo";updateBadge();draw();updateStats();return}' +
+'mode="demo";updateBadge();draw();updateStats();drawDevGraph();return}' +
 
-'draw();updateStats();' +
+'draw();updateStats();drawDevGraph();' +
 'animId=requestAnimationFrame(agentStep)}' +
+
+// ── Deviation Graph ──
+'function drawDevGraph(){' +
+'var cv=document.getElementById("cvDev");' +
+'var dim=setupCanvas(cv,100);var ctx=cv.getContext("2d");' +
+'var w=dim.w,h=dim.h;ctx.clearRect(0,0,w,h);' +
+'var cs=getComputedStyle(document.documentElement);' +
+'var tealC=cs.getPropertyValue("--teal").trim();' +
+'var text3C=cs.getPropertyValue("--text3").trim();' +
+'var accentC=cs.getPropertyValue("--accent").trim();' +
+'var redC=cs.getPropertyValue("--red").trim();' +
+// axes
+'ctx.strokeStyle=text3C;ctx.lineWidth=1;ctx.globalAlpha=0.5;' +
+'ctx.beginPath();ctx.moveTo(30,5);ctx.lineTo(30,h-15);ctx.lineTo(w-5,h-15);ctx.stroke();ctx.globalAlpha=1;' +
+'ctx.font="9px monospace";ctx.fillStyle=text3C;ctx.textAlign="center";' +
+'ctx.fillText(T.devTime,w/2+15,h-2);' +
+'ctx.save();ctx.translate(10,h/2-5);ctx.rotate(-Math.PI/2);ctx.fillText(T.dev,0,0);ctx.restore();' +
+'if(deviations.length<2){return}' +
+'var maxD=0;for(var i=0;i<deviations.length;i++)if(deviations[i]>maxD)maxD=deviations[i];' +
+'if(maxD<1)maxD=1;' +
+'var xStep=(w-40)/(deviations.length-1);' +
+// color-coded line: teal(close) → accent(medium) → red(far)
+'ctx.lineWidth=2;' +
+'for(var i=1;i<deviations.length;i++){' +
+'var x0=30+(i-1)*xStep;var y0=h-15-(deviations[i-1]/maxD)*(h-25);' +
+'var x1=30+i*xStep;var y1=h-15-(deviations[i]/maxD)*(h-25);' +
+'var ratio=deviations[i]/maxD;' +
+'ctx.strokeStyle=ratio<0.3?tealC:ratio<0.6?accentC:redC;' +
+'ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x1,y1);ctx.stroke()}' +
+// stats overlay
+'var avg=0;for(var i=0;i<deviations.length;i++)avg+=deviations[i];avg=Math.round(avg/deviations.length);' +
+'var peak=Math.round(maxD);' +
+'ctx.font="10px monospace";ctx.fillStyle=tealC;ctx.textAlign="right";' +
+'ctx.fillText(T.avgDev+": "+avg+"px  "+T.peakDev+": "+peak+"px",w-5,12)}' +
 
 // ── Set environment ──
 'function setEnv(e){' +
@@ -431,23 +506,29 @@ export function getImitationSimulationHTML(isDark: boolean, lang: string): strin
 'document.getElementById("preCorridor").className="preset"+(e===0?" active":"");' +
 'document.getElementById("preSCurve").className="preset"+(e===1?" active":"");' +
 'document.getElementById("preObsCourse").className="preset"+(e===2?" active":"");' +
+'document.getElementById("preFork").className="preset"+(e===3?" active":"");' +
 'onReset()}' +
 
 'function onParam(){' +
-'daggerOn=document.getElementById("chkDagger").checked}' +
+'daggerOn=document.getElementById("chkDagger").checked;' +
+'K_NEIGHBORS=parseInt(document.getElementById("slK").value);' +
+'document.getElementById("valK").textContent=K_NEIGHBORS;' +
+'noiseLevel=parseInt(document.getElementById("slNoise").value);' +
+'document.getElementById("valNoise").textContent=noiseLevel}' +
 
 'function onClearDemos(){' +
-'demos=[];isTrained=false;testResults=[];agentTrail=[];sparkles=[];' +
+'demos=[];isTrained=false;testResults=[];agentTrail=[];sparkles=[];deviations=[];' +
 'document.getElementById("btnTrain").textContent=T.train;' +
-'draw();updateStats()}' +
+'draw();updateStats();drawDevGraph()}' +
 
 'function onReset(){' +
 'agentRunning=false;if(animId)cancelAnimationFrame(animId);' +
 'mode="demo";updateBadge();' +
 'demos=[];isTrained=false;testResults=[];' +
-'agentTrail=[];sparkles=[];currentDemo=null;isDrawing=false;' +
+'agentTrail=[];sparkles=[];deviations=[];currentDemo=null;isDrawing=false;' +
 'var dim=setupCanvas(document.getElementById("cvMain"),300);canvasW=dim.w;canvasH=dim.h;' +
-'buildEnv();draw();updateStats();notifyHeight()}' +
+'setupCanvas(document.getElementById("cvDev"),100);' +
+'buildEnv();draw();updateStats();drawDevGraph();notifyHeight()}' +
 
 // ── Height notification ──
 'function notifyHeight(){' +
@@ -461,6 +542,10 @@ export function getImitationSimulationHTML(isDark: boolean, lang: string): strin
 'document.getElementById("preCorridor").textContent=T.corridor;' +
 'document.getElementById("preSCurve").textContent=T.scurve;' +
 'document.getElementById("preObsCourse").textContent=T.obscourse;' +
+'document.getElementById("preFork").textContent=T.fork;' +
+'document.getElementById("lbl-kn").textContent=T.kn;' +
+'document.getElementById("lbl-noise").textContent=T.noise;' +
+'document.getElementById("lbl-dev").textContent=T.dev;' +
 'document.getElementById("lbl-dagger").textContent=T.dagger;' +
 'document.getElementById("btnTrain").textContent=T.train;' +
 'document.getElementById("btnTest").textContent=T.test;' +
@@ -470,10 +555,12 @@ export function getImitationSimulationHTML(isDark: boolean, lang: string): strin
 'document.getElementById("hintDraw").textContent=T.hintDraw;' +
 'document.getElementById("modeBadge").textContent=T.demoMode;' +
 'var dim=setupCanvas(document.getElementById("cvMain"),300);canvasW=dim.w;canvasH=dim.h;' +
-'buildEnv();onParam();draw();updateStats();' +
+'setupCanvas(document.getElementById("cvDev"),100);' +
+'buildEnv();onParam();draw();updateStats();drawDevGraph();' +
 'window.addEventListener("resize",function(){' +
 'var dim=setupCanvas(document.getElementById("cvMain"),300);canvasW=dim.w;canvasH=dim.h;' +
-'buildEnv();if(!agentRunning)draw();notifyHeight()});' +
+'setupCanvas(document.getElementById("cvDev"),100);' +
+'buildEnv();if(!agentRunning){draw();drawDevGraph()}notifyHeight()});' +
 'setTimeout(notifyHeight,100);' +
 
 '</script></body></html>';

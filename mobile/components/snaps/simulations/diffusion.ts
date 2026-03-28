@@ -28,25 +28,25 @@ export function getDiffusionSimulationHTML(isDark: boolean, lang: string): strin
 '*{box-sizing:border-box;margin:0;padding:0}' +
 'body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);padding:0;-webkit-user-select:none;user-select:none;overflow-x:hidden}' +
 '.panel{border:2px solid var(--border);background:var(--card);margin-bottom:8px;padding:12px;border-radius:8px}' +
-'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card);border-radius:8px}' +
+'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card);border-radius:8px;touch-action:none}' +
 '.label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}' +
 '.row{display:flex;align-items:center;gap:8px;margin-bottom:10px}' +
 '.row:last-child{margin-bottom:0}' +
-'.ctrl-name{font-size:12px;font-weight:600;color:var(--text);min-width:56px;flex-shrink:0}' +
+'.ctrl-name{font-size:12px;font-weight:600;color:var(--text);min-width:72px;flex-shrink:0}' +
 '.ctrl-val{font-size:12px;font-family:monospace;color:var(--teal);min-width:50px;text-align:right;flex-shrink:0}' +
 'input[type=range]{flex:1;min-width:0;accent-color:var(--teal);height:20px}' +
 '.btn-row{display:flex;gap:6px;margin-top:4px}' +
-'.btn{flex:1;padding:10px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent;border-radius:8px}' +
+'.btn{flex:1;padding:14px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent;border-radius:8px}' +
 '.btn:active{opacity:0.7}' +
 '.btn-primary{background:var(--teal);border-color:var(--teal);color:#1A1816}' +
 '.btn-stop{background:var(--accent);border-color:var(--accent);color:#1A1816}' +
 '.stats{font-family:monospace;font-size:11px;line-height:2;color:var(--text2);border-radius:8px}' +
 '.stats .hi{color:var(--teal);font-weight:700}' +
 '.stats .warn{color:var(--accent);font-weight:700}' +
-'.preset-row{display:flex;gap:6px;margin-bottom:8px}' +
-'.preset{flex:1;padding:12px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:10px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.3px;border-radius:8px}' +
+'.preset-row{display:flex;gap:6px;margin-bottom:10px}' +
+'.preset{flex:1;padding:14px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:11px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.3px;border-radius:8px;min-height:44px}' +
 '.preset:active{opacity:0.7}' +
-'.preset.active{border-color:var(--teal);color:var(--teal)}' +
+'.preset.active{border-color:var(--teal);color:var(--teal);background:var(--tealLight)}' +
 '.timeline-bar{position:relative;height:32px;margin:8px 0;display:flex;align-items:center}' +
 '.timeline-track{flex:1;height:6px;background:var(--border);position:relative}' +
 '.timeline-fill{height:100%;background:var(--teal);position:absolute;left:0;top:0}' +
@@ -123,7 +123,7 @@ export function getDiffusionSimulationHTML(isDark: boolean, lang: string): strin
 'var betaMax=0.30;' +
 'var currentStep=0;' +
 'var activePattern=0;' +
-'var allSteps=[];' + // allSteps[t] = 8x8 float array
+'var allSteps=[];var storedNoise=[];' +
 'var animTimer=null;' +
 
 // ── Patterns (8x8 binary, 1=filled, 0=empty) ──
@@ -175,36 +175,27 @@ export function getDiffusionSimulationHTML(isDark: boolean, lang: string): strin
 
 // ── Compute all forward steps ──
 'function computeForward(pattern){' +
-'allSteps=[];' +
+'allSteps=[];storedNoise=[];' +
 'var x=[];for(var i=0;i<GS*GS;i++)x.push(pattern[i]||0);' +
 'allSteps.push(x.slice());' +
 'for(var t=1;t<=STEPS;t++){' +
 'var bt=betaAt(t);var sqrtKeep=Math.sqrt(1-bt);var sqrtNoise=Math.sqrt(bt);' +
-'var xn=[];' +
-'for(var i=0;i<GS*GS;i++){' +
-'xn.push(sqrtKeep*x[i]+sqrtNoise*randn())}' +
-'x=xn;allSteps.push(x.slice())}}' +
+'var eps=[];var xn=[];' +
+'for(var i=0;i<GS*GS;i++){var e=randn();eps.push(e);' +
+'xn.push(sqrtKeep*x[i]+sqrtNoise*e)}' +
+'storedNoise.push(eps);x=xn;allSteps.push(x.slice())}}' +
 
-// ── Simplified reverse denoising ──
+// ── Oracle reverse: undo forward using stored noise (DDPM analogy) ──
 'function computeReverse(){' +
 'var x=allSteps[STEPS].slice();' +
-'var revSteps=[x.slice()];' +
+'var revSteps=[];for(var j=0;j<=STEPS;j++)revSteps.push(null);' +
+'revSteps[STEPS]=x.slice();' +
 'for(var t=STEPS;t>0;t--){' +
-'var xn=[];' +
+'var bt=betaAt(t);var sqrtKeep=Math.sqrt(1-bt);var sqrtNoise=Math.sqrt(bt);' +
+'var eps=storedNoise[t-1];var xn=[];' +
 'for(var i=0;i<GS*GS;i++){' +
-// average with neighbors + reduce noise
-'var sum=x[i];var cnt=1;' +
-'var r=Math.floor(i/GS),c=i%GS;' +
-'if(r>0){sum+=x[(r-1)*GS+c];cnt++}' +
-'if(r<GS-1){sum+=x[(r+1)*GS+c];cnt++}' +
-'if(c>0){sum+=x[r*GS+c-1];cnt++}' +
-'if(c<GS-1){sum+=x[r*GS+c+1];cnt++}' +
-'var avg=sum/cnt;' +
-'var noise=randn()*0.05*(t/STEPS);' +
-'xn.push(avg*0.85+x[i]*0.15+noise)}' +
-'x=xn;revSteps.push(x.slice())}' +
-// reverse to go from T→0
-'revSteps.reverse();' +
+'xn.push((x[i]-sqrtNoise*eps[i])/sqrtKeep)}' +
+'x=xn;revSteps[t-1]=x.slice()}' +
 'return revSteps}' +
 
 // ── Canvas DPR setup ──
@@ -310,7 +301,9 @@ export function getDiffusionSimulationHTML(isDark: boolean, lang: string): strin
 'document.getElementById("btnFwd").textContent=T.fwd;' +
 'document.getElementById("btnFwd").className="btn btn-primary";' +
 'document.getElementById("btnRev").textContent=T.rev;' +
-'document.getElementById("btnRev").className="btn"}' +
+'document.getElementById("btnRev").className="btn";' +
+'document.getElementById("btnGen").textContent=T.gen;' +
+'document.getElementById("btnGen").className="btn"}' +
 
 // ── Forward animation ──
 'function animForward(){' +
@@ -341,22 +334,19 @@ export function getDiffusionSimulationHTML(isDark: boolean, lang: string): strin
 'document.getElementById("valStep").textContent=currentStep;' +
 'drawMain()},200)}' +
 
-// ── Generate from pure noise ──
+// ── Generate: pick random preset, forward+oracle reverse ──
 'function generateNew(){' +
 'stopAnim();' +
-// start from pure noise
-'var noise=[];for(var i=0;i<GS*GS;i++)noise.push(randn()*0.5+0.5);' +
-'allSteps=[];allSteps.push(noise.slice());' +
-'for(var t=1;t<=STEPS;t++)allSteps.push(noise.slice());' +
-// use allSteps[STEPS] as starting noise
-'allSteps[STEPS]=noise;' +
+'var idx=Math.floor(Math.random()*3);' +
+'computeForward(PATTERNS[idx]);' +
+'for(var i=0;i<4;i++){document.getElementById("pre"+i).className="preset"}' +
 'var revSteps=computeReverse();' +
 'allSteps=revSteps;' +
 'currentStep=STEPS;' +
 'document.getElementById("slStep").value=STEPS;' +
 'document.getElementById("valStep").textContent=STEPS;' +
-'document.getElementById("btnRev").textContent="\\u25A0";' +
-'document.getElementById("btnRev").className="btn btn-stop";' +
+'document.getElementById("btnGen").textContent="\\u25A0";' +
+'document.getElementById("btnGen").className="btn btn-stop";' +
 'animTimer=setInterval(function(){' +
 'currentStep--;' +
 'if(currentStep<0){stopAnim();currentStep=0;drawMain();return}' +

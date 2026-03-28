@@ -28,18 +28,18 @@ export function getBoltzmannSimulationHTML(isDark: boolean, lang: string): strin
 '*{box-sizing:border-box;margin:0;padding:0}' +
 'body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);padding:0;-webkit-user-select:none;user-select:none;overflow-x:hidden}' +
 '.panel{border:2px solid var(--border);background:var(--card);margin-bottom:8px;padding:12px;border-radius:8px}' +
-'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card);border-radius:8px}' +
+'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card);border-radius:8px;touch-action:none}' +
 '.label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}' +
 '.row{display:flex;align-items:center;gap:8px;margin-bottom:10px}' +
 '.row:last-child{margin-bottom:0}' +
-'.ctrl-name{font-size:12px;font-weight:600;color:var(--text);min-width:56px;flex-shrink:0}' +
+'.ctrl-name{font-size:12px;font-weight:600;color:var(--text);min-width:72px;flex-shrink:0}' +
 '.ctrl-val{font-size:12px;font-family:monospace;color:var(--teal);min-width:50px;text-align:right;flex-shrink:0}' +
 'input[type=range]{flex:1;min-width:0;accent-color:var(--teal);height:20px}' +
 '.btn-row{display:flex;gap:6px;margin-top:4px}' +
-'.btn{flex:1;padding:10px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent;border-radius:8px}' +
+'.btn{flex:1;padding:14px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent;border-radius:8px}' +
 '.btn:active{opacity:0.7}' +
 '.btn-primary{background:var(--teal);border-color:var(--teal);color:#1A1816}' +
-'.btn-stop{background:var(--accent);border-color:var(--accent);color:#1A1816}' +
+'.btn-stop{background:var(--accent);border-color:var(--accent);color:var(--bg)}' +
 '.stats{font-family:monospace;font-size:11px;line-height:2;color:var(--text2);border-radius:8px}' +
 '.stats .hi{color:var(--teal);font-weight:700}' +
 '.stats .warn{color:var(--accent);font-weight:700}' +
@@ -84,7 +84,7 @@ export function getBoltzmannSimulationHTML(isDark: boolean, lang: string): strin
 'reset:"\\u21BA \\uB9AC\\uC14B",' +
 'lowT:"\\uB0AE\\uC740 \\uC628\\uB3C4 \\u2192 \\uD0D0\\uC695(argmax)",' +
 'highT:"\\uB192\\uC740 \\uC628\\uB3C4 \\u2192 \\uADE0\\uB4F1 \\uBD84\\uD3EC",' +
-'dragHint:"\\uC5D0\\uB108\\uC9C0 \\uC120\\uC744 \\uB4DC\\uB798\\uADF8\\uD558\\uC5EC \\uAC12 \\uBCC0\\uACBD"},' +
+'dragHint:"\\uC5D0\\uB108\\uC9C0 \\uC120\\uC744 \\uB4DC\\uB798\\uADF8\\uD558\\uC5EC \\uAC12 \\uBCC0\\uACBD",signFlip:"\\u2191z = \\u2191P (\\uBD80\\uD638 \\uBC18\\uC804)"},' +
 'en:{main:"BOLTZMANN DISTRIBUTION",ctrl:"CONTROLS",' +
 'temp:"Temp",stats:"STATISTICS",' +
 'energy:"Energy Level",prob:"Probability",' +
@@ -96,7 +96,7 @@ export function getBoltzmannSimulationHTML(isDark: boolean, lang: string): strin
 'reset:"\\u21BA Reset",' +
 'lowT:"Low T \\u2192 Greedy (argmax)",' +
 'highT:"High T \\u2192 Uniform",' +
-'dragHint:"Drag energy lines to change values"}' +
+'dragHint:"Drag energy lines to change values",signFlip:"\\u2191z = \\u2191P (sign flipped)"}' +
 '};' +
 'var T=L[LANG]||L.en;' +
 
@@ -125,7 +125,7 @@ export function getBoltzmannSimulationHTML(isDark: boolean, lang: string): strin
 'function calcProbs(){' +
 'var probs=[];var Z=0;' +
 'for(var i=0;i<N_LEVELS;i++){' +
-'var v=Math.exp(-energies[i]/temperature);probs.push(v);Z+=v}' +
+'var v=softmaxMode?Math.exp(energies[i]/temperature):Math.exp(-energies[i]/temperature);probs.push(v);Z+=v}' +
 'for(var i=0;i<N_LEVELS;i++)probs[i]/=Z;' +
 'return{probs:probs,Z:Z}}' +
 
@@ -157,7 +157,7 @@ export function getBoltzmannSimulationHTML(isDark: boolean, lang: string): strin
 'var newLevel=Math.floor(Math.random()*N_LEVELS);' +
 'if(newLevel===p.level)return;' +
 'var dE=energies[newLevel]-energies[p.level];' +
-'var accept=dE<=0?1:Math.exp(-dE/temperature);' +
+'var accept=softmaxMode?(dE>=0?1:Math.exp(dE/temperature)):(dE<=0?1:Math.exp(-dE/temperature));' +
 'if(Math.random()<accept){p.level=newLevel;p.x=Math.random()}}' +
 
 // ── Color palette for levels ──
@@ -276,7 +276,7 @@ export function getBoltzmannSimulationHTML(isDark: boolean, lang: string): strin
 'function toggleSoftmax(){' +
 'softmaxMode=!softmaxMode;' +
 'document.getElementById("btnSoftmax").textContent=softmaxMode?T.softmaxOn:T.softmaxOff;' +
-'drawMain();updateStats();notifyHeight()}' +
+'distributeParticles();drawMain();updateStats();notifyHeight()}' +
 
 // ── Animation toggle ──
 'function toggleAnimate(){' +
@@ -306,7 +306,7 @@ export function getBoltzmannSimulationHTML(isDark: boolean, lang: string): strin
 'function updateStats(){' +
 'var r=calcProbs();var H=calcEntropy(r.probs);' +
 'var box=document.getElementById("statsBox");' +
-'var s="<span class=\\"hi\\">"+(softmaxMode?T.logit:T.temp)+"</span> "+temperature.toFixed(2)+"<br>";' +
+'var s="<span class=\\"hi\\">"+T.temp+"</span> "+temperature.toFixed(2)+"<br>";' +
 's+=T.partZ+": <span class=\\"hi\\">"+r.Z.toFixed(4)+"</span><br>";' +
 's+=T.entropy+": "+H.toFixed(4)+" bits<br><br>";' +
 'for(var i=0;i<N_LEVELS;i++){' +
@@ -315,6 +315,7 @@ export function getBoltzmannSimulationHTML(isDark: boolean, lang: string): strin
 's+="<br>";' +
 'if(temperature<0.5){s+="<span class=\\"warn\\">"+T.lowT+"</span>"}' +
 'else if(temperature>5){s+="<span class=\\"warn\\">"+T.highT+"</span>"}' +
+'if(softmaxMode){s+="<br><span class=\\"hi\\">"+T.signFlip+"</span>"}' +
 'box.innerHTML=s}' +
 
 // ── Drag energy levels on canvas ──
@@ -327,10 +328,9 @@ export function getBoltzmannSimulationHTML(isDark: boolean, lang: string): strin
 'var cv=document.getElementById("cvMain");' +
 'var midX=Math.floor(cv.clientWidth*0.48);' +
 'var padL=40;var padT=22;var padB=28;var h2=220;' +
-'var maxE2=0;for(var i=0;i<N_LEVELS;i++)if(energies[i]>maxE2)maxE2=energies[i];' +
-'maxE2=Math.max(maxE2+1,6);' +
-'function yToE(y){return maxE2-(y-padT)/(h2-padT-padB)*maxE2}' +
-'function eToY2(e){return padT+(maxE2-e)/maxE2*(h2-padT-padB)}' +
+'function getMaxE(){var m=0;for(var i=0;i<N_LEVELS;i++)if(energies[i]>m)m=energies[i];return Math.max(m+1,6)}' +
+'function yToE(y){var mx=getMaxE();return mx-(y-padT)/(h2-padT-padB)*mx}' +
+'function eToY2(e){var mx=getMaxE();return padT+(mx-e)/mx*(h2-padT-padB)}' +
 
 'cv.addEventListener("touchstart",function(e){' +
 'var pos=getTouchPos(cv,e);' +
@@ -344,7 +344,7 @@ export function getBoltzmannSimulationHTML(isDark: boolean, lang: string): strin
 'if(dragging<0)return;e.preventDefault();' +
 'var pos=getTouchPos(cv,e);' +
 'var dy=pos.y-dragStartY;' +
-'var dE=dy/(h2-padT-padB)*maxE2;' +  // inverted
+'var dE=dy/(h2-padT-padB)*getMaxE();' +  // inverted
 'var newE=dragStartE-dE;' +
 'newE=Math.max(0.1,Math.min(8,Math.round(newE*10)/10));' +
 'energies[dragging]=newE;' +
