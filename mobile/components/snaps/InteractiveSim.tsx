@@ -32,7 +32,7 @@ export function InteractiveSim({ id }: InteractiveSimProps) {
     try {
       const data = JSON.parse(event.nativeEvent.data);
       if (data.type === 'height' && typeof data.value === 'number') {
-        setHeight(Math.max(400, Math.min(1800, data.value)));
+        setHeight(prev => Math.max(prev, Math.max(400, Math.min(1800, data.value))));
       }
     } catch {}
   }, []);

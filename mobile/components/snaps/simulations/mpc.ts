@@ -373,8 +373,8 @@ export function getMPCSimulationHTML(isDark: boolean, lang: string): string {
 // ── Height notification ──
 'function notifyHeight(){' +
 'var w=document.getElementById("wrap");if(!w)return;' +
-'var h=Math.max(w.scrollHeight,w.offsetHeight,Math.ceil(w.getBoundingClientRect().height));' +
-'h+=80;' +
+'void w.offsetHeight;' +
+'var h=Math.max(w.scrollHeight,w.offsetHeight,1100);' +
 'try{window.ReactNativeWebView.postMessage(JSON.stringify({type:"height",value:h}))}catch(e){}}' +
 
 // ── Init labels ──
