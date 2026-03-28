@@ -350,14 +350,14 @@ function buildArticleHTML(article, articleId, lang) {
       <div class="section-content">${esc(s.content)}</div>
     </div>`).join("");
 
-  const tagsHTML = tags.slice(0, 8).map((t) =>
+  const tagsHTML = tags.map((t) =>
     `<span class="tag">#${esc(t)}</span>`
   ).join("");
 
   const glossaryHTML = glossary.length ? `
     <div class="glossary">
       <details>
-        <summary class="glossary-toggle">${esc(l.glossary)}</summary>
+        <summary class="glossary-toggle">${esc(l.glossary)}<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></summary>
         <div class="glossary-list">
           ${glossary.map((g, i) => `
             <div class="glossary-item" style="${i < glossary.length - 1 ? "margin-bottom:10px" : ""}">
@@ -412,14 +412,14 @@ h1{font-family:'Lora',serif;font-size:22px;font-weight:900;line-height:1.45;lett
 .section-content{font-size:15px;line-height:1.6;color:#000}
 .why{margin-top:24px}
 .why-label{font-family:'Lora',serif;font-size:16px;font-weight:700;line-height:1.625;color:#000;margin-bottom:8px}
-.why-text{font-size:15px;line-height:1.73;letter-spacing:0.2px;color:#000}
+.why-text{font-size:15px;line-height:26px;letter-spacing:0.2px;color:#000}
 .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:24px}
 .tag{display:inline-block;background:#F5F2EE;border-radius:14px;padding:3px 8px;font-size:10px;font-weight:600;color:#000}
 .glossary{margin-top:24px}
 .glossary-toggle{font-size:11px;font-weight:600;letter-spacing:1.5px;color:#000;text-transform:uppercase;cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between}
 .glossary-toggle::-webkit-details-marker{display:none}
-.glossary-toggle::after{content:'';display:inline-block;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid #000;transition:transform 0.2s}
-details[open] .glossary-toggle::after{transform:rotate(180deg)}
+.glossary-toggle svg{transition:transform 0.2s}
+details[open] .glossary-toggle svg{transform:rotate(180deg)}
 .glossary-list{padding-top:10px;padding-left:12px}
 .glossary-term{font-size:12px;font-weight:600;color:#000;margin-bottom:1px}
 .glossary-desc{font-size:11px;color:#000;line-height:1.55}
