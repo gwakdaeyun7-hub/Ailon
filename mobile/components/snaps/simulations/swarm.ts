@@ -26,19 +26,19 @@ export function getSwarmSimulationHTML(isDark: boolean, lang: string): string {
 '*{box-sizing:border-box;margin:0;padding:0}' +
 'body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);padding:0;-webkit-user-select:none;user-select:none;overflow-x:hidden}' +
 '.panel{border:2px solid var(--border);background:var(--card);margin-bottom:8px;padding:12px;border-radius:8px}' +
-'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card);border-radius:8px}' +
+'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card);border-radius:8px;touch-action:none}' +
 '.label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}' +
 '.row{display:flex;align-items:center;gap:8px;margin-bottom:10px}' +
 '.row:last-child{margin-bottom:0}' +
-'.ctrl-name{font-size:12px;font-weight:600;color:var(--text);min-width:56px;flex-shrink:0}' +
+'.ctrl-name{font-size:12px;font-weight:600;color:var(--text);min-width:72px;flex-shrink:0}' +
 '.ctrl-val{font-size:12px;font-family:monospace;color:var(--teal);min-width:50px;text-align:right;flex-shrink:0}' +
-'.ctrl-hint{font-size:10px;color:var(--text3);margin-top:-6px;margin-bottom:8px;padding-left:60px}' +
+'.ctrl-hint{font-size:10px;color:var(--text3);margin-top:-6px;margin-bottom:8px;padding-left:80px}' +
 'input[type=range]{flex:1;min-width:0;accent-color:var(--teal);height:20px}' +
 '.btn-row{display:flex;gap:6px;margin-top:4px}' +
-'.btn{flex:1;padding:10px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent;border-radius:8px}' +
+'.btn{flex:1;padding:14px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent;border-radius:8px}' +
 '.btn:active{opacity:0.7}' +
 '.btn-primary{background:var(--teal);border-color:var(--teal);color:#1A1816}' +
-'.btn-stop{background:var(--accent);border-color:var(--accent);color:#1A1816}' +
+'.btn-stop{background:var(--accent);border-color:var(--accent);color:var(--bg)}' +
 '.stats{font-family:monospace;font-size:11px;line-height:2;color:var(--text2);border-radius:8px}' +
 '.stats .hi{color:var(--teal);font-weight:700}' +
 '.stats .warn{color:var(--accent);font-weight:700}' +
@@ -51,6 +51,11 @@ export function getSwarmSimulationHTML(isDark: boolean, lang: string): string {
 '.opt-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;min-height:44px}' +
 '.opt-check{width:20px;height:20px;accent-color:var(--teal)}' +
 '.opt-label{font-size:11px;font-weight:600;color:var(--text2)}' +
+'.preset-row{display:flex;gap:6px;margin:10px 0}' +
+'.preset{flex:1;padding:14px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:11px;font-weight:700;text-align:center;cursor:pointer;border-radius:8px;min-height:44px;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent}' +
+'.preset:active{opacity:0.7}' +
+'.preset.active{background:var(--tealLight);border-color:var(--teal)}' +
+'.rule-hint{font-size:10px;color:var(--text3);margin-top:-4px;margin-bottom:6px;padding-left:30px}' +
 '</style></head><body>' +
 
 // ── Canvas ──────────────────────────────────────────────────────────
@@ -62,22 +67,31 @@ export function getSwarmSimulationHTML(isDark: boolean, lang: string): string {
 '<div class="panel"><div class="label" id="lbl-rules"></div>' +
 
 '<div class="toggle-row"><input type="checkbox" class="toggle-check" id="chkSep" checked onchange="onParam()">' +
-'<span class="toggle-label sep-c" id="lbl-sep"></span></div>' +
+'<label class="toggle-label sep-c" id="lbl-sep" for="chkSep"></label></div>' +
+'<div class="rule-hint" id="hint-sep"></div>' +
 '<div class="row"><span class="ctrl-name" id="lbl-sepW"></span>' +
 '<input type="range" id="slSep" min="0" max="30" value="15" oninput="onParam()">' +
 '<span class="ctrl-val" id="valSep"></span></div>' +
 
 '<div class="toggle-row"><input type="checkbox" class="toggle-check" id="chkAli" checked onchange="onParam()">' +
-'<span class="toggle-label ali-c" id="lbl-ali"></span></div>' +
+'<label class="toggle-label ali-c" id="lbl-ali" for="chkAli"></label></div>' +
+'<div class="rule-hint" id="hint-ali"></div>' +
 '<div class="row"><span class="ctrl-name" id="lbl-aliW"></span>' +
 '<input type="range" id="slAli" min="0" max="30" value="10" oninput="onParam()">' +
 '<span class="ctrl-val" id="valAli"></span></div>' +
 
 '<div class="toggle-row"><input type="checkbox" class="toggle-check" id="chkCoh" checked onchange="onParam()">' +
-'<span class="toggle-label coh-c" id="lbl-coh"></span></div>' +
+'<label class="toggle-label coh-c" id="lbl-coh" for="chkCoh"></label></div>' +
+'<div class="rule-hint" id="hint-coh"></div>' +
 '<div class="row"><span class="ctrl-name" id="lbl-cohW"></span>' +
 '<input type="range" id="slCoh" min="0" max="30" value="10" oninput="onParam()">' +
 '<span class="ctrl-val" id="valCoh"></span></div>' +
+
+'<div class="preset-row">' +
+'<div class="preset" id="pRandom" onclick="onPreset(\'random\')"></div>' +
+'<div class="preset" id="pConverge" onclick="onPreset(\'converge\')"></div>' +
+'<div class="preset" id="pBalanced" onclick="onPreset(\'balanced\')"></div>' +
+'</div>' +
 '</div>' +
 
 // ── Parameters ──────────────────────────────────────────────────────
@@ -145,11 +159,21 @@ export function getSwarmSimulationHTML(isDark: boolean, lang: string): string {
 'hintToggle:"Toggle rules on/off to observe how swarm behavior emerges"}' +
 '};' +
 'var T=L[LANG]||L.en;' +
+// Extended labels for presets + rule hints + educational judgment
+'T.hintSep=LANG==="ko"?"= \\uC74C\\uC131 \\uD53C\\uB4DC\\uBC31 (\\uACFC\\uBC00\\uC9D1 \\uBC29\\uC9C0)":"= Negative feedback (prevents overcrowding)";' +
+'T.hintAli=LANG==="ko"?"= \\uC815\\uBCF4 \\uACF5\\uC720 (\\uC774\\uC6C3 \\uBC29\\uD5A5 \\uCC38\\uC870)":"= Info sharing (follow neighbors)";' +
+'T.hintCoh=LANG==="ko"?"= \\uC591\\uC131 \\uD53C\\uB4DC\\uBC31 (\\uC9D1\\uB2E8\\uC73C\\uB85C \\uB04C\\uB9BC)":"= Positive feedback (pull toward group)";' +
+'T.preRandom=LANG==="ko"?"\\uBB34\\uC791\\uC704 \\uBC29\\uD669":"Random";' +
+'T.preConverge=LANG==="ko"?"\\uC870\\uAE30 \\uC218\\uB834":"Convergence";' +
+'T.preBalanced=LANG==="ko"?"\\uADE0\\uD615 \\uAD70\\uC9D1":"Balanced";' +
+'T.judgeRandom=LANG==="ko"?"\\uBB34\\uC791\\uC704 \\uBC29\\uD669 \\u2014 \\uD53C\\uB4DC\\uBC31 \\uC5C6\\uC74C":"Random wandering \\u2014 no feedback";' +
+'T.judgeConverge=LANG==="ko"?"\\uC870\\uAE30 \\uC218\\uB834 \\u2014 \\uC74C\\uC131 \\uD53C\\uB4DC\\uBC31 \\uBD80\\uC871":"Premature convergence \\u2014 no negative feedback";' +
+'T.judgeBalanced=LANG==="ko"?"\\uADE0\\uD615 \\uAD70\\uC9D1 \\u2014 \\uCC3D\\uBC1C \\uC791\\uB3D9 \\uC911":"Balanced swarm \\u2014 emergence at work";' +
 
 // ── State ───────────────────────────────────────────────────────────
 'var boids=[];var trails=[];' +
 'var attractors=[];' +
-'var animating=false;var animId=null;' +
+'var animating=false;var animId=null;var activePreset=null;' +
 'var sepOn=true,aliOn=true,cohOn=true;' +
 'var sepW=1.5,aliW=1.0,cohW=1.0;' +
 'var nbrRadius=60,maxSpd=3.0,boidCount=60;' +
@@ -190,6 +214,12 @@ export function getSwarmSimulationHTML(isDark: boolean, lang: string): string {
 'document.getElementById("btnRun").textContent=T.run;' +
 'document.getElementById("btnReset").textContent=T.reset;' +
 'document.getElementById("hint-tap").textContent=T.hintTap;' +
+'document.getElementById("hint-sep").textContent=T.hintSep;' +
+'document.getElementById("hint-ali").textContent=T.hintAli;' +
+'document.getElementById("hint-coh").textContent=T.hintCoh;' +
+'document.getElementById("pRandom").textContent=T.preRandom;' +
+'document.getElementById("pConverge").textContent=T.preConverge;' +
+'document.getElementById("pBalanced").textContent=T.preBalanced;' +
 
 // ── Read params from UI ─────────────────────────────────────────────
 'function readParams(){' +
@@ -351,6 +381,12 @@ export function getSwarmSimulationHTML(isDark: boolean, lang: string): string {
 's+="<span class=\\"warn\\">"+T.coherence+"</span>  "+st.coherence.toFixed(1)+"px<br>";' +
 's+=T.boids+": "+boids.length;' +
 'if(attractors.length>0)s+="  |  "+T.attractors+": "+attractors.length;' +
+// Educational judgment based on feedback balance
+'var jt="",jc="";' +
+'if(!sepOn&&!aliOn&&!cohOn){jt=T.judgeRandom;jc="var(--accent)"}' +
+'else if(!sepOn&&(cohOn||aliOn)&&(cohW>0.5||aliW>0.5)){jt=T.judgeConverge;jc="var(--accent)"}' +
+'else if(sepOn&&aliOn&&cohOn){jt=T.judgeBalanced;jc="var(--green)"}' +
+'if(jt)s+="<br><span style=\\"color:"+jc+";font-weight:700\\">"+jt+"</span>";' +
 'box.innerHTML=s}' +
 
 // ── Animation loop ──────────────────────────────────────────────────
@@ -363,7 +399,8 @@ export function getSwarmSimulationHTML(isDark: boolean, lang: string): string {
 'function resetState(){' +
 'readParams();' +
 'if(animId)cancelAnimationFrame(animId);' +
-'animating=false;attractors=[];' +
+'animating=false;attractors=[];activePreset=null;' +
+'var ps=document.querySelectorAll(".preset");for(var i=0;i<ps.length;i++)ps[i].className="preset";' +
 'var dim=setupCanvas(cvSim,300);canvasW=dim.w;canvasH=dim.h;' +
 'OBS_X=canvasW/2;OBS_Y=canvasH/2;' +
 'createBoids(boidCount);' +
@@ -372,7 +409,24 @@ export function getSwarmSimulationHTML(isDark: boolean, lang: string): string {
 'draw();updateStats();notifyHeight()}' +
 
 // ── Event handlers ──────────────────────────────────────────────────
-'function onParam(){readParams()}' +
+'function onParam(){readParams();if(activePreset){activePreset=null;var ps=document.querySelectorAll(".preset");for(var i=0;i<ps.length;i++)ps[i].className="preset"}}' +
+
+// ── Presets ─────────────────────────────────────────────────────────
+'function onPreset(name){' +
+'var c={random:{s:false,a:false,co:false,sw:0,aw:0,cw:0},' +
+'converge:{s:false,a:true,co:true,sw:0,aw:30,cw:30},' +
+'balanced:{s:true,a:true,co:true,sw:15,aw:10,cw:10}}[name];' +
+'document.getElementById("chkSep").checked=c.s;' +
+'document.getElementById("chkAli").checked=c.a;' +
+'document.getElementById("chkCoh").checked=c.co;' +
+'document.getElementById("slSep").value=c.sw;' +
+'document.getElementById("slAli").value=c.aw;' +
+'document.getElementById("slCoh").value=c.cw;' +
+'readParams();activePreset=name;' +
+'var ids=["pRandom","pConverge","pBalanced"];var names=["random","converge","balanced"];' +
+'for(var i=0;i<ids.length;i++){document.getElementById(ids[i]).className=names[i]===name?"preset active":"preset"}' +
+'createBoids(boidCount);' +
+'if(!animating){draw();updateStats()}}' +
 
 'function onCountChange(){' +
 'readParams();' +

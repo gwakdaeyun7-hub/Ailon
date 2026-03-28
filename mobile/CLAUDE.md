@@ -66,7 +66,7 @@
 - **SIMULATIONS 레지스트리**: `components/snaps/simulations/index.ts` — `Record<string, (isDark, lang) => string>`. 현재 45개:
   - `sa` — Simulated Annealing: 5가지 목적함수(+Deceptive), 파라미터 슬라이더, Advanced 토글(냉각 스케줄 3종 Geometric/Logarithmic/Linear + Steps/Temp), 에너지 지형 플롯(탭으로 초기 위치 설정, 온도별 마커 색상), 수렴 그래프, 수용 확률 실시간 표시(Step/Pause 모드), 완료 시 전역/지역 최적해 판정(런타임 수치 탐색), 경계 반사(reflection)
   - `gd` — Gradient Descent: 2D 등고선 맵에서 Vanilla GD/Momentum/Adam 3종 경로 비교
-  - `swarm` — Swarm Intelligence (Boid): Separation/Alignment/Cohesion 토글, 실시간 군집 시뮬레이션
+  - `swarm` — Swarm Intelligence (Boid): Separation/Alignment/Cohesion 토글+가중치, 3 프리셋(무작위 방황/조기 수렴/균형 군집 — 피드백 균형 체험), 규칙-피드백 매핑 힌트, 장애물/먹이(attractor), 실시간 통계+교육적 판정
   - `bayesian` — Bayesian Inference: Beta 분포 Prior→Posterior 업데이트, 동전 던지기 인터랙션
   - `convex`, `bayesopt`, `dp`, `kalman`, `pid`, `cybernetics`, `mpc`, `lyapunov`, `fourier`, `nyquist`, `quantize`, `entropy`, `kl`, `channel`, `mutual`, `boltzmann`, `diffusion`, `hopfield`, `renorm`, `evolution`, `hebbian`, `visualcortex`, `dopamine`, `attention`, `predcoding`, `replay`, `molgraph`, `linalg`, `uat`, `curse`, `infogeo`, `gnn`, `manifold`, `biasvar`, `mle`, `bootstrap`, `mcmc`, `subsumption`, `imitation`, `epidemic`, `clinical`
 - **시뮬레이션 공통**: self-contained HTML/JS/Canvas, KO/EN 바이링구얼, dark/light 테마, 패널 borderRadius 8px 통일
