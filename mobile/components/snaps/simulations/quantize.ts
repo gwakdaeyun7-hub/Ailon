@@ -26,15 +26,15 @@ export function getQuantizeSimulationHTML(isDark: boolean, lang: string): string
 '*{box-sizing:border-box;margin:0;padding:0}' +
 'body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);padding:0;-webkit-user-select:none;user-select:none;overflow-x:hidden}' +
 '.panel{border:2px solid var(--border);background:var(--card);margin-bottom:8px;padding:12px;border-radius:8px}' +
-'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card);border-radius:8px}' +
+'canvas{width:100%;display:block;border:2px solid var(--border);background:var(--card);border-radius:8px;touch-action:none}' +
 '.label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}' +
 '.row{display:flex;align-items:center;gap:8px;margin-bottom:10px}' +
 '.row:last-child{margin-bottom:0}' +
-'.ctrl-name{font-size:12px;font-weight:600;color:var(--text);min-width:56px;flex-shrink:0}' +
+'.ctrl-name{font-size:12px;font-weight:600;color:var(--text);min-width:72px;flex-shrink:0}' +
 '.ctrl-val{font-size:12px;font-family:monospace;color:var(--teal);min-width:50px;text-align:right;flex-shrink:0}' +
 'input[type=range]{flex:1;min-width:0;accent-color:var(--teal);height:20px}' +
 '.btn-row{display:flex;gap:6px;margin-top:4px}' +
-'.btn{flex:1;padding:10px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent;border-radius:8px}' +
+'.btn{flex:1;padding:14px 6px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.5px;-webkit-tap-highlight-color:transparent;border-radius:8px}' +
 '.btn:active{opacity:0.7}' +
 '.btn-primary{background:var(--teal);border-color:var(--teal);color:#1A1816}' +
 '.btn-stop{background:var(--accent);border-color:var(--accent);color:#1A1816}' +
@@ -42,9 +42,9 @@ export function getQuantizeSimulationHTML(isDark: boolean, lang: string): string
 '.stats .hi{color:var(--teal);font-weight:700}' +
 '.stats .warn{color:var(--accent);font-weight:700}' +
 '.preset-row{display:flex;gap:6px;margin-bottom:8px}' +
-'.preset{flex:1;padding:12px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:10px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.3px;border-radius:8px}' +
+'.preset{flex:1;padding:14px 4px;border:2px solid var(--border);background:var(--surface);color:var(--text2);font-size:11px;font-weight:700;text-align:center;cursor:pointer;letter-spacing:0.3px;min-height:44px;border-radius:8px}' +
 '.preset:active{opacity:0.7}' +
-'.preset.active{border-color:var(--teal);color:var(--teal)}' +
+'.preset.active{border-color:var(--teal);color:var(--teal);background:var(--tealLight)}' +
 '.opt-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;min-height:44px}' +
 '.opt-check{width:20px;height:20px;accent-color:var(--teal)}' +
 '.opt-label{font-size:11px;font-weight:600;color:var(--text2)}' +
@@ -64,8 +64,8 @@ export function getQuantizeSimulationHTML(isDark: boolean, lang: string): string
 '<input type="range" id="slBits" min="1" max="8" value="3" oninput="onParam()">' +
 '<span class="ctrl-val" id="valBits"></span></div>' +
 '<div class="preset-row" id="presetRow"></div>' +
-'<div class="opt-row"><input type="checkbox" class="opt-check" id="chkDither" onchange="onParam()">' +
-'<span class="opt-label" id="lbl-dither"></span></div>' +
+'<div class="opt-row"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" class="opt-check" id="chkDither" onchange="onParam()">' +
+'<span class="opt-label" id="lbl-dither"></span></label></div>' +
 '<div class="btn-row">' +
 '<div class="btn" id="btnAI" onclick="toggleAI()"></div>' +
 '</div>' +
@@ -100,7 +100,7 @@ export function getQuantizeSimulationHTML(isDark: boolean, lang: string): string
 'aiBits:"\\uC591\\uC790\\uD654 \\uC218\\uC900",aiCv1:"\\uC6D0\\uBCF8 + \\uC591\\uC790\\uD654\\uB41C \\uAC00\\uC911\\uCE58",aiCv2:"\\uC815\\uBC00\\uB3C4 \\uC190\\uC2E4",' +
 'aiSnr:"\\uC815\\uD655\\uB3C4 \\uC720\\uC9C0\\uC728 (\\uCE21\\uC815)",aiSnrTheory:"\\uC815\\uD655\\uB3C4 \\uC720\\uC9C0\\uC728 (\\uC774\\uB860)",' +
 'aiMaxErr:"\\uCD5C\\uB300 \\uC815\\uBC00\\uB3C4 \\uC190\\uC2E4",' +
-'aiNote:"AI \\uAD00\\uC810: \\uBE44\\uD2B8 \\uC218 \\uC904\\uC774\\uBA74 \\uBAA8\\uB378 \\uD06C\\uAE30 \\uCD95\\uC18C + \\uCD94\\uB860 \\uC18D\\uB3C4 \\uD5A5\\uC0C1, but \\uC815\\uBC00\\uB3C4 \\uC190\\uC2E4. LLM \\uBC30\\uD3EC\\uC758 \\uD575\\uC2EC \\uAE30\\uC220"},' +
+'aiNote:"AI \\uAD00\\uC810: \\uBE44\\uD2B8 \\uC218 \\uC904\\uC774\\uBA74 \\uBAA8\\uB378 \\uD06C\\uAE30 \\uCD95\\uC18C + \\uCD94\\uB860 \\uC18D\\uB3C4 \\uD5A5\\uC0C1, \\uD558\\uC9C0\\uB9CC \\uC815\\uBC00\\uB3C4 \\uC190\\uC2E4. LLM \\uBC30\\uD3EC\\uC758 \\uD575\\uC2EC \\uAE30\\uC220"},' +
 'en:{sim:"SIGNAL QUANTIZATION",' +
 'ctrl:"CONTROLS",bits:"Bit Depth",' +
 'sine:"Sine",sawtooth:"Sawtooth",composite:"Composite",' +
@@ -150,7 +150,7 @@ export function getQuantizeSimulationHTML(isDark: boolean, lang: string): string
 'return -1+idx*step+step/2}' +
 
 // -- Draw main canvas (original + quantized) --
-'function drawMain(){' +
+'function drawMain(qvArr){' +
 'var cv=document.getElementById("cv1");' +
 'var dim=setupCanvas(cv,160);var w=dim.w,h=dim.h;' +
 'var ctx=cv.getContext("2d");ctx.clearRect(0,0,w,h);' +
@@ -179,13 +179,11 @@ export function getQuantizeSimulationHTML(isDark: boolean, lang: string): string
 'var y=midY-v*(plotH/2);' +
 'if(px===0)ctx.moveTo(px,y);else ctx.lineTo(px,y)}' +
 'ctx.strokeStyle=tealC;ctx.lineWidth=2;ctx.stroke();' +
-// quantized staircase (accent)
+// quantized staircase (accent, using precomputed values)
 'ctx.beginPath();' +
 'var prevQy=null;' +
 'for(var px=0;px<w;px++){' +
-'var t=px/w*duration+phase;' +
-'var v=signal(t);' +
-'var qv=quantize(v,bitDepth,dithering);' +
+'var qv=px<qvArr.length?qvArr[px]:0;' +
 'var y=midY-qv*(plotH/2);' +
 'if(px===0){ctx.moveTo(px,y);prevQy=y}' +
 'else{' +
@@ -205,8 +203,8 @@ export function getQuantizeSimulationHTML(isDark: boolean, lang: string): string
 'ctx.fillStyle=text3C;ctx.textAlign="left";' +
 'ctx.fillText(bitLbl,6,14)}' +
 
-// -- Draw error canvas --
-'function drawError(){' +
+// -- Draw error canvas (using precomputed quantized values) --
+'function drawError(qvArr){' +
 'var cv=document.getElementById("cv2");' +
 'var dim=setupCanvas(cv,100);var w=dim.w,h=dim.h;' +
 'var ctx=cv.getContext("2d");ctx.clearRect(0,0,w,h);' +
@@ -217,13 +215,13 @@ export function getQuantizeSimulationHTML(isDark: boolean, lang: string): string
 // zero line
 'ctx.strokeStyle=borderC;ctx.lineWidth=1;ctx.setLineDash([3,3]);' +
 'ctx.beginPath();ctx.moveTo(0,midY);ctx.lineTo(w,midY);ctx.stroke();ctx.setLineDash([]);' +
-// error signal
+// error signal (reuse precomputed qvArr)
 'var duration=3;var maxE=0;var sumSq=0;var sumSigSq=0;var n=0;' +
 'ctx.beginPath();' +
 'for(var px=0;px<w;px++){' +
 'var t=px/w*duration+phase;' +
 'var v=signal(t);' +
-'var qv=quantize(v,bitDepth,dithering);' +
+'var qv=px<qvArr.length?qvArr[px]:0;' +
 'var err=v-qv;' +
 'if(Math.abs(err)>maxE)maxE=Math.abs(err);' +
 'sumSq+=err*err;sumSigSq+=v*v;n++;' +
@@ -233,8 +231,17 @@ export function getQuantizeSimulationHTML(isDark: boolean, lang: string): string
 // store computed stats
 'window._qStats={maxErr:maxE,sumSq:sumSq,sumSigSq:sumSigSq,n:n}}' +
 
-// -- Draw all --
-'function drawAll(){drawMain();drawError()}' +
+// -- Draw all (precompute quantized values to share between canvases) --
+'function drawAll(){' +
+'var cv1=document.getElementById("cv1");' +
+'var w1=cv1.parentElement.clientWidth-4;' +
+'var duration=3;' +
+'var qvArr=new Array(w1);' +
+'for(var px=0;px<w1;px++){' +
+'var t=px/w1*duration+phase;' +
+'var v=signal(t);' +
+'qvArr[px]=quantize(v,bitDepth,dithering)}' +
+'drawMain(qvArr);drawError(qvArr)}' +
 
 // -- Read params --
 'function readParams(){' +
