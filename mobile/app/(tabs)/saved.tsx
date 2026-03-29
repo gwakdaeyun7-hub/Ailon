@@ -325,7 +325,7 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
                 fontSize: 22, fontWeight: '900', color: colors.textPrimary, lineHeight: 32,
                 letterSpacing: -0.3,
                 paddingHorizontal: 20, fontFamily: FontFamily.serif,
-                marginTop: 8,
+                marginTop: 12,
               }}
             >
               {articleTitle}
@@ -341,7 +341,7 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
 
                 {/* 2. Background */}
                 {background ? (
-                  <Text style={{ fontSize: 14, lineHeight: 23, letterSpacing: 0.2, color: colors.textSecondary, marginTop: 20 }}>
+                  <Text style={{ fontSize: 15, lineHeight: 24, letterSpacing: 0.2, color: colors.textSecondary, marginTop: 20 }}>
                     {background}
                   </Text>
                 ) : null}
@@ -379,7 +379,7 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
                     <HighlightedText
                       text={whyImportant}
                       glossaryTerms={glossaryDBTerms}
-                      style={{ fontSize: 15, color: colors.textPrimary, lineHeight: 26, letterSpacing: 0.2 }}
+                      style={{ fontSize: 15, color: colors.textPrimary, lineHeight: 24 }}
                       usedTermKeys={usedTermKeys}
                       onTermsDetected={handleTermsDetected}
                     />
@@ -388,7 +388,7 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
 
                 {/* Tags — 필 스타일 */}
                 {tags && tags.length > 0 ? (
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 24 }}>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 20 }}>
                     {tags.map((tag, idx) => (
                       <View key={idx} style={{ backgroundColor: colors.surface, borderRadius: 14, paddingHorizontal: 8, paddingVertical: 3 }}>
                         <Text style={{ fontSize: 10, fontWeight: '600', color: colors.textSecondary }}>#{tag}</Text>
@@ -399,7 +399,7 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
 
                 {/* Glossary — 아코디언 */}
                 {glossary.length > 0 ? (
-                  <View style={{ marginTop: 24 }}>
+                  <View style={{ marginTop: 32 }}>
                     <Pressable
                       onPress={() => {
                         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -459,10 +459,6 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
                   accessibilityRole="button"
                   accessibilityLabel={t('article.read_original')}
                   style={({ pressed }) => ({
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 8,
                     backgroundColor: colors.surface,
                     borderRadius: 14,
                     paddingVertical: 13,
@@ -471,8 +467,10 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
                     opacity: pressed ? 0.7 : 1,
                   })}
                 >
-                  <ExternalLink size={16} color={colors.textPrimary} />
-                  <Text style={{ fontSize: 15, fontWeight: '700', color: colors.textPrimary }}>{t('article.read_original')}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                    <ExternalLink size={16} color={colors.textPrimary} />
+                    <Text style={{ fontSize: 15, fontWeight: '700', color: colors.textPrimary }}>{t('article.read_original')}</Text>
+                  </View>
                 </Pressable>
               </View>
             ) : null}

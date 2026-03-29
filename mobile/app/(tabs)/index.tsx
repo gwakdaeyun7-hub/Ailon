@@ -378,7 +378,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
                 fontSize: 22, fontWeight: '900', color: colors.textPrimary, lineHeight: 32,
                 letterSpacing: -0.3,
                 paddingHorizontal: 20, fontFamily: FontFamily.serif,
-                marginTop: 8,
+                marginTop: 12,
               }}
             >
               {articleTitle}
@@ -394,7 +394,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
 
                 {/* 2. Background — 본문 스타일 */}
                 {background ? (
-                  <Text style={{ fontSize: 14, lineHeight: 23, letterSpacing: 0.2, color: colors.textSecondary, marginTop: 20 }}>
+                  <Text style={{ fontSize: 15, lineHeight: 24, letterSpacing: 0.2, color: colors.textSecondary, marginTop: 20 }}>
                     {background}
                   </Text>
                 ) : null}
@@ -432,7 +432,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
                     <HighlightedText
                       text={whyImportant}
                       glossaryTerms={glossaryDBTerms}
-                      style={{ fontSize: 15, color: colors.textPrimary, lineHeight: 26, letterSpacing: 0.2 }}
+                      style={{ fontSize: 15, color: colors.textPrimary, lineHeight: 24 }}
                       usedTermKeys={usedTermKeys}
                       onTermsDetected={handleTermsDetected}
                     />
@@ -441,7 +441,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
 
                 {/* Tags — 필 스타일 */}
                 {tags && tags.length > 0 ? (
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 24 }}>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 20 }}>
                     {tags.map((tag, idx) => (
                       <View key={idx} style={{ backgroundColor: colors.surface, borderRadius: 14, paddingHorizontal: 8, paddingVertical: 3 }}>
                         <Text style={{ fontSize: 10, fontWeight: '600', color: colors.textSecondary }}>#{tag}</Text>
@@ -452,7 +452,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
 
                 {/* Glossary — D4: no border box, compact accordion */}
                 {glossary.length > 0 ? (
-                  <View style={{ marginTop: 24 }}>
+                  <View style={{ marginTop: 32 }}>
                     <Pressable
                       onPress={() => {
                         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -512,10 +512,6 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
                   accessibilityRole="button"
                   accessibilityLabel={t('article.read_original')}
                   style={({ pressed }) => ({
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 8,
                     backgroundColor: colors.surface,
                     borderRadius: 14,
                     paddingVertical: 13,
@@ -524,8 +520,10 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
                     opacity: pressed ? 0.7 : 1,
                   })}
                 >
-                  <ExternalLink size={16} color={colors.textPrimary} />
-                  <Text style={{ fontSize: 15, fontWeight: '700', color: colors.textPrimary }}>{t('article.read_original')}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                    <ExternalLink size={16} color={colors.textPrimary} />
+                    <Text style={{ fontSize: 15, fontWeight: '700', color: colors.textPrimary }}>{t('article.read_original')}</Text>
+                  </View>
                 </Pressable>
               </View>
             ) : null}

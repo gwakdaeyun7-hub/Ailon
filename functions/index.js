@@ -334,8 +334,8 @@ function buildArticleHTML(article, articleId, lang) {
   const background = getBackground(article, lang);
   const tags = (lang === "en" && article.tags_en && article.tags_en.length) ? article.tags_en : (article.tags || []);
   const glossary = getGlossary(article, lang);
-  const sourceColor = SOURCE_COLORS[article.source_key || ""] || "#5EEAD4";
-  const sourceName = getSourceName(article.source_key || "", lang);
+  const sourceColor = SOURCE_COLORS[article.source_key || article.source || ""] || "#000000";
+  const sourceName = getSourceName(article.source_key || article.source || "", lang);
   const catColor = CATEGORY_COLORS[article.category || ""] || "#666";
   const catName = catNames[article.category || ""] || "";
   const date = formatDate(article.published, lang, article.date_estimated);
