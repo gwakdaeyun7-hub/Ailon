@@ -56,9 +56,6 @@ export function ShowMoreButton({
           paddingVertical: 10,
           minHeight: 44,
           borderRadius: 12,
-          borderWidth: 1,
-          borderColor: colors.border,
-          backgroundColor: colors.card,
         }}>
           <Text style={{ fontSize: 13, fontWeight: '600', color: colors.textPrimary }}>
             {label}
