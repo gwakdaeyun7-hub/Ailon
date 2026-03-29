@@ -8,7 +8,7 @@
  */
 
 import React, { useMemo, useCallback, useState, useEffect, useRef } from 'react';
-import { View, Text, FlatList, Pressable, Alert, Modal, ScrollView, ActivityIndicator, Animated, StyleSheet, LayoutAnimation, Share } from 'react-native';
+import { View, Text, FlatList, Pressable, Alert, Modal, ScrollView, ActivityIndicator, Animated, StyleSheet, LayoutAnimation } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -156,7 +156,7 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
   const { user } = useAuth();
   const { showComments } = useFeatureFlags();
   const { isBookmarked, toggleBookmark } = useBookmarks(user?.uid ?? null);
-  const { shareArticleLink } = useShareLink();
+  const { shareArticleLink, shareTextFallback } = useShareLink();
   const { likes, liked, toggleLike } = useReactions('news', article.link);
   const { views, trackView } = useArticleViews(article.link);
   const { allTerms: glossaryDBTerms } = useGlossaryDB();
@@ -215,11 +215,7 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
     if (article.article_id) {
       await shareArticleLink(article.article_id, title, oneLine, lang);
     } else {
-      try {
-        await Share.share({ message: `${title}\n\n${article.link || ''}\n\n${t('share.footer')}` });
-      } catch (err) {
-        console.warn('Share failed:', err);
-      }
+      await shareTextFallback(title, article.link || '');
     }
   };
 

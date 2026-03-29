@@ -437,6 +437,7 @@ details[open] .glossary-toggle svg{transform:rotate(180deg)}
 <body>
 <div class="header">
   <span class="logo"><img src="/ailon_logo.png" alt="AILON">AILON</span>
+  <a class="header-btn" href="ailon://article/${esc(articleId)}?lang=${lang}">${esc(l.openApp)}</a>
 </div>
 <div class="card">
   ${imgUrl ? `<img class="thumb" src="${esc(imgUrl)}" alt="${esc(title)}" onerror="this.style.display='none'">` : ""}
@@ -515,7 +516,7 @@ exports.articlePage = onRequest(
       }
 
       const html = buildArticleHTML(doc.data(), articleId, lang);
-      res.set("Cache-Control", "no-cache, no-store, must-revalidate");
+      res.set("Cache-Control", "public, s-maxage=3600, max-age=300");
       res.status(200).send(html);
     } catch (err) {
       console.error("articlePage error:", err);

@@ -12,8 +12,6 @@ import {
   ScrollView,
   Pressable,
   RefreshControl,
-
-  Share,
   StatusBar,
   Modal,
   Animated,
@@ -208,7 +206,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
   const { user } = useAuth();
   const { showComments } = useFeatureFlags();
   const { isBookmarked, toggleBookmark } = useBookmarks(user?.uid ?? null);
-  const { shareArticleLink } = useShareLink();
+  const { shareArticleLink, shareTextFallback } = useShareLink();
   // 이슈 #18: viewTracked 중복 호출 수정 — link 기반 추적
   const viewTrackedLink = useRef('');
   const insets = useSafeAreaInsets();
@@ -265,11 +263,7 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
     if (article.article_id) {
       await shareArticleLink(article.article_id, title, oneLine, lang);
     } else {
-      try {
-        await Share.share({ message: `${title}\n\n${article.link || ''}\n\n${t('share.footer')}` });
-      } catch (err) {
-        console.warn('Share failed:', err);
-      }
+      await shareTextFallback(title, article.link || '');
     }
   };
 
