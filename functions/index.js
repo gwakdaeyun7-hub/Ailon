@@ -515,7 +515,7 @@ exports.articlePage = onRequest(
       }
 
       const html = buildArticleHTML(doc.data(), articleId, lang);
-      res.set("Cache-Control", "public, max-age=60, s-maxage=120");
+      res.set("Cache-Control", "no-cache, no-store, must-revalidate");
       res.status(200).send(html);
     } catch (err) {
       console.error("articlePage error:", err);
