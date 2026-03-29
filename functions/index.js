@@ -392,12 +392,12 @@ function buildArticleHTML(article, articleId, lang) {
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{color-scheme:light only}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F5F5F4;color:#000;min-height:100vh}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#fff;color:#000;min-height:100vh}
 .header{background:#fff;border-bottom:1px solid #E7E5E4;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
 .logo{display:flex;align-items:center;gap:8px;font-size:18px;font-weight:800;color:#000;letter-spacing:1.5px}
 .logo img{width:28px;height:28px;border-radius:6px}
 .header-btn{background:transparent;border:1.5px solid #000;color:#000;font-weight:700;font-size:12px;padding:8px 16px;border-radius:8px;text-decoration:none}
-.card{max-width:480px;margin:16px auto;background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.06)}
+.card{max-width:480px;margin:0 auto;background:#fff}
 .thumb{width:100%;height:200px;object-fit:cover;display:block}
 .body{padding:20px}
 .meta{display:flex;align-items:center;flex-wrap:wrap;gap:6px}
@@ -406,15 +406,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .read-time{display:inline-flex;align-items:center;gap:3px;font-size:11px;color:#000}
 .read-time svg{vertical-align:middle}
 .divider{height:1px;background:#E7E5E4;margin-top:24px}
-h1{font-family:'Lora',serif;font-size:22px;font-weight:900;line-height:1.45;letter-spacing:-0.3px;margin-top:8px;color:#000}
+h1{font-family:'Lora',serif;font-size:22px;font-weight:900;line-height:32px;letter-spacing:-0.3px;margin-top:8px;color:#000}
 .one-line{margin-top:16px}
-.one-line p{font-size:16px;font-weight:600;color:#000;line-height:1.625}
-.background-text{font-size:14px;line-height:1.64;letter-spacing:0.2px;color:#000;margin-top:20px}
+.one-line p{font-size:16px;font-weight:600;color:#000;line-height:26px}
+.background-text{font-size:14px;line-height:23px;letter-spacing:0.2px;color:#000;margin-top:20px}
 .sections{margin-top:24px}
-.section-subtitle{font-family:'Lora',serif;font-size:18px;font-weight:700;line-height:1.44;letter-spacing:-0.2px;color:#000;margin-bottom:10px}
-.section-content{font-size:15px;line-height:1.6;color:#000}
+.section-subtitle{font-family:'Lora',serif;font-size:18px;font-weight:700;line-height:26px;letter-spacing:-0.2px;color:#000;margin-bottom:10px}
+.section-content{font-size:15px;line-height:24px;color:#000}
 .why{margin-top:24px}
-.why-label{font-family:'Lora',serif;font-size:16px;font-weight:700;line-height:1.625;color:#000;margin-bottom:8px}
+.why-label{font-family:'Lora',serif;font-size:16px;font-weight:700;line-height:26px;color:#000;margin-bottom:8px}
 .why-text{font-size:15px;line-height:26px;letter-spacing:0.2px;color:#000}
 .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:24px}
 .tag{display:inline-block;background:#F5F2EE;border-radius:14px;padding:3px 8px;font-size:10px;font-weight:600;color:#000}
@@ -425,7 +425,7 @@ h1{font-family:'Lora',serif;font-size:22px;font-weight:900;line-height:1.45;lett
 details[open] .glossary-toggle svg{transform:rotate(180deg)}
 .glossary-list{padding-top:10px;padding-left:12px}
 .glossary-term{font-size:12px;font-weight:600;color:#000;margin-bottom:1px}
-.glossary-desc{font-size:11px;color:#000;line-height:1.55}
+.glossary-desc{font-size:11px;color:#000;line-height:17px}
 .original-btn{display:flex;align-items:center;justify-content:center;gap:8px;border:1.5px solid #000;border-radius:14px;padding:13px 20px;margin:32px 0 8px;text-decoration:none;min-height:44px}
 .original-btn span{font-size:15px;font-weight:700;color:#000}
 .original-btn svg{flex-shrink:0}
