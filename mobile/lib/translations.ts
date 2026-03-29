@@ -26,8 +26,8 @@ const translations: Record<string, Record<Language, string>> = {
 
   // ─── 카테고리 ───
   'cat.research': { ko: '연구', en: 'Research' },
-  'cat.models_products': { ko: '모델/제품', en: 'Models & Products' },
-  'cat.industry_business': { ko: '산업/비즈니스', en: 'Industry & Business' },
+  'cat.models_products': { ko: '모델/제품', en: 'Products' },
+  'cat.industry_business': { ko: '산업/비즈니스', en: 'Industry' },
 
   // ─── 요약 모달 ───
   'modal.one_line': { ko: '핵심 한줄', en: 'Key Takeaway' },

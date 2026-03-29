@@ -409,13 +409,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 h1{font-family:'Lora',serif;font-size:22px;font-weight:900;line-height:32px;letter-spacing:-0.3px;margin-top:8px;color:#000}
 .one-line{margin-top:16px}
 .one-line p{font-size:16px;font-weight:600;color:#000;line-height:26px}
-.background-text{font-size:14px;line-height:23px;letter-spacing:0.2px;color:#000;margin-top:20px}
+.background-text{font-size:14px;font-weight:400;line-height:23px;letter-spacing:0.2px;color:#000;margin-top:20px}
 .sections{margin-top:24px}
 .section-subtitle{font-family:'Lora',serif;font-size:18px;font-weight:700;line-height:26px;letter-spacing:-0.2px;color:#000;margin-bottom:10px}
-.section-content{font-size:15px;line-height:24px;color:#000}
+.section-content{font-size:15px;font-weight:400;line-height:24px;color:#000}
 .why{margin-top:24px}
 .why-label{font-family:'Lora',serif;font-size:16px;font-weight:700;line-height:26px;color:#000;margin-bottom:8px}
-.why-text{font-size:15px;line-height:26px;letter-spacing:0.2px;color:#000}
+.why-text{font-size:15px;font-weight:400;line-height:26px;letter-spacing:0.2px;color:#000}
 .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:24px}
 .tag{display:inline-block;background:#F5F2EE;border-radius:14px;padding:3px 8px;font-size:10px;font-weight:600;color:#000}
 .glossary{margin-top:24px}
@@ -426,12 +426,12 @@ details[open] .glossary-toggle svg{transform:rotate(180deg)}
 .glossary-list{padding-top:10px;padding-left:12px}
 .glossary-term{font-size:12px;font-weight:600;color:#000;margin-bottom:1px}
 .glossary-desc{font-size:11px;color:#000;line-height:17px}
-.original-btn{display:flex;align-items:center;justify-content:center;gap:8px;border:1.5px solid #000;border-radius:14px;padding:13px 20px;margin:32px 0 8px;text-decoration:none;min-height:44px}
+.original-btn{display:flex;align-items:center;justify-content:center;gap:8px;background:#F5F2EE;border:none;border-radius:14px;padding:13px 20px;margin:32px 0 8px;text-decoration:none;min-height:44px}
 .original-btn span{font-size:15px;font-weight:700;color:#000}
 .original-btn svg{flex-shrink:0}
-.footer{border-top:1px solid #E7E5E4;padding:16px 20px;display:flex;align-items:center;justify-content:space-between}
-.footer-logo{font-size:14px;font-weight:800;color:#000;letter-spacing:1px}
-.footer-sub{font-size:11px;color:#999}
+.footer{border-top:1px solid #E7E5E4;padding:16px 20px;text-align:center}
+.footer-brand{font-size:13px;font-weight:700;color:#000;letter-spacing:0.5px}
+.footer-sub{font-size:11px;color:#999;margin-top:2px}
 </style>
 </head>
 <body>
@@ -457,8 +457,8 @@ details[open] .glossary-toggle svg{transform:rotate(180deg)}
     ${article.link ? `<a class="original-btn" href="${esc(article.link)}"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg><span>${esc(l.readOriginal)}</span></a>` : ""}
   </div>
   <div class="footer">
-    <span class="footer-logo">AILON</span>
-    <span class="footer-sub">— ${esc(l.footer)}</span>
+    <div class="footer-brand">AILON</div>
+    <div class="footer-sub">${esc(l.footer)}</div>
   </div>
 </div>
 </body>
