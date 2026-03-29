@@ -11,7 +11,7 @@
 - **Daily Briefing**: AI-generated 2-3 min briefing card with TTS playback (expo-speech)
 - **Categories**: Horizontal scroll tab chips (research / models_products / industry_business), Top 20 per category. 섹션 헤더 텍스트 없이 탭 칩만 표시
 - **Sources**: 22 source sections, Korean sources (AI타임스, GeekNews, ZDNet AI, 요즘IT) in separate tabs. 섹션 헤더 텍스트 없이 구분선만 표시
-- **Article Card**: display_title, one_line, sections (소제목+내용 2-4개), why_important, background, tags, glossary, "Read Original" button (openArticle → expo-web-browser In-App Browser). 요약 모달: F-Minimal 디자인 (소스 뱃지+읽기시간(Clock)+날짜(우측), 배경↔본문 구분선, 세리프 제목, One Line 16pt(장식 없음), 소제목+내용 sections 15pt(배경 없음), 본문↔왜중요해요 구분선, 세리프 소제목 textSecondary, 태그 pill, 원문 버튼 textPrimary 테두리). 기존 Firestore key_points 데이터는 폴백 렌더링 지원
+- **Article Card**: display_title, one_line, sections (소제목+내용 2-4개), why_important, background, tags, glossary, "Read Original" button (openArticle → expo-web-browser In-App Browser). 요약 모달: F-Minimal 디자인 (소스 뱃지+읽기시간(Clock)+날짜(우측), 배경↔본문 구분선, 세리프 제목, One Line 16pt(장식 없음), 소제목+내용 sections 15pt(배경 없음), 본문↔왜중요해요 구분선, 세리프 소제목 textSecondary, 태그 pill, 원문 버튼 Source Card 스타일: 소스 파비콘(28px 이니셜)+소스명+액션 텍스트+ExternalLink 화살표, surface 배경). 기존 Firestore key_points 데이터는 폴백 렌더링 지원
 - **Interactions**: Like/dislike, comments (CommentSheet modal), share (웹 공유 링크 useShareLink + 텍스트 폴백), bookmark. 소셜 기능(좋아요 숫자, 댓글)은 Firestore feature flag(`app_config/social_features`)로 조건부 표시
 - **Glossary Highlighting**: Auto-detects terms in text, tap for definition popup (HighlightedText)
 - **Related Articles**: Horizontal carousel in summary modal (RelatedArticlesSection)

@@ -392,7 +392,7 @@ function buildArticleHTML(article, articleId, lang) {
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{color-scheme:light only}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F5F5F4;color:#000;min-height:100vh;-webkit-text-size-adjust:100%;-webkit-text-stroke:0.3px currentColor}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F5F5F4;color:#000;min-height:100vh;-webkit-text-size-adjust:100%}
 .header{max-width:480px;margin:0 auto;background:#fff;border-bottom:1px solid #E7E5E4;padding:12px 16px;display:flex;align-items:center;justify-content:space-between}
 .logo{display:flex;align-items:center;gap:8px;font-size:18px;font-weight:800;color:#000;letter-spacing:1.5px}
 .logo img{width:28px;height:28px;border-radius:6px}
@@ -407,30 +407,34 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .divider{height:1px;background:#E7E5E4;margin-top:24px}
 h1{font-family:'Lora',serif;font-size:22px;font-weight:900;line-height:32px;letter-spacing:-0.3px;margin-top:12px;color:#000}
 .one-line{margin-top:16px}
-.one-line p{font-size:16px;font-weight:700;color:#000;line-height:26px}
-.background-text{font-size:15px;font-weight:500;line-height:24px;letter-spacing:0.2px;color:#000;margin-top:20px}
+.one-line p{font-size:16px;font-weight:600;color:#000;line-height:26px}
+.background-text{font-size:15px;line-height:24px;letter-spacing:0.2px;color:#000;margin-top:20px}
 .sections{margin-top:24px}
 .section-subtitle{font-family:'Lora',serif;font-size:18px;font-weight:700;line-height:26px;letter-spacing:-0.2px;color:#000;margin-bottom:10px}
-.section-content{font-size:15px;font-weight:500;line-height:24px;color:#000}
+.section-content{font-size:15px;line-height:24px;color:#000}
 .why{margin-top:24px}
 .why-label{font-family:'Lora',serif;font-size:16px;font-weight:700;line-height:26px;color:#000;margin-bottom:8px}
-.why-text{font-size:15px;font-weight:500;line-height:24px;color:#000}
+.why-text{font-size:15px;line-height:24px;color:#000}
 .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:24px}
-.tag{display:inline-block;background:#F5F2EE;border-radius:14px;padding:3px 8px;font-size:10px;font-weight:700;color:#000}
+.tag{display:inline-block;background:#F5F2EE;border-radius:14px;padding:3px 8px;font-size:10px;font-weight:600;color:#000}
 .glossary{margin-top:24px}
-.glossary-toggle{font-size:11px;font-weight:700;letter-spacing:1.5px;color:#000;text-transform:uppercase;cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between}
+.glossary-toggle{font-size:11px;font-weight:600;letter-spacing:1.5px;color:#000;text-transform:uppercase;cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between}
 .glossary-toggle::-webkit-details-marker{display:none}
 .glossary-toggle svg{transition:transform 0.2s}
 details[open] .glossary-toggle svg{transform:rotate(180deg)}
 .glossary-list{padding-top:10px;padding-left:12px}
-.glossary-term{font-size:12px;font-weight:700;color:#000;margin-bottom:1px}
-.glossary-desc{font-size:11px;font-weight:500;color:#000;line-height:17px}
+.glossary-term{font-size:12px;font-weight:600;color:#000;margin-bottom:1px}
+.glossary-desc{font-size:11px;color:#000;line-height:17px}
 .original-btn{display:flex;align-items:center;justify-content:center;gap:8px;background:#F5F2EE;border:none;border-radius:14px;padding:13px 20px;margin:32px 0 8px;text-decoration:none;min-height:44px}
 .original-btn span{font-size:15px;font-weight:700;color:#000}
 .original-btn svg{flex-shrink:0}
 .footer{border-top:1px solid #E7E5E4;padding:16px 20px;text-align:center}
 .footer-brand{font-size:13px;font-weight:700;color:#000;letter-spacing:0.5px}
 .footer-sub{font-size:11px;color:#999;margin-top:2px}
+.background-text,.section-content,.why-text{-webkit-text-stroke:0.3px currentColor}
+.date,.read-time,.glossary-desc,.one-line p{-webkit-text-stroke:0.2px currentColor}
+.tag,.glossary-toggle,.glossary-term{-webkit-text-stroke:0.15px currentColor}
+h1,.logo,.source-badge,.section-subtitle,.why-label,.original-btn span,.footer-brand{-webkit-text-stroke:0.1px currentColor}
 </style>
 </head>
 <body>

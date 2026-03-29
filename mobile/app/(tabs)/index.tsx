@@ -498,9 +498,10 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
               </View>
             )}
 
-            {/* Read Original 버튼 */}
+            {/* Read Original 버튼 — Source Card 스타일 */}
             {article.link ? (
               <View style={{ paddingHorizontal: 20, marginTop: 32, marginBottom: 8 }}>
+                <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginBottom: 24 }} />
                 <Pressable
                   onPress={() => openArticle(article.link)}
                   accessibilityRole="button"
@@ -508,16 +509,36 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
                   style={({ pressed }) => ({
                     backgroundColor: colors.surface,
                     borderRadius: 14,
-                    paddingVertical: 13,
-                    paddingHorizontal: 20,
+                    paddingVertical: 14,
+                    paddingHorizontal: 16,
                     minHeight: 44,
                     opacity: pressed ? 0.7 : 1,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 12,
                   })}
                 >
-                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                    <ExternalLink size={16} color={colors.textPrimary} />
-                    <Text style={{ fontSize: 15, fontWeight: '700', color: colors.textPrimary }}>{t('article.read_original')}</Text>
+                  {/* 소스 파비콘 */}
+                  <View style={{
+                    width: 28, height: 28, borderRadius: 7,
+                    backgroundColor: colors.border,
+                    alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: colors.textSecondary }}>
+                      {getSourceName(article.source_key || article.source, t).charAt(0).toUpperCase()}
+                    </Text>
                   </View>
+                  {/* 소스명 + 액션 */}
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 12, fontWeight: '600', color: colors.textDim }} numberOfLines={1}>
+                      {getSourceName(article.source_key || article.source, t)}
+                    </Text>
+                    <Text style={{ fontSize: 14, fontWeight: '700', color: colors.textPrimary }}>
+                      {t('article.read_original')}
+                    </Text>
+                  </View>
+                  {/* 화살표 */}
+                  <ExternalLink size={18} color={colors.textDim} />
                 </Pressable>
               </View>
             ) : null}
