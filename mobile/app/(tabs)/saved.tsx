@@ -12,7 +12,7 @@ import { View, Text, FlatList, Pressable, Alert, Modal, ScrollView, ActivityIndi
 import { Image } from 'expo-image';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Bookmark, ExternalLink, Trash2, Newspaper, BookOpen, X, ChevronDown, Heart, Share2, MessageCircle, Clock } from 'lucide-react-native';
+import { Bookmark, ArrowUpRight, ExternalLink, Trash2, Newspaper, BookOpen, X, ChevronDown, Heart, Share2, MessageCircle, Clock } from 'lucide-react-native';
 import { useAuth } from '@/hooks/useAuth';
 import { useBookmarks } from '@/hooks/useBookmarks';
 import { useArticle } from '@/hooks/useArticle';
@@ -152,7 +152,7 @@ function SavedItemCard({
 /** 기사 요약 모달 내부 콘텐츠 — index.tsx SummaryModalContent와 동일한 디자인 */
 function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: Article; onClose: () => void; onOpenComments: () => void }) {
   const { lang, t } = useLanguage();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const { user } = useAuth();
   const { showComments } = useFeatureFlags();
   const { isBookmarked, toggleBookmark } = useBookmarks(user?.uid ?? null);
@@ -450,7 +450,7 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
             {/* Read Original 버튼 — Source Card 스타일 */}
             {article.link ? (
               <View style={{ paddingHorizontal: 20, marginTop: 32, marginBottom: 8 }}>
-                <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginBottom: 24 }} />
+                <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginTop: 24, marginBottom: 24 }} />
                 <Pressable
                   onPress={() => openArticle(article.link)}
                   accessibilityRole="button"
@@ -473,13 +473,13 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
                     backgroundColor: colors.border,
                     alignItems: 'center', justifyContent: 'center',
                   }}>
-                    <Text style={{ fontSize: 13, fontWeight: '700', color: colors.textSecondary }}>
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: isDark ? '#A8A29E' : '#57534E' }}>
                       {getSourceName(article.source_key || article.source, t).charAt(0).toUpperCase()}
                     </Text>
                   </View>
                   {/* 소스명 + 액션 */}
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 12, fontWeight: '600', color: colors.textDim }} numberOfLines={1}>
+                    <Text style={{ fontSize: 12, fontWeight: '600', color: colors.textPrimary, opacity: 0.5, marginBottom: 1 }} numberOfLines={1}>
                       {getSourceName(article.source_key || article.source, t)}
                     </Text>
                     <Text style={{ fontSize: 14, fontWeight: '700', color: colors.textPrimary }}>
@@ -487,7 +487,7 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
                     </Text>
                   </View>
                   {/* 화살표 */}
-                  <ExternalLink size={18} color={colors.textDim} />
+                  <ArrowUpRight size={18} color={colors.textPrimary} style={{ opacity: 0.35 }} />
                 </Pressable>
               </View>
             ) : null}
