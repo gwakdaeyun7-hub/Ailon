@@ -343,6 +343,8 @@ function buildArticleHTML(article, articleId, lang) {
   const imgUrl = article.image_url || "";
   const ogImg = imgUrl || `https://${HOSTING_DOMAIN}/og-default.png`;
   const pageUrl = `https://${HOSTING_DOMAIN}/article/${articleId}`;
+  const OG_TITLE_MAX = 60;
+  const ogTitle = title.length > OG_TITLE_MAX ? title.slice(0, OG_TITLE_MAX - 1) + "\u2026" : title;
 
   const sectionsHTML = sections.map((s, i) => `
     <div style="margin-top:${i === 0 ? 0 : 32}px">
@@ -376,15 +378,13 @@ function buildArticleHTML(article, articleId, lang) {
 <meta name="color-scheme" content="light only">
 <title>${esc(title)} — AILON</title>
 <meta property="og:type" content="article">
-<meta property="og:title" content="${esc(title)}">
-<meta property="og:description" content="${esc(oneLine)}">
+<meta property="og:title" content="${esc(ogTitle)}">
 <meta property="og:image" content="${esc(ogImg)}">
 <meta property="og:url" content="${esc(pageUrl)}">
 <meta property="og:site_name" content="AILON">
 <meta property="og:locale" content="${lang === "ko" ? "ko_KR" : "en_US"}">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="${esc(title)}">
-<meta name="twitter:description" content="${esc(oneLine)}">
+<meta name="twitter:title" content="${esc(ogTitle)}">
 <meta name="twitter:image" content="${esc(ogImg)}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

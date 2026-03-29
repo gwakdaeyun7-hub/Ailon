@@ -128,7 +128,7 @@
 | useNotifications | `users/{uid}` | Expo + FCM token registration (notificationsEnabled 마스터 토글 확인 후), Android channels (news/social) + cold start router readiness detection |
 | useNotificationSettings | `users/{uid}/preferences` | Per-type notification toggles |
 | useReportComment | `reports`, `comments/{docId}/entries` | Comment reporting with dedup + reportCount increment |
-| useShareLink | OS Share API | 웹 공유 페이지 URL 생성 + 텍스트 폴백 + OS 공유 시트 (index.tsx, saved.tsx) |
+| useShareLink | OS Share API | URL만 전송 → OG 프리뷰(썸네일+제목) 단일 메시지 + 텍스트 폴백 (index.tsx, saved.tsx) |
 | useReadStats | `users/{uid}/read_history` | Read tracking + weekly/total/saved stats |
 | useFeatureFlags | `app_config/social_features` | Social feature flags (like counts, comments visibility) |
 
