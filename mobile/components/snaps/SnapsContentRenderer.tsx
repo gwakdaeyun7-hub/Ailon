@@ -312,12 +312,12 @@ function HeadingBlock({ text, isFirst }: { text: string; isFirst?: boolean }) {
   const { colors } = useTheme();
   return (
     <View style={{
-      marginTop: 36,
+      marginTop: isFirst ? 36 : 28,
       marginBottom: 12,
       ...(!isFirst && {
         borderTopWidth: 1,
         borderTopColor: colors.border,
-        paddingTop: 20,
+        paddingTop: 28,
       }),
     }}>
       <Text

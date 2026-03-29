@@ -2086,7 +2086,8 @@ def categorizer_node(state: NewsGraphState) -> dict:
 
     # ── subtitle-content 정합성 검사 (접기 밖 — 항상 표시) ──
     _GENERIC_SUBS = {"개요", "결론", "기타", "주요 내용", "요약", "정리", "핵심 사항",
-                     "Overview", "Conclusion", "Summary", "Key Details"}
+                     "주요 발견 사항", "주요 발견", "주요 특징", "주요 성과", "주요 결과",
+                     "Overview", "Conclusion", "Summary", "Key Details", "Key Findings"}
     _SC_STOP = {"이", "그", "저", "및", "등", "더", "또", "위", "대", "중", "새",
                 "the", "a", "an", "of", "in", "to", "and", "for", "is", "on", "at", "by", "with"}
     _sc_generic = 0
