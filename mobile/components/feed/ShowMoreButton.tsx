@@ -45,6 +45,10 @@ export function ShowMoreButton({
         accessibilityRole="button"
         accessibilityState={isExpanded != null ? { expanded: isExpanded } : undefined}
         style={({ pressed }) => ({
+          opacity: pressed ? 0.7 : 1,
+        })}
+      >
+        <View style={{
           flexDirection: 'row',
           alignItems: 'center',
           gap: 6,
@@ -55,17 +59,16 @@ export function ShowMoreButton({
           borderWidth: 1,
           borderColor: colors.border,
           backgroundColor: colors.card,
-          opacity: pressed ? 0.7 : 1,
-        })}
-      >
-        <Text style={{ fontSize: 13, fontWeight: '600', color: colors.textPrimary }}>
-          {label}
-        </Text>
-        {isExpanded ? (
-          <ChevronUp size={14} color={colors.textPrimary} strokeWidth={2} />
-        ) : (
-          <ChevronDown size={14} color={colors.textPrimary} strokeWidth={2} />
-        )}
+        }}>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: colors.textPrimary }}>
+            {label}
+          </Text>
+          {isExpanded ? (
+            <ChevronUp size={14} color={colors.textPrimary} strokeWidth={2} />
+          ) : (
+            <ChevronDown size={14} color={colors.textPrimary} strokeWidth={2} />
+          )}
+        </View>
       </Pressable>
     </View>
   );
