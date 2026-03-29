@@ -244,8 +244,8 @@ const CATEGORY_NAMES = {
 };
 
 const LABELS = {
-  ko: { whyImportant: "\uC65C \uC911\uC694\uD574\uC694?", openApp: "AILON \uC571\uC5D0\uC11C \uBCF4\uAE30", readOriginal: "\uC6D0\uBB38 \uBCF4\uAE30", footer: "AI \uB274\uC2A4 & \uC778\uC0AC\uC774\uD2B8", notFound: "\uAE30\uC0AC\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4", glossary: "\uC6A9\uC5B4 \uD574\uC124" },
-  en: { whyImportant: "Why It Matters", openApp: "Open in AILON", readOriginal: "Read Original", footer: "AI News & Insights", notFound: "Article not found", glossary: "Glossary" },
+  ko: { whyImportant: "\uC65C \uC911\uC694\uD574\uC694?", openApp: "AILON \uC571\uC5D0\uC11C \uBCF4\uAE30", readOriginal: "\uC6D0\uBB38 \uBCF4\uAE30", footer: "AI Insight Linked On Network", notFound: "\uAE30\uC0AC\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4", glossary: "\uC6A9\uC5B4 \uD574\uC124" },
+  en: { whyImportant: "Why It Matters", openApp: "Open in AILON", readOriginal: "Read Original", footer: "AI Insight Linked On Network", notFound: "Article not found", glossary: "Glossary" },
 };
 
 const EN_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -437,7 +437,6 @@ details[open] .glossary-toggle svg{transform:rotate(180deg)}
 <body>
 <div class="header">
   <span class="logo"><img src="/ailon_logo.png" alt="AILON">AILON</span>
-  <a class="header-btn" href="ailon://article/${esc(articleId)}">${esc(l.openApp)}</a>
 </div>
 <div class="card">
   ${imgUrl ? `<img class="thumb" src="${esc(imgUrl)}" alt="${esc(title)}" onerror="this.style.display='none'">` : ""}
@@ -459,7 +458,7 @@ details[open] .glossary-toggle svg{transform:rotate(180deg)}
   </div>
   <div class="footer">
     <span class="footer-logo">AILON</span>
-    <span class="footer-sub">${esc(l.footer)}</span>
+    <span class="footer-sub">— ${esc(l.footer)}</span>
   </div>
 </div>
 </body>
