@@ -12,7 +12,7 @@
 - **Categories**: Horizontal scroll tab chips (research / models_products / industry_business), Top 20 per category. 섹션 헤더 텍스트 없이 탭 칩만 표시
 - **Sources**: 22 source sections, Korean sources (AI타임스, GeekNews, ZDNet AI, 요즘IT) in separate tabs. 섹션 헤더 텍스트 없이 구분선만 표시
 - **Article Card**: display_title, one_line, sections (소제목+내용 2-4개), why_important, background, tags, glossary, "Read Original" button (openArticle → expo-web-browser In-App Browser). 요약 모달: F-Minimal 디자인 (소스 뱃지+읽기시간(Clock)+날짜(우측), 배경↔본문 구분선, 세리프 제목, One Line 16pt(장식 없음), 소제목+내용 sections 15pt(배경 없음), 본문↔왜중요해요 구분선, 세리프 소제목 textSecondary, 태그 pill, 원문 버튼 textPrimary 테두리). 기존 Firestore key_points 데이터는 폴백 렌더링 지원
-- **Interactions**: Like/dislike (ReactionBar), comments (CommentSheet modal), share (웹 공유 링크 useShareLink + 텍스트 폴백), bookmark. 소셜 기능(좋아요 숫자, 댓글)은 Firestore feature flag(`app_config/social_features`)로 조건부 표시
+- **Interactions**: Like/dislike, comments (CommentSheet modal), share (웹 공유 링크 useShareLink + 텍스트 폴백), bookmark. 소셜 기능(좋아요 숫자, 댓글)은 Firestore feature flag(`app_config/social_features`)로 조건부 표시
 - **Glossary Highlighting**: Auto-detects terms in text, tap for definition popup (HighlightedText)
 - **Related Articles**: Horizontal carousel in summary modal (RelatedArticlesSection)
 - **Pull-to-refresh**, skeleton loading, batch stats fetching
@@ -103,12 +103,10 @@
 
 ### Shared Components
 - **CommentSheet**: Full-screen modal, threaded replies, author avatars, report (Flag icon) + delete (Trash icon) per comment, ReportReasonModal (4 reasons), auto-hide at 3+ reports
-- **ReactionBar**: Like (count) + Comment + Share buttons (`articleId` prop 시 웹 공유 URL)
 - **BookmarkButton**: Toggle bookmark with filled/stroke icon
 - **HighlightedText**: Auto glossary term detection + definition modal
 - **RelatedArticlesSection**: Horizontal card carousel (entity/cluster matching)
 - **DailyBriefingCard**: 접힌 상태(TTS + 라벨) / 펼친 상태(도메인 도넛 차트 + 태그 클라우드 + 연구 기사 7일 스파크라인 + 브리핑 전문). 도넛 차트는 topic_cluster_id 기반 도메인 분포(Top 5 + Others) 표시, 도메인 팔레트(NLP/Vision/ML/Robotics/Multimodal/Business/Infra/Regulation/Audio/Security/Science/Dev/Others). 핫토픽은 lang별 hot_topics/hot_topics_en 분기 (EN 없으면 KO 폴백)
-- **ShareCard**: 오프스크린 렌더링 → react-native-view-shot 캡처 → expo-sharing 공유. 텍스트 폴백 내장 (현재 미사용 — index.tsx/saved.tsx 모두 useShareLink로 전환)
 - **SideDrawer**: Animated left panel (82% width, max 320px)
 - **ShowMoreButton**: 더보기/접기 pill 버튼 + ChevronDown/Up 아이콘 (카테고리, GeekNews 세로 리스트 공용)
 - **InteractiveSim** (`components/snaps/InteractiveSim.tsx`): WebView wrapper for simulations. react-native-webview lazy import (네이티브 모듈 없으면 graceful fallback). theme(isDark)/lang aware, 동적 높이 조절
@@ -130,8 +128,7 @@
 | useNotifications | `users/{uid}` | Expo + FCM token registration (notificationsEnabled 마스터 토글 확인 후), Android channels (news/social) + cold start router readiness detection |
 | useNotificationSettings | `users/{uid}/preferences` | Per-type notification toggles |
 | useReportComment | `reports`, `comments/{docId}/entries` | Comment reporting with dedup + reportCount increment |
-| useShareImage | react-native-view-shot + expo-sharing | ShareCard 캡처 → 이미지 공유 (현재 미사용 — useShareLink로 대체) |
-| useShareLink | OS Share API | 웹 공유 페이지 URL 생성 + OS 공유 시트 (index.tsx, saved.tsx, ReactionBar) |
+| useShareLink | OS Share API | 웹 공유 페이지 URL 생성 + 텍스트 폴백 + OS 공유 시트 (index.tsx, saved.tsx) |
 | useReadStats | `users/{uid}/read_history` | Read tracking + weekly/total/saved stats |
 | useFeatureFlags | `app_config/social_features` | Social feature flags (like counts, comments visibility) |
 
