@@ -392,8 +392,8 @@ function buildArticleHTML(article, articleId, lang) {
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{color-scheme:light only}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#fff;color:#000;min-height:100vh}
-.header{background:#fff;border-bottom:1px solid #E7E5E4;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F5F5F4;color:#000;min-height:100vh}
+.header{max-width:480px;margin:0 auto;background:#fff;border-bottom:1px solid #E7E5E4;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
 .logo{display:flex;align-items:center;gap:8px;font-size:18px;font-weight:800;color:#000;letter-spacing:1.5px}
 .logo img{width:28px;height:28px;border-radius:6px}
 .header-btn{background:transparent;border:1.5px solid #000;color:#000;font-weight:700;font-size:12px;padding:8px 16px;border-radius:8px;text-decoration:none}
