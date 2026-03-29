@@ -504,6 +504,43 @@ def _extract_content_encoded_images(raw_xml: str) -> dict[str, str]:
     return result
 
 
+def _fetch_via_rss2json(rss_url: str, name: str) -> tuple[list[dict], dict[str, str]]:
+    """rss2json.com 프록시 경유 RSS 수집 (서버 403/IP 차단 대응).
+    Returns: (feedparser-compatible entry dicts, {link: image_url})
+    """
+    try:
+        resp = requests.get(
+            "https://api.rss2json.com/v1/api.json",
+            params={"rss_url": rss_url},
+            timeout=15,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        if data.get("status") != "ok":
+            return [], {}
+
+        entries: list[dict] = []
+        images: dict[str, str] = {}
+        for item in data.get("items", []):
+            entry = {
+                "title": item.get("title", ""),
+                "link": item.get("link", ""),
+                "summary": item.get("description", ""),
+                "published": item.get("pubDate") or "",
+                "content": [{"value": item.get("content", "")}] if item.get("content") else [],
+            }
+            entries.append(entry)
+            thumb = item.get("thumbnail", "")
+            if thumb and thumb.startswith("http"):
+                images[item.get("link", "")] = thumb
+
+        print(f"    [RSS] {name}: rss2json proxy → {len(entries)}개 수집")
+        return entries, images
+    except Exception as e:
+        print(f"    [RSS] {name}: rss2json proxy failed ({e})")
+        return [], {}
+
+
 # ─── RSS 수집 ────────────────────────────────────────────────────────────
 def fetch_source(source_config: dict) -> list[dict]:
     """단일 소스에서 기사 수집 (RSS 또는 HTML 스크래핑)"""
@@ -543,11 +580,22 @@ def fetch_source(source_config: dict) -> list[dict]:
                 # 원본 XML 가져오기 실패 시 feedparser direct 폴백
                 print(f"    [RSS] {name}: raw XML fetch failed ({e}), feedparser direct fallback")
                 feed = feedparser.parse(rss_url, agent=_chrome_ua)
-            # Phase 3: 여전히 0 entries면 WARNING 로그
-            if not feed.entries:
+            # Phase 3: rss2json.com 프록시 fallback (서버 403/IP 차단 대응)
+            if not feed or not feed.entries:
+                rss2json_entries, rss2json_images = _fetch_via_rss2json(rss_url, name)
+                if rss2json_entries:
+                    feed = type('Feed', (), {'entries': rss2json_entries})()
+                    raw_content_images.update(rss2json_images)
+            # Phase 4: 여전히 0 entries면 WARNING 로그
+            if not feed or not feed.entries:
                 print(f"  [WARNING] {name}: 0 entries after all fetch attempts (URL: {rss_url})")
         else:
             feed = feedparser.parse(rss_url, agent=_chrome_ua)
+            # rss2json.com 프록시 fallback (서버 403/IP 차단 대응)
+            if not feed.entries:
+                rss2json_entries, _ = _fetch_via_rss2json(rss_url, name)
+                if rss2json_entries:
+                    feed = type('Feed', (), {'entries': rss2json_entries})()
 
         for entry in feed.entries:
             if len(articles) >= max_items:

@@ -14,7 +14,7 @@ LangGraph 8-node pipeline with parallel EN/KO branches:
 
 | Node | Function | Key Config |
 |------|----------|------------|
-| collector | 22 RSS sources + scraping + LLM AI filter + date recovery | trafilatura + Chrome UA, 6 RSS workers + 10 scrape workers + 4 AI filter workers. RSS 날짜 미추출 시 `date_estimated=True` 마킹 → 스크래핑에서 meta 태그(article:published_time 등), `<time>`, JSON-LD, trafilatura bare_extraction으로 날짜 복원. `content_image` 소스: 3-phase fetch (raw XML → feedparser direct fallback → WARNING 로그) + 전체 Chrome UA + 이중 인코딩 이미지 `html.unescape()` 복구 |
+| collector | 22 RSS sources + scraping + LLM AI filter + date recovery | trafilatura + Chrome UA, 6 RSS workers + 10 scrape workers + 4 AI filter workers. RSS 날짜 미추출 시 `date_estimated=True` 마킹 → 스크래핑에서 meta 태그(article:published_time 등), `<time>`, JSON-LD, trafilatura bare_extraction으로 날짜 복원. `content_image` 소스: 4-phase fetch (raw XML → feedparser direct → rss2json.com proxy fallback → WARNING 로그) + 전체 Chrome UA + 이중 인코딩 이미지 `html.unescape()` 복구 |
 | en_process | EN→KO translation + summarization | batch=3, max_tokens=12288, 5 parallel workers, 6-phase (batch→소배치(2)→individual→fallback→간이번역→제목교정). dict 복구 로직(원본 재탐색+string→dict 파싱). 미요약(one_line 없음) 기사는 간이번역 스킵, selector에서 제외 |
 | ko_process | KO summarization | batch=2, max_tokens=12288, 5 parallel workers, 3-phase retry. 미요약 기사는 selector에서 제외 |
 | categorizer | LLM 3-category classification + 7-layer dedup + 요약 품질 QA | batch=5, 3 parallel workers. 요약 말투 위반 + subtitle-content 정합성 자동 감지 + 전체 기사 요약 상세 출력 |
@@ -198,7 +198,7 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 - **분류 편향 경고**: industry_business 60% 초과는 catch-all 설계상 정상, 연속 3회 70%+에서만 프롬프트 조정 검토
 - **Tom's Hardware 범용 피드**: NEEDS_AI_FILTER로 비AI 기사 필터링 중, 필터율 30-80% 정상
 - **요즘IT RSS 이중 인코딩**: content:encoded가 `&lt;![CDATA[&lt;img...` 형태로 이중 HTML-escape됨 (2026-03 발생). `_extract_content_encoded_images()`가 원본 XML에서 `html.unescape()` 후 이미지 추출. 정상 인코딩 시 기존 경로 작동 (하위 호환)
-- **content_image 소스 silent 0건 수집**: GitHub Actions에서 raw XML fetch가 HTTP 200이지만 비RSS 응답(IP 차단/챌린지 페이지) 반환 시 feedparser가 0 entries → silent failure. 3-phase fallback 추가 (2026-03-29): Phase 1 raw XML → Phase 2 feedparser direct → Phase 3 WARNING 로그. 전체 RSS fetch에 Chrome UA(`_FALLBACK_HEADERS`) 적용
+- **content_image 소스 silent 0건 수집**: GitHub Actions에서 raw XML fetch가 HTTP 403(IP 차단) 반환 시 feedparser도 0 entries → silent failure. 4-phase fallback (2026-03-29): Phase 1 raw XML → Phase 2 feedparser direct → Phase 3 rss2json.com proxy fallback → Phase 4 WARNING 로그. 전체 RSS fetch에 Chrome UA(`_FALLBACK_HEADERS`) 적용. 일반 RSS 경로도 0 entries 시 rss2json fallback 추가
 - **날짜 추정 (`date_estimated`)**: RSS 날짜 미추출 시 스크래핑 복원 시도, 실패 시 UI에 `~` 접두사 표시
 - **VentureBeat/paywall**: trafilatura Chrome UA 설정 필요 (`_get_traf_config`)
 - **sections 구조**: 소제목+내용 2~4개 섹션 [{subtitle, content}], subtitle은 명사구, content는 서술체(~했다, ~됐다) 3~5문장. 기존 Firestore의 key_points 데이터는 모바일에서 폴백 렌더링 지원

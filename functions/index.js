@@ -394,7 +394,8 @@ function buildArticleHTML(article, articleId, lang) {
 :root{color-scheme:light only}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F5F5F4;color:#000;min-height:100vh}
 .header{background:#fff;border-bottom:1px solid #E7E5E4;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
-.logo{font-size:18px;font-weight:800;color:#000;letter-spacing:1.5px}
+.logo{display:flex;align-items:center;gap:8px;font-size:18px;font-weight:800;color:#000;letter-spacing:1.5px}
+.logo img{width:28px;height:28px;border-radius:6px}
 .header-btn{background:transparent;border:1.5px solid #000;color:#000;font-weight:700;font-size:12px;padding:8px 16px;border-radius:8px;text-decoration:none}
 .card{max-width:480px;margin:16px auto;background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.06)}
 .thumb{width:100%;height:200px;object-fit:cover;display:block}
@@ -431,12 +432,11 @@ details[open] .glossary-toggle svg{transform:rotate(180deg)}
 .footer{border-top:1px solid #E7E5E4;padding:16px 20px;display:flex;align-items:center;justify-content:space-between}
 .footer-logo{font-size:14px;font-weight:800;color:#000;letter-spacing:1px}
 .footer-sub{font-size:11px;color:#999}
-.cta{display:block;text-align:center;background:transparent;border-top:1.5px solid #E7E5E4;color:#000;font-weight:700;font-size:15px;padding:14px;border-radius:0 0 20px 20px;text-decoration:none}
 </style>
 </head>
 <body>
 <div class="header">
-  <span class="logo">AILON</span>
+  <span class="logo"><img src="/ailon_logo.png" alt="AILON">AILON</span>
   <a class="header-btn" href="ailon://article/${esc(articleId)}">${esc(l.openApp)}</a>
 </div>
 <div class="card">
@@ -461,7 +461,6 @@ details[open] .glossary-toggle svg{transform:rotate(180deg)}
     <span class="footer-logo">AILON</span>
     <span class="footer-sub">${esc(l.footer)}</span>
   </div>
-  <a class="cta" href="ailon://article/${esc(articleId)}">${esc(l.openApp)}</a>
 </div>
 </body>
 </html>`;
