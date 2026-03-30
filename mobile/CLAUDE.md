@@ -106,7 +106,7 @@
 - **BookmarkButton**: Toggle bookmark with filled/stroke icon
 - **HighlightedText**: Auto glossary term detection + definition modal
 - **RelatedArticlesSection**: Horizontal card carousel (entity/cluster matching)
-- **DailyBriefingCard**: 접힌 상태(TTS + 라벨) / 펼친 상태(도메인 도넛 차트 + 태그 클라우드 + 연구 기사 7일 스파크라인 + 브리핑 전문). 도넛 차트는 topic_cluster_id 기반 도메인 분포(Top 5 + Others) 표시, 도메인 팔레트(NLP/Vision/ML/Robotics/Multimodal/Business/Infra/Regulation/Audio/Security/Science/Dev/Others). 핫토픽은 lang별 hot_topics/hot_topics_en 분기 (EN 없으면 KO 폴백)
+- **DailyBriefingCard**: 접힌 상태(TTS + 라벨) / 펼친 상태(도메인 도넛 차트 + 태그 클라우드 + 연구 기사 14일 스파크라인 + 브리핑 전문). 도넛 차트는 topic_cluster_id 기반 도메인 분포(Top 5 + Others) 표시, 도메인 팔레트(NLP/Vision/ML/Robotics/Multimodal/Business/Infra/Regulation/Audio/Security/Science/Dev/Others). 핫토픽은 lang별 hot_topics/hot_topics_en 분기 (EN 없으면 KO 폴백)
 - **SideDrawer**: Animated left panel (82% width, max 320px)
 - **ShowMoreButton**: 더보기/접기 pill 버튼 + ChevronDown/Up 아이콘 (카테고리, GeekNews 세로 리스트 공용)
 - **InteractiveSim** (`components/snaps/InteractiveSim.tsx`): WebView wrapper for simulations. react-native-webview lazy import (네이티브 모듈 없으면 graceful fallback). theme(isDark)/lang aware, 동적 높이 조절
