@@ -89,7 +89,7 @@ SOURCES = [
         "key": "siliconangle",
         "name": "SiliconANGLE",
         "rss_url": "https://siliconangle.com/feed/",
-        "max_items": 40,
+        "max_items": 50,
         "lang": "en",
         "rss_image_field": "media_thumbnail",  # media:thumbnail 또는 enclosure
     },
@@ -120,7 +120,7 @@ SOURCES = [
         "key": "the_register_ai",
         "name": "The Register AI",
         "rss_url": "https://www.theregister.com/software/ai_ml/headlines.atom",
-        "max_items": 40,
+        "max_items": 50,
         "lang": "en",
     },
     {
