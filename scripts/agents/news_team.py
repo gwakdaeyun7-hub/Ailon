@@ -384,7 +384,12 @@ def _summarize_batch(batch: list[dict], batch_idx: int, translate: bool = True) 
             "- display_title_en: concise English headline (news-style, not a literal back-translation). Use '...' and '?' freely when tone fits (intrigue, suspense, speculation, open questions). Never use '...' as separator after confirmed facts. Good: 'OpenAI Hints at Next-Gen Model...' / 'Can AI Replace Doctors?' Bad: 'Meta Launches New Chip...'\n"
             "- one_line_en: 1-sentence English headline of what happened (WHO did WHAT). No details, no numbers -- just the event.\n"
             "- sections_en: Same structure as sections in English. Array of {\"subtitle\": \"Subtitle\", \"content\": \"Content\"}\n"
-            "  - subtitle: 3-5 word specific noun phrase. No generic words like \"Overview\", \"Conclusion\", \"Summary\", \"Key Details\".\n"
+            "  - subtitle: 3-5 word specific noun phrase. Keywords in subtitle MUST appear in that section's content.\n"
+            "    BANNED words: \"Overview\", \"Conclusion\", \"Summary\", \"Key Details\"\n"
+            "    BANNED patterns: \"...Implications\", \"...Significance\", \"Future Outlook\", \"...Landscape\", \"Role of...\", \"Impact of...\"\n"
+            "    GOOD: \"K8s DRA Driver Integration\", \"Claude Mac Remote Control\", \"GPT-6 Benchmark Results\"\n"
+            "    BAD: \"Infrastructure Efficiency Gains\" (content mentions K8s, DRA, GPU but subtitle has none)\n"
+            "    BAD: \"Digital Rights Evolution\" (content mentions EFF, ICE but subtitle has none)\n"
             "  - content: 3-5 sentences per section. Descriptive prose with concrete details, numbers, and context.\n"
             "- why_important_en: 1-2 sentences on impact. Name WHO is affected and HOW specifically. No overlap with one_line_en or sections_en. Never say 'significant impact' without specifics.\n"
             "- background_en: 1-2 sentence English background context\n"
@@ -399,7 +404,11 @@ def _summarize_batch(batch: list[dict], batch_idx: int, translate: bool = True) 
             "- display_title_en: concise English headline for this article. '...' only for 20-30% with genuine intrigue/suspense, never for confirmed facts\n"
             "- one_line_en: 1-sentence English headline of what happened (WHO did WHAT). No details, no numbers -- just the event.\n"
             "- sections_en: Same structure as sections in English. Array of {\"subtitle\": \"Subtitle\", \"content\": \"Content\"}\n"
-            "  - subtitle: 3-5 word specific noun phrase. No generic words like \"Overview\", \"Conclusion\", \"Summary\", \"Key Details\".\n"
+            "  - subtitle: 3-5 word specific noun phrase. Keywords in subtitle MUST appear in that section's content.\n"
+            "    BANNED words: \"Overview\", \"Conclusion\", \"Summary\", \"Key Details\"\n"
+            "    BANNED patterns: \"...Implications\", \"...Significance\", \"Future Outlook\", \"...Landscape\", \"Role of...\", \"Impact of...\"\n"
+            "    GOOD: \"K8s DRA Driver Integration\", \"Claude Mac Remote Control\"\n"
+            "    BAD: \"Infrastructure Efficiency Gains\" (content mentions K8s, DRA, GPU but subtitle has none)\n"
             "  - content: 3-5 sentences per section. Descriptive prose with concrete details, numbers, and context.\n"
             "- why_important_en: 1-2 sentences on impact. Name WHO is affected and HOW specifically. No overlap with one_line_en or sections_en. Never say 'significant impact' without specifics.\n"
             "- background_en: 1-2 sentence English background context\n"
@@ -429,9 +438,16 @@ For each article, produce:
   - 나쁜 예: "OpenAI가 GPT-5를 공식 출시했어요" (X -- 경어체 금지)
 - sections: 기사의 핵심 내용을 2-4개 소제목+내용 섹션으로 구조화. 각 섹션은 {{"subtitle": "소제목", "content": "내용"}} 형태의 배열.
   - subtitle: 해당 섹션의 핵심을 드러내는 구체적 명사구 (3-5단어)
-    ★ 금지: "개요", "결론", "기타", "주요 내용", "요약", "정리", "핵심 사항" 등 일반적/모호한 단어
+    ★ 핵심 규칙: subtitle의 키워드(고유명사, 기술 용어, 수치)가 해당 섹션 content에 반드시 등장해야 함
+    ★ 금지 단어: "개요", "결론", "기타", "주요 내용", "요약", "정리", "핵심 사항"
+    ★ 금지 패턴: "~의 변화", "~의 중요성", "~적 함의", "~의 영향", "향후 전망", "~의 의미", "지원 계획", "~의 역할"
+      → 이런 추상적 패턴은 어떤 기사에나 붙일 수 있으므로 금지. subtitle만 보고 무슨 기사인지 알 수 있어야 함
     ★ 사용: 해당 섹션만의 구체적 키워드를 포함한 명사구
-    예: "아키텍처 혁신", "성능 벤치마크 결과", "핵심 의무 사항", "가격 및 요금 체계", "오픈소스 라이선스 전환"
+    ✅ 좋은 예: "K8s DRA 드라이버 통합", "Claude Mac 원격 제어", "GPT-6 벤치마크 결과", "API 가격 50% 인하"
+    ❌ 나쁜 예: "AI 인프라 효율성 향상" (→ content에 K8s, DRA, GPU가 있는데 subtitle에 없음)
+    ❌ 나쁜 예: "지원 계획 및 향후 전망" (→ content에 Claude, Mac이 있는데 subtitle에 없음)
+    ❌ 나쁜 예: "디지털 권리 운동의 변화" (→ content에 EFF, ICE가 있는데 subtitle에 없음)
+    ❌ 나쁜 예: "신뢰와 데이터의 중요성" (→ content에 에이전트, 상거래가 있는데 subtitle에 없음)
   - content: 3-5문장의 서술체
     *** 말투: 반드시 "~했다" / "~됐다" / "~밝혔다" 서술체로 끝낼 것. "~했어요" 경어체 절대 금지. "~임" / "~됨" 개조식도 금지 ***
     해당 소제목에 대한 구체적 설명, 수치, 맥락을 포함. 단순 나열이 아닌 문장형으로 인과관계와 비교 맥락을 자연스럽게 서술
@@ -2087,7 +2103,14 @@ def categorizer_node(state: NewsGraphState) -> dict:
     # ── subtitle-content 정합성 검사 (접기 밖 — 항상 표시) ──
     _GENERIC_SUBS = {"개요", "결론", "기타", "주요 내용", "요약", "정리", "핵심 사항",
                      "주요 발견 사항", "주요 발견", "주요 특징", "주요 성과", "주요 결과",
+                     "효율성 향상", "향후 전망", "지원 계획 및 향후 전망",
                      "Overview", "Conclusion", "Summary", "Key Details", "Key Findings"}
+    # Suffix patterns for abstract/vague subtitles (e.g. "~의 변화", "~적 함의")
+    _GENERIC_SUFFIXES = ("의 변화", "의 중요성", "의 영향", "의 의미", "의 필요성",
+                         "의 가능성", "의 한계", "의 과제", "의 전망",
+                         "적 함의", "적 과제", "적 의의", "적 영향",
+                         "에 대한 전망", "에 대한 기대",
+                         "과 전망", "와 전망", "및 전망", "및 과제")
     _SC_STOP = {"이", "그", "저", "및", "등", "더", "또", "위", "대", "중", "새",
                 "the", "a", "an", "of", "in", "to", "and", "for", "is", "on", "at", "by", "with"}
     _sc_generic = 0
@@ -2110,7 +2133,7 @@ def categorizer_node(state: NewsGraphState) -> dict:
             if not _sc_sub:
                 continue
             _sc_total += 1
-            if _sc_sub in _GENERIC_SUBS:
+            if _sc_sub in _GENERIC_SUBS or any(_sc_sub.endswith(sfx) for sfx in _GENERIC_SUFFIXES):
                 _sc_generic += 1
                 _sc_gen_list.append(f"{_sc_t} → \"{_sc_sub}\"")
             if _sc_cont:
