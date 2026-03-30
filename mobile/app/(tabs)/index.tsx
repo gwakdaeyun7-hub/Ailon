@@ -23,7 +23,7 @@ import { Image } from 'expo-image';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import {
-  RefreshCw, ThumbsUp, Share2, MessageCircle, X, Cpu, Newspaper, Bookmark, ChevronDown, ArrowUpRight, Clock,
+  RefreshCw, ThumbsUp, Share2, MessageCircle, X, Cpu, Newspaper, Bookmark, ChevronDown, Clock,
 } from 'lucide-react-native';
 import { useNews } from '@/hooks/useNews';
 import { useDrawer } from '@/context/DrawerContext';
@@ -498,47 +498,26 @@ function SummaryModalContent({ article, onClose, onOpenComments }: { article: Ar
               </View>
             )}
 
-            {/* Read Original 버튼 — Source Card 스타일 */}
+            {/* Read Original 버튼 */}
             {article.link ? (
-              <View style={{ paddingHorizontal: 20, marginTop: 32, marginBottom: 8 }}>
-                <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginTop: 24, marginBottom: 24 }} />
+              <View style={{ marginTop: 24, marginBottom: 8, paddingHorizontal: 20 }}>
+                <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginBottom: 20 }} />
                 <Pressable
                   onPress={() => openArticle(article.link)}
                   accessibilityRole="button"
                   accessibilityLabel={t('article.read_original')}
                   style={({ pressed }) => ({
+                    alignSelf: 'flex-end' as const,
                     backgroundColor: colors.surface,
                     borderRadius: 14,
-                    paddingVertical: 14,
-                    paddingHorizontal: 16,
-                    minHeight: 44,
-                    opacity: pressed ? 0.7 : 1,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 12,
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    opacity: pressed ? 0.6 : 1,
                   })}
                 >
-                  {/* 소스 파비콘 */}
-                  <View style={{
-                    width: 28, height: 28, borderRadius: 7,
-                    backgroundColor: colors.border,
-                    alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    <Text style={{ fontSize: 13, fontWeight: '700', color: isDark ? '#A8A29E' : '#57534E' }}>
-                      {getSourceName(article.source_key || article.source, t).charAt(0).toUpperCase()}
-                    </Text>
-                  </View>
-                  {/* 소스명 + 액션 */}
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 12, fontWeight: '600', color: colors.textPrimary, opacity: 0.5, marginBottom: 1 }} numberOfLines={1}>
-                      {getSourceName(article.source_key || article.source, t)}
-                    </Text>
-                    <Text style={{ fontSize: 14, fontWeight: '700', color: colors.textPrimary }}>
-                      {t('article.read_original')}
-                    </Text>
-                  </View>
-                  {/* 화살표 */}
-                  <ArrowUpRight size={18} color={colors.textPrimary} style={{ opacity: 0.35 }} />
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: colors.textSecondary }}>
+                    {t('article.read_original')}
+                  </Text>
                 </Pressable>
               </View>
             ) : null}

@@ -13,6 +13,7 @@ import {
   Platform,
   UIManager,
   ScrollView,
+  useWindowDimensions,
 } from 'react-native';
 import {
   Play,
@@ -20,7 +21,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react-native';
-import Svg, { Circle, G, Path, Defs, LinearGradient, Stop, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, G, Path, Text as SvgText } from 'react-native-svg';
 import Speech from '@/lib/speech';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
@@ -269,9 +270,9 @@ const SparklineChart = React.memo(function SparklineChart({
 }) {
   if (data.length < 2) return null;
 
-  const paddingLeft = 8;
+  const paddingLeft = 32;
   const paddingRight = 8;
-  const paddingTop = 12;
+  const paddingTop = 8;
   const paddingBottom = 28;
   const chartW = width - paddingLeft - paddingRight;
   const chartH = height - paddingTop - paddingBottom;
@@ -289,13 +290,12 @@ const SparklineChart = React.memo(function SparklineChart({
   // Line path
   const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ');
 
-  // Area fill path (closed at bottom)
-  const areaPath =
-    linePath +
-    ` L${points[points.length - 1].x},${paddingTop + chartH}` +
-    ` L${points[0].x},${paddingTop + chartH} Z`;
-
   const lastPoint = points[points.length - 1];
+  const rightEdge = width - paddingRight;
+  const yTop = paddingTop;
+  const yMid = paddingTop + chartH / 2;
+  const yBottom = paddingTop + chartH;
+  const midVal = Math.round((maxVal + minVal) / 2);
 
   // Date labels (show first, middle, last)
   const labelIndices = data.length <= 7
@@ -310,18 +310,20 @@ const SparklineChart = React.memo(function SparklineChart({
 
   return (
     <Svg width={width} height={height}>
-      <Defs>
-        <LinearGradient id="sparkFill" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0%" stopColor={primaryColor} stopOpacity="0.3" />
-          <Stop offset="100%" stopColor={primaryColor} stopOpacity="0.02" />
-        </LinearGradient>
-      </Defs>
-      {/* Area fill */}
-      <Path d={areaPath} fill="url(#sparkFill)" />
+      {/* Grid lines */}
+      <Path d={`M${paddingLeft},${yTop} L${rightEdge},${yTop}`} stroke={dimColor} strokeWidth={0.5} strokeDasharray="4,4" />
+      <Path d={`M${paddingLeft},${yMid} L${rightEdge},${yMid}`} stroke={dimColor} strokeWidth={0.5} strokeDasharray="4,4" />
+      <Path d={`M${paddingLeft},${yBottom} L${rightEdge},${yBottom}`} stroke={dimColor} strokeWidth={0.5} />
+      {/* Y-axis labels */}
+      <SvgText x={paddingLeft - 6} y={yTop + 4} textAnchor="end" fontSize={9} fill={dimColor}>{maxVal}</SvgText>
+      <SvgText x={paddingLeft - 6} y={yMid + 3} textAnchor="end" fontSize={9} fill={dimColor}>{midVal}</SvgText>
+      <SvgText x={paddingLeft - 6} y={yBottom - 2} textAnchor="end" fontSize={9} fill={dimColor}>{minVal}</SvgText>
       {/* Line */}
       <Path d={linePath} stroke={primaryColor} strokeWidth={2.5} fill="none" strokeLinejoin="round" strokeLinecap="round" />
-      {/* End dot */}
-      <Circle cx={lastPoint.x} cy={lastPoint.y} r={4} fill={primaryColor} />
+      {/* Data points */}
+      {points.map((p, i) => (
+        <Circle key={i} cx={p.x} cy={p.y} r={i === points.length - 1 ? 4 : 2.5} fill={primaryColor} />
+      ))}
       {/* Date labels */}
       {labelIndices.map((idx) => {
         const isLast = idx === data.length - 1;
@@ -356,6 +358,7 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
   const { newsData } = useNews();
   const [speaking, setSpeaking] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const { width: screenWidth } = useWindowDimensions();
 
   const text = briefing
     ? lang === 'en'
@@ -493,19 +496,16 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
             ) : null}
 
             {/* Label */}
-            <View style={{ flex: 1 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Text
-                  style={{
-                    fontSize: 14,
-                    fontWeight: '700',
-                    color: colors.textPrimary,
-                  }}
-                >
-                  {t('briefing.title')}
-                </Text>
-              </View>
-            </View>
+            <Text
+              style={{
+                flex: 1,
+                fontSize: 14,
+                fontWeight: '700',
+                color: colors.textPrimary,
+              }}
+            >
+              {t('briefing.title')}
+            </Text>
 
             <ChevronDown size={16} color={colors.textPrimary} style={{ marginLeft: 4 }} />
           </View>
@@ -522,13 +522,13 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
           borderRadius: 16,
           overflow: 'hidden',
           borderWidth: 1,
-          borderColor: colors.primaryBorder,
+          borderColor: colors.border,
         }}
       >
         {/* Header */}
         <View
           style={{
-            backgroundColor: colors.primaryLight,
+            backgroundColor: colors.card,
             paddingHorizontal: 20,
             paddingTop: 20,
             paddingBottom: 16,
@@ -618,7 +618,7 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
         {/* Body */}
         <View
           style={{
-            backgroundColor: colors.primaryLight,
+            backgroundColor: colors.card,
             paddingHorizontal: 16,
             paddingTop: 16,
             paddingBottom: 20,
@@ -632,9 +632,6 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
-                  backgroundColor: colors.primaryLight,
-                  borderRadius: 14,
-                  padding: 16,
                 }}
               >
                 <DonutChart
@@ -746,9 +743,6 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
               <SectionTitle title={t('briefing.trend')} color={colors.textSecondary} />
               <View
                 style={{
-                  backgroundColor: colors.primaryLight,
-                  borderRadius: 14,
-                  padding: 12,
                   alignItems: 'center',
                 }}
               >
@@ -757,7 +751,7 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
                   primaryColor={colors.primary}
                   textColor={colors.textPrimary}
                   dimColor={colors.textDim}
-                  width={280}
+                  width={screenWidth - 66}
                   height={100}
                 />
               </View>
@@ -768,13 +762,7 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
           {text ? (
             <View style={{ marginBottom: 16 }}>
               <SectionTitle title={t('briefing.briefingText')} color={colors.textSecondary} />
-              <View
-                style={{
-                  backgroundColor: colors.primaryLight,
-                  borderRadius: 12,
-                  padding: 14,
-                }}
-              >
+              <View>
                 <Text
                   style={{
                     fontSize: 14,
@@ -798,7 +786,7 @@ export const DailyBriefingCard = React.memo(function DailyBriefingCard({
               flexDirection: 'row',
               alignItems: 'center',
               paddingHorizontal: 16,
-              paddingVertical: 14,
+              paddingVertical: 10,
               borderRadius: 14,
               backgroundColor: colors.primary + '15',
               gap: 4,

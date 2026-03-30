@@ -378,10 +378,10 @@ Articles:
         today = datetime.now(_KST).strftime("%Y-%m-%d")
         story_count = data.get("story_count", 0)
 
-        # 7-day trend: 과거 7일 + 오늘 research 카테고리 기사 수 추이
+        # 14-day trend: 과거 14일 + 오늘 research 카테고리 기사 수 추이
         trend_history = []
         try:
-            for i in range(7, 0, -1):
+            for i in range(14, 0, -1):
                 d = (datetime.now(_KST) - timedelta(days=i)).strftime("%Y-%m-%d")
                 past_doc = db.collection("daily_briefings").document(d).get()
                 if past_doc.exists:
@@ -436,7 +436,7 @@ Articles:
                 print(f"    {ht['tag']}: {ht['count']}회")
         if len(trend_history) > 1:
             trend_str = " → ".join(str(t["count"]) for t in trend_history)
-            print(f"\n  7일 추이: {trend_str}")
+            print(f"\n  14일 추이: {trend_str}")
         ci_endgroup()
 
         return data
