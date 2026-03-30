@@ -1,7 +1,7 @@
 """
-뉴스 수집 도구 — 22개 소스 RSS/스크래핑 기반 수집
+뉴스 수집 도구 — 24개 소스 RSS/스크래핑 기반 수집
 
-[Tier 1] 영어 AI 전문 뉴스 — Wired AI / The Verge AI / TechCrunch AI / MIT Tech Review / VentureBeat / The Decoder / MarkTechPost / AI Business / SiliconANGLE / TNW / TechXplore AI / Tom's Hardware
+[Tier 1] 영어 AI 전문 뉴스 — Wired AI / The Verge AI / TechCrunch AI / MIT Tech Review / VentureBeat / The Decoder / MarkTechPost / AI Business / SiliconANGLE / TNW / TechXplore AI / Tom's Hardware / The Register AI / InfoQ AI
 [Tier 2] AI 기업·매체 — Google DeepMind / NVIDIA / HuggingFace / Ars Technica AI / The Rundown AI / IEEE Spectrum AI
 [Tier 3] 한국 소스 — AI타임스 / GeekNews / ZDNet AI 에디터 / 요즘IT AI
 """
@@ -116,6 +116,21 @@ SOURCES = [
         "lang": "en",
         "rss_image_field": "enclosure",  # FutureCDN, 1280px
     },
+    {
+        "key": "the_register_ai",
+        "name": "The Register AI",
+        "rss_url": "https://www.theregister.com/software/ai_ml/headlines.atom",
+        "max_items": 40,
+        "lang": "en",
+    },
+    {
+        "key": "infoq_ai",
+        "name": "InfoQ AI",
+        "rss_url": "https://feed.infoq.com/ai-ml-data-eng",
+        "max_items": 30,
+        "lang": "en",
+        "rss_image_field": "content_image",
+    },
     # Tier 2: AI 기업·매체
     {
         "key": "deepmind_blog",
@@ -207,6 +222,7 @@ HIGHLIGHT_SOURCES = {
     "wired_ai", "the_verge_ai", "techcrunch_ai", "mit_tech_review",
     "venturebeat", "the_decoder", "marktechpost",
     "ai_business", "siliconangle", "tnw", "techxplore_ai", "toms_hardware",
+    "the_register_ai", "infoq_ai",
 }
 
 # 카테고리 분류 대상 소스 (Tier 1 + Tier 2 + Tier 2+)
@@ -217,10 +233,11 @@ CATEGORY_SOURCES = {
     "arstechnica_ai", "the_rundown_ai",
     "ai_business", "siliconangle", "ieee_spectrum_ai",
     "tnw", "techxplore_ai", "toms_hardware",
+    "the_register_ai", "infoq_ai",
 }
 
 # CATEGORY_SOURCES 중 AI 전문 피드가 아닌 소스 → LLM AI 필터 적용
-NEEDS_AI_FILTER = {"toms_hardware"}  # Tom's Hardware: 범용 RSS 피드라 비AI 기사 필터 필요
+NEEDS_AI_FILTER = {"toms_hardware", "infoq_ai"}  # Tom's Hardware: 범용 RSS 피드, InfoQ AI: ~60-70% AI 관련
 
 # 소스별 섹션 (한국 소스)
 SOURCE_SECTION_SOURCES = {

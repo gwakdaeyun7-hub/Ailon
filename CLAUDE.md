@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**AILON** (AI Insight Linked On Network) is a bilingual (Korean/English) AI news curation and interdisciplinary learning mobile app developed by 정다윗 (David Jung). It collects AI news from 22 sources, processes them through a LangGraph pipeline (translate, summarize, categorize, rank, extract entities), and delivers curated content via a React Native mobile app. A secondary pipeline delivers daily "principle" content (curated 전용 — 45개 사전 작성 콘텐츠) linking academic disciplines to AI concepts.
+**AILON** (AI Insight Linked On Network) is a bilingual (Korean/English) AI news curation and interdisciplinary learning mobile app developed by 정다윗 (David Jung). It collects AI news from 24 sources, processes them through a LangGraph pipeline (translate, summarize, categorize, rank, extract entities), and delivers curated content via a React Native mobile app. A secondary pipeline delivers daily "principle" content (curated 전용 — 45개 사전 작성 콘텐츠) linking academic disciplines to AI concepts.
 
 ## Architecture
 
@@ -75,7 +75,7 @@ cd ../functions && firebase deploy --only functions
 
 ## Pipeline & Backend
 
-> **상세 내용은 [`scripts/CLAUDE.md`](scripts/CLAUDE.md)로 분리됨** — News Pipeline (8-node), Principle Pipeline (curated 전용, 5-node), News Sources (22개, 3 tiers), Key Constants, Classification Categories, Article Summary Structure, Post-Pipeline Features, Firestore Collections, GitHub Actions, Push Notifications, CI Logging, LLM Usage 참조
+> **상세 내용은 [`scripts/CLAUDE.md`](scripts/CLAUDE.md)로 분리됨** — News Pipeline (8-node), Principle Pipeline (curated 전용, 5-node), News Sources (24개, 3 tiers), Key Constants, Classification Categories, Article Summary Structure, Post-Pipeline Features, Firestore Collections, GitHub Actions, Push Notifications, CI Logging, LLM Usage 참조
 
 ---
 
@@ -84,7 +84,7 @@ cd ../functions && firebase deploy --only functions
 ### What's Done
 - 5-tab mobile app (news feed, snaps, lab [45개 시뮬레이션], saved, profile)
 - All interactions: likes, comments, bookmarks (news/principle), share, TTS, glossary highlight, saved tab AI 요약 모달
-- LangGraph news pipeline (8 nodes, 22 sources, EN/KO parallel)
+- LangGraph news pipeline (8 nodes, 24 sources, EN/KO parallel)
 - Principle pipeline (curated 전용 — 11 disciplines, 4 super categories, 45개 사전 작성 콘텐츠, LLM 생성 비활성화)
 - Post-pipeline: briefing, glossary, timeline, related articles
 - Auth (Google), dark mode, bilingual (KO/EN), push notifications

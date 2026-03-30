@@ -3,7 +3,7 @@
 
 collector --> [en_process, ko_process] (병렬 Send) --> categorizer --> ranker --> entity_extractor --> selector --> assembler
 
-1. collector:          22개 소스 수집 + 이미지/본문 통합 스크래핑 + LLM AI 필터
+1. collector:          24개 소스 수집 + 이미지/본문 통합 스크래핑 + LLM AI 필터
 2. en_process:         영어 기사 번역+요약 (thinking 비활성화, 배치 5)  -- 병렬
 3. ko_process:         한국어 기사 요약 (thinking 비활성화, 배치 2)     -- 병렬
 4. categorizer:        LLM 카테고리 분류 (research / models_products / industry_business)

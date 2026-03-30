@@ -23,10 +23,10 @@ LangGraph 8-node pipeline with parallel EN/KO branches:
 | selector | Highlight Top 3 + Category Top 20 + 미요약 제외 | today articles only for highlights. one_line 없는 기사 제외 |
 | assembler | Final structure + timing report | Korean sources in separate sections. one_line 없는 기사 소스 섹션에서도 제외 |
 
-### News Sources (22 total, 3 tiers)
+### News Sources (24 total, 3 tiers)
 
-**Tier 1 (12 EN sources)** — HIGHLIGHT_SOURCES + CATEGORY_SOURCES, 하이라이트 후보 + 카테고리 분류, Tom's Hardware만 AI 필터 적용 (범용 RSS 피드):
-Wired AI, TechCrunch AI, The Verge AI, MIT Tech Review, VentureBeat, MarkTechPost, The Decoder, AI Business, SiliconANGLE, The Next Web, TechXplore AI, Tom's Hardware
+**Tier 1 (14 EN sources)** — HIGHLIGHT_SOURCES + CATEGORY_SOURCES, 하이라이트 후보 + 카테고리 분류, Tom's Hardware·InfoQ AI만 AI 필터 적용:
+Wired AI, TechCrunch AI, The Verge AI, MIT Tech Review, VentureBeat, MarkTechPost, The Decoder, AI Business, SiliconANGLE, The Next Web, TechXplore AI, Tom's Hardware, The Register AI, InfoQ AI
 
 **Tier 2 (6 EN sources)** — CATEGORY_SOURCES only (하이라이트 제외), AI 필터 없음:
 Google DeepMind, NVIDIA, Hugging Face, Ars Technica AI, The Rundown AI, IEEE Spectrum AI
