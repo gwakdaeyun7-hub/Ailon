@@ -263,13 +263,8 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
           borderTopRightRadius: 20,
           maxHeight: '85%',
         }} accessibilityViewIsModal={true} accessibilityLabel={articleTitle}>
-          {/* 드래그 핸들 */}
-          <View style={{ alignItems: 'center', paddingTop: 12 }}>
-            <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: colors.border }} />
-          </View>
-
-          {/* X 닫기 버튼 */}
-          <View style={{ flexDirection: 'row', justifyContent: 'flex-end', paddingTop: 8, paddingBottom: 12, paddingHorizontal: 20 }}>
+          {/* X 닫기 버튼 (좌) + 날짜 (우) */}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, paddingBottom: 8, paddingHorizontal: 20 }}>
             <Pressable
               onPress={onClose}
               accessibilityLabel={t('modal.close')}
@@ -278,6 +273,7 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
             >
               <X size={16} color={colors.textSecondary} />
             </Pressable>
+            <Text style={{ fontSize: 12, color: colors.textDim, fontWeight: '500' }}>{formatDate(article.published, lang, article.date_estimated)}</Text>
           </View>
 
           <ScrollView
@@ -296,7 +292,7 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
               />
             ) : null}
 
-            {/* F-Minimal: 소스 뱃지 + 읽기시간 + 날짜(right) */}
+            {/* F-Minimal: 소스 뱃지 + 읽기시간(right) */}
             <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', paddingHorizontal: 20, paddingTop: 20, gap: 6 }}>
               {(() => {
                 const sk = article.source_key || article.source;
@@ -307,11 +303,10 @@ function ArticleSummaryContent({ article, onClose, onOpenComments }: { article: 
                   </View>
                 );
               })()}
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginLeft: 'auto' }}>
                 <Clock size={11} color={colors.textDim} strokeWidth={2} />
                 <Text style={{ fontSize: 11, color: colors.textDim }}>{readMin}{lang === 'ko' ? '분' : ' min'}</Text>
               </View>
-              <Text style={{ fontSize: 11, color: colors.textDim, marginLeft: 'auto' }}>{formatDate(article.published, lang, article.date_estimated)}</Text>
             </View>
 
             {/* 제목 — 세리프 22px, weight 900 */}
