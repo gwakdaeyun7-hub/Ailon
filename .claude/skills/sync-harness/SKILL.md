@@ -86,26 +86,43 @@ user-invocable: true
 
 ### Phase 4: 커밋 + 푸시
 
-1. 수정된 하네스 파일만 staging:
-   ```
-   git add CLAUDE.md scripts/CLAUDE.md mobile/CLAUDE.md .claude/agents/*.md .claude/hooks/*.sh .claude/skills/*/SKILL.md
-   ```
-   (실제 변경된 파일만 add)
+현재 세션에서 변경된 **모든 파일** (코드 + 하네스)을 커밋하고 푸시합니다.
 
-2. 커밋 메시지 형식:
-   ```
-   chore: sync harness files with session changes
+1. **변경 파일 확인**: `git status --short`로 현재 세션의 변경 파일 목록 확인
+2. **코드 변경 커밋** (하네스 외 변경이 있는 경우):
+   - 현재 세션에서 변경된 코드 파일만 staging (`.env`, credentials 등 민감 파일 제외)
+   - 커밋 메시지 형식:
+     ```
+     {type}: {변경 내용 요약}
 
-   Updated:
-   - {파일1}: {변경 요약}
-   - {파일2}: {변경 요약}
+     {상세 설명 (필요시)}
 
-   Triggered by changes to: {변경된 코드 영역 요약}
+     Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
+     ```
+   - `{type}`은 변경 성격에 맞게: feat, fix, refactor, chore 등
 
-   Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
-   ```
+3. **하네스 변경 커밋** (Phase 3에서 수정이 발생한 경우):
+   - 수정된 하네스 파일만 staging:
+     ```
+     git add CLAUDE.md scripts/CLAUDE.md mobile/CLAUDE.md .claude/agents/*.md .claude/hooks/*.sh .claude/skills/*/SKILL.md
+     ```
+     (실제 변경된 파일만 add)
+   - 커밋 메시지 형식:
+     ```
+     chore: sync harness files with session changes
 
-3. `git push origin main` 실행
+     Updated:
+     - {파일1}: {변경 요약}
+     - {파일2}: {변경 요약}
+
+     Triggered by changes to: {변경된 코드 영역 요약}
+
+     Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
+     ```
+
+4. **푸시**: `git pull --rebase` 후 `git push origin main` 실행
+
+**범위 제한**: `git diff HEAD`와 `git status`에 나타나는 현재 세션 변경사항만 대상. 이미 커밋된 이전 세션의 변경은 건드리지 않음.
 
 ### Phase 5: 결과 보고
 
@@ -123,7 +140,8 @@ user-invocable: true
 | scripts/CLAUDE.md | Pipeline | en_process 노드 설정 변경 반영 |
 
 ### Git
-- Commit: {hash} — {message}
+- Code commit: {hash} — {message} ({N}개 파일)
+- Harness commit: {hash} — {message} ({M}개 파일)
 - Pushed to: origin/main
 ```
 
@@ -137,8 +155,8 @@ user-invocable: true
 ## push-only 모드
 
 `/sync-harness push-only` 실행 시:
-- Phase 1~3 스킵
-- 이미 수정된 하네스 파일(git status에서 modified인 `.claude/`, `**/CLAUDE.md`)만 커밋+푸시
+- Phase 1~3 스킵 (변경 분석 + 하네스 수정 안 함)
+- 현재 세션의 모든 변경 파일 (코드 + 하네스) 커밋+푸시
 - Phase 4~5 실행
 
 ## 주의사항

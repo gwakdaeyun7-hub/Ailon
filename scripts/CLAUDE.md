@@ -115,7 +115,7 @@ date_estimated                   — RSS/스크래핑에서 날짜 추출 실패
 |---------|--------|-------------|
 | save_articles | `articles/{id}` | Individual article docs (SHA256 URL hash) |
 | find_related | `related_ids` | Top 3 related by entity+cluster+category matching |
-| daily_briefing | `daily_briefings/{date}` | 2-3 min AI briefing (KO+EN), story_count, domain_stats (highlights+categorized Top 5+Others), hot_topics (tags_en 기반 영어 통일, 원본 케이스 보존, 태그 빈도 Top 8, 블랙리스트 제외, subtag merging), trend_history (research 카테고리 기사 수 7일 추이) |
+| daily_briefing | `daily_briefings/{date}` | 2-3 min AI briefing (KO+EN), story_count, domain_stats (highlights+categorized Top 5+Others), hot_topics (tags_en 기반 영어 통일, 원본 케이스 보존, 태그 빈도 Top 8, 블랙리스트 제외, subtag merging), trend_history (research 카테고리 기사 수 14일 추이) |
 | glossary | `glossary_terms/{term}` | Accumulated terms across articles |
 | timeline | `timeline_ids` | Links to similar articles from past 90 days |
 | patch_daily_news | `daily_news/{date}` | Reflects related_ids/timeline_ids back |
